@@ -160,11 +160,25 @@
             "collapse": "Collapse"
         },
         "graph-view": {
-            "histo": "Histogram",
-            "curve": "LineChart",
-            "stack": "Stack",
-            "over": "UnStack",
-            "info": "Click on the legend to show images of all datapoints"
+            "chart_line": "Lines",
+            "chart_area": "Areas",
+            "chart_bar": "Bars",
+            "stack": "Stack the series on top of each other",
+            "thumbnails": "Show a thumbnail on each data point",
+            "thumbnails_grouped": "Thumbnails need a single series, stacked bars, or a line chart",
+            "images": "Images",
+            "other": "Other",
+            "no_value": "No value",
+            "total_images": "{count} images",
+            "selected": "{count} selected",
+            "hint": "Click or drag across the chart to select images · Shift to add, Alt to remove · Scroll to zoom",
+            "no_grouping": "Group the images to draw a chart",
+            "no_grouping_hint": "Pick a property in the group menu: the first level becomes the X axis, a second level becomes one series per value.",
+            "loading": "Grouping images…",
+            "empty": "Nothing to chart in this collection",
+            "folded": "{count} smaller values grouped as \"Other\"",
+            "ignored_levels": "Only the first two grouping levels are charted",
+            "skipped_no_value": "{count} images without a value are not shown"
         }
     },
     "modals": {

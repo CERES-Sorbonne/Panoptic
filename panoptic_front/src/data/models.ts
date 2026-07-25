@@ -275,6 +275,9 @@ export interface ViewState {
     mapOptions: MapOptions
     recoOptions: RecoOptions
     clusterOptions: ClusterOptions
+    // Optional so tabs persisted before the graph view had options still load (the view
+    // fills it in on first render). Do not make it required without a TAB_MODEL_VERSION bump.
+    graphOptions?: GraphOptions
     showProperties: boolean
     // Which collection (filter/sort/group pipeline) this view renders. Two views
     // may share one collectionId (computed once) or reference different ones.
@@ -334,6 +337,14 @@ export interface RecoOptions {
 // currently shown so the selection survives re-renders.
 export interface ClusterOptions {
     selectedGroupId: number | null
+}
+
+// Per-view options for the graph view: how the grouped counts are drawn.
+export interface GraphOptions {
+    chartType: 'line' | 'area' | 'bar'
+    stacked: boolean
+    // Draw one thumbnail per data point, on top of the marks.
+    showThumbnails: boolean
 }
 
 export interface TabData {

@@ -165,11 +165,25 @@
             "collapse": "Réduire"
         },
         "graph-view": {
-            "histo": "Histogramme",
-            "curve": "Courbe",
-            "stack": "Empiler",
-            "over": "Superposer",
-            "info": "Cliquez sur la légende pour afficher les images de tous les points"
+            "chart_line": "Courbes",
+            "chart_area": "Aires",
+            "chart_bar": "Barres",
+            "stack": "Empiler les séries",
+            "thumbnails": "Afficher une vignette sur chaque point",
+            "thumbnails_grouped": "Les vignettes demandent une seule série, des barres empilées ou une courbe",
+            "images": "Images",
+            "other": "Autres",
+            "no_value": "Sans valeur",
+            "total_images": "{count} images",
+            "selected": "{count} sélectionnées",
+            "hint": "Cliquez ou glissez sur le graphique pour sélectionner des images · Maj pour ajouter, Alt pour retirer · Molette pour zoomer",
+            "no_grouping": "Groupez les images pour dessiner un graphique",
+            "no_grouping_hint": "Choisissez une propriété dans le menu de groupes : le premier niveau devient l'axe X, un second niveau devient une série par valeur.",
+            "loading": "Groupement des images…",
+            "empty": "Rien à représenter dans cette collection",
+            "folded": "{count} valeurs plus petites regroupées dans « Autres »",
+            "ignored_levels": "Seuls les deux premiers niveaux de groupes sont représentés",
+            "skipped_no_value": "{count} images sans valeur ne sont pas affichées"
         }
     },
     "modals": {

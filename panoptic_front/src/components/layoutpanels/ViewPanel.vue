@@ -135,6 +135,7 @@ onUnmounted(() => {
                 v-if="tab && view && collection && view.type == 'graph' && dimensions.height > 0"
                 :collection="collection"
                 :height="dimensions.height - 15"
+                :view="view"
             />
 
             <MapView

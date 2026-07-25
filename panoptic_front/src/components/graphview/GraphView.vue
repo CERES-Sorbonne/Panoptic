@@ -1,174 +1,210 @@
-<script setup lang="ts">
-import { CollectionManager } from '@/core/CollectionManager';
-import { Group, GroupIterator } from '@/core/GroupManager';
-import { useDataStore } from '@/data/dataStore';
-import { useColumnStore } from '@/data/columnStore';
-import { PropertyType } from '@/data/models';
-import { ref, computed, onMounted, watch } from 'vue'
-import LineChart from './LineChart.vue'
-import InstanceData from '@/components/data/InstanceData.vue'
+<!--
+  Graph view: draws the collection's grouping as a chart.
 
-const dataStore = useDataStore()
+  The first grouping level becomes the x axis (a time axis for dates, a numeric axis for
+  numbers, categories for anything else) and the second becomes one series per value. This
+  component owns the state around the chart — options, instance loading, empty states and
+  what a selection on the chart means — while LineChart.vue owns the drawing and the pointer
+  handling, and chartModel.ts the translation from group tree to chart data.
+-->
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { CollectionManager } from '@/core/CollectionManager'
+import { useColumnStore } from '@/data/columnStore'
+import { useDataStore } from '@/data/dataStore'
+import { GraphOptions, ViewState } from '@/data/models'
+import { createGraphOptions } from '@/data/builder'
+import InstanceData from '@/components/data/InstanceData.vue'
+import LineChart from './LineChart.vue'
+import ChartToolbar from './ChartToolbar.vue'
+import ChartTooltip from './ChartTooltip.vue'
+import {
+    bucketInstanceIds, buildChartModel, thumbnailsAvailable, ChartModel, ChartErrorKind,
+} from './chartModel'
+
+/** Thumbnails shown in the hover readout (a 5-wide grid, two rows). */
+const TOOLTIP_IMAGES = 10
+const TOOLBAR_HEIGHT = 28
+const FOOTER_HEIGHT = 18
+
+const { t } = useI18n()
 const columnStore = useColumnStore()
+const dataStore = useDataStore()
+
 const props = defineProps<{
     collection: CollectionManager
     height: number
+    /** Display options live on the view when there is one, so they persist with the tab. */
+    view?: ViewState
 }>()
-const emits = defineEmits([])
-const error = ref("")
 
-const chartData = ref<{ series: any[]; xValues: number[]; dataType: PropertyType } | null>(null)
+// Fallback for callers with no view state; also the target while an older persisted view has
+// no graphOptions yet.
+const fallbackOptions = ref<GraphOptions>(createGraphOptions())
 
-const chartInstanceIds = computed(() => {
-    if (!chartData.value || !chartData.value.series) return []
-    const ids = new Set<number>()
-    for (const series of chartData.value.series) {
-        for (const point of series.data) {
-            if (point.instanceIds) {
-                for (const id of point.instanceIds) ids.add(id)
-            }
-        }
-    }
-    return Array.from(ids)
-})
+const options = computed<GraphOptions>(() => props.view?.graphOptions ?? fallbackOptions.value)
 
-const chartPropIds = computed(() => {
-    const sha1Id = columnStore.systemProps.SHA1
-    return sha1Id ? [sha1Id] : []
-})
+watch(() => props.view, view => {
+    if (view && !view.graphOptions) view.graphOptions = createGraphOptions()
+}, { immediate: true })
 
-function getAllPropValues() {
-    const allPropValues = new Set();
-    let it: GroupIterator = props.collection.getGroupIterator()
-    while (it) {
-        const group = it.group
-        // on est root
-        if (group.id === 0 || (group.meta.propertyValues && group.meta.propertyValues[0].value == undefined)) {
-            it = it.nextGroup()
-            continue
-        }
-        // on est une date, on parcourt tous les enfants
-        for (let child of group.children) {
-            allPropValues.add(child.meta.propertyValues[0].value)
-        }
-        group.children.forEach(() => it = it.nextGroup())
-        it = it.nextGroup()
-    }
-    return allPropValues;
+// ── Chart data ───────────────────────────────────────────────────────────────
+const model = ref<ChartModel | null>(null)
+const error = ref<ChartErrorKind | null>(null)
+
+function rebuild() {
+    const result = buildChartModel(
+        props.collection,
+        {
+            count: t('main.graph-view.images'),
+            other: t('main.graph-view.other'),
+            noValue: t('main.graph-view.no_value'),
+        },
+        { properties: dataStore.properties, tags: dataStore.tags, instanceIds: columnStore.instanceIds() },
+    )
+    model.value = result.model ?? null
+    error.value = result.error ?? null
 }
 
-function computeSeries() {
-    if (!props.collection.hasResult()) return null
+// The version tick is the result-change signal (note §3, step 1).
+watch(() => [props.collection, props.collection.version.value], rebuild, { immediate: true })
 
-    const res: { [key: string | number]: { [key: string]: any } } = {}
-    let allPropValues;
-    let properties = props.collection.groupState.groupBy
+// ── Instance loading ─────────────────────────────────────────────────────────
+const hoverIndex = ref<number | null>(null)
 
-    if (properties.length === 0) {
-        error.value = "Choose at least one date or numeric value to group the images by"
-        return null
-    }
-    const firstProp = dataStore.properties[properties[0]]
-    if (!firstProp) return null
-    const firstPropType = firstProp.type
+const hoverIds = computed(() => {
+    const bucket = model.value && hoverIndex.value !== null ? model.value.buckets[hoverIndex.value] : null
+    return bucket ? bucketInstanceIds(bucket, TOOLTIP_IMAGES, columnStore.instanceIds()) : []
+})
 
-    if (properties.length > 2) {
-        error.value = "Only max two levels of grouping are supported"
-        return null
-    }
-    else if (properties.length === 1) {
-        res[firstProp.name] = { name: firstProp.name, data: [] }
-    }
-    else {
-        // pre-compute all prop values to fill empty groups with 0 
-        allPropValues = Array.from(getAllPropValues())
-        if(allPropValues.length > 20){
-            error.value = "Too many curves to draw, select a subgrouping with less than 20 possible values"
-            return null
-        }
-    }
-    if (firstPropType !== PropertyType.number && firstPropType !== PropertyType.date) {
-        error.value = "First level of grouping needs to be a date or a numeric property"
-        return null
-    }
+// One instance per data point for the on-chart thumbnails, plus the hovered bucket's strip.
+const instanceIds = computed(() => [...(model.value?.sampleIds ?? []), ...hoverIds.value])
 
-    const sha1PropId = columnStore.systemProps.SHA1
-    const getInstanceIds = (slots: number[]) => {
-        return slots.slice(0, 20).map(s => columnStore.instanceIds()[s])
-    }
+const propIds = computed(() => {
+    const sha1 = columnStore.systemProps.SHA1
+    return sha1 ? [sha1] : []
+})
 
-    let it: GroupIterator = props.collection.getGroupIterator()
-    const xValues = []
-    while (it) {
-        const group: Group = it.group
-        if (group.id === 0 || (group.meta.propertyValues && group.meta.propertyValues[0].value == undefined)) {
-            it = it.nextGroup()
-            continue
-        }
-        let propValue = group.meta.propertyValues[0]
-        // convert date to a Date object if prop is a date
-        const xValue = firstPropType === PropertyType.date ? new Date(propValue.value).getTime() : propValue.value
-        xValues.push(xValue)
-        if (firstProp.name in res) {
-            const ids = getInstanceIds(group.slots)
-            res[firstProp.name].data.push({ x: xValue, y: group.slots.length, instanceIds: ids })
-        }
-        else {
-            const childValues = group.children.map(el => el.meta.propertyValues[0].value)
-            const missingValues = allPropValues.filter(el => !childValues.includes(el))
-            for (let child of group.children) {
-                const childValue = child.meta.propertyValues[0].value
-                if (res[childValue] === undefined) {
-                    let value = childValue
-                    // check if it's a tag or not
-                    if (childValue in dataStore.tags) {
-                        value = dataStore.tags[childValue].value
-                    }
-                    res[childValue] = { data: [], name: value }
-                }
-                const childIds = getInstanceIds(child.slots)
-                res[child.meta.propertyValues[0].value].data.push({ x: xValue, y: child.slots.length, instanceIds: childIds })
-            }
-            // console.log(xValue, missingValues)
-            for (let missing of missingValues) {
-                if (res[missing] === undefined) {
-                    let value = missing
-                    // check if it's a tag or not
-                    if (missing in dataStore.tags) {
-                        value = dataStore.tags[missing].value
-                    }
-                    res[missing] = { data: [], name: value }
-                }
-                res[missing].data.push({ x: xValue, y: 0, images: [] })
-            }
-            group.children.forEach(() => it = it.nextGroup())
-        }
-        it = it.nextGroup()
-    }
+// ── Selection ────────────────────────────────────────────────────────────────
+const namespace = computed(() => props.collection.selectionNamespace)
 
-    error.value = ""
-    return {
-        series: Object.values(res),
-        xValues: xValues,
-        dataType: firstPropType
-    }
+const selectedCount = computed(() => {
+    columnStore.selectionTick(namespace.value)
+    return columnStore.selectedCount(namespace.value)
+})
+
+function onSelect({ slots, mode }: { slots: number[]; mode: 'replace' | 'add' | 'remove' }) {
+    const ns = namespace.value
+    if (mode === 'remove') { columnStore.deselect(slots, ns); return }
+    if (mode === 'replace') columnStore.clearSelection(ns)
+    columnStore.select(slots, ns)
 }
 
-// React to result changes via the version tick (note §3, step 1).
-watch(() => props.collection.version.value, () => chartData.value = computeSeries())
+function clearSelection() {
+    columnStore.clearSelection(namespace.value)
+}
 
-onMounted(() => {
-    chartData.value = computeSeries()
+// ── Layout / messages ────────────────────────────────────────────────────────
+const chartHeight = computed(() => Math.max(120, props.height - TOOLBAR_HEIGHT - FOOTER_HEIGHT))
+
+const notes = computed(() => {
+    const current = model.value
+    if (!current) return []
+    const list: string[] = []
+    if (current.ignoredLevels > 0) list.push(t('main.graph-view.ignored_levels'))
+    if (current.foldedSeries > 0) list.push(t('main.graph-view.folded', { count: current.foldedSeries }))
+    if (current.skippedNoValue > 0) list.push(t('main.graph-view.skipped_no_value', { count: current.skippedNoValue }))
+    return list
 })
 </script>
 
 <template>
-    <InstanceData :instance-ids="chartInstanceIds" :prop-ids="chartPropIds">
-        <div class="" :style="{ height: props.height + 'px' }">
-            <line-chart :chartData="chartData" :height="(props.height - 50) + 'px'" v-if="error === '' && chartData" />
-            <span v-else>{{ error }}</span>
+    <InstanceData :instance-ids="instanceIds" :prop-ids="propIds">
+        <div class="graph-view" :style="{ height: props.height + 'px' }">
+            <template v-if="model">
+                <ChartToolbar :options="options" :series-count="model.series.length" :total="model.total"
+                    :selected="selectedCount" :thumbnails-available="thumbnailsAvailable(model, options)"
+                    @clear-selection="clearSelection" />
+
+                <LineChart :model="model" :options="options" :namespace="namespace" :height="chartHeight"
+                    @hover="hoverIndex = $event" @select="onSelect">
+                    <template #tooltip="{ bucket, rows }">
+                        <ChartTooltip :title="bucket.label" :total="bucket.count" :rows="rows"
+                            :instance-ids="hoverIds" :more="Math.max(0, bucket.count - hoverIds.length)" />
+                    </template>
+                </LineChart>
+
+                <div class="footer">
+                    <span class="hint">{{ $t('main.graph-view.hint') }}</span>
+                    <span v-for="note in notes" :key="note" class="note">
+                        <i class="bi bi-info-circle"></i> {{ note }}
+                    </span>
+                </div>
+            </template>
+
+            <!-- Empty states: say what the view needs, not that something failed. -->
+            <div v-else class="empty">
+                <template v-if="error === 'no-grouping'">
+                    <i class="bi bi-bar-chart-line empty-icon"></i>
+                    <div class="empty-title">{{ $t('main.graph-view.no_grouping') }}</div>
+                    <div class="empty-hint">{{ $t('main.graph-view.no_grouping_hint') }}</div>
+                </template>
+                <template v-else-if="error === 'empty'">
+                    <div class="empty-title">{{ $t('main.graph-view.empty') }}</div>
+                </template>
+                <div v-else class="empty-hint">{{ $t('main.graph-view.loading') }}</div>
+            </div>
         </div>
     </InstanceData>
 </template>
 
-<style scoped></style>
+<style scoped>
+.graph-view {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 18px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.note {
+    color: var(--grey-text);
+}
+
+.empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--grey-text);
+}
+
+.empty-icon {
+    font-size: 22px;
+    color: var(--text-tertiary);
+}
+
+.empty-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.empty-hint {
+    font-size: 11px;
+    max-width: 380px;
+    text-align: center;
+}
+</style>

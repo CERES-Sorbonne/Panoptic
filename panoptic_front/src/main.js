@@ -17,7 +17,6 @@ import 'vue3-tour/dist/vue3-tour.css'
 // import VueFinder from './components/vuefinder/src/index.js'
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
-import VueApexCharts from "vue3-apexcharts";
 
 export const i18n = createI18n({
     legacy: false,
@@ -31,7 +30,6 @@ const pinia = createPinia()
 const app = createApp(App)
 app.use(pinia)
 app.use(VueVirtualScroller)
-app.use(VueApexCharts)
 
 import router from './router'
 app.use(router)
