@@ -8,7 +8,6 @@ import { Group, IteratorHost } from "./types";
 
 export interface GroupIteratorOptions {
     ignoreClosed?: boolean
-    onlyPropertyGroups?: boolean
 }
 
 export class GroupIterator {

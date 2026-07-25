@@ -63,6 +63,13 @@ const scoreInterval: Reactive<ScoreInterval> = reactive({
 
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
 
+// The group tree is plain, non-reactive data — `version` is the change signal. Without
+// reading it the template caches hasResult() === false from the first render and the
+// select circle only appeared when something else re-rendered this component.
+const hasGroupResult = computed(() => (similarGroup.version.value, similarGroup.hasResult()))
+const rootSelected = computed(() => hasGroupResult.value && similarGroup.isGroupSelected(similarGroup.result.root))
+const resultCount = computed(() => hasGroupResult.value ? similarGroup.result.root.children.length : 0)
+
 // Build the slot list + per-slot scores from a raw search result. The sha1
 // path does a single pass over the column-store arrays (O(slotCount)) instead
 // of one full scan per sha1 (getInstancesBySha1), so it scales to far larger
@@ -158,8 +165,9 @@ async function updateSimilarGroup() {
     }
 
     // `slots` may still be a reference to `searchSlots` when no filter ran;
-    // setAsRoot copies it, so that's safe.
-    await similarGroup.setAsRoot(buildGroup(0, slots, GroupType.Cluster))
+    // setAsRoot copies it, so that's safe. emit: the tree is plain data, so the
+    // version bump is what tells this template (and the scroller) to re-read it.
+    await similarGroup.setAsRoot(buildGroup(0, slots, GroupType.Cluster), true)
 
     if (scrollerElem.value) {
         scrollerElem.value.computeLines()
@@ -230,7 +238,7 @@ watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiSt
     <template v-else>
         <div class="bg-white">
             <div class="d-flex mb-1 flex-center" style="height: 25px;">
-                <SelectCircle v-if="similarGroup.hasResult()" :model-value="similarGroup.result.root.view.selected"
+                <SelectCircle v-if="hasGroupResult" :model-value="rootSelected"
                     @update:model-value="v => similarGroup.toggleAll()" style="margin-top: -1px;" />
                 <div class="sep ms-1 me-1"></div>
                 <wTT message="modals.image.main_filter_tooltip">
@@ -255,8 +263,8 @@ watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiSt
                     <wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT>
                 </div>
                 <div class="text-secondary">({{ scoreInterval.values[0] }} - {{ scoreInterval.values[1] }})</div>
-                <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">
-                    ({{ similarGroup.result.root.children.length }} images)
+                <div v-if="hasGroupResult" class="ms-2 text-secondary">
+                    ({{ resultCount }} images)
                 </div>
                 <div class="d-flex ms-3">
                     <wTT message="main.menu.image_size_tooltip" :click="false">

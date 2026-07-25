@@ -15,9 +15,15 @@ const props = defineProps<{
     images?: Instance[] | (() => Instance[])
     propertyIds?: number[],
     autoCall?: boolean,
-    noBorder?: boolean
+    noBorder?: boolean,
+    // Hand-off mode: instead of awaiting the action itself, the button emits `submit` with the
+    // chosen function + params and is done. Whoever owns the operation (the ClusterManager) runs
+    // it, so the result no longer depends on this button still being mounted. `busy` is then the
+    // pending state read back from that owner.
+    defer?: boolean,
+    busy?: boolean
 }>()
-const emits = defineEmits(['instances', 'groups', 'call'])
+const emits = defineEmits(['instances', 'groups', 'call', 'submit'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
@@ -53,8 +59,16 @@ function loadInput() {
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
 
+const pending = computed(() => props.defer ? !!props.busy : loading.value)
+
 async function call() {
-    if (loading.value) return
+    if (pending.value) return
+
+    if (props.defer) {
+        emits('submit', { funcId: localFunction.value, inputs: localInputs.value, hook: props.action })
+        return
+    }
+
     const imgs = typeof props.images === 'function' ? props.images() : (props.images ?? [])
 
     loading.value = true
@@ -107,7 +121,7 @@ watch(localFunction, loadInput)
     <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
         <template #button>
             <div class="d-flex main2" :class="{ sbb: !props.noBorder, sb: props.noBorder }">
-                <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+                <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <wTT :message="'dropdown.action.' + props.action" class="slot-wrap">

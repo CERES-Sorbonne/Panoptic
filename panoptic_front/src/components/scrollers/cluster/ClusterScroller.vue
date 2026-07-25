@@ -34,7 +34,7 @@ const props = defineProps<{
     viewMode?: GroupViewMode
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
+const emit = defineEmits(['reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
@@ -328,7 +328,6 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         @unhover="hoverGroupBorder = -1"
                         @select-cluster="toggleClusterSelect"
                         @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
-                        @add-clusters="(id, groups) => emit('add-clusters', id, groups)"
                         @open-group="id => emit('open-group', id)"
                         @close-group="id => emit('close-group', id)"
                         @clear-clusters="id => emit('clear-clusters', id)"

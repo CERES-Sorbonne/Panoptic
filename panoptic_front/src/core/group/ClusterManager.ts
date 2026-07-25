@@ -4,6 +4,13 @@
  * and every structural cluster op (add / move / split / merge / delete / rename). Extracted
  * out of GroupManager so the engine stays a pure property-tree builder.
  *
+ * It also owns the clustering ACTION end to end (`cluster()`): resolving the target group's
+ * images, running the action function, and grafting the result. A caller — a button in a
+ * virtualized scroller line — only names the group and the function; it never awaits, never
+ * holds the result, and may unmount at any point without the clusters being lost. Pending
+ * state lives here too (`runs`, keyed by target group) so a remounted button renders the run
+ * it did not start.
+ *
  * It is the GroupOpsHost passed to group/groupOps.ts: it owns `customGroups` and delegates the
  * low-level tree-mutation primitives (setChildGroup / regsiterGroup / buildOrdinalRanges / …)
  * back to the tree layer via a ClusterOpsHost (the GroupManager). Typed against the interface,
@@ -18,8 +25,29 @@ import { ClusterOpsHost, GroupOpsHost, Group, GroupTree, GroupType } from "./typ
 import * as groupOps from "./groupOps";
 import { buildGroup } from "./builders";
 import { setOrder } from "./sort";
-import { getTmpId } from "@/utils/utils";
+import { EventEmitter, getTmpId } from "@/utils/utils";
 import { useColumnStore } from "@/data/columnStore";
+import { useActionStore } from "@/data/actionStore";
+import { ActionContext, ParamDescription } from "@/data/models";
+import { reactive } from "vue";
+
+// What a caller has to provide to cluster a group: the function to run and its parameters.
+// NOT the images — the target group defines the set, and the manager resolves it (below).
+export interface ClusterRequest {
+    funcId: string
+    inputs: ParamDescription[]
+    // Action hook the function was picked under ('group', 'execute', …). Only used to remember it
+    // as that hook's default; the grafting is the same whatever produced the groups.
+    hook?: string
+}
+
+// One in-flight (or last failed) clustering run, keyed by the group being clustered.
+export interface ClusterRun {
+    token: number
+    funcId: string
+    running: boolean
+    error?: string
+}
 
 export class ClusterManager implements GroupOpsHost {
     // parentGroupId → grafted groups. The single source of truth for the overlay.
@@ -29,7 +57,88 @@ export class ClusterManager implements GroupOpsHost {
     // the view no longer scans the index for it. Set when clustering; cleared on a groupBy change.
     emptyBucketId: number | null = null
 
+    // groupId → its clustering run. Reactive so a button can render its own spinner from state it
+    // does NOT own: unmount/remount a scroller line and the pending state is still there.
+    runs: Record<number, ClusterRun> = reactive({})
+
+    // Fired after a run's groups have been grafted: { targetGroupId, groups }. For view-local
+    // reactions that are meaningless when nobody is watching (highlighting the new cards).
+    onCluster = new EventEmitter()
+
+    private nextToken = 1
+
     constructor(private host: ClusterOpsHost) {}
+
+    // ── Clustering ────────────────────────────────────────────────────────────
+    // THE entry point for "cluster this group". Owns the whole operation — resolve the images,
+    // run the action, graft the result — so a caller's only responsibility is naming the target
+    // group and the function. In particular the await lives HERE, on an object with the tab's
+    // lifetime, not in the component that clicked: the clusters land whether or not the button
+    // (a virtualized scroller line) is still mounted when the backend answers.
+    async cluster(targetGroupId: number, req: ClusterRequest) {
+        const target = this.host.result?.index?.[targetGroupId]
+        if (!target) return
+
+        const token = this.nextToken++
+
+        // Clustering divides a LEAF: an existing cluster level is replaced (below), but a group
+        // already divided by a property cannot be clustered — graft it and groupOps.split would
+        // bail. Fail here rather than after a pointless round trip to the backend.
+        if ((target.children ?? []).some(c => c.type !== GroupType.Cluster)) {
+            this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: 'not-a-leaf' }
+            return
+        }
+
+        this.runs[targetGroupId] = { token, funcId: req.funcId, running: true }
+
+        try {
+            // The group IS the set: slots → instance ids, read here, never passed in.
+            const ids = useColumnStore().instanceIds()
+            const instanceIds = (target.slots ?? []).map(slot => ids[slot])
+            const ctx: ActionContext = { instanceIds }
+            const { groups } = await useActionStore().executeAction(req.funcId, req.hook ?? 'group', ctx, req.inputs)
+
+            // Superseded by a later run on the same group → its result is the current one.
+            if (this.runs[targetGroupId]?.token !== token) return
+            // The tree may have been rebuilt while we waited, so re-read the target rather than
+            // trusting the Group captured above; if it is gone, the result is stale — drop it.
+            if (!this.host.result?.index?.[targetGroupId]) {
+                this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: 'group-gone' }
+                return
+            }
+            if (!groups?.length) {
+                this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: 'no-groups' }
+                return
+            }
+
+            this.applyClusters(targetGroupId, groups)
+            delete this.runs[targetGroupId]
+            this.onCluster.emit({ targetGroupId, groups })
+        } catch (e) {
+            console.error(e)
+            if (this.runs[targetGroupId]?.token === token) {
+                this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: String(e) }
+            }
+        }
+    }
+
+    isClustering(groupId: number) { return this.runs[groupId]?.running === true }
+
+    // Graft a run's groups under their target — the single grafting policy, previously duplicated
+    // in each view's `addClusters` handler.
+    private applyClusters(targetGroupId: number, groups: Group[]) {
+        // Re-clustering replaces: `split` is leaf-only (groupOps.split bails on a group that
+        // already has children), so an existing cluster level has to be dropped first — the new
+        // run then takes its place instead of the action silently doing nothing.
+        const target = this.host.result.index[targetGroupId]
+        if ((target?.children ?? []).some(c => c.type === GroupType.Cluster)) {
+            this.delCustomGroups(targetGroupId, false)
+        }
+        this.split(targetGroupId, groups, true)
+        // A collapsed group stands in for its subtree, so clustering it would otherwise produce no
+        // visible change: force it open so the new sub-clusters replace its card right away.
+        this.host.openGroup(targetGroupId, true)
+    }
 
     // ── GroupOpsHost: delegate the tree-mutation primitives to the tree layer ──
     get result(): GroupTree { return this.host.result }
@@ -39,6 +148,7 @@ export class ClusterManager implements GroupOpsHost {
     buildOrdinalRanges() { this.host.buildOrdinalRanges() }
     applySha1Piles(only?: Iterable<Group>) { this.host.applySha1Piles(only) }
     emitResult() { this.host.emitResult() }
+    openGroup(groupId: number, emit?: boolean) { this.host.openGroup(groupId, emit) }
 
     // ── Structural cluster / custom-group operations ──────────────────────────
     addCustomGroups(targetGroupId: number, groups: Group[], emit?: boolean) {
@@ -61,9 +171,9 @@ export class ClusterManager implements GroupOpsHost {
         groupOps.clearCustomGroups(this, emit)
     }
 
-    // Divide a leaf group into `groups` — 'replace' (new siblings) or 'children' (nested).
-    split(groupId: number, groups: Group[], mode: 'replace' | 'children' = 'replace', emit = true) {
-        groupOps.split(this, groupId, groups, mode, emit)
+    // Divide a leaf group into `groups`, nested under it.
+    split(groupId: number, groups: Group[], emit = true) {
+        groupOps.split(this, groupId, groups, emit)
     }
 
     // Merge any groups into one Cluster group at the first group's position.
@@ -119,6 +229,10 @@ export class ClusterManager implements GroupOpsHost {
     clear() {
         this.customGroups = {}
         this.emptyBucketId = null
+        // In-flight runs target group ids that no longer mean anything; bumping the token makes
+        // their results stale (the token check in cluster() drops them).
+        for (const key of Object.keys(this.runs)) delete this.runs[key]
+        this.nextToken++
     }
 
     // ── Empty-bucket clustering + queue-drain (cluster_view_goals.md) ────────────

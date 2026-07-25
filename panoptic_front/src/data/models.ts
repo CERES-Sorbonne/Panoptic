@@ -249,7 +249,6 @@ export interface FolderIndex {
 
 export interface CollectionState {
     autoReload: boolean,
-    instances?: number[],
     filterBySelection?: boolean
 }
 

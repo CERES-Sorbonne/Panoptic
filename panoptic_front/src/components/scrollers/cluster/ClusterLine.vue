@@ -2,7 +2,7 @@
 import { ComputedRef, computed, inject, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import { ClusterLine, GroupViewMode, MOSAIC_GRID, mosaicSlotCount } from '@/data/models'
-import { GroupManager, Group, GroupType } from '@/core/GroupManager'
+import { ClusterRequest, GroupManager, Group, GroupType } from '@/core/GroupManager'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
 import CenteredImage from '@/components/images/CenteredImage.vue'
@@ -86,7 +86,7 @@ function mosaicTiles(group: Group, width: number) {
     }
 }
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
 
 const hoveredCard = ref<number | null>(null)
 
@@ -143,30 +143,16 @@ function hasClusterChildren(group: Group) {
 
 const highlightSet = computed(() => new Set(props.highlightIds ?? []))
 
-// Images of one cluster, for the clustering action (same shape as GroupLine.getImages).
-function getClusterImages(group: Group) {
-    const ids = columnStore.instanceIds()
-    const sha1s = columnStore.sha1s()
-    return (group.slots ?? []).map(slot => ({
-        id: ids[slot],
-        imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot],
-        sha1: sha1s[slot],
-    }))
+// Sub-divide a cluster. The card only names its group and the function to run: the collection's
+// ClusterManager owns the run and the grafting, so the result lands even if this card has been
+// recycled out of the virtualized list before the backend answers.
+function cluster(groupId: number, req: ClusterRequest) {
+    props.manager.cluster(groupId, req)
 }
 
-// Sub-divide a cluster: bubble the action's result up so the OWNING collection GroupManager
-// (not the cluster-view clone) attaches them — otherwise the split doesn't reach the normal
-// tree. The clone is rebuilt from the collection tree, so the cluster view still updates.
-function addClusters(groupId: number, groups: Group[]) {
-    emits('add-clusters', groupId, groups)
-}
-
+// Reactive via the namespace's selection tick, read inside isGroupSelected.
 function isSelected(group: Group) {
-    const ns = selectNamespace.value
-    columnStore.selectionTick(ns)
-    const slots = group.slots ?? []
-    if (!slots.length) return false
-    return !slots.some(slot => !columnStore.isSelected(slot, ns))
+    return props.manager.isGroupSelected(group)
 }
 
 // The value shown (and editable) in each card's input, ALWAYS on the current target property. Every
@@ -301,9 +287,9 @@ function groupScore(group: Group): number | null {
 
                 <!-- Hover action pill, centered over the image: subdivide · inspect · clear. -->
                 <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop>
-                    <ActionButton2 action="group" :no-border="true"
-                        :images="() => getClusterImages(entry.group)"
-                        @groups="g => addClusters(entry.group.id, g)">
+                    <ActionButton2 action="group" :no-border="true" :defer="true"
+                        :busy="props.manager.isClustering(entry.group.id)"
+                        @submit="req => cluster(entry.group.id, req)">
                         <!-- ActionButton2 wraps its slot in its own wTT ('dropdown.action.group'). -->
                         <div class="cc-btn">
                             <i class="bi bi-intersect" />

@@ -52,7 +52,6 @@ export interface Group {
 }
 
 export interface GroupView {
-    selected: boolean
     closed: boolean
 }
 
@@ -126,6 +125,9 @@ export interface ClusterOpsHost {
     // `only` limits the recompute to the given leaves; omitted = full rebuild.
     applySha1Piles(only?: Iterable<Group>): void
     emitResult(): void
+    // Needed by ClusterManager.cluster(): a clustered group is forced open so its new
+    // sub-clusters are actually visible.
+    openGroup(groupId: number, emit?: boolean): void
 }
 
 // What group/groupOps.ts needs: the tree primitives + the custom-group registry.

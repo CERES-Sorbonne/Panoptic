@@ -115,21 +115,22 @@ export class GroupNavigator {
         useColumnStore().deselectIds(imageIds, this.selectionNamespace)
     }
 
-    propagateUnselect(group: Group) {
-        group.view.selected = false
-        if (!group.parent) return
-        this.propagateUnselect(group.parent)
-    }
-
-    propagateSelect(group: Group) {
+    // Is every image of `group` selected in this navigator's namespace?
+    //
+    // The single read-side answer to "is this group selected". It used to be a cached
+    // `group.view.selected` flag maintained by a recursive propagateSelect — state on tree nodes
+    // that a rebuild replaces, and in practice never written, so the flag was permanently false.
+    // Derived instead: always correct, nothing to invalidate.
+    //
+    // Reads selectionTick first so a caller in a template/computed picks up a reactive dependency
+    // on this namespace's selection — the masks themselves are markRaw for speed.
+    // An empty group is NOT selected (`every` on an empty array would say it is).
+    isGroupSelected(group: Group): boolean {
         const col = useColumnStore()
-        if (group.children.length == 0) {
-            group.view.selected = group.slots.every(s => col.isSelected(s, this.selectionNamespace))
-        } else {
-            group.view.selected = group.children.every(g => g.view.selected)
-        }
-        if (!group.parent) return
-        this.propagateSelect(group.parent)
+        col.selectionTick(this.selectionNamespace)
+        const slots = group?.slots
+        if (!slots?.length) return false
+        return !slots.some(s => !col.isSelected(s, this.selectionNamespace))
     }
 
     selectGroup(group: Group) {

@@ -57,21 +57,6 @@ function attachChildAt(host: GroupOpsHost, parent: Group, group: Group, idx: num
     if (group.children.length === 0) indexLeaf(host, group)
 }
 
-// Splice `newGroups` into `parent.children` at `atIdx`, removing `removeCount` existing
-// children there (detached from all indexes). Reindexes parentIdx + subGroupType.
-export function spliceChildren(host: GroupOpsHost, parent: Group, atIdx: number, removeCount: number, newGroups: Group[]) {
-    const removed = parent.children.splice(atIdx, removeCount, ...newGroups)
-    for (const r of removed) detachSubtree(host, r)
-    for (const g of newGroups) {
-        g.parent = parent
-        g.depth = parent.depth + 1
-        host.regsiterGroup(g)
-        if (g.children.length === 0) indexLeaf(host, g)
-    }
-    for (let i = 0; i < parent.children.length; i++) parent.children[i].parentIdx = i
-    refreshSubGroupType(parent)
-}
-
 // Collect the union of every descendant instance slot of a group (dedup preserves order).
 function collectSlots(group: Group, out: number[], seen: Set<number>) {
     if (group.children.length === 0) {
@@ -171,26 +156,16 @@ export function clearCustomGroups(host: GroupOpsHost, emit?: boolean) {
 }
 
 // ── General group operations (Part 2) ───────────────────────────────────────
-// NOTE: merge / replace-split / delete are live edits only; they do not yet survive a full
-// group() rebuild (that's Phase 2b, the op-log). 'children' split reuses customGroups and
-// therefore does survive re-sort like a cluster.
+// NOTE: merge / delete are live edits only; they do not yet survive a full group() rebuild
+// (that's Phase 2b, the op-log). split reuses customGroups and therefore does survive re-sort
+// like a cluster.
 
-// Divide a LEAF group into `groups` (from a cluster function or a property division).
-// 'children' nests them under the leaf; 'replace' swaps the leaf for them at its own level.
-export function split(host: GroupOpsHost, groupId: number, groups: Group[], mode: 'replace' | 'children', emit = true) {
+// Divide a LEAF group into `groups` (from a cluster function or a property division): the new
+// groups are nested UNDER the leaf, so they inherit its value.
+export function split(host: GroupOpsHost, groupId: number, groups: Group[], emit = true) {
     const g = host.result.index[groupId]
     if (!g || g.children.length > 0 || !groups.length) return   // leaf-only
-
-    if (mode === 'children' || !g.parent) {
-        addCustomGroups(host, groupId, groups, emit)
-        return
-    }
-
-    spliceChildren(host, g.parent, g.parentIdx, 1, groups)
-    host.applySha1Piles()
-    setOrder(host.result.root)
-    host.buildOrdinalRanges()
-    if (emit) host.emitResult()
+    addCustomGroups(host, groupId, groups, emit)
 }
 
 // Merge any groups (possibly under different parents) into one Cluster group placed where

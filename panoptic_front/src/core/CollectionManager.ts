@@ -8,7 +8,7 @@
 import { CollectionState } from "@/data/models";
 import { FilterContext, FilterManager, FilterState } from "./FilterManager";
 import { SortManager, SortState } from "./SortManager";
-import { GroupManager, GroupState, Group, GroupIteratorOptions } from "./GroupManager";
+import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest } from "./GroupManager";
 import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { useColumnStore } from "@/data/columnStore";
@@ -154,6 +154,8 @@ export class CollectionManager {
     toggleImageIterator(...args: Parameters<GroupManager['toggleImageIterator']>) { return this.groupManager.toggleImageIterator(...args) }
     selectImages(imageIds: number[]) { return this.groupManager.selectImages(imageIds) }
     unselectImages(imageIds: number[]) { return this.groupManager.unselectImages(imageIds) }
+    // Reactive in a template/computed (reads the namespace's selection tick internally).
+    isGroupSelected(group: Group) { return this.groupManager.isGroupSelected(group) }
 
     // Cluster / custom-group ops (delegate through to ClusterManager)
     addCustomGroups(targetGroupId: number, groups: Group[], emit?: boolean) { return this.groupManager.addCustomGroups(targetGroupId, groups, emit) }
@@ -161,7 +163,13 @@ export class CollectionManager {
     renameGroup(groupId: number, name: string, emit = true) { return this.groupManager.renameGroup(groupId, name, emit) }
     delCustomGroups(targetGroupId: number, emit?: boolean) { return this.groupManager.delCustomGroups(targetGroupId, emit) }
     clearCustomGroups(emit?: boolean) { return this.groupManager.clearCustomGroups(emit) }
-    split(groupId: number, groups: Group[], mode: 'replace' | 'children' = 'replace', emit = true) { return this.groupManager.split(groupId, groups, mode, emit) }
+    // Cluster a group. Fire-and-forget from the caller's point of view: the ClusterManager owns
+    // the run, so the result lands even if the button that started it is long unmounted.
+    cluster(targetGroupId: number, req: ClusterRequest) { return this.groupManager.cluster(targetGroupId, req) }
+    isClustering(groupId: number) { return this.groupManager.isClustering(groupId) }
+    get onCluster() { return this.groupManager.clusters.onCluster }
+
+    split(groupId: number, groups: Group[], emit = true) { return this.groupManager.split(groupId, groups, emit) }
     merge(groupIds: number[], emit = true) { return this.groupManager.merge(groupIds, emit) }
     delete(groupId: number, emit = true) { return this.groupManager.delete(groupId, emit) }
     // Cluster the empty bucket (adds a real leftover group) / drain an assigned pile — O(delta).
@@ -212,24 +220,16 @@ export class CollectionManager {
         // writing results.
         const token = ++this.runToken
 
-        const count       = col.slotCount()
-        const deleted     = col.deletedMask()
-        const instanceIds = col.instanceIds()
+        const count   = col.slotCount()
+        const deleted = col.deletedMask()
 
         // Build Int32Array of active slots — no Instance objects created. Written straight
         // into a pre-allocated typed array (slotCount is the exact upper bound) instead of a
         // boxed number[] + copy, which doubled peak memory on large collections.
         const buf = new Int32Array(count)
         let n = 0
-        if (this.state.instances) {
-            const allowed = new Set(this.state.instances)
-            for (let s = 0; s < count; s++) {
-                if (!deleted[s] && allowed.has(instanceIds[s])) buf[n++] = s
-            }
-        } else {
-            for (let s = 0; s < count; s++) {
-                if (!deleted[s]) buf[n++] = s
-            }
+        for (let s = 0; s < count; s++) {
+            if (!deleted[s]) buf[n++] = s
         }
 
         if (this.state.filterBySelection) {

@@ -6,7 +6,8 @@ import { objValues } from "./builder";
 import { useDataStore } from "./dataStore";
 import { useMediaStore } from "./mediaStore";
 import { convertClusterGroupResult, fileToBase64, sourceFromFunction } from "@/utils/utils";
-import { ClusterParam, Group } from "@/core/GroupManager";
+// Type-only: ClusterManager imports this store, so a value import would close an import cycle.
+import type { ClusterParam, Group } from "@/core/GroupManager";
 import { apiGetActions, apiGetAllUIData, apiSetUIDataBulk } from "./apiProjectRoutes";
 
 export const useActionStore = defineStore('actionStore', () => {

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Instance } from '@/data/models'
 import RangeInput from '../inputs/RangeInput.vue'
 import PointMapSelection from './PointMapSelection.vue'
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import { useI18n } from 'vue-i18n'
-import { Instance } from '@/data/models'
 import { useMediaStore } from '@/data/mediaStore'
 
 const { t } = useI18n()
@@ -19,8 +19,10 @@ const props = defineProps<{
     selectedMap: number | null
     colorOption: string
     hasMaps: boolean
+    // Images the 'map' action runs on (the collection's current content).
     images: Instance[]
-    mapImages?: Instance[]
+    // Pending state of the collection's clustering run — the button renders it but does not own it.
+    clustering?: boolean
 }>()
 
 const emits = defineEmits([
@@ -29,7 +31,7 @@ const emits = defineEmits([
     'update:showPoint',
     'update:selectedMap',
     'update:colorOption',
-    'clusters',
+    'cluster',
     'delete:map'
 ])
 
@@ -83,7 +85,8 @@ async function updateMap(event) {
         </div>
 
         <div v-if="props.colorOption === 'cluster'" class="toobar-item">
-            <ActionButton2 :images="props.mapImages ?? props.images" action="group" class="sb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @groups="clusters => emits('clusters', clusters)">
+            <ActionButton2 action="group" class="sb ps-1 pe-1" style="font-size: 14px;" :no-border="true"
+                :defer="true" :busy="props.clustering" @submit="req => emits('cluster', req)">
                 <i class="bi bi-intersect" />
             </ActionButton2>
         </div>

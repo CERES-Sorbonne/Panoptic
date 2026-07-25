@@ -4,8 +4,8 @@ import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
-import { Group, GroupManager, GroupTree, GroupType, buildGroup } from '@/core/GroupManager'
-import { DbCommit, GroupLine, GroupResult, ImagePropertyValue, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Sha1ToInstances, Tag, buildTag } from '@/data/models'
+import { ClusterRequest, Group, GroupManager, GroupTree, GroupType } from '@/core/GroupManager'
+import { GroupLine, ImagePropertyValue, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 import { useColumnStore } from '@/data/columnStore' // <-- Imported columnStore
@@ -31,9 +31,16 @@ const props = defineProps<{
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'select', 'reco'])
 
 const hoverGroup = ref(false)
-const group = computed(() => props.item.data)
 
-const slots = computed(() => props.item.data.slots ?? [])
+// The group tree is plain, non-reactive data: the manager's `version` ref is the only
+// change signal. Every computed derived from the tree must read it, otherwise it caches
+// its first value and refreshes only when some *other* reactive dep of this component
+// happens to change (which is why e.g. the open/close-all button appeared late).
+const version = computed(() => props.manager.version.value)
+
+const group = computed(() => (version.value, props.item.data))
+
+const slots = computed(() => (version.value, props.item.data.slots ?? []))
 
 function getImages() {
     const ids = columnStore.instanceIds()
@@ -41,68 +48,66 @@ function getImages() {
     return slots.value.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot], sha1: sha1s[slot] }))
 }
 
-const subgroups = computed(() => props.item.data.children ?? [])
+const subgroups = computed(() => (version.value, props.item.data.children ?? []))
 const hasImages = computed(() => slots.value.length > 0)
 
 const hasSubgroups = computed(() => {
     return subgroups.value.length > 0
 })
-const properties = computed(() => props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId]))
-const propertyValues = computed(() => props.item.data.meta.propertyValues)
-const closed = computed(() => props.item.data.view.closed)
-const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
+const properties = computed(() => (version.value, props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId])))
+const propertyValues = computed(() => (version.value, props.item.data.meta.propertyValues))
+const closed = computed(() => (version.value, props.item.data.view.closed))
+const hasOpenChildren = computed(() => subgroups.value.some((c: Group) => !c.view.closed))
 
-const selected = computed(() => {
-    const ns = selectNamespace.value
-    columnStore.selectionTick(ns)  // reactive dep on this namespace's selection (step 2)
-    return !slots.value.some(slot => !columnStore.isSelected(slot, ns))
-})
+// Reactive via the namespace's selection tick, read inside isGroupSelected.
+const selected = computed(() => props.manager.isGroupSelected(props.item.data))
 
 const groupName = computed(() => {
+    version.value
     if (props.item.data.type == GroupType.All) return 'All'
     if (props.item.data.type == GroupType.Cluster) return props.item.data.name ?? ('Cluster ' + props.item.data.parentIdx)
     return 'tmp name'
 })
 
-const isClusterGroup = computed(() => props.item.data.subGroupType == GroupType.Cluster)
+const isClusterGroup = computed(() => (version.value, props.item.data.subGroupType == GroupType.Cluster))
 
-function instancesForExecute() {
-    const ids = columnStore.instanceIds()
-    const sha1s = columnStore.sha1s()
-    const selected = slots.value.filter(slot => columnStore.isSelected(slot, selectNamespace.value))
-    if (selected.length) {
-        return selected.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot] }))
-    }
-    return getImages()
-}
-
-async function addClusters(groups: Group[]) {
-    props.manager.addCustomGroups(props.item.data.id, groups, true)
+// Clustering this group. The button hands over the function + params and is done: the
+// ClusterManager owns the run, so the clusters appear even if this line has been scrolled out
+// of the virtualized list (i.e. unmounted) by the time the backend answers.
+function cluster(req: ClusterRequest) {
+    props.manager.cluster(props.item.data.id, req)
 }
 
 function clear() {
     props.manager.delCustomGroups(props.item.data.id, true)
 }
 
+// open/close mutate `view.closed` in place on the plain tree, so they must emit
+// (bump `version`) — the scroller event alone rebuilds lines but leaves every
+// tree-derived computed in this and every other line component stale.
 function toggleClosed() {
     if (closed.value) {
-        props.manager.toggleGroup(props.item.data.id, false)
+        props.manager.toggleGroup(props.item.data.id, true)
         emits('group:open', props.item.id)
     }
     else {
-        props.manager.toggleGroup(props.item.data.id, false)
+        props.manager.toggleGroup(props.item.data.id, true)
         emits('group:close', props.item.id)
     }
 }
 
 function closeChildren() {
-    subgroups.value.forEach((g: Group) => props.manager.closeGroup(g.id))
-    emits('group:close', subgroups.value.map((g: Group) => g.id))
+    const ids = subgroups.value.map((g: Group) => g.id)
+    ids.forEach((id: number) => props.manager.closeGroup(id))
+    props.manager.emitResult()
+    emits('group:close', ids)
 }
 
 function openChildren() {
-    subgroups.value.forEach((g: Group) => props.manager.openGroup(g.id))
-    emits('group:open', subgroups.value.map((g: Group) => g.id))
+    const ids = subgroups.value.map((g: Group) => g.id)
+    ids.forEach((id: number) => props.manager.openGroup(id))
+    props.manager.emitResult()
+    emits('group:open', ids)
 }
 
 const saving = ref(false)
@@ -257,14 +262,16 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                                 </template>
                             </StampDropdown>
 
-                            <ActionButton2 v-if="!hasSubgroups" action="group" :images="getImages" :no-border="true" @groups="addClusters">
+                            <ActionButton2 v-if="!hasSubgroups" action="group" :no-border="true" :defer="true"
+                                :busy="props.manager.isClustering(group.id)" @submit="cluster">
                                 <div class="opt-row">
                                     <span class="opt-icon"><i class="bi bi-intersect" /></span>
                                     <span class="opt-label">{{ $t('action.group') }}</span>
                                 </div>
                             </ActionButton2>
 
-                            <ActionButton2 action="execute" :images="instancesForExecute" :no-border="true" @groups="addClusters">
+                            <ActionButton2 action="execute" :no-border="true" :defer="true"
+                                :busy="props.manager.isClustering(group.id)" @submit="cluster">
                                 <div class="opt-row">
                                     <span class="opt-icon"><i class="bi bi-terminal" /></span>
                                     <span class="opt-label">{{ $t('action.execute') }}</span>
@@ -305,10 +312,12 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                 </div>
 
                 <div class="ms-1" v-if="!hasSubgroups">
-                    <ActionButton action="group" :images="getImages" @groups="addClusters" />
+                    <ActionButton action="group" :defer="true" :busy="props.manager.isClustering(group.id)"
+                        @submit="cluster" />
                 </div>
                 <div class="ms-1">
-                    <ActionButton2 :no-border="true" action="execute" :images="instancesForExecute" @groups="addClusters">
+                    <ActionButton2 :no-border="true" action="execute" :defer="true"
+                        :busy="props.manager.isClustering(group.id)" @submit="cluster">
                         <div class="bi bi-terminal"
                             style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
                         </div>

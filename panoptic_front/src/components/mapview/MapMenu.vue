@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '@/data/dataStore';
 import { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { useI18n } from 'vue-i18n';
-import { Instance, MapGroup } from '@/data/models';
+import { MapGroup } from '@/data/models';
 import Zoomable from '../Zoomable.vue';
 import CenteredImage from '../images/CenteredImage.vue';
 
@@ -14,13 +14,12 @@ const props = defineProps<{
     selectedMap: number | null
     colorOption: string
     groups: MapGroup[]
-    images: Instance[]
     hoverImageId: number | undefined
 }>()
 
 const emits = defineEmits([
     'update:selectedMap', 'update:spatialFunction', 'update:colorOption',
-    'clusters', 'hoverGroup', 'clickGroup', 'removeClusters'
+    'hoverGroup', 'clickGroup', 'removeClusters'
 ])
 
 const isCollapsed = ref(false)

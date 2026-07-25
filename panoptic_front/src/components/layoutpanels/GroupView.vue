@@ -4,7 +4,7 @@
 // when a tree grouping is active, or cluster cards once clustered — fed the collection's own
 // groupManager directly (no clone / no rootedAt). A right-side inspector can open up to two
 // groups for drag-between editing.
-import { onUnmounted, computed, watch, ref } from 'vue'
+import { onMounted, onUnmounted, computed, watch, ref } from 'vue'
 import ClusterScroller from '@/components/scrollers/cluster/ClusterScroller.vue'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
@@ -105,23 +105,15 @@ function markHighlight(groups: Group[]) {
     highlightIds.value = ids
 }
 
-// Sub-divide one group (from the per-card button): always nest the new clusters UNDER it
-// ('children'), so the sub-clusters inherit the parent's value (a value-group's value, or the
-// undecided empty bucket). The version bump reflects it in the cluster view.
-function onAddClusters(groupId: number, groups: Group[]) {
-    // Re-clustering replaces: `split` is leaf-only (groupOps.split bails on a group that already
-    // has children), so an existing cluster level has to be dropped first — the new run then
-    // takes its place instead of the action silently doing nothing.
-    const target = props.collection.result?.index?.[groupId]
-    if ((target?.children ?? []).some(c => c.type === GroupType.Cluster)) {
-        props.collection.delCustomGroups(groupId, false)
-    }
-    props.collection.split(groupId, groups, 'children', true)
-    // A collapsed group stands in for its subtree, so clustering it would otherwise produce no
-    // visible change: force it open so the new sub-clusters replace its card right away.
-    props.collection.openGroup(groupId, true)
-    markHighlight(groups)
+// Highlighting is the only part of clustering this view still owns — and the only part that is
+// genuinely view state: the ClusterManager runs and grafts, and tells whoever is listening what
+// it produced. A view that is not mounted when the run lands simply does not highlight; the
+// clusters are there either way.
+function onClusterDone({ targetGroupId, groups }: { targetGroupId: number, groups: Group[] }) {
+    if (props.collection.result?.index?.[targetGroupId]) markHighlight(groups)
 }
+onMounted(() => props.collection.onCluster.addListener(onClusterDone))
+onUnmounted(() => props.collection.onCluster.removeListener(onClusterDone))
 
 // Open / close, exactly as in the tree view — the card grid just renders the same open state
 // differently: an open group is replaced by its children, a closed one stands in for them.
@@ -427,7 +419,6 @@ onUnmounted(() => {
                         :opened-ids="detailGroupIds"
                         :hide-if-modal="true"
                         @open-cluster="openDetail"
-                        @add-clusters="onAddClusters"
                         @open-group="onOpenGroup"
                         @close-group="onCloseGroup"
                         @clear-clusters="onClearClusters"

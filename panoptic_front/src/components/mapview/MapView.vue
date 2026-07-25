@@ -7,7 +7,7 @@ import { useColumnStore } from '@/data/columnStore'
 import { TabManager } from '@/core/TabManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { generateColors, isTag, sleep } from '@/utils/utils'
-import { Group } from '@/core/GroupManager'
+import { ClusterRequest, Group, GroupType } from '@/core/GroupManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
 
 // Components
@@ -43,7 +43,6 @@ const hasAtlas = ref(true)
 
 const groups = ref<MapGroup[]>([])
 const defaultColor = '#777777'
-let clusters: Group[] = []
 
 let sha1ToPoint: { [sha1: string]: PointData } = {}
 let groupToPoints: { [groupId: number]: string[] } = {}
@@ -55,18 +54,39 @@ let showMapToken = 0
 // Stores args needed to call createMap once the renderer is ready
 let pendingCreateMap: { atlas: any; points: PointData[]; showAsPoint: boolean } | null = null
 
-// Instances corresponding to map points — used for clustering so only visible images are clustered
-const mapInstances = computed<Instance[]>(() =>
-    points.value.map(p => data.instances[p.id]).filter(Boolean) as Instance[]
-)
+// The group the map's cluster button clusters: the collection root, i.e. everything the map
+// shows. Clustering goes through the collection like everywhere else (ClusterManager.cluster),
+// so the clusters are grafted into the REAL tree and every view sees them — the map just reads
+// them back out of the tree in generateGroups().
+const rootGroupId = computed(() => (props.collection.version.value, props.collection.result?.root?.id))
+
+// The collection's current images, for the toolbar's 'map' action. Read from the root group's
+// slots (the tree's own membership) — `root.images` no longer exists.
+const rootInstances = computed<Instance[]>(() => {
+    props.collection.version.value
+    const slots = props.collection.result?.root?.slots ?? []
+    const ids = columnStore.instanceIds()
+    return slots.map(slot => ({ id: ids[slot] })) as Instance[]
+})
+
+function cluster(req: ClusterRequest) {
+    const id = rootGroupId.value
+    if (id == null) return
+    props.collection.cluster(id, req)
+}
+
+const isClustering = computed(() => {
+    props.collection.version.value
+    const id = rootGroupId.value
+    return id != null && props.collection.isClustering(id)
+})
 
 
-function computeBox(images: Instance[], color: string) {
+function computeBox(sha1s: string[], color: string) {
     let minX = 0, minY = 0, maxX = 0, maxY = 0
     let initialized = false
-    for (let i = 0; i < images.length; i++) {
-        let img = images[i]
-        let p = sha1ToPoint[img.sha1]
+    for (let i = 0; i < sha1s.length; i++) {
+        let p = sha1ToPoint[sha1s[i]]
         if (!p) continue
         if (!initialized) {
             minX = p.x; minY = p.y; maxX = p.x; maxY = p.y
@@ -140,42 +160,51 @@ function updateColors() {
     }
 }
 
+// Build the colored map groups from the collection's REAL group tree — the map has no group
+// state of its own. 'property' colors by the top level of the property tree; 'cluster' colors by
+// the cluster groups grafted under the root by ClusterManager.cluster().
+// Membership is read from `slots` (the tree's own representation) and mapped to sha1s, since a
+// map point is identified by sha1.
 function generateGroups() {
-    let groupList: Group[] = []
-    const groupOption = props.mapOptions.groupOption
+    const root = props.collection.result?.root
+    const children: Group[] = root?.children ?? []
+    const groupList = props.mapOptions.groupOption === 'property'
+        ? children.filter(g => g.type !== GroupType.Cluster)
+        : children.filter(g => g.type === GroupType.Cluster)
 
-    if (groupOption === 'property') {
-        groupList = props.collection.result.root.children
-    } else {
-        groupList = clusters
+    // Only the images actually on the map count: a group's sha1s, restricted to drawn points.
+    const sha1s = columnStore.sha1s()
+    const groupSha1s = new Map<number, string[]>()
+    const kept: Group[] = []
+    for (const g of groupList) {
+        const list: string[] = []
+        const seen = new Set<string>()
+        for (const slot of g.slots ?? []) {
+            const sha1 = sha1s[slot]
+            if (!sha1 || seen.has(sha1) || !(sha1 in sha1ToPoint)) continue
+            seen.add(sha1)
+            list.push(sha1)
+        }
+        if (!list.length) continue
+        groupSha1s.set(g.id, list)
+        kept.push(g)
     }
 
-    groupList = groupList.map(g => ({...g}))
-
-    const validSha1s = new Set()
-    points.value.forEach(p => validSha1s.add(p.sha1))
-
-    for(let group of groupList) {
-        group.images = group.images.filter(i => validSha1s.has(i.sha1))
-    }
-
-    groupList = groupList.filter(g => g.images.length > 0)
-    groupList
-    if (!groupList.length) {
+    if (!kept.length) {
         groups.value = []
+        groupToPoints = {}
         updateColors()
         return
     }
 
-    const nb = groupList.length
-    const colors = generateColors(nb)
-    
+    const colors = generateColors(kept.length)
+
     const res: MapGroup[] = []
     groupToPoints = {}
-    
-    groupList.forEach((g, index) => {
+
+    kept.forEach((g, index) => {
         let groupColor = colors[index]
-        
+
         // Check for tag colors
         const propId = g.meta?.propertyValues?.[0]?.propertyId
         if (propId) {
@@ -190,15 +219,16 @@ function generateGroups() {
             }
         }
 
-        groupToPoints[g.id] = g.images.map(i => i.sha1)
-        const grpPoints = Array.from(new Set(g.images.map(i => sha1ToPoint[i.sha1]).filter(Boolean)))
-        
+        const groupSha1List = groupSha1s.get(g.id) ?? []
+        groupToPoints[g.id] = groupSha1List
+        const grpPoints = Array.from(new Set(groupSha1List.map(sha1 => sha1ToPoint[sha1]).filter(Boolean)))
+
         res.push({
             id: g.id,
             name: computeName(g, index),
-            count: g.images.length,
+            count: groupSha1List.length,
             color: groupColor,
-            box: computeBox(g.images, groupColor),
+            box: computeBox(groupSha1List, groupColor),
             points: grpPoints
         })
     })
@@ -220,11 +250,16 @@ async function showMap(mapId: number) {
     const res: PointData[] = []
     const values = media.maps[mapId].data
 
-    // Bug 2: fall back to all sha1s when filter result isn't ready yet
-    const filterImages = props.collection.filterManager.result?.images
+    // The map only draws what the collection currently keeps. Read from the filter result's
+    // slots (its own representation); fall back to all sha1s when it isn't ready yet.
+    const filterSlots = props.collection.filterManager.result?.slots
+    const allSha1s = columnStore.sha1s()
     const validSha1s = new Set<string>()
-    if (filterImages) {
-        filterImages.forEach(i => validSha1s.add(i.sha1))
+    if (filterSlots?.length) {
+        for (let i = 0; i < filterSlots.length; i++) {
+            const sha1 = allSha1s[filterSlots[i]]
+            if (sha1) validSha1s.add(sha1)
+        }
     } else {
         for (let i = 0; i < values.length; i += 3) validSha1s.add(values[i])
     }
@@ -314,12 +349,11 @@ function onGroupManager() {
     showMap(props.mapOptions.selectedMap)
 }
 
+// Drop the map's clusters — the same op as the tree view's "close clusters", on the real tree.
 function removeClusters() {
-    const groupOption = props.mapOptions.groupOption
-
-    if(groupOption == 'cluster') {
-        clusters = []
-        generateGroups()
+    const id = rootGroupId.value
+    if (props.mapOptions.groupOption == 'cluster' && id != null) {
+        props.collection.delCustomGroups(id, true)
     }
 }
 
@@ -378,9 +412,9 @@ onMounted(async () => {
                 :color-option="props.mapOptions.groupOption"
                 @update:color-option="opt => { props.mapOptions.groupOption = opt }"
                 :has-maps="media.hasMaps"
-                :images="collection.result.root?.images || []"
-                :map-images="mapInstances"
-                @clusters="cc => { clusters = cc; generateGroups()}"
+                :images="rootInstances"
+                :clustering="isClustering"
+                @cluster="cluster"
                 @delete:map="deleteMap"
             />
         </div>
@@ -398,8 +432,6 @@ onMounted(async () => {
                 v-model:color-option="props.mapOptions.groupOption" 
                 :hover-image-id="lastValiderHoverId"
                 :groups="groups" 
-                :images="collection.result.root?.images || []"
-                @clusters="cc => { clusters = cc; generateGroups() }" 
                 @hover-group="onGroupHover"
                 @click-group="g => renderer?.lookAtRect(g.box)"
                 @removeClusters="removeClusters"

@@ -15,8 +15,11 @@ const props = defineProps<{
     images?: Instance[] | (() => Instance[])
     propertyIds?: number[]
     groupName?: string
+    // See ActionButton2: hand the run off to its owner instead of awaiting it here.
+    defer?: boolean
+    busy?: boolean
 }>()
-const emits = defineEmits(['instances', 'groups'])
+const emits = defineEmits(['instances', 'groups', 'submit'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
@@ -52,8 +55,15 @@ function loadInput() {
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
 
+const pending = computed(() => props.defer ? !!props.busy : loading.value)
+
 async function call() {
-    if (loading.value) return
+    if (pending.value) return
+
+    if (props.defer) {
+        emits('submit', { funcId: localFunction.value, inputs: localInputs.value, hook: props.action })
+        return
+    }
 
     loading.value = true
     try {
@@ -95,7 +105,7 @@ watch(localFunction, loadInput)
 
 <template>
     <div class="b-box sb" v-if="localFunction" @click="call">
-        <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+        <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
         <wTT :message="'dropdown.action.' + props.action" class="">

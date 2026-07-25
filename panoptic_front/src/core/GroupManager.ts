@@ -32,7 +32,7 @@ import { dateBucketKey, dateBucketRange } from "./group/dateBuckets";
 import { GroupIterator, ImageIterator, GroupIteratorOptions } from "./group/GroupIterator";
 import { GroupResult } from "./group/GroupResult";
 import { GroupNavigator } from "./group/GroupNavigator";
-import { ClusterManager } from "./group/ClusterManager";
+import { ClusterManager, ClusterRequest } from "./group/ClusterManager";
 import { refreshSubGroupType } from "./group/groupOps";
 
 // ── Barrel re-exports — keep `@/core/GroupManager` as the public entry point ─
@@ -42,6 +42,7 @@ export type {
     GroupIndex, GroupTree, GroupOption, SelectedImages,
 } from "./group/types";
 export { buildGroup, buildGroupOption, createGroupState } from "./group/builders";
+export type { ClusterRequest, ClusterRun } from "./group/ClusterManager";
 export { GroupIterator, ImageIterator } from "./group/GroupIterator";
 export type { GroupIteratorOptions } from "./group/GroupIterator";
 
@@ -592,8 +593,18 @@ export class GroupManager implements ClusterOpsHost {
         this.clusters.clearCustomGroups(emit)
     }
 
-    split(groupId: number, groups: Group[], mode: 'replace' | 'children' = 'replace', emit = true) {
-        this.clusters.split(groupId, groups, mode, emit)
+    // Cluster a group: the whole operation (run the action + graft the result) belongs to the
+    // ClusterManager — callers only name the target.
+    cluster(targetGroupId: number, req: ClusterRequest) {
+        return this.clusters.cluster(targetGroupId, req)
+    }
+
+    isClustering(groupId: number) {
+        return this.clusters.isClustering(groupId)
+    }
+
+    split(groupId: number, groups: Group[], emit = true) {
+        this.clusters.split(groupId, groups, emit)
     }
 
     merge(groupIds: number[], emit = true) {
@@ -793,8 +804,7 @@ export class GroupManager implements ClusterOpsHost {
     selectImages(imageIds: number[]) { this.nav.selectImages(imageIds) }
     unselectImages(imageIds: number[]) { this.nav.unselectImages(imageIds) }
 
-    propagateUnselect(group: Group) { this.nav.propagateUnselect(group) }
-    propagateSelect(group: Group) { this.nav.propagateSelect(group) }
+    isGroupSelected(group: Group) { return this.nav.isGroupSelected(group) }
 
     selectGroup(group: Group) { this.nav.selectGroup(group) }
     unselectGroup(group: Group) { this.nav.unselectGroup(group) }

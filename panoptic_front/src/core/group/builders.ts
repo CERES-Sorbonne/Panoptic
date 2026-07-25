@@ -17,7 +17,7 @@ export function buildGroup(id: string | number, slots: number[], type: GroupType
         start: 0,
         end: 0,
         meta: { propertyValues: [] },
-        view: { closed: false, selected: false }
+        view: { closed: false }
     } as Group
 }
 
