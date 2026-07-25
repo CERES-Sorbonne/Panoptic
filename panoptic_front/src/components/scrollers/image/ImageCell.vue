@@ -22,12 +22,19 @@ const props = defineProps<{
     width?: number
     properties: Property[]
     selected?: boolean
+    // Highlight overlay for images a pending action would apply to (paint preview).
+    selectedPreview?: boolean
+    // Optional score badge (similarity results and other scored lists).
+    score?: number
+    // How many instances this cell stands for when the list is deduplicated (sha1 piles).
+    // 1 or undefined = a plain single instance, no badge.
+    count?: number
     // Flat index of this instance in the scroller's list — used for input focus ordering
     // (replaces ImageIterator.getImageOrder()).
     idx: number
 }>()
 
-const emits = defineEmits(['update:selected'])
+const emits = defineEmits(['update:selected', 'open'])
 
 const w = computed(() => props.width ?? props.size)
 
@@ -48,7 +55,8 @@ const inputKey = inject('inputKey') as string
     <div class="full-container img-border" :style="`width: ${w + 2}px;`">
         <Zoomable v-if="!hideImg" :image="inst">
             <div class="img-container image-drag-handle" :style="`width: ${w + 2}px; height: ${props.size}px;`"
-                @mouseenter="hover = true" @mouseleave="hover = false">
+                @mouseenter="hover = true" @mouseleave="hover = false" @click="emits('open', props.instance)">
+                <div v-if="props.score != undefined" class="simi-ratio">{{ props.score }}</div>
                 <CenteredImage :instance-id="props.instance.id" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 
@@ -66,6 +74,12 @@ const inputKey = inject('inputKey') as string
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
 
+        <!-- Absolutely-positioned wrapper: keeps the badge out of normal flow so it doesn't
+             add an empty line box (which would overflow the row). -->
+        <div v-if="props.count > 1" class="image-count-wrap">
+            <div class="image-count">{{ props.count }}</div>
+        </div>
+
         <div class="prop-container" v-if="props.properties.length">
             <div v-for="property, index in props.properties" :key="property.id">
                 <div style="height: 1px;" v-if="index > 0"></div>
@@ -73,10 +87,44 @@ const inputKey = inject('inputKey') as string
                     :width="props.size" :idx="props.idx" />
             </div>
         </div>
+
+        <div v-if="props.selectedPreview" class="w-100 h-100"
+            style="position: absolute; top: 0; left: 0; background-color: rgba(0, 0, 255, 0.127);" />
     </div>
 </template>
 
 <style scoped>
+.image-count-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.image-count {
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+}
+
+.simi-ratio {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
 .full-container {
     position: relative;
     background-color: white;

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
-import { Colors, ModalId, Tag } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
+import { Colors, Tag } from '@/data/models';
 import { computed } from 'vue';
 import WithToolTip from '../tooltips/withToolTip.vue';
 
@@ -29,17 +28,11 @@ const name = computed(() => {
     return tag.value.value
 })
 
-function click() {
-    if (!tag.value) return
-    const panoptic = usePanopticStore()
-    panoptic.showModal(ModalId.TAG, { propId: tag.value.propertyId, tagId: tag.value.id })
-}
-
 </script>
 
 
 <template>
-    <div class="badge tag-badge" :style="'background: ' + color" @dblclick="click">
+    <div class="badge tag-badge" :style="'background: ' + color">
 
         <span class="m-0 p-0">
             <span v-if="showDelete" @click.prevent.stop="$emit('delete')" class="bi bi-x tag-x"></span>

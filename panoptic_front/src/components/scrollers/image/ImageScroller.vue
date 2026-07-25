@@ -30,16 +30,34 @@ const props = defineProps<{
     // Shared vuedraggable group name. Two ImageScrollers with the same value can exchange
     // images. Left undefined => drag disabled (nothing to move between).
     dragGroup?: string,
+    // Opt out of drag-and-drop entirely. `dragGroup` alone already disables *dropping*, but
+    // every line still instantiates a SortableJS component; consumers that will never move
+    // images (similarity results, any read-only list) set this to skip that machinery and
+    // render plain rows instead.
+    noDrag?: boolean,
     // ColumnStore selection namespace so two scrollers can select independently.
     selectNamespace?: string,
     hideIfModal?: boolean,
+    // Optional per-instance score badge, keyed by instance id.
+    scores?: Record<number, number>,
+    // Instance ids to highlight as the target of a pending action (paint preview).
+    preview?: Record<number, boolean>,
+    // Deduplicated lists: maps a displayed instance id to every instance id it stands for
+    // (e.g. all instances sharing a sha1). Drives the count badge, and makes selecting a
+    // cell select the whole pile. Absent => each cell is exactly one instance.
+    piles?: Record<number, number[]>,
 }>()
 
 const emit = defineEmits<{
     // The moved Instance object is passed so the receiving parent can insert it directly.
     (e: 'instance-added', payload: { instance: Instance, index: number }): void
     (e: 'instance-removed', payload: { instance: Instance }): void
+    // A cell's image was clicked.
+    (e: 'open', instance: Instance): void
 }>()
+
+// Drag is live only when a group to exchange with was named AND the consumer didn't opt out.
+const dragEnabled = computed(() => !!props.dragGroup && !props.noDrag)
 
 // The line model this scroller builds. Image lines hold cells; a trailing 'filler' line
 // (empty, but droppable) covers the pane's remaining height so a sparse/empty list still
@@ -106,7 +124,11 @@ const windowIds = computed(() => {
 })
 const windowPropIds = computed(() => props.properties?.map(p => p.id) ?? [])
 
-defineExpose({ computeLines, clear })
+defineExpose({ computeLines, clear, scrollToTop })
+
+function scrollToTop() {
+    scroller.value?.scrollToItem(0)
+}
 
 function clear() {
     imageLines.value = []
@@ -179,7 +201,7 @@ function computeLines() {
         // droppable filler covering the leftover height. Without it an empty pane has no
         // draggable target and a near-empty one only accepts drops on its few cells.
         const usedHeight = lines.length * size
-        if (props.dragGroup && usedHeight < props.height) {
+        if (dragEnabled.value && usedHeight < props.height) {
             lines.push({
                 id: 'filler',
                 type: 'filler',
@@ -199,20 +221,25 @@ function computeLines() {
 }
 
 // ── Selection (namespaced, via columnStore — same mechanism as the tree cell) ─────────
+// A cell standing for a pile selects/reports its whole pile, so a deduplicated list behaves
+// like the tree scroller's sha1 piles.
+function idsFor(id: number): number[] {
+    return props.piles?.[id] ?? [id]
+}
 function isSelectedId(id: number): boolean {
     columnStore.selectionTick(selectNs.value) // reactive dep on this namespace's selection
-    return columnStore.isSelectedId(id, selectNs.value)
+    return idsFor(id).every(i => columnStore.isSelectedId(i, selectNs.value))
 }
 function toggleSelect(id: number, v: boolean) {
-    if (v) columnStore.selectIds([id], selectNs.value)
-    else columnStore.deselectIds([id], selectNs.value)
+    if (v) columnStore.selectIds(idsFor(id), selectNs.value)
+    else columnStore.deselectIds(idsFor(id), selectNs.value)
 }
 
 // ── Drag-and-drop ─────────────────────────────────────────────────────────────────────
 const dragging = ref(false)
 
 const dragGroupOpt = computed(() =>
-    props.dragGroup ? { name: props.dragGroup, pull: true, put: true } : undefined)
+    dragEnabled.value ? { name: props.dragGroup, pull: true, put: true } : undefined)
 
 function onDragEnd() {
     dragging.value = false
@@ -307,9 +334,20 @@ watch(contentWidth, () => {
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
         :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">
         <template v-slot="{ item }">
+            <!-- Drag disabled: a plain row, so no SortableJS instance per visible line. -->
+            <div v-if="!dragEnabled && item.type == 'images'" class="d-flex flex-row image-drop"
+                :style="{ minHeight: item.size + 'px' }">
+                <ImageCell v-for="element, i in item.data" :key="element.id" :instance="element"
+                    :size="item.imageSize" :width="item.cardWidths[i]" :properties="props.properties"
+                    :selected="isSelectedId(element.id)" :selected-preview="props.preview?.[element.id]"
+                    :score="props.scores?.[element.id]" :count="props.piles?.[element.id]?.length"
+                    :idx="item.startIndex + i" @open="e => emit('open', e)"
+                    @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
+            </div>
+
             <!-- A line's draggable spans the full width (cells are fixed-width, left-aligned),
                  so the whole row is a drop zone — not just the occupied cells. -->
-            <draggable-component v-if="item.type == 'images'" :list="item.data" :group="dragGroupOpt"
+            <draggable-component v-else-if="item.type == 'images'" :list="item.data" :group="dragGroupOpt"
                 item-key="id" class="d-flex flex-row image-drop" :style="{ minHeight: item.size + 'px' }"
                 :force-fallback="true" :fallback-on-body="true" :scroll="true"
                 handle=".image-drag-handle" :disabled="!props.dragGroup"
@@ -317,7 +355,9 @@ watch(contentWidth, () => {
                 <template #item="{ element, index: i }">
                     <ImageCell :instance="element" :size="item.imageSize" :width="item.cardWidths[i]"
                         :properties="props.properties" :selected="isSelectedId(element.id)"
-                        :idx="item.startIndex + i"
+                        :selected-preview="props.preview?.[element.id]" :score="props.scores?.[element.id]"
+                        :count="props.piles?.[element.id]?.length"
+                        :idx="item.startIndex + i" @open="e => emit('open', e)"
                         @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
                 </template>
             </draggable-component>

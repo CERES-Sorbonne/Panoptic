@@ -9,7 +9,8 @@ import Similarity from './image/Similarity.vue';
 import Instances from './image/Instances.vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import wTT from '../tooltips/withToolTip.vue';
-import { GroupManager, ImageIterator, SelectedImages } from '@/core/GroupManager';
+import { ImageIterator, SelectedImages } from '@/core/GroupManager';
+import { Instance } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
 import Modal2 from './Modal2.vue';
@@ -26,7 +27,10 @@ const modal = useModalStore()
 const col = useColumnStore()
 const instanceStore = useInstanceStore()
 
-const groupManager = new GroupManager()
+// Instance ids currently listed by the Similarity panel (piles expanded). The panel owns its
+// own flat state now, so the modal just mirrors what it reports; used by paint/hover, which
+// act on the whole similar set when nothing is explicitly selected.
+const similarIds = shallowRef<number[]>([])
 
 const PANELS_KEY = 'image_modal_panels'
 const PROPERTIES_WIDTH = 400
@@ -40,8 +44,14 @@ const historyElem = ref(null)
 const centerElem = ref(null)
 const centerHeight = ref(0)
 const visibleProperties = reactive({})
-const navigationHistory: ShallowRef<ImageIterator[]> = ref([])
-const iterator: ShallowRef<ImageIterator> = ref(null)
+// What the modal is showing. An ImageIterator carries a position in a group tree (so next/prev
+// work); a bare { slot } is a target with no position — used by the flat similarity list, where
+// arrow navigation would imply an adjacency that isn't on screen.
+type ImageTarget = ImageIterator | { slot: number }
+const navigationHistory: ShallowRef<ImageTarget[]> = ref([])
+const iterator: ShallowRef<ImageTarget> = ref(null)
+// The iterator, when the current target actually is one — gates navigation.
+const navIterator = computed(() => iterator.value instanceof ImageIterator ? iterator.value : null)
 const preview = shallowRef<SelectedImages>({})
 
 // Which side panels are open. Nothing but the image by default; the choice is
@@ -57,8 +67,10 @@ loadPanels()
 const active = computed(() => panoptic.openModalId == ModalId.IMAGE)
 
 const currentInstanceId = computed(() => {
-    if (!iterator.value?.isValid) return undefined
-    return col.instanceIds()[iterator.value.slot]
+    const target = iterator.value
+    if (!target) return undefined
+    if (target instanceof ImageIterator && !target.isValid) return undefined
+    return col.instanceIds()[target.slot]
 })
 const currentInstanceIds = computed(() => currentInstanceId.value !== undefined ? [currentInstanceId.value] : [])
 const allPropIds = computed(() => data.propertyList.map(p => p.id))
@@ -111,9 +123,8 @@ function onHover() {
     const selectedIds = col.getSelectedIds()
     if (selectedIds.length) {
         selectedIds.forEach(i => preview.value[i] = true)
-    } else if (groupManager.result.root) {
-        const ids = col.instanceIds()
-        groupManager.result.root.slots.forEach(s => preview.value[ids[s]] = true)
+    } else {
+        similarIds.value.forEach(id => preview.value[id] = true)
     }
 }
 
@@ -128,8 +139,7 @@ function paint(propRef: { propertyId: number, instanceId: number }) {
     const value = instanceStore.instanceData[propRef.instanceId]?.properties[property.id]
     if (value === undefined) return
 
-    const ids = col.instanceIds()
-    let instances = groupManager.result.root?.slots.map(s => instanceStore.instanceData[ids[s]]).filter(Boolean) ?? []
+    let instances = similarIds.value.map(id => instanceStore.instanceData[id]).filter(Boolean)
     const selectedIds = col.getSelectedIds()
     if (selectedIds.length) {
         instances = selectedIds.map(id => instanceStore.instanceData[id]).filter(Boolean)
@@ -150,10 +160,19 @@ function onShow() {
 function onHide() {
     iterator.value = undefined
     navigationHistory.value = []
-    groupManager.clearSelection()
+    col.clearSelection()
 }
 
-async function onModalDataChange(value: ImageIterator) {
+// Clicking an image in the Similarity panel navigates the modal to it. A flat list has no
+// tree position, so we hand over a bare slot: arrows switch off until the modal is reopened
+// from a scroller.
+function openSimilar(instance: Instance) {
+    const slot = col.slotMap.get(instance.id)
+    if (slot === undefined) return
+    onModalDataChange({ slot })
+}
+
+async function onModalDataChange(value: ImageTarget) {
     if (panoptic.openModalId != ModalId.IMAGE) return
 
     if (iterator.value) {
@@ -172,12 +191,12 @@ async function onModalDataChange(value: ImageIterator) {
 // value assignment drained it — or the group itself was rebuilt away), we can't offer a
 // neighbour without implying an adjacency that was never on screen. So we do nothing.
 function canNavigate() {
-    return !!iterator.value?.isValid && iterator.value.isCurrent
+    return !!navIterator.value?.isValid && navIterator.value.isCurrent
 }
 
 function nextImage() {
     if (!canNavigate()) return
-    const next = iterator.value.nextImages()
+    const next = navIterator.value.nextImages()
     if (next) {
         iterator.value = next
         clearNavigationHistory()
@@ -186,7 +205,7 @@ function nextImage() {
 
 function prevImage() {
     if (!canNavigate()) return
-    const prev = iterator.value.prevImages()
+    const prev = navIterator.value.prevImages()
     if (prev) {
         iterator.value = prev
         clearNavigationHistory()
@@ -267,7 +286,7 @@ watch(() => keyState.right, (state) => {
                         </PanelBox>
                     </div>
                     <div class="center-col d-flex flex-column overflow-hidden" ref="centerElem">
-                        <ImageDisplay :instance="image" :can-navigate="!showHistory && !!iterator" />
+                        <ImageDisplay :instance="image" :can-navigate="!showHistory && !!navIterator" />
                         <div class="dock d-flex flex-column" v-if="dockHeight > 0"
                             :style="{ height: dockHeight + 'px' }">
                             <div class="dock-panel" v-if="panels.similar">
@@ -275,14 +294,14 @@ watch(() => keyState.right, (state) => {
                                     <template #actions>
                                         <div v-if="selectedIds.length > 0" class="me-2">
                                             <SelectionStamp :selected-images-ids="selectedIds"
-                                                @remove:selected="groupManager.clearSelection()"
-                                                @stamped="groupManager.clearSelection()" />
+                                                @remove:selected="col.clearSelection()"
+                                                @stamped="col.clearSelection()" />
                                         </div>
                                     </template>
                                     <template #default="{ width, height }">
                                         <Similarity :image="image" :width="width" :height="height"
-                                            :similar-group="groupManager" :visible-properties="visibleProperties"
-                                            :preview="preview" />
+                                            :visible-properties="visibleProperties" :preview="preview"
+                                            @update:instances="ids => similarIds = ids" @open="openSimilar" />
                                     </template>
                                 </PanelBox>
                             </div>

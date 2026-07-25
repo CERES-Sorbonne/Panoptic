@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { GroupManager, GroupType, SelectedImages, buildGroup } from '@/core/GroupManager';
+// Similarity results panel.
+//
+// This is a flat, pre-ordered, throwaway list — no grouping, no sorting state, no clustering.
+// So it holds no GroupManager: the state is a plain instance array plus a per-slot score map,
+// rendered by the groupless ImageScroller. (It used to build a one-root GroupManager tree and
+// push it in with setAsRoot, which meant every read of that non-reactive tree needed the
+// version/emit contract to be observed by hand.)
 import { ActionResult, Instance, ScoreInterval } from '@/data/models';
+import { SelectedImages } from '@/core/GroupManager';
 import { useColumnStore } from '@/data/columnStore';
-import { computed, markRaw, nextTick, onMounted, Reactive, reactive, ref, watch } from 'vue';
+import { computed, markRaw, nextTick, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
+import ImageScroller from '@/components/scrollers/image/ImageScroller.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
@@ -25,12 +32,16 @@ const props = defineProps<{
     image: Instance
     width: number
     height: number
-    similarGroup?: GroupManager
     visibleProperties: { [id: number]: boolean }
     preview: SelectedImages
 }>()
-const similarGroup = props.similarGroup ?? new GroupManager()
-similarGroup.setSha1Mode(true)
+
+const emits = defineEmits<{
+    // Every instance id currently in the result (piles expanded), so the modal can paint /
+    // preview the whole set. Emitted on every recompute.
+    (e: 'update:instances', ids: number[]): void
+    (e: 'open', instance: Instance): void
+}>()
 
 const useFilter = ref(false)
 const scrollerElem = ref(null)
@@ -41,7 +52,7 @@ function scheduleUpdate() {
     _updatePending = true
     nextTick(async () => {
         _updatePending = false
-        await updateSimilarGroup()
+        await updateResults()
     })
 }
 
@@ -53,6 +64,13 @@ const slotScore = markRaw(new Map<number, number>())
 let scoreMeta: ScoreMeta | null = null
 const hasResult = ref(false)
 
+// What the scroller renders: one cell per sha1 (the results are sha1-based, so several
+// instances of the same image collapse into one cell, as the tree scroller's piles did).
+const instances = shallowRef<Instance[]>([])
+const scores = shallowRef<Record<number, number>>({})
+const piles = shallowRef<Record<number, number[]>>({})
+const allIds = shallowRef<number[]>([])
+
 const scoreInterval: Reactive<ScoreInterval> = reactive({
     min: 0,
     max: 100,
@@ -62,13 +80,6 @@ const scoreInterval: Reactive<ScoreInterval> = reactive({
 })
 
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
-
-// The group tree is plain, non-reactive data — `version` is the change signal. Without
-// reading it the template caches hasResult() === false from the first render and the
-// select circle only appeared when something else re-rendered this component.
-const hasGroupResult = computed(() => (similarGroup.version.value, similarGroup.hasResult()))
-const rootSelected = computed(() => hasGroupResult.value && similarGroup.isGroupSelected(similarGroup.result.root))
-const resultCount = computed(() => hasGroupResult.value ? similarGroup.result.root.children.length : 0)
 
 // Build the slot list + per-slot scores from a raw search result. The sha1
 // path does a single pass over the column-store arrays (O(slotCount)) instead
@@ -145,7 +156,7 @@ async function importSimilar(res: ActionResult) {
     processResult(res)
 }
 
-async function updateSimilarGroup() {
+function updateResults() {
     if (!hasResult.value) return
 
     let slots = searchSlots
@@ -164,19 +175,72 @@ async function updateSimilarGroup() {
         })
     }
 
-    // `slots` may still be a reference to `searchSlots` when no filter ran;
-    // setAsRoot copies it, so that's safe. emit: the tree is plain data, so the
-    // version bump is what tells this template (and the scroller) to re-read it.
-    await similarGroup.setAsRoot(buildGroup(0, slots, GroupType.Cluster), true)
+    // Collapse to one cell per sha1, keeping the (score-ordered) first slot as the
+    // representative. `piles` carries the instances each cell stands for, so selecting a
+    // cell selects them all and the count badge shows how many.
+    const col = useColumnStore()
+    const ids = col.instanceIds()
+    const sha1s = col.sha1s()
+    const list: Instance[] = []
+    const nextScores: Record<number, number> = {}
+    const nextPiles: Record<number, number[]> = {}
+    const every: number[] = []
+    const repBySha1 = new Map<string, number>()
 
-    if (scrollerElem.value) {
-        scrollerElem.value.computeLines()
-        scrollerElem.value.scrollTo('0')
+    for (const slot of slots) {
+        const id = ids[slot]
+        if (id === undefined) continue
+        every.push(id)
+        const sha1 = sha1s[slot]
+        const rep = sha1 != null ? repBySha1.get(sha1) : undefined
+        if (rep !== undefined) {
+            nextPiles[rep].push(id)
+            continue
+        }
+        if (sha1 != null) repBySha1.set(sha1, id)
+        nextPiles[id] = [id]
+        list.push({ id, imageUrl: data.baseImgUrl + 'by_size/' + sha1 })
+        const score = slotScore.get(slot)
+        if (score !== undefined) nextScores[id] = formatScore(score)
     }
+
+    instances.value = list
+    scores.value = nextScores
+    piles.value = nextPiles
+    allIds.value = every
+    emits('update:instances', every)
+
+    // The list is score-ordered, so any recompute changes what "best match" means — go back
+    // to the top rather than leaving the user parked mid-list.
+    nextTick(() => scrollerElem.value?.scrollToTop())
+}
+
+// Scores come in whatever scale the similarity function uses — 0..1 for a cosine distance,
+// 0..100 for a percentage. Rounding to an integer is only right for the wide ranges, so the
+// number of decimals follows the range the backend reported.
+function formatScore(score: number): number {
+    const range = scoreMeta ? scoreMeta.max - scoreMeta.min : 0
+    const decimals = range >= 100 ? 0 : range >= 10 ? 1 : 2
+    return Number(score.toFixed(decimals))
 }
 
 function toggleFilter() {
     useFilter.value = !useFilter.value
+}
+
+// ── Select all ──────────────────────────────────────────────────────────────
+// The panel selects in the global namespace (as the similarity GroupManager did), so the
+// modal's paint/stamp actions keep seeing the same selection.
+const col = useColumnStore()
+const allSelected = computed(() => {
+    col.selectionTick()
+    const ids = allIds.value
+    return ids.length > 0 && ids.every(id => col.isSelectedId(id))
+})
+
+function toggleAll() {
+    if (allSelected.value) col.deselectIds(allIds.value)
+    else col.selectIds(allIds.value)
 }
 
 function updateInterval(score: ScoreMeta) {
@@ -225,7 +289,6 @@ setDefaultInterval()
 onMounted(setSimilar)
 watch(() => props.image, setSimilar)
 watch(() => scoreInterval.values, scheduleUpdate)
-watch(() => props.width, scheduleUpdate)
 watch(useFilter, scheduleUpdate)
 watch(scoreInterval, () => {
     project.updateScoreInterval(actions.defaultActions['similar'].id, scoreInterval)
@@ -238,8 +301,8 @@ watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiSt
     <template v-else>
         <div class="bg-white">
             <div class="d-flex mb-1 flex-center" style="height: 25px;">
-                <SelectCircle v-if="hasGroupResult" :model-value="rootSelected"
-                    @update:model-value="v => similarGroup.toggleAll()" style="margin-top: -1px;" />
+                <SelectCircle v-if="allIds.length" :model-value="allSelected" @update:model-value="v => toggleAll()"
+                    style="margin-top: -1px;" />
                 <div class="sep ms-1 me-1"></div>
                 <wTT message="modals.image.main_filter_tooltip">
                     <div class="text-secondary" @click="toggleFilter">
@@ -262,9 +325,10 @@ watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiSt
                 <div v-if="scoreInterval.description.length" class="me-1">
                     <wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT>
                 </div>
-                <div class="text-secondary">({{ scoreInterval.values[0] }} - {{ scoreInterval.values[1] }})</div>
-                <div v-if="hasGroupResult" class="ms-2 text-secondary">
-                    ({{ resultCount }} images)
+                <div class="text-secondary">({{ formatScore(scoreInterval.values[0]) }} - {{
+                    formatScore(scoreInterval.values[1]) }})</div>
+                <div v-if="instances.length" class="ms-2 text-secondary">
+                    ({{ instances.length }} images)
                 </div>
                 <div class="d-flex ms-3">
                     <wTT message="main.menu.image_size_tooltip" :click="false">
@@ -276,11 +340,10 @@ watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiSt
                 </div>
             </div>
 
-
-            <TreeScroller input-key="similarity-tree" class="" :image-size="project.uiState.similarityImageSize"
-                :height="props.height - 45" :width="props.width - 45" :group-manager="similarGroup"
-                :properties="properties" :hide-options="false" :hide-group="true" ref="scrollerElem"
-                :preview="props.preview" />
+            <ImageScroller input-key="similarity-tree" :image-size="project.uiState.similarityImageSize"
+                :height="props.height - 45" :width="props.width - 45" :instances="instances"
+                :properties="properties" :scores="scores" :piles="piles" :preview="props.preview" :no-drag="true"
+                ref="scrollerElem" @open="i => emits('open', i)" />
         </div>
     </template>
 </template>
