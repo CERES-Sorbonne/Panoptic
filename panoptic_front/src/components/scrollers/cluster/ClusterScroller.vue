@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
 import ClusterLineVue from './ClusterLine.vue';
-import { GroupManager, Group } from '@/core/GroupManager';
+import { Group } from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/keyState';
 import { Property, ClusterLine, ModalId, GroupViewMode, mosaicSlotCount } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
@@ -20,7 +21,7 @@ const props = defineProps<{
     // when the inspector opens. Column sizing keys off this so the per-image pixel size stays
     // frozen; only how many columns fit (from `width`) reflows. Defaults to `width`.
     layoutWidth?: number,
-    groupManager: GroupManager,
+    manager: GroupInspector,
     properties: Property[],
     hideIfModal?: boolean,
     inputKey: string,
@@ -37,7 +38,7 @@ const props = defineProps<{
 const emit = defineEmits(['reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
 
 provide('inputKey', props.inputKey)
-provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
+provide('selectNamespace', computed(() => props.manager?.selectionNamespace ?? 'global'))
 
 const clusterLines = shallowRef([]) as Ref<ClusterLine[]>
 
@@ -172,7 +173,7 @@ function computeLines() {
     if (_computingLines) return
     _computingLines = true
     try {
-        const root = props.groupManager.result.root
+        const root = props.manager.result.root
         if (!root) {
             clusterLines.value = []
             return
@@ -273,13 +274,13 @@ function getParents(group: Group) {
 
 function getClusterLineParents(item: ClusterLine) {
     if (!item.groupId) return []
-    const parentGroup = props.groupManager.result.index[item.groupId]
+    const parentGroup = props.manager.result.index[item.groupId]
     return parentGroup ? [...getParents(parentGroup), item.groupId] : [item.groupId]
 }
 
 function toggleClusterSelect(groupId: number) {
-    const iterator = props.groupManager.getGroupIterator(groupId)
-    if (iterator) props.groupManager.toggleGroupIterator(iterator, keyState.shift)
+    const iterator = props.manager.getGroupIterator(groupId)
+    if (iterator) props.manager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 let _triggerHandle: ReturnType<typeof setTimeout> | undefined
@@ -290,11 +291,11 @@ function triggerUpdate() {
 
 onMounted(computeLines)
 
-// The groupManager prop can be swapped for a brand-new instance (e.g. re-rooting the
+// The manager prop can be swapped for a brand-new instance (e.g. re-rooting the
 // tree at a different group) without its `version` changing, since a fresh manager
 // starts at the same baseline version as the one it replaced. Watch the reference
 // itself so the scroller content always follows which group is being shown.
-watch(() => props.groupManager, () => {
+watch(() => props.manager, () => {
     nextTick(computeLines)
 })
 
@@ -304,7 +305,7 @@ watch([contentWidth, layoutContentWidth, () => props.imageSize], () => {
     nextTick(computeLines)
 })
 
-watch(() => props.groupManager.version.value, triggerUpdate)
+watch(() => props.manager.version.value, triggerUpdate)
 </script>
 
 <template>
@@ -318,7 +319,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                     <ClusterLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
                         :parent-ids="getClusterLineParents(item)"
                         :hover-border="hoverGroupBorder"
-                        :manager="props.groupManager"
+                        :manager="props.manager"
                         :properties="props.properties"
                         :target-property-id="props.targetPropertyId"
                         :highlight-ids="props.highlightIds ?? []"

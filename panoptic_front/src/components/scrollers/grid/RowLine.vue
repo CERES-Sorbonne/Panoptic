@@ -2,7 +2,7 @@
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { GroupManager } from '@/core/GroupManager';
+import type { GroupInspector } from '@/core/group/inspector'
 import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
@@ -20,7 +20,7 @@ const columnStore = useColumnStore()
 const props = defineProps<{
     tab: TabManager,
     imageSize: number,
-    manager: GroupManager,
+    manager: GroupInspector,
     item: any,
     properties: Property[],
     showImage: boolean,

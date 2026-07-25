@@ -3,7 +3,8 @@ import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReac
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { GroupManager, Group, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager';
+import { Group, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
@@ -18,7 +19,7 @@ const props = defineProps<{
     imageSize: number,
     height: number,
     width: number,
-    groupManager: GroupManager,
+    manager: GroupInspector,
     properties: Property[],
     hideOptions?: boolean,
     hideGroup?: boolean,
@@ -32,8 +33,8 @@ const emit = defineEmits(['reco'])
 
 provide('inputKey', props.inputKey)
 // Selection namespace for descendant cells (defaults to 'global'). Sourced from
-// the GroupManager so there is a single source of truth per scroller.
-provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
+// the manager so there is a single source of truth per scroller.
+provide('selectNamespace', computed(() => props.manager?.selectionNamespace ?? 'global'))
 
 const groupIdx = {}
 const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
@@ -172,7 +173,7 @@ function GroupToLines(it: GroupIterator) {
     if (group.view.closed) return lines
 
     const availableWidth = contentWidth.value - (group.depth * MARGIN_STEP)
-    const piled = props.groupManager.result.pileIndex.has(group.id)
+    const piled = props.manager.result.pileIndex.has(group.id)
     if (!piled) {
         computeImageLines(it, lines, props.imageSize, availableWidth, group)
     } else {
@@ -221,8 +222,8 @@ function computeLines() {
     if (_computingLines) return
     _computingLines = true
     try {
-        if (!props.groupManager.result.root) return
-        let it = props.groupManager.getGroupIterator()
+        if (!props.manager.result.root) return
+        let it = props.manager.getGroupIterator()
         if (!it?.group) {
             imageLines.value = []
             return
@@ -365,7 +366,7 @@ function getParents(group: Group) {
 }
 
 function getImageLineParents(item) {
-    return [...getParents(props.groupManager.result.index[item.groupId]), item.groupId]
+    return [...getParents(props.manager.result.index[item.groupId]), item.groupId]
 }
 
 function closeGroup(groupIds) {
@@ -377,13 +378,13 @@ function openGroup(groupId) {
 }
 
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
-    const iterator = props.groupManager.findImageIterator(item.groupId, data.id)
-    if (iterator) props.groupManager.toggleImageIterator(iterator, keyState.shift)
+    const iterator = props.manager.findImageIterator(item.groupId, data.id)
+    if (iterator) props.manager.toggleImageIterator(iterator, keyState.shift)
 }
 
 function toggleGroupSelect(groupId: number) {
-    const iterator = props.groupManager.getGroupIterator(groupId)
-    if (iterator) props.groupManager.toggleGroupIterator(iterator, keyState.shift)
+    const iterator = props.manager.getGroupIterator(groupId)
+    if (iterator) props.manager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 let _triggerHandle: ReturnType<typeof setTimeout> | undefined
@@ -395,11 +396,11 @@ function triggerUpdate() {
 
 onMounted(computeLines)
 
-// The groupManager prop can be swapped for a brand-new instance (e.g. re-rooting the
+// The manager prop can be swapped for a brand-new instance (e.g. re-rooting the
 // tree at a different group) without its `version` changing, since a fresh manager
 // starts at the same baseline version as the one it replaced. Watch the reference
 // itself so the scroller content always follows which group is being shown.
-watch(() => props.groupManager, () => {
+watch(() => props.manager, () => {
     nextTick(computeLines)
 })
 
@@ -472,7 +473,7 @@ watch(contentWidth, () => {
 
 // Re-render on result change via the version tick (note §3, step 1) instead of
 // the onResultChange listener. Vue stops this watch automatically on unmount.
-watch(() => props.groupManager.version.value, triggerUpdate)
+watch(() => props.manager.version.value, triggerUpdate)
 
 </script>
 
@@ -485,21 +486,21 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :manager="props.groupManager" :hide-options="props.hideOptions"
-                        :data="props.groupManager.result" @scroll="scrollTo" @hover="updateHoverBorder"
+                        :manager="props.manager" :hide-options="props.hideOptions"
+                        :data="props.manager.result" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1" @group:close="closeGroup" @group:open="openGroup"
                         @select="toggleGroupSelect" @reco="emit('reco', $event)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <ImageLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
-                        :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
+                        :index="props.manager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                 </div>
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
-                        :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
+                        :index="props.manager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                         :sha1-scores="props.sha1Scores"
                         :preview="props.preview" @update:selected-image="e => updateImageSelection(e, item)"

@@ -4,7 +4,8 @@ import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
-import { ClusterRequest, Group, GroupManager, GroupTree, GroupType } from '@/core/GroupManager'
+import { ClusterRequest, Group, GroupTree, GroupType } from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { GroupLine, ImagePropertyValue, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
@@ -21,7 +22,7 @@ const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(
 
 const props = defineProps<{
     item: GroupLine
-    manager: GroupManager
+    manager: GroupInspector
     parentIds: number[];
     hoverBorder: number,
     data: GroupTree,
@@ -38,26 +39,34 @@ const hoverGroup = ref(false)
 // happens to change (which is why e.g. the open/close-all button appeared late).
 const version = computed(() => props.manager.version.value)
 
-const group = computed(() => (version.value, props.item.data))
+// The tree is mutated IN PLACE, so `props.item.data`, `.children` and `.slots` keep their
+// identity across changes. A computed only notifies its dependents when its value changes by
+// identity, so a computed returning one of those objects is a dead end: it recomputes, sees the
+// same reference, and never invalidates anything downstream (this is why clearing a cluster left
+// `hasSubgroups` true until an unrelated re-render). Everything the template reads must therefore
+// be a SCALAR computed that reads `version` itself — never chained off an object-valued one.
+const group = () => props.item.data
 
-const slots = computed(() => (version.value, props.item.data.slots ?? []))
+const slotCount = computed(() => (version.value, props.item.data.slots?.length ?? 0))
 
 function getImages() {
     const ids = columnStore.instanceIds()
     const sha1s = columnStore.sha1s()
-    return slots.value.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot], sha1: sha1s[slot] }))
+    const slots = props.item.data.slots ?? []
+    return slots.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot], sha1: sha1s[slot] }))
 }
 
-const subgroups = computed(() => (version.value, props.item.data.children ?? []))
-const hasImages = computed(() => slots.value.length > 0)
+const subgroupCount = computed(() => (version.value, props.item.data.children?.length ?? 0))
+const hasImages = computed(() => slotCount.value > 0)
+const hasSubgroups = computed(() => subgroupCount.value > 0)
 
-const hasSubgroups = computed(() => {
-    return subgroups.value.length > 0
-})
 const properties = computed(() => (version.value, props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId])))
-const propertyValues = computed(() => (version.value, props.item.data.meta.propertyValues))
+const propertyValues = computed(() => (version.value, props.item.data.meta.propertyValues.slice()))
 const closed = computed(() => (version.value, props.item.data.view.closed))
-const hasOpenChildren = computed(() => subgroups.value.some((c: Group) => !c.view.closed))
+const hasOpenChildren = computed(() => (version.value, (props.item.data.children ?? []).some((c: Group) => !c.view.closed)))
+
+const groupType = computed(() => (version.value, props.item.data.type))
+const score = computed(() => (version.value, props.item.data.score?.value))
 
 // Reactive via the namespace's selection tick, read inside isGroupSelected.
 const selected = computed(() => props.manager.isGroupSelected(props.item.data))
@@ -97,14 +106,14 @@ function toggleClosed() {
 }
 
 function closeChildren() {
-    const ids = subgroups.value.map((g: Group) => g.id)
+    const ids = (props.item.data.children ?? []).map((g: Group) => g.id)
     ids.forEach((id: number) => props.manager.closeGroup(id))
     props.manager.emitResult()
     emits('group:close', ids)
 }
 
 function openChildren() {
-    const ids = subgroups.value.map((g: Group) => g.id)
+    const ids = (props.item.data.children ?? []).map((g: Group) => g.id)
     ids.forEach((id: number) => props.manager.openGroup(id))
     props.manager.emitResult()
     emits('group:open', ids)
@@ -115,8 +124,8 @@ async function saveHirachy(ignoreParents?: boolean) {
     if (saving.value) return
     saving.value = true
 
-    const children = group.value.children
-    const mode = allChildrenSha1Groups(group.value) ? PropertyMode.sha1 : PropertyMode.id
+    const children = group().children
+    const mode = allChildrenSha1Groups(group()) ? PropertyMode.sha1 : PropertyMode.id
 
     // Count how many tags are needed before allocating
     const tagCount = countTags(children, ignoreParents)
@@ -208,7 +217,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="me-1">
-            <SelectCircle :small="true" :model-value="selected" @update:model-value="emits('select', group.id)" />
+            <SelectCircle :small="true" :model-value="selected" @update:model-value="emits('select', props.item.data.id)" />
         </div>
         <div v-if="hasSubgroups && hasOpenChildren"
             class="text-secondary align-self-center bi bi-dash-square-dotted me-1" @click="closeChildren">
@@ -224,18 +233,18 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
-        <div v-if="group.type == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
-            <ClusterBadge v-if="group.score" :value="Math.round(group.score.value)" />
+        <div v-if="groupType == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
+            <ClusterBadge v-if="score != undefined" :value="Math.round(score)" />
         </div>
 
-        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ slots.length }} Images
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ slotCount }} Images
         </div>
 
-        <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
-            subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
+        <div v-if="subgroupCount" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
+            subgroupCount }} {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
-            <template v-if="group.subGroupType == GroupType.Cluster">
+            <template v-if="isClusterGroup">
                 <div class="ms-1">
                     <WithToolTip message="btn.close-clusters">
                         <div class="sb opt-btn" @click="clear">
@@ -246,7 +255,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             </template>
 
             <!-- Options dropdown: always visible -->
-            <div v-if="group.subGroupType != GroupType.Cluster" class="ms-1">
+            <div v-if="!isClusterGroup" class="ms-1">
                 <Dropdown :teleport="true">
                     <template #button>
                         <div class="sb opt-btn"><i class="bi bi-three-dots" /></div>
@@ -263,7 +272,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                             </StampDropdown>
 
                             <ActionButton2 v-if="!hasSubgroups" action="group" :no-border="true" :defer="true"
-                                :busy="props.manager.isClustering(group.id)" @submit="cluster">
+                                :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster">
                                 <div class="opt-row">
                                     <span class="opt-icon"><i class="bi bi-intersect" /></span>
                                     <span class="opt-label">{{ $t('action.group') }}</span>
@@ -271,19 +280,19 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                             </ActionButton2>
 
                             <ActionButton2 action="execute" :no-border="true" :defer="true"
-                                :busy="props.manager.isClustering(group.id)" @submit="cluster">
+                                :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster">
                                 <div class="opt-row">
                                     <span class="opt-icon"><i class="bi bi-terminal" /></span>
                                     <span class="opt-label">{{ $t('action.execute') }}</span>
                                 </div>
                             </ActionButton2>
 
-                            <div v-if="!hasSubgroups" class="opt-row" @click="emits('reco', group.id); hide();">
+                            <div v-if="!hasSubgroups" class="opt-row" @click="emits('reco', props.item.data.id); hide();">
                                 <span class="opt-icon"><i class="bi bi-magic" /></span>
                                 <span class="opt-label">{{ $t('main.menu.reco_tooltip') }}</span>
                             </div>
 
-                            <template v-if="group.subGroupType == GroupType.Cluster">
+                            <template v-if="isClusterGroup">
                                 <div class="opt-row" @click="saveHirachy(); hide();">
                                     <span class="opt-icon"><i class="bi bi-diagram-3" /></span>
                                     <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
@@ -312,12 +321,12 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                 </div>
 
                 <div class="ms-1" v-if="!hasSubgroups">
-                    <ActionButton action="group" :defer="true" :busy="props.manager.isClustering(group.id)"
+                    <ActionButton action="group" :defer="true" :busy="props.manager.isClustering(props.item.data.id)"
                         @submit="cluster" />
                 </div>
                 <div class="ms-1">
                     <ActionButton2 :no-border="true" action="execute" :defer="true"
-                        :busy="props.manager.isClustering(group.id)" @submit="cluster">
+                        :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster">
                         <div class="bi bi-terminal"
                             style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
                         </div>

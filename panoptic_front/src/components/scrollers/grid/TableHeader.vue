@@ -4,7 +4,8 @@ import Resizable from '@/components/Resizable.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import PropertyValue from '@/components/properties/PropertyValue.vue';
 import { Property } from '@/data/models';
-import { Group, GroupManager } from '@/core/GroupManager';
+import { Group} from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { getGroupParents } from '@/utils/utils';
 import { useProjectStore } from '@/data/projectStore';
 import { TabManager } from '@/core/TabManager';
@@ -17,7 +18,7 @@ const props = defineProps<{
     properties: Property[],
     missingWidth: number,
     showImage: boolean,
-    manager: GroupManager,
+    manager: GroupInspector,
     currentGroup: Group
 }>()
 

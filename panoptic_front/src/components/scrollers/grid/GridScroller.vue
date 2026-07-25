@@ -3,7 +3,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
-import { Group, GroupManager } from '@/core/GroupManager';
+import { Group} from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId, PropertyMode } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
@@ -17,18 +18,20 @@ const project = useProjectStore()
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
 
-const props = defineProps({
+// Type-based props: `manager` is the GroupInspector contract (a CollectionManager in the
+// main/view panes, a standalone GroupManager elsewhere), which has no runtime constructor.
+const props = withDefaults(defineProps<{
     tab: TabManager,
-    manager: GroupManager,
-    height: Number,
-    width: Number,
-    selectedProperties: Array<Property>,
-    showImages: Boolean,
-    hideIfModal: Boolean,
+    manager: GroupInspector,
+    height: number,
+    width: number,
+    selectedProperties: Property[],
+    showImages?: boolean,
+    hideIfModal?: boolean,
     // Per-view image size (Pillar F). Passed in by the pane; tab-level imageSize
     // no longer exists.
-    imageSize: { type: Number, default: 100 },
-})
+    imageSize?: number,
+}>(), { imageSize: 100 })
 
 defineExpose({
     // scrollTo,
@@ -43,7 +46,7 @@ const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
 const visibleProperties = computed(() => props.selectedProperties.filter(p => {
-    return p.mode == PropertyMode.sha1 || props.manager.state.sha1Mode == false
+    return p.mode == PropertyMode.sha1 || props.manager.groupState.sha1Mode == false
 }))
 
 const tabState = computed(() => props.tab.state)

@@ -172,10 +172,11 @@ async function assignClusterValue(groupId: number, value: any) {
 
 // ---- Standalone tree fed to ClusterScroller --------------------------------------
 
-// Feed the ClusterScroller the collection's own groupManager directly (no clone / no rootedAt).
-// It shows whatever groups exist: the flat root before any clustering, the property groups when a
-// tree grouping is active, or cluster cards once clustered. Selection is shared with the tree view.
-const viewManager = computed(() => props.collection.groupManager)
+// Feed the ClusterScroller the collection itself (it satisfies GroupInspector — no clone, no
+// rootedAt). It shows whatever groups exist: the flat root before any clustering, the property
+// groups when a tree grouping is active, or cluster cards once clustered. Selection is shared
+// with the tree view.
+const viewManager = computed(() => props.collection)
 const hasImages = computed(() => {
     props.collection.version.value // reactive dep
     return (props.collection.result?.root?.slots?.length ?? 0) > 0
@@ -407,7 +408,7 @@ onUnmounted(() => {
                     <ClusterScroller
                         v-else
                         input-key="cluster-view"
-                        :group-manager="viewManager"
+                        :manager="viewManager"
                         :image-size="props.imageSize"
                         :height="contentHeight"
                         :width="primaryWidth"

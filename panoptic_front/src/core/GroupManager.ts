@@ -34,6 +34,7 @@ import { GroupResult } from "./group/GroupResult";
 import { GroupNavigator } from "./group/GroupNavigator";
 import { ClusterManager, ClusterRequest } from "./group/ClusterManager";
 import { refreshSubGroupType } from "./group/groupOps";
+import type { GroupInspector } from "./group/inspector";
 
 // ── Barrel re-exports — keep `@/core/GroupManager` as the public entry point ─
 export { GroupType, GroupSortType } from "./group/types";
@@ -45,8 +46,9 @@ export { buildGroup, buildGroupOption, createGroupState } from "./group/builders
 export type { ClusterRequest, ClusterRun } from "./group/ClusterManager";
 export { GroupIterator, ImageIterator } from "./group/GroupIterator";
 export type { GroupIteratorOptions } from "./group/GroupIterator";
+export type { GroupInspector } from "./group/inspector";
 
-export class GroupManager implements ClusterOpsHost {
+export class GroupManager implements ClusterOpsHost, GroupInspector {
     state: GroupState
     // The composed tree + iterators + result-change signal now live on GroupResult;
     // the manager is the engine that fills it. GroupResult satisfies GroupTree, so callers
@@ -81,6 +83,10 @@ export class GroupManager implements ClusterOpsHost {
     // driven by GroupNavigator (this.nav). Delegating getter kept for callers reading
     // `manager.selectionNamespace`.
     get selectionNamespace(): string { return this.nav.selectionNamespace }
+
+    // Alias of `state` under the name the GroupInspector contract uses (CollectionManager
+    // already owns `state` for its CollectionState, so the shared surface says `groupState`).
+    get groupState(): GroupState { return this.state }
 
     constructor(state?: GroupState) {
         if (state) {

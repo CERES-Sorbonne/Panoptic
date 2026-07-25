@@ -109,7 +109,7 @@ onUnmounted(() => {
             <TreeScroller
                 v-if="tab && view && collection && view.type == 'tree' && dimensions.width > 0"
                 input-key="view-panel-tree"
-                :group-manager="collection.groupManager"
+                :manager="collection"
                 :image-size="view.imageSize"
                 :height="dimensions.height"
                 :width="dimensions.width"
@@ -122,7 +122,7 @@ onUnmounted(() => {
                 <GridScroller
                     :tab="tab"
                     :image-size="view.imageSize"
-                    :manager="collection.groupManager"
+                    :manager="collection"
                     :height="dimensions.height - 15"
                     :width="dimensions.width - 32"
                     :selected-properties="view.showProperties ? visibleProperties : []"

@@ -204,6 +204,33 @@ self-healing. With sha1Mode off it no longer reallocates the map for nothing.
 methods whose absence forced views to reach through `.groupManager` anyway. `GroupView` and
 `TabManager.getSha1Mode` now go through the facade.
 
+### The scrollers no longer take a `GroupManager`
+
+They take a **`GroupInspector`** (`core/group/inspector.ts`) — the read + view-state surface
+they actually render against: `result` / `version` / `groupState` / `selectionNamespace`,
+the three iterator getters, open/close + `emitResult`, the selection toggles, and the four
+cluster/custom-group ops reachable from a group line. Deliberately *not* in it: filter, sort
+and group configuration, or any rebuild entrypoint — what a scroller must not do is absent
+from its type.
+
+`GroupManager` and `CollectionManager` both `implements GroupInspector` (the latter by
+delegation, as it already did). So `ViewPanel` / `MainView` / `GroupView` now pass
+`collection` straight in, while the panels with no collection behind them — `ImagePreview`,
+`RecoPanel` / `RecommendView`, the `Instances` modal — keep passing their standalone
+`GroupManager`. Both work through the same prop, with no `.groupManager` reach-through at
+the call site.
+
+Mechanics: `TreeScroller`/`ClusterScroller`'s `groupManager` prop is renamed `manager`,
+matching `GridScroller`; `GroupManager` gained a `groupState` getter (alias of `state` —
+`CollectionManager.state` is the CollectionState, so the shared surface needed the other
+name) and `CollectionManager` an `emitResult()`. `GridScroller` moved from runtime
+(constructor-based) `defineProps` to a type declaration, since an interface has no runtime
+constructor to name; that un-masked three pre-existing `ScrollerLine` shape errors in that
+file, left as they were.
+
+Still typed against `GroupManager`: `GroupForm` (`ContentFilter`, `FilterPanel`) and
+`RecoPanel`'s own prop — grouping *configuration*, not inspection.
+
 ---
 
 ## Left open — these need a decision
@@ -215,9 +242,6 @@ methods whose absence forced views to reach through `.groupManager` anyway. `Gro
   objects when slots match, keeping `ImageIterator`s that hold `Group` objects detached from
   the rebuilt tree. Either wire `register: true` into the scroller-owned iterators or delete
   the mechanism — wiring it changes stale-iterator behaviour in the scrollers.
-- **Scrollers still take a `GroupManager` prop.** `ViewPanel` passes
-  `collection.groupManager` into `TreeScroller`/`GridScroller`/`ClusterScroller`. Moving them
-  to `CollectionManager` is a real refactor of the scroller contract.
 - **Dead API to prune or keep**: `propagateSelect`/`propagateUnselect` and `Group.view.selected`
   (no readers outside core), the `onlyPropertyGroups` iterator option (declared, never used),
   `CollectionState.instances` (never assigned).

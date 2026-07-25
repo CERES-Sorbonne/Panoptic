@@ -8,7 +8,7 @@
 import { CollectionState } from "@/data/models";
 import { FilterContext, FilterManager, FilterState } from "./FilterManager";
 import { SortManager, SortState } from "./SortManager";
-import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest } from "./GroupManager";
+import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest, GroupInspector } from "./GroupManager";
 import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { useColumnStore } from "@/data/columnStore";
@@ -35,7 +35,7 @@ function maxReloadKind(a: ReloadKind | null, b: ReloadKind): ReloadKind {
     return RELOAD_PRIORITY[a] >= RELOAD_PRIORITY[b] ? a : b
 }
 
-export class CollectionManager {
+export class CollectionManager implements GroupInspector {
     state: CollectionState
     filterManager: FilterManager
     sortManager: SortManager
@@ -128,6 +128,8 @@ export class CollectionManager {
     get selectionNamespace() { return this.groupManager.selectionNamespace }
 
     hasResult() { return this.groupManager.hasResult() }
+    // Publish view-state changes made without `emit` (batched open/close in the group lines).
+    emitResult() { return this.groupManager.emitResult() }
     getRequiredColumns() { return this.groupManager.getRequiredColumns() }
 
     // Iteration

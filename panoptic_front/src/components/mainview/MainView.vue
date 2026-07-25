@@ -96,14 +96,14 @@ onMounted(updateScrollerHeight)
     <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid">
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="props.tab.state.views[0].type == 'tree'" >
-            <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.views[0].imageSize"
+            <TreeScroller input-key="main-view-tree" :manager="props.tab.collection" :image-size="props.tab.state.views[0].imageSize"
                 :height="scrollerHeight" :properties="visibleProperties" :hide-if-modal="true"
                 ref="imageList" @reco="openReco"
                 :width="scrollerWidth -10" style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.views[0].type == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="grid-container" style="margin-left: 10px;">
-                <GridScroller :tab="tab" :image-size="props.tab.state.views[0].imageSize" :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15"
+                <GridScroller :tab="tab" :image-size="props.tab.state.views[0].imageSize" :manager="props.tab.collection" :height="scrollerHeight - 15"
                     :width="scrollerWidth -12" :selected-properties="visibleProperties" class="p-0 m-0"
                     :show-images="true"
                     ref="imageList" :hide-if-modal="true"  />

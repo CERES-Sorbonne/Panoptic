@@ -4,7 +4,8 @@ import { PileRowLine, type GroupLine, type Property, type RowLine, type Scroller
 
 import GroupLineVue from './GroupLine.vue';
 import RowLineVue from './RowLine.vue';
-import { GroupManager, SelectedImages } from '@/core/GroupManager';
+import { SelectedImages } from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { TabManager } from '@/core/TabManager';
 import { useColumnStore } from '@/data/columnStore';
 
@@ -12,7 +13,7 @@ import { useColumnStore } from '@/data/columnStore';
 const props = defineProps<{
     tab: TabManager,
     imageSize: number,
-    manager: GroupManager,
+    manager: GroupInspector,
     item: ScrollerLine,
     width: number,
     missingWidth: number,

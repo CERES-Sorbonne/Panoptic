@@ -2,7 +2,8 @@
 import { ComputedRef, computed, inject, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import { ClusterLine, GroupViewMode, MOSAIC_GRID, mosaicSlotCount } from '@/data/models'
-import { ClusterRequest, GroupManager, Group, GroupType } from '@/core/GroupManager'
+import { ClusterRequest, Group, GroupType } from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
 import CenteredImage from '@/components/images/CenteredImage.vue'
@@ -26,7 +27,7 @@ const props = defineProps<{
     item: ClusterLine
     parentIds: number[]
     hoverBorder: number
-    manager: GroupManager
+    manager: GroupInspector
     properties: any[]
     // Group ids currently open in the right-side inspector panel.
     openedIds: number[]

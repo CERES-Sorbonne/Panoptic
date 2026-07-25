@@ -98,7 +98,7 @@ onUnmounted(() => {
             <TreeScroller
                 v-if="ready && dims.width > 0 && dims.height > 0 && count > 0"
                 :input-key="inputKey"
-                :group-manager="groupManager"
+                :manager="groupManager"
                 :image-size="imageSize"
                 :height="dims.height"
                 :width="dims.width"
