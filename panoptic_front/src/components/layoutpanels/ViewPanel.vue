@@ -110,7 +110,7 @@ onUnmounted(() => {
 
         <div ref="containerRef" class="view-container">
             <div v-if="tab && view && collection && view.type == 'tree' && dimensions.width > 0"
-                style="padding-left: 0.25rem">
+                style="padding-left: 0.45rem">
                 <TreeScroller input-key="view-panel-tree" :manager="collection" :image-size="view.imageSize"
                     :height="dimensions.height" :width="dimensions.width"
                     :properties="view.showProperties ? visibleProperties : []" :hide-if-modal="true" @reco="openReco" />
@@ -124,20 +124,20 @@ onUnmounted(() => {
             </div>
 
             <div v-if="tab && view && collection && view.type == 'graph' && dimensions.height > 0"
-                style="padding-left: 0.25rem; padding-top: var(--spacing-xs);">
+                style="padding-left: 0.45rem; padding-top: var(--spacing-xs);">
                 <GraphView :collection="collection" :height="dimensions.height - 15" :view="view" />
             </div>
             <MapView v-if="tab && view && collection && view.type == 'map'" :tab="tab" :collection="collection"
                 :map-options="view.mapOptions" />
 
             <div v-if="tab && view && collection && view.type == 'reco' && dimensions.width > 0"
-                style="padding-left: 0.25rem">
+                style="padding-left: 0.45rem">
                 <RecommendView :tab="tab" :collection="collection" :reco-options="view.recoOptions"
                     :image-size="view.imageSize"
                     :width="dimensions.width - 32" :height="dimensions.height - 15" @close="closeReco" />
             </div>
 
-            <div v-if="tab && view && collection && isGroupView && dimensions.width > 0" style="padding-left: 0.25rem">
+            <div v-if="tab && view && collection && isGroupView && dimensions.width > 0" style="padding-left: 0.45rem">
                 <GroupView :tab="tab" :collection="collection" :cluster-options="view.clusterOptions"
                     :image-size="view.imageSize"
                     :properties="view.showProperties ? visibleProperties : []" :width="dimensions.width"

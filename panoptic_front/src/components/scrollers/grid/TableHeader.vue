@@ -53,11 +53,11 @@ const propertyValues = computed(() => {
 
 
 <template>
-    <div class="m-0 p-0">
+    <div class="m-0">
         <div style="height: 30px;">
             <!-- <div class="left-border"></div> -->
             <div v-if="showImage" class="header-cell right-border" :style="{ width: (props.imageSize) + 'px' }">
-                <i class="bi bi-image ms-1 me-1"></i>
+                <i class="bi bi-image me-1" style="margin-left: 0.35rem;"></i>
                 <span v-if="instanceNb != undefined">{{ instanceNb }}</span>
             </div>
             <Resizable :start-width="tab.propertyOptions[property.id].size"

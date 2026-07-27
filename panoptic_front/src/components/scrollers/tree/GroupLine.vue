@@ -213,8 +213,8 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"> </div>
         </div>
         <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
-            <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
-            <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
+            <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 0px;"></i>
+            <i v-else class="bi bi-caret-down-fill" style="margin-left: 0px;"></i>
         </div>
         <div class="me-1">
             <SelectCircle :small="true" :model-value="selected" @update:model-value="emits('select', props.item.data.id)" />
