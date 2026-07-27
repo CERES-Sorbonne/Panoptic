@@ -45,7 +45,7 @@ const scroller = ref(null)
 const MARGIN_STEP = 20
 const GAP = 8 // must match the "me-2" margin applied to Image/PileLine cells
 const BORDER = 2 // Image.vue's .full-container 1px border on each side, added on top of its width style
-const WIDTH_OFFSET = 32 // trim off the width prop (vertical scrollbar + a little breathing room)
+const WIDTH_OFFSET = 34 // trim off the width prop (vertical scrollbar + 2px gap so cells don't touch it)
 
 // The `width` prop is the box this scroller occupies. RecycleScroller scrolls vertically, so
 // its scrollbar (plus a small margin) eats WIDTH_OFFSET px off the usable content width —
