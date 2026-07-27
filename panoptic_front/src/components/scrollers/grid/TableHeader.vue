@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import Resizable from '@/components/Resizable.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import PropertyValue from '@/components/properties/PropertyValue.vue';
@@ -23,7 +23,13 @@ const props = defineProps<{
 }>()
 
 const tab = computed(() => props.tab.state)
-const instanceNb = ref(0)
+// Depends on the version tick so it re-evaluates whenever the result tree changes
+// (the result itself is not reactive).
+const instanceNb = computed(() => {
+    props.manager.version.value
+    if (!props.manager.hasResult()) return undefined
+    return props.manager.result.root?.slots.length ?? 0
+})
 
 
 const isMissingWidth = computed(() => props.missingWidth > 0)
@@ -43,38 +49,18 @@ const propertyValues = computed(() => {
     return res
 })
 
-function onUpdate() {
-    instanceNb.value = props.manager.result.root?.slots.length ?? 0
-}
-
-// Re-read instance count on result change via the version tick (note §3, step 1).
-watch(() => props.manager.version.value, onUpdate, { immediate: true })
-
 </script>
 
 
 <template>
     <div class="m-0 p-0">
-        <div class="header-row d-flex flex-row ps-1">
-            <span v-if="props.manager.hasResult()" class=" me-1">Images: {{ instanceNb }}</span>
-            <span v-if="props.currentGroup.id != undefined"> ({{ props.currentGroup.slots.length }})</span>
-            <div class="ms-3 me-1"></div>
-            <template v-if="props.currentGroup.id">
-                <template v-for="value, index in propertyValues">
-                    <PropertyValue class="" :value="value" />
-                    <div v-if="index < propertyValues.length - 1" class="separator">&</div>
-                </template>
-            </template>
-        </div>
-        <div class="empty"></div>
-
         <div style="height: 30px;">
-            <div class="left-border"></div>
+            <!-- <div class="left-border"></div> -->
             <div v-if="showImage" class="header-cell right-border" :style="{ width: (props.imageSize) + 'px' }">
                 <i class="bi bi-image ms-1 me-1"></i>
+                <span v-if="instanceNb != undefined">{{ instanceNb }}</span>
             </div>
-            <Resizable
-                :start-width="tab.propertyOptions[property.id].size - ((isMissingWidth && index == props.properties.length - 1) ? 1 : 0)"
+            <Resizable :start-width="tab.propertyOptions[property.id].size"
                 v-for="property, index in props.properties" class="header-cell"
                 :class="(isMissingWidth && index == props.properties.length - 1) ? '' : 'right-border'"
                 @resize="w => resize(property.id, w)">

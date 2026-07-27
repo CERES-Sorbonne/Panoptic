@@ -206,7 +206,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 </script>
 
 <template>
-    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden"
+    <div class="d-flex flex-row group-line overflow-hidden"
         @mouseenter="hoverGroup = true" @mouseleave="hoverGroup = false">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">

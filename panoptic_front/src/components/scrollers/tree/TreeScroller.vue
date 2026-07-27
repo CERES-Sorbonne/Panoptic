@@ -100,11 +100,11 @@ provide('hideImg', hideFromModal)
 // backend is hit with a single batched request instead of one per image cell.
 
 const windowStart = ref(0)
-const windowEnd   = ref(0)
+const windowEnd = ref(0)
 
 function onScrollerUpdate(startIndex: number, endIndex: number) {
     windowStart.value = startIndex
-    windowEnd.value   = endIndex
+    windowEnd.value = endIndex
 }
 
 const windowIds = computed(() => {
@@ -114,7 +114,7 @@ const windowIds = computed(() => {
 
     // Clamp reported indices to valid range
     let start = Math.max(0, Math.min(windowStart.value, lines.length - 1))
-    let end   = Math.max(0, Math.min(windowEnd.value,   lines.length - 1))
+    let end = Math.max(0, Math.min(windowEnd.value, lines.length - 1))
 
     // Expand backwards until 5 image/pile lines before the visible window
     let preCount = 0
@@ -144,7 +144,7 @@ const windowIds = computed(() => {
     }
     return ids
 })
-const windowPropIds = computed(() => props.properties?.map(p => p.id)??[])
+const windowPropIds = computed(() => props.properties?.map(p => p.id) ?? [])
 
 defineExpose({
     scrollTo,
@@ -431,7 +431,7 @@ watch(visiblePropertiesNb, () => {
 
     const newSizeOf = (l) => l.type === 'images' ? imageLineSizeFor(l.imageSize)
         : l.type === 'piles' ? pileLineSizeFor(l.imageSize)
-        : l.size
+            : l.size
 
     // Pre-compute exact pixel offset of that item in the NEW layout so we can
     // restore it in the same nextTick flush — before the browser paints.
@@ -460,7 +460,7 @@ watch(visiblePropertiesNb, () => {
         else if (l.type === 'piles') l.size = pileLineSizeFor(l.imageSize)
     }
 
-    imageLines.value = [...lines ]
+    imageLines.value = [...lines]
 })
 
 // Width drives per-line/per-cell sizing — recompute when it changes. The width prop is the
@@ -479,41 +479,41 @@ watch(() => props.manager.version.value, triggerUpdate)
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
-    <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">
-        <template v-slot="{ item, index, active }">
-            <template v-if="true">
-                <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
-                <div v-if="item.type == 'group' && !props.hideGroup">
-                    <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :manager="props.manager" :hide-options="props.hideOptions"
-                        :data="props.manager.result" @scroll="scrollTo" @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = -1" @group:close="closeGroup" @group:open="openGroup"
-                        @select="toggleGroupSelect" @reco="emit('reco', $event)" />
-                </div>
-                <div v-else-if="item.type == 'images'">
-                    <ImageLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
-                        :index="props.manager.result.index" :hover-border="hoverGroupBorder"
-                        :parent-ids="getImageLineParents(item)" :properties="props.properties"
-                        @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
-                </div>
-                <div v-else-if="item.type == 'piles'">
-                    <PileLine :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
-                        :index="props.manager.result.index" :hover-border="hoverGroupBorder"
-                        :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
-                        :sha1-scores="props.sha1Scores"
-                        :preview="props.preview" @update:selected-image="e => updateImageSelection(e, item)"
-                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
-                        />
-                </div>
-                <div v-else-if="item.type == 'filler'">
-                    <div :style="{ height: item.size + 'px' }" class=""></div>
-                </div>
+        <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
+            :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false"
+            :prerender="0">
+            <template v-slot="{ item, index, active }">
+                <template v-if="true">
+                    <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
+                    <div v-if="item.type == 'group' && !props.hideGroup">
+                        <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                            :manager="props.manager" :hide-options="props.hideOptions" :data="props.manager.result"
+                            @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
+                            @group:close="closeGroup" @group:open="openGroup" @select="toggleGroupSelect"
+                            @reco="emit('reco', $event)" />
+                    </div>
+                    <div v-else-if="item.type == 'images'">
+                        <ImageLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
+                            :index="props.manager.result.index" :hover-border="hoverGroupBorder"
+                            :parent-ids="getImageLineParents(item)" :properties="props.properties"
+                            @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
+                            @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
+                    </div>
+                    <div v-else-if="item.type == 'piles'">
+                        <PileLine :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
+                            :index="props.manager.result.index" :hover-border="hoverGroupBorder"
+                            :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
+                            :sha1-scores="props.sha1Scores" :preview="props.preview"
+                            @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
+                            @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
+                    </div>
+                    <div v-else-if="item.type == 'filler'">
+                        <div :style="{ height: item.size + 'px' }" class=""></div>
+                    </div>
+                </template>
+                <!-- </DynamicScrollerItem> -->
             </template>
-            <!-- </DynamicScrollerItem> -->
-        </template>
-    </RecycleScroller>
+        </RecycleScroller>
     </InstanceData>
 </template>
 

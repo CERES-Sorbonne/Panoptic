@@ -309,7 +309,7 @@ watch(() => props.manager.version.value, triggerUpdate)
 </script>
 
 <template>
-    <div style="width: 100%; min-width: 0; padding-top: 8px;">
+    <div style="width: 100%; min-width: 0;">
         <div v-if="clusterLines.length === 0" class="p-3 text-secondary">{{ $t('main.group.no_lines') }}</div>
         <InstanceData v-else :instance-ids="windowIds" :prop-ids="windowPropIds">
         <RecycleScroller :items="clusterLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"

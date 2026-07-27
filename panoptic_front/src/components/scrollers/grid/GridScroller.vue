@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
 import { Group} from '@/core/GroupManager'
@@ -39,7 +39,11 @@ defineExpose({
     clear
 })
 
-const hearderHeight = ref(60)
+// TableHeader is a single 30px row (the old "Images: n" summary row was removed).
+const hearderHeight = ref(30)
+// Width eaten by the scroller's vertical scrollbar. The header sits outside the
+// scrolling element, so without subtracting it the header is wider than the rows.
+const scrollbarWidth = ref(0)
 // Only the visible window slice + at most two spacers — never the full dataset.
 const rowLines = ref([])
 const lineSizes: { [id: string]: number } = {}
@@ -60,15 +64,20 @@ const totalPropWidth = computed(() => {
     return propSum
 })
 
-const scrollerWidth = computed(() => Math.max(totalPropWidth.value, props.width))
+// Usable width: what the rows actually get inside the scrolling element.
+const contentWidth = computed(() => props.width - scrollbarWidth.value)
 
-const missingWidth = computed(() => props.width - totalPropWidth.value)
+const scrollerWidth = computed(() => Math.max(totalPropWidth.value, contentWidth.value))
+
+const missingWidth = computed(() => contentWidth.value - totalPropWidth.value)
 
 const scrollerHeight = computed(() => props.height - hearderHeight.value)
 
+// The scrolling element itself must also cover the scrollbar gutter, otherwise
+// measuring it would shrink the content on every pass.
 const scrollerStyle = computed(() => ({
     height: scrollerHeight.value + 'px',
-    width: scrollerWidth.value + 'px',
+    width: (scrollerWidth.value + scrollbarWidth.value) + 'px',
     // overflowX: 'hidden'
 }))
 
@@ -268,14 +277,35 @@ function changeHandler(){
 // Re-render on result change via the version tick (note §3, step 1).
 watch(() => props.manager.version.value, changeHandler)
 
+let scrollbarObserver: ResizeObserver | undefined
+
+function measureScrollbar() {
+    const el = scroller.value?.$el as HTMLElement | undefined
+    if (!el) return
+    // Overlay scrollbars (default on macOS) measure 0, which is correct: they
+    // take no layout space, so header and rows already line up.
+    const w = el.offsetWidth - el.clientWidth
+    if (w >= 0 && w !== scrollbarWidth.value) scrollbarWidth.value = w
+}
+
 onMounted(() => {
     props.manager.clearCustomGroups(true)
-    scroller.value?.$el?.addEventListener('scroll', onScroll, { passive: true })
+    const el = scroller.value?.$el as HTMLElement | undefined
+    el?.addEventListener('scroll', onScroll, { passive: true })
+    if (el) {
+        scrollbarObserver = new ResizeObserver(measureScrollbar)
+        scrollbarObserver.observe(el)
+    }
+    measureScrollbar()
 })
 
 onUnmounted(() => {
     scroller.value?.$el?.removeEventListener('scroll', onScroll)
+    scrollbarObserver?.disconnect()
 })
+
+// The scrollbar appears/disappears as content grows or shrinks.
+watch(rowLines, () => nextTick(measureScrollbar))
 
 watch(() => props.imageSize, (now) => {
     if (!dataLines.length) return

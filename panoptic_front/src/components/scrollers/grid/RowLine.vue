@@ -125,9 +125,8 @@ const inputWidth = computed(() => {
     props.properties.forEach(p => {
         res[p.id] = tab.value.propertyOptions[p.id].size - 7
         if (p.id == props.properties[props.properties.length - 1].id) {
+            // The scrollbar is already excluded from missingWidth by GridScroller.
             if (props.missingWidth > 0) res[p.id] += props.missingWidth
-
-            res[p.id] -= 15 // remove scrolling bar width
         }
     })
     return res
@@ -193,8 +192,8 @@ watch(() => props.properties, () => {
 
 
 <template>
-    <div class="d-flex" :style="{ height: props.item.size + 'px' }">
-        <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
+    <div class="d-flex row-line" :style="{ height: props.item.size + 'px' }">
+        <!-- <div class="left-border" :style="{ height: props.item.size + 'px' }"></div> -->
         <div v-if="showImage" :class="classes" :style="{
             width: (props.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
@@ -216,10 +215,21 @@ watch(() => props.properties, () => {
                 :width="inputWidth[property.id]" @update:height="h => sizes[property.id] = h" ref="inputElems"
                 @click.stop="" />
         </div>
+
+        <!-- With no properties shown there is no column to absorb the leftover
+             width, so the row would stop at the image and lose its borders. -->
+        <div v-if="!props.properties.length && props.missingWidth > 0" class="container22"
+            :style="{ width: props.missingWidth + 'px', height: '100%' }"></div>
     </div>
 </template>
 
 <style scoped>
+/* Columns keep their exact width even when the row is wider than the viewport,
+   so they stay aligned with the (non-flex, inline-block) table header. */
+.row-line > * {
+    flex-shrink: 0;
+}
+
 .image-count {
     position: absolute;
     top: 0;

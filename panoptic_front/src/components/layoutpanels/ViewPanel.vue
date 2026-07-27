@@ -92,80 +92,58 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Toggle properties visibility -->
-                <button class="tab-tool" :title="view.showProperties ? 'Hide properties' : 'Show properties'" @click="toggleProperties">
+                <button class="tab-tool" :title="view.showProperties ? 'Hide properties' : 'Show properties'"
+                    @click="toggleProperties">
                     <i :class="view.showProperties ? 'bi bi-eye' : 'bi bi-eye-slash'"></i>
                 </button>
 
                 <div class="flex-grow-1"></div>
 
                 <!-- Toggle split view -->
-                <button class="tab-tool" :class="{ active: tab?.state.splitView }" :title="tab?.state.splitView ? 'Unsplit' : 'Split right'" @click="tab && (tab.state.splitView = !tab.state.splitView)">
+                <button class="tab-tool" :class="{ active: tab?.state.splitView }"
+                    :title="tab?.state.splitView ? 'Unsplit' : 'Split right'"
+                    @click="tab && (tab.state.splitView = !tab.state.splitView)">
                     <i class="bi bi-columns"></i>
                 </button>
             </div>
         </template>
 
         <div ref="containerRef" class="view-container">
-            <TreeScroller
-                v-if="tab && view && collection && view.type == 'tree' && dimensions.width > 0"
-                input-key="view-panel-tree"
-                :manager="collection"
-                :image-size="view.imageSize"
-                :height="dimensions.height"
-                :width="dimensions.width"
-                :properties="view.showProperties ? visibleProperties : []"
-                :hide-if-modal="true"
-                @reco="openReco"
-            />
+            <div v-if="tab && view && collection && view.type == 'tree' && dimensions.width > 0"
+                style="padding-left: 0.25rem">
+                <TreeScroller input-key="view-panel-tree" :manager="collection" :image-size="view.imageSize"
+                    :height="dimensions.height" :width="dimensions.width"
+                    :properties="view.showProperties ? visibleProperties : []" :hide-if-modal="true" @reco="openReco" />
 
-            <div v-if="tab && view && collection && view.type == 'grid' && dimensions.width > 0" class="grid-container">
-                <GridScroller
-                    :tab="tab"
-                    :image-size="view.imageSize"
-                    :manager="collection"
-                    :height="dimensions.height - 15"
-                    :width="dimensions.width - 32"
-                    :selected-properties="view.showProperties ? visibleProperties : []"
-                    class="p-0 m-0"
-                    :show-images="true"
-                />
             </div>
 
-            <GraphView
-                v-if="tab && view && collection && view.type == 'graph' && dimensions.height > 0"
-                :collection="collection"
-                :height="dimensions.height - 15"
-                :view="view"
-            />
+            <div v-if="tab && view && collection && view.type == 'grid' && dimensions.width > 0" class="grid-container">
+                <GridScroller :tab="tab" :image-size="view.imageSize" :manager="collection" :height="dimensions.height"
+                    :width="dimensions.width" :selected-properties="view.showProperties ? visibleProperties : []"
+                    class="p-0 m-0" :show-images="true" />
+            </div>
 
-            <MapView
-                v-if="tab && view && collection && view.type == 'map'"
-                :tab="tab"
-                :collection="collection"
-                :map-options="view.mapOptions"
-            />
+            <div v-if="tab && view && collection && view.type == 'graph' && dimensions.height > 0"
+                style="padding-left: 0.25rem; padding-top: var(--spacing-xs);">
+                <GraphView :collection="collection" :height="dimensions.height - 15" :view="view" />
+            </div>
+            <MapView v-if="tab && view && collection && view.type == 'map'" :tab="tab" :collection="collection"
+                :map-options="view.mapOptions" />
 
-            <RecommendView
-                v-if="tab && view && collection && view.type == 'reco' && dimensions.width > 0"
-                :tab="tab"
-                :collection="collection"
-                :reco-options="view.recoOptions"
-                :image-size="view.imageSize"
-                :width="dimensions.width - 32"
-                :height="dimensions.height - 15"
-                @close="closeReco"
-            />
+            <div v-if="tab && view && collection && view.type == 'reco' && dimensions.width > 0"
+                style="padding-left: 0.25rem">
+                <RecommendView :tab="tab" :collection="collection" :reco-options="view.recoOptions"
+                    :image-size="view.imageSize"
+                    :width="dimensions.width - 32" :height="dimensions.height - 15" @close="closeReco" />
+            </div>
 
-            <GroupView
-                v-if="tab && view && collection && isGroupView && dimensions.width > 0"
-                :tab="tab"
-                :collection="collection"
-                :cluster-options="view.clusterOptions"
-                :image-size="view.imageSize"
-                :properties="view.showProperties ? visibleProperties : []"
-                :width="dimensions.width"
-                :height="dimensions.height - 15"
-            />
+            <div v-if="tab && view && collection && isGroupView && dimensions.width > 0" style="padding-left: 0.25rem">
+                <GroupView :tab="tab" :collection="collection" :cluster-options="view.clusterOptions"
+                    :image-size="view.imageSize"
+                    :properties="view.showProperties ? visibleProperties : []" :width="dimensions.width"
+                    :height="dimensions.height - 15" />
+            </div>
+
         </div>
     </IslandPanel>
 </template>
@@ -207,7 +185,7 @@ onUnmounted(() => {
     overflow: hidden;
     /* Same inset as FilterPanel's .filter-row, so the scroller's content edges line up
        with the filter row above it inside the identically-sized island bodies. */
-    padding: 0 6px;
+    padding: 0 0px;
 }
 
 .grid-container {

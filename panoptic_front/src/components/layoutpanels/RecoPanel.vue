@@ -1,23 +1,23 @@
 <script setup lang="ts">
 // One labeled, collapsible panel inside the reco workspace. Wraps a virtualized
-// TreeScroller sized to its own body via a ResizeObserver (same pattern as
-// ViewPanel). Fed a standalone GroupManager built from an arbitrary image list
-// (queue / group / blacklist). When collapsed only the header remains.
+// ImageScroller sized to its own body via a ResizeObserver (same pattern as
+// ViewPanel). Fed a plain instance list (queue / group / blacklist) and its own
+// selection namespace. When collapsed only the header remains.
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import IslandPanel from '@/layouts/IslandPanel.vue'
-import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
-import { GroupManager } from '@/core/GroupManager'
+import ImageScroller from '@/components/scrollers/image/ImageScroller.vue'
+import { Instance } from '@/data/models'
 import { useColumnStore } from '@/data/columnStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 
 const props = defineProps<{
     title: string
-    count: number
-    groupManager: GroupManager
-    ready: boolean
+    instances: Instance[]
     imageSize: number
     inputKey: string
+    // ColumnStore selection namespace, private to this panel.
+    selectNamespace: string
     collapsed?: boolean
     emptyMessage?: string
 }>()
@@ -25,18 +25,20 @@ const props = defineProps<{
 const emit = defineEmits(['toggle'])
 
 const col = useColumnStore()
-// This panel's selection namespace (single source of truth: the GroupManager).
-const ns = computed(() => props.groupManager.selectionNamespace)
+const ns = computed(() => props.selectNamespace)
+const count = computed(() => props.instances.length)
 const selectedCount = computed(() => {
     col.selectionTick(ns.value) // reactive dep on this namespace's selection
     return col.selectedCount(ns.value)
 })
 
 // All panel images selected (drives the header select-all circle).
-const allSelected = computed(() => props.count > 0 && selectedCount.value >= props.count)
+const allSelected = computed(() => count.value > 0 && selectedCount.value >= count.value)
 
 function toggleAll() {
-    props.groupManager.toggleAll()
+    const ids = props.instances.map(i => i.id)
+    if (allSelected.value) col.deselectIds(ids, ns.value)
+    else col.selectIds(ids, ns.value)
 }
 
 function clearSelection() {
@@ -95,16 +97,16 @@ onUnmounted(() => {
         </template>
         <!-- v-show (not v-if) keeps the observed element mounted across collapse. -->
         <div v-show="!collapsed" ref="bodyRef" class="panel-body">
-            <TreeScroller
-                v-if="ready && dims.width > 0 && dims.height > 0 && count > 0"
+            <ImageScroller
+                v-if="dims.width > 0 && dims.height > 0 && count > 0"
                 :input-key="inputKey"
-                :manager="groupManager"
+                :instances="instances"
                 :image-size="imageSize"
                 :height="dims.height"
                 :width="dims.width"
                 :properties="[]"
-                :hide-group="true"
-                :hide-options="true"
+                :select-namespace="selectNamespace"
+                :no-drag="true"
                 :hide-if-modal="true"
             />
             <div v-else-if="count === 0" class="panel-empty text-secondary">
@@ -199,6 +201,7 @@ onUnmounted(() => {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    padding: var(--spacing-xs);
 }
 
 .panel-empty {

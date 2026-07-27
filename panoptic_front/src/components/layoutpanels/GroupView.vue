@@ -29,7 +29,7 @@ const props = defineProps<{
     height: number
 }>()
 
-const HEADER_PX = 34
+const HEADER_PX = 30
 // The view's own toolbar, above the split. Its height is taken out of the height available
 // to the panes below.
 const TOOLBAR_PX = 30
@@ -552,7 +552,7 @@ onUnmounted(() => {
     align-items: center;
     gap: var(--spacing-md, 12px);
     /* padding: 0 var(--spacing-sm); */
-    margin-left: -3px;
+    margin-left: -2px;
     font-size: 14px;
     /* color: var(--text-secondary); */
 }

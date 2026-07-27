@@ -3,8 +3,8 @@
 // and the similarity function. Below: a top-level vertical split between the
 // next-recommendation hero (accept / refuse) and the panels block. The panels
 // block holds three panels — the incoming queue, the images already in the
-// group, and the blacklist — each a virtualized TreeScroller backed by its own
-// standalone GroupManager. The hero divider resizes the hero against the whole
+// group, and the blacklist — each a virtualized flat ImageScroller over its own
+// instance list. The hero divider resizes the hero against the whole
 // panels block; the panels resize among themselves and can be collapsed to their
 // header. Each panel has its own selection namespace so selecting in one panel
 // doesn't affect the others or the global selection.
@@ -14,7 +14,7 @@ import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import RecoPanel from '@/components/layoutpanels/RecoPanel.vue'
 import GroupSelect from '@/components/layoutpanels/GroupSelect.vue'
-import { Group, GroupManager, GroupType } from '@/core/GroupManager'
+import { Group, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
 import {
@@ -109,44 +109,23 @@ const hero = computed<Instance | null>(() => {
     return id != undefined ? data.instances[id] : null
 })
 
-// ---- Standalone GroupManagers feeding the three panels -----------------------
+// ---- Instance lists feeding the three panels ---------------------------------
 
-const queueManager = new GroupManager()
-const groupManager = new GroupManager()
-const blacklistManager = new GroupManager()
+// The panels are flat ImageScrollers, so they only need the instances themselves;
+// each keeps its own selection namespace (disposed on unmount).
+function toInstances(ids: number[]): Instance[] {
+    return ids.map(id => data.instances[id]).filter(Boolean) as Instance[]
+}
 
-// Independent, per-panel selection (disposed on unmount).
-queueManager.setSelectionNamespace('reco-queue')
-groupManager.setSelectionNamespace('reco-group')
-blacklistManager.setSelectionNamespace('reco-blacklist')
+const queueInstances = computed(() => toInstances(queueIds.value))
+const groupPanelInstances = computed(() => toInstances(groupIds.value))
+const blacklistInstances = computed(() => toInstances(blacklistIds.value))
 
 onUnmounted(() => {
     col.disposeNamespace('reco-queue')
     col.disposeNamespace('reco-group')
     col.disposeNamespace('reco-blacklist')
 })
-
-const queueReady = ref(false)
-const groupReady = ref(false)
-const blacklistReady = ref(false)
-
-function idsToSlots(ids: number[]): Int32Array {
-    const slots: number[] = []
-    for (const id of ids) {
-        const s = col.slotMap.get(id)
-        if (s !== undefined) slots.push(s)
-    }
-    return new Int32Array(slots)
-}
-
-async function rebuild(manager: GroupManager, ids: number[], ready: { value: boolean }) {
-    await manager.group(idsToSlots(ids), true)
-    ready.value = true
-}
-
-watch(queueIds, ids => rebuild(queueManager, ids, queueReady), { immediate: true })
-watch(groupIds, ids => rebuild(groupManager, ids, groupReady), { immediate: true })
-watch(blacklistIds, ids => rebuild(blacklistManager, ids, blacklistReady), { immediate: true })
 
 // ---- Blacklist persistence (one entry per group id) --------------------------
 
@@ -225,6 +204,18 @@ async function onSimilarCall(res: ActionResult) {
     await applySimilarResult(res)
 }
 
+// Instance data lives in the column store (the Instance object only carries
+// id / imageUrl), so sha1 and property values are read through the slot.
+function sha1Of(image: Instance): string {
+    const slot = col.slotMap.get(image.id)
+    return slot !== undefined ? col.sha1s()[slot] as string : undefined
+}
+
+function valueOf(image: Instance, propertyId: number): any {
+    const slot = col.slotMap.get(image.id)
+    return slot !== undefined ? col.readSlot(propertyId, slot) : undefined
+}
+
 async function acceptRecommend(image: Instance) {
     const imageValues: ImagePropertyValue[] = []
     const instanceValues: InstancePropertyValue[] = []
@@ -234,7 +225,7 @@ async function acceptRecommend(image: Instance) {
             const prop = data.properties[v.propertyId]
             let value = v.value
             if (prop.type == PropertyType.multi_tags) {
-                value = image.properties[v.propertyId] ?? []
+                value = valueOf(image, v.propertyId) ?? []
                 value = [...value, v.value]
             } else if (prop.type == PropertyType.tag) {
                 value = [value]
@@ -242,7 +233,7 @@ async function acceptRecommend(image: Instance) {
             if (prop.mode == PropertyMode.id) {
                 instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
             } else {
-                imageValues.push({ propertyId: prop.id, sha1: image.sha1, value })
+                imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
             }
         }
     })
@@ -257,10 +248,11 @@ async function acceptRecommend(image: Instance) {
 function matchingIds(image: Instance): number[] {
     if (searchResult.value?.isSha1Group) {
         const ids = col.instanceIds()
-        return searchResult.value.slots
-            .map(s => data.instances[ids[s]])
-            .filter(img => img?.sha1 == image.sha1)
-            .map(img => img.id)
+        const sha1s = col.sha1s()
+        const sha1 = sha1Of(image)
+        return Array.from(searchResult.value.slots)
+            .filter(s => sha1s[s] == sha1)
+            .map(s => ids[s])
     }
     return [image.id]
 }
@@ -290,13 +282,13 @@ async function removeFromGroup(images: Instance[]) {
             const prop = data.properties[v.propertyId]
             let value: any = null
             if (prop.type == PropertyType.multi_tags) {
-                const cur = image.properties[v.propertyId] ?? []
+                const cur = valueOf(image, v.propertyId) ?? []
                 value = cur.filter((t: any) => t !== v.value)
             }
             if (prop.mode == PropertyMode.id) {
                 instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
             } else {
-                imageValues.push({ propertyId: prop.id, sha1: image.sha1, value })
+                imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
             }
         })
     })
@@ -348,9 +340,9 @@ const panelWeights = reactive<Record<PanelKey, number>>({ queue: 1, group: 1, bl
 const collapsed = reactive<Record<PanelKey, boolean>>({ queue: false, group: false, blacklist: false })
 
 const panelItems = computed(() => ([
-    { key: 'queue' as PanelKey, titleKey: 'main.reco.incoming', count: queueIds.value.length, manager: queueManager, ready: queueReady.value, inputKey: 'reco-queue', emptyKey: 'main.reco.no_more' },
-    { key: 'group' as PanelKey, titleKey: 'main.reco.in_group', count: groupIds.value.length, manager: groupManager, ready: groupReady.value, inputKey: 'reco-group', emptyKey: '' },
-    { key: 'blacklist' as PanelKey, titleKey: 'main.reco.blacklist', count: blacklistIds.value.length, manager: blacklistManager, ready: blacklistReady.value, inputKey: 'reco-blacklist', emptyKey: '' },
+    { key: 'queue' as PanelKey, titleKey: 'main.reco.incoming', instances: queueInstances.value, inputKey: 'reco-queue', emptyKey: 'main.reco.no_more' },
+    { key: 'group' as PanelKey, titleKey: 'main.reco.in_group', instances: groupPanelInstances.value, inputKey: 'reco-group', emptyKey: '' },
+    { key: 'blacklist' as PanelKey, titleKey: 'main.reco.blacklist', instances: blacklistInstances.value, inputKey: 'reco-blacklist', emptyKey: '' },
 ]))
 
 const heroStyle = computed(() => ({ flex: `${heroWeight.value} 1 0`, minHeight: '150px' }))
@@ -475,7 +467,7 @@ onBeforeUnmount(() => heroObserver?.disconnect())
     <div class="reco-workspace" :style="{ height: props.height + 'px' }">
         <!-- Header: title, then group selection + similarity function -->
         <div class="reco-header">
-            <div class="d-flex" style="column-gap: 2px; align-items: center;">
+            <div class="d-flex" style="column-gap: 4px;">
                 <wTT message="main.recommand.filter">
                     <span class="sb" @click="toggleFilter">
                         <span :class="useFilter ? 'bi bi-funnel-fill text-primary' : 'bi bi-funnel'"></span>
@@ -489,12 +481,12 @@ onBeforeUnmount(() => heroObserver?.disconnect())
                     </span>
                 </ActionButton2>
 
-                <wTT message="main.recommand.reload">
-                    <span class="sb reload-tool" @click="getReco"><span class="bi bi-arrow-clockwise" style="position: relative; top: 1px;"></span></span>
-                </wTT>
+                <GroupSelect :groups="eligibleGroups" :selected="group" @select="selectGroup" />
 
-                <span class="group-select-label">Groupe</span>
-                <GroupSelect :groups="eligibleGroups" :selected="group" @select="selectGroup"/>
+                <wTT message="main.recommand.reload">
+                    <span class="sb reload-tool" @click="getReco"><span class="bi bi-arrow-clockwise"
+                            style="position: relative; top: 1px;"></span></span>
+                </wTT>
             </div>
         </div>
 
@@ -530,8 +522,8 @@ onBeforeUnmount(() => heroObserver?.disconnect())
             <div class="panels" ref="panelsRef" :style="panelsStyle">
                 <template v-for="(it, li) in panelItems" :key="it.key">
                     <div class="panel-slot" :style="panelSlotStyle(it.key)">
-                        <RecoPanel :title="$t(it.titleKey)" :count="it.count" :group-manager="it.manager"
-                            :ready="it.ready" :image-size="imageSize" :input-key="it.inputKey"
+                        <RecoPanel :title="$t(it.titleKey)" :instances="it.instances" :image-size="imageSize"
+                            :input-key="it.inputKey" :select-namespace="it.inputKey"
                             :collapsed="collapsed[it.key]" :empty-message="it.emptyKey ? $t(it.emptyKey) : undefined"
                             @toggle="toggleCollapse(it.key)">
                             <template #actions>
@@ -578,7 +570,8 @@ onBeforeUnmount(() => heroObserver?.disconnect())
 
 .reco-header {
     flex-shrink: 0;
-    margin-top: 1px;
+    margin-top: 4px;
+    margin-left: -2px;
     /* border-bottom: 1px solid var(--border-color); */
 }
 

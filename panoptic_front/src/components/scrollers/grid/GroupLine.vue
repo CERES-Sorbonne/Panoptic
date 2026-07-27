@@ -63,7 +63,7 @@ const propertyValues = computed(() => {
 
 <style scoped>
 .group-row {
-    border-left: 1px solid var(--border-color);
+    /* border-left: 1px solid var(--border-color); */
     border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     box-sizing: border-box;
