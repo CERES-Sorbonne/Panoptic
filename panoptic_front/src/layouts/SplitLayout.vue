@@ -57,11 +57,9 @@ watch(() => props.secondaryRatio, (newRatio) => {
 
 const isColumn = computed(() => props.direction === 'column')
 const useRatio = computed(() => (props.secondaryRatio !== undefined || props.secondaryRatio === 0))
-// The divider is shown as long as the primary pane is visible — even when the
-// secondary pane is hidden — so the primary always gets a visible trailing
-// edge (margin-like gap + hover highlight). Dragging only makes sense when
-// both panes are actually present.
-const showHandle = computed(() => !props.hidePrimary)
+// The divider only exists between two visible panes: with a single pane it would
+// just be dead margin on the trailing edge (the pane should fill the whole area).
+const showHandle = computed(() => !props.hidePrimary && !props.hideSecondary)
 const canDrag = computed(() => props.resizable && !props.hidePrimary && !props.hideSecondary)
 
 const secondaryStyle = computed(() => {

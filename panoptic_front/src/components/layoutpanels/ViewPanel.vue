@@ -205,8 +205,9 @@ onUnmounted(() => {
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    padding-left: calc(var(--spacing-xs) + 0.23em);
-    padding-right: 0px;
+    /* Same inset as FilterPanel's .filter-row, so the scroller's content edges line up
+       with the filter row above it inside the identically-sized island bodies. */
+    padding: 0 6px;
 }
 
 .grid-container {
