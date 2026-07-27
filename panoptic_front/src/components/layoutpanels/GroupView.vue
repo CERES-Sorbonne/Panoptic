@@ -30,10 +30,12 @@ const props = defineProps<{
 }>()
 
 const HEADER_PX = 30
-// The view's own toolbar, above the split. Its height is taken out of the height available
-// to the panes below.
+// The view's own toolbar. It belongs to the primary (cluster list) pane and sits inside it, so
+// only that pane loses its height — the detail panes start at the top of the view.
 const TOOLBAR_PX = 30
 const contentHeight = computed(() => Math.max(0, props.height - TOOLBAR_PX))
+// Height available to the detail panes: the full view, since the toolbar isn't above them.
+const detailHeight = computed(() => Math.max(0, props.height))
 
 // ---- Toolbar --------------------------------------------------------------------------------
 // How a group's images are rendered inside its card: one representative image, or a mosaic of
@@ -353,10 +355,10 @@ const primaryWidth = computed(() => {
 // Heights of the stacked detail scrollers (pane height minus its own header).
 // With a single pane it owns the full height; with two, the bottom takes
 // `stackRatio` of the height (matching how SplitLayout sizes the secondary).
-const bottomPaneHeight = computed(() => Math.round(contentHeight.value * stackRatio.value))
+const bottomPaneHeight = computed(() => Math.round(detailHeight.value * stackRatio.value))
 const topScrollerHeight = computed(() => {
-    if (detailPanes.value.length < 2) return contentHeight.value - HEADER_PX
-    return Math.max(0, contentHeight.value - SPLIT_GAP - bottomPaneHeight.value) - HEADER_PX
+    if (detailPanes.value.length < 2) return detailHeight.value - HEADER_PX
+    return Math.max(0, detailHeight.value - SPLIT_GAP - bottomPaneHeight.value) - HEADER_PX
 })
 const bottomScrollerHeight = computed(() => bottomPaneHeight.value - HEADER_PX)
 
@@ -397,22 +399,21 @@ onUnmounted(() => {
 
 <template>
     <div class="cluster-workspace" :class="{ split: isSplit }" :style="{ height: props.height + 'px' }">
-        <div class="group-toolbar" :style="{ height: TOOLBAR_PX + 'px' }">
-            <div class="group-toolbar-modes">
-                <div v-for="m in VIEW_MODES" :key="m.mode" class="group-mode-btn"
-                    :class="{ active: viewMode === m.mode }" :title="$t('main.group.' + m.label)"
-                    @click="viewMode = m.mode">
-                    <i class="bi" :class="m.icon" />
+        <div v-if="!hasImages" class="cluster-primary-pane">
+            <div class="group-toolbar" :style="{ height: TOOLBAR_PX + 'px' }">
+                <div class="group-toolbar-modes">
+                    <div v-for="m in VIEW_MODES" :key="m.mode" class="group-mode-btn"
+                        :class="{ active: viewMode === m.mode }" :title="$t('main.group.' + m.label)"
+                        @click="viewMode = m.mode">
+                        <i class="bi" :class="m.icon" />
+                    </div>
+                </div>
+                <div class="group-toolbar-counts">
+                    <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
+                    <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
+                    <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
                 </div>
             </div>
-            <div class="group-toolbar-counts">
-                <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
-                <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
-                <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
-            </div>
-        </div>
-
-        <div v-if="!hasImages" class="cluster-primary-pane">
             <div class="cluster-empty">
                 <span class="text-secondary">{{ $t('main.group.empty') }}</span>
             </div>
@@ -430,6 +431,20 @@ onUnmounted(() => {
         >
             <template #primary>
                 <div class="cluster-primary-pane" :class="{ split: isSplit }">
+                    <div class="group-toolbar" :style="{ height: TOOLBAR_PX + 'px' }">
+                        <div class="group-toolbar-modes">
+                            <div v-for="m in VIEW_MODES" :key="m.mode" class="group-mode-btn"
+                                :class="{ active: viewMode === m.mode }" :title="$t('main.group.' + m.label)"
+                                @click="viewMode = m.mode">
+                                <i class="bi" :class="m.icon" />
+                            </div>
+                        </div>
+                        <div class="group-toolbar-counts">
+                            <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
+                            <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
+                            <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
+                        </div>
+                    </div>
                     <div v-if="!hasGrouping" class="cluster-empty">
                         <span class="text-secondary">{{ $t('main.group.no_grouping') }}</span>
                     </div>
@@ -553,6 +568,9 @@ onUnmounted(() => {
     gap: var(--spacing-md, 12px);
     /* padding: 0 var(--spacing-sm); */
     margin-left: -2px;
+    /* Own background so the grey backing revealed by .cluster-workspace.split (the gap
+       between the panes below) never shows through the toolbar. */
+    background-color: var(--island-surface);
     font-size: 14px;
     /* color: var(--text-secondary); */
 }

@@ -40,6 +40,10 @@ const HEADER_PADDING = 16
 // The input's half of the header — both its resting width and the cap on its edit popup,
 // so opening the input never spills over the group name.
 const halfWidth = computed(() => Math.max(40, Math.round((props.width - HEADER_PADDING) / 2)))
+
+// Horizontal padding around the scroller body (--spacing-xs per side), taken out of the width
+// handed to the scroller since it lays out from explicit width/height rather than its own box.
+const BODY_PADDING = 4
 </script>
 
 <template>
@@ -62,19 +66,21 @@ const halfWidth = computed(() => Math.max(40, Math.round((props.width - HEADER_P
                 />
             </div>
         </div>
-        <ImageScroller
-            :input-key="inputKey"
-            :select-namespace="inputKey"
-            :instances="instances"
-            :drag-group="dragGroup"
-            :image-size="imageSize"
-            :height="height"
-            :width="width"
-            :properties="properties"
-            :hide-if-modal="true"
-            @instance-added="$emit('instance-added', $event)"
-            @instance-removed="$emit('instance-removed', $event)"
-        />
+        <div class="cluster-body">
+            <ImageScroller
+                :input-key="inputKey"
+                :select-namespace="inputKey"
+                :instances="instances"
+                :drag-group="dragGroup"
+                :image-size="imageSize"
+                :height="height"
+                :width="width - BODY_PADDING * 2"
+                :properties="properties"
+                :hide-if-modal="true"
+                @instance-added="$emit('instance-added', $event)"
+                @instance-removed="$emit('instance-removed', $event)"
+            />
+        </div>
     </div>
 </template>
 
@@ -116,6 +122,13 @@ const halfWidth = computed(() => Math.max(40, Math.round((props.width - HEADER_P
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-sm);
+}
+
+.cluster-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0 var(--spacing-xs);
 }
 
 .cluster-title {
