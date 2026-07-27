@@ -224,7 +224,9 @@ class DataReader(SQLiteReader):
             while rows := cursor.fetchmany(batch_size):
                 yield {
                     'ids': [r[0] for r in rows],
-                    'values': [_json.dumps(r[1]) for r in rows],
+                    # `value` is a JSON column read here by raw SQL (no schema decoder), so
+                    # it is already JSON text — re-encoding would double-encode it.
+                    'values': ['null' if r[1] is None else r[1] for r in rows],
                 }
             return
 
@@ -239,7 +241,9 @@ class DataReader(SQLiteReader):
             while rows := cursor.fetchmany(batch_size):
                 yield {
                     'ids': [r[0] for r in rows],
-                    'values': [_json.dumps(r[1]) for r in rows],
+                    # `value` is a JSON column read here by raw SQL (no schema decoder), so
+                    # it is already JSON text — re-encoding would double-encode it.
+                    'values': ['null' if r[1] is None else r[1] for r in rows],
                 }
             return
 
@@ -254,7 +258,9 @@ class DataReader(SQLiteReader):
             while rows := cursor.fetchmany(batch_size):
                 yield {
                     'ids': [r[0] for r in rows],
-                    'values': [_json.dumps(r[1]) for r in rows],
+                    # `value` is a JSON column read here by raw SQL (no schema decoder), so
+                    # it is already JSON text — re-encoding would double-encode it.
+                    'values': ['null' if r[1] is None else r[1] for r in rows],
                 }
             return
 

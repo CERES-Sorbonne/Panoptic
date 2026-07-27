@@ -69,7 +69,8 @@ const preview = computed(() => {
             :selected="selected[getImageId(imageIt)]"
             :selectedPreview="preview[getImageId(imageIt)]"
             @update:selected="v => emits('update:selected-image', { id: getImageId(imageIt), value: v })"
-            v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
+            v-for="imageIt, i in props.item.data" class="me-2 mb-2"
+            :noBorder="false" />
 
         <!-- Reserve the space of the images missing from this (partial) line so it keeps
              the same size as a full line instead of stretching to fill the gap. -->

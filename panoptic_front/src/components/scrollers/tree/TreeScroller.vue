@@ -71,7 +71,7 @@ function imageLineSizeFor(imgSize: number) {
     if (nb > 1) {
         offset += (nb - 1) * 27
     }
-    return imgSize + offset + 10
+    return imgSize + offset + 6
 }
 
 function pileLineSizeFor(imgSize: number) {
@@ -83,7 +83,7 @@ function pileLineSizeFor(imgSize: number) {
     if (nb > 1) {
         offset += (nb - 1) * 27
     }
-    return imgSize + offset + 10
+    return imgSize + offset + 6
 }
 
 function simiImageLineSizeFor(imgSize: number) {

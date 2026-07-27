@@ -23,6 +23,9 @@ const props = defineProps<{
     // Representative instance of the cluster, passed to the tag input as creation context.
     instanceId?: number
     width: number
+    // Caps how wide the edit popup may grow — for the inspector header, where the input owns
+    // a fixed half of the row and must not spill over the group name.
+    maxWidth?: number
 }>()
 
 const emits = defineEmits(['update:modelValue'])
@@ -53,7 +56,7 @@ function set(v: any) {
             @update:model-value="set" :width="innerWidth" :height="24" :input-offset="3" />
 
         <RowTextInput v-else-if="property.type == PropertyType.string" :model-value="modelValue"
-            @update:model-value="set" :width="innerWidth" :teleport="true" />
+            @update:model-value="set" :width="innerWidth" :max-width="props.maxWidth" :teleport="true" />
 
         <RowUrlInput v-else-if="property.type == PropertyType.url" :model-value="modelValue"
             @update:model-value="set" :width="innerWidth" :teleport="true" />

@@ -886,7 +886,11 @@ def get_property_column(
             counter = 0
             while rows := cursor.fetchmany(_STREAM_BATCH):
                 ids = [r[0] for r in rows]
-                values = [_dumps(r[1]) for r in rows]
+                # The `value` column is a JSON column: the raw SQL read above bypasses the
+                # schema decoder, so r[1] is ALREADY JSON text. Re-encoding it here would
+                # double-encode (a string value arriving front-side as "\"test\"" — visible
+                # as quotes in the property inputs), so pass it through untouched.
+                values = ['null' if r[1] is None else r[1] for r in rows]
                 counter += len(rows)
                 yield msgspec.json.encode(StreamResult(
                     instance_values=[InstanceValuesColumn(prop_id, ids, values)],

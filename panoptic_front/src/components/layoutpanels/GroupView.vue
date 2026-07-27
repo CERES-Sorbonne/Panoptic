@@ -66,7 +66,8 @@ const counts = computed(() => {
         children.forEach(walkAll)
     }
     for (const g of root?.children ?? []) { walkVisible(g); walkAll(g) }
-    return { groups, leafClusters }
+    // Total images in the collection: the root's own slots, independent of grouping.
+    return { images: root?.slots?.length ?? 0, groups, leafClusters }
 })
 
 // ---- Assignment target = the leaf grouping property (cluster_view_goals.md) -----------------
@@ -292,16 +293,42 @@ const SPLIT_GAP = 10
 
 const isSplit = computed(() => detailGroupIds.value.length > 0)
 
+// The target property object the inspector's header input edits (the leaf grouping property).
+const targetProperty = computed(() =>
+    targetPropertyId.value != null ? data.properties?.[targetPropertyId.value] : undefined)
+
+// A group's value on the target property, inherited from its nearest ancestor value-group —
+// same rule as the cluster cards (ClusterLine.inheritedValue): a cluster or the empty bucket
+// carries no value of its own, so it shows its value-group's value (undefined = undecided).
+function inheritedValue(g?: Group): any {
+    const tpid = targetPropertyId.value
+    if (tpid == null) return undefined
+    let cur: Group | undefined = g
+    while (cur) {
+        if (cur.type === GroupType.Property) {
+            const pv = cur.meta?.propertyValues?.[0]
+            if (pv && pv.propertyId === tpid) {
+                if (pv.value === null || pv.value === undefined || pv.value === '') return undefined
+                return isTag(data.properties?.[tpid]?.type) ? [pv.value] : pv.value
+            }
+        }
+        cur = cur.parent
+    }
+    return undefined
+}
+
 // One inspector descriptor per open cluster, each with its own instance list and
 // selection namespace so the two inspectors select (and drag) independently.
 const detailPanes = computed(() =>
     detailGroupIds.value.map((gid, idx) => {
+        props.collection.version.value // reactive dep, for the inherited value
         const g = props.collection.result?.index?.[gid]
         return {
             id: gid,
             instances: paneInstances.value[idx] ?? [],
             name: g ? (g.name ?? ('Cluster ' + g.parentIdx)) : '',
-            inputKey: DETAIL_NAMESPACES[idx]
+            inputKey: DETAIL_NAMESPACES[idx],
+            targetValue: inheritedValue(g)
         }
     })
 )
@@ -379,6 +406,7 @@ onUnmounted(() => {
                 </div>
             </div>
             <div class="group-toolbar-counts">
+                <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
                 <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
                 <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
             </div>
@@ -441,7 +469,10 @@ onUnmounted(() => {
                     :height="topScrollerHeight"
                     :properties="props.properties"
                     position="solo"
+                    :target-property="targetProperty"
+                    :target-value="detailPanes[0].targetValue"
                     @close="closeDetail(0)"
+                    @assign-value="v => assignClusterValue(detailPanes[0].id, v)"
                     @instance-added="p => onPaneAdd(0, p)"
                     @instance-removed="p => onPaneRemove(0, p)"
                 />
@@ -466,7 +497,10 @@ onUnmounted(() => {
                             :height="topScrollerHeight"
                             :properties="props.properties"
                             position="top"
+                            :target-property="targetProperty"
+                            :target-value="detailPanes[0].targetValue"
                             @close="closeDetail(0)"
+                            @assign-value="v => assignClusterValue(detailPanes[0].id, v)"
                             @instance-added="p => onPaneAdd(0, p)"
                             @instance-removed="p => onPaneRemove(0, p)"
                         />
@@ -482,7 +516,10 @@ onUnmounted(() => {
                             :height="bottomScrollerHeight"
                             :properties="props.properties"
                             position="bottom"
+                            :target-property="targetProperty"
+                            :target-value="detailPanes[1].targetValue"
                             @close="closeDetail(1)"
+                            @assign-value="v => assignClusterValue(detailPanes[1].id, v)"
                             @instance-added="p => onPaneAdd(1, p)"
                             @instance-removed="p => onPaneRemove(1, p)"
                         />
@@ -514,9 +551,10 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: var(--spacing-md, 12px);
-    padding: 0 var(--spacing-sm);
-    font-size: 12px;
-    color: var(--text-secondary);
+    /* padding: 0 var(--spacing-sm); */
+    margin-left: -3px;
+    font-size: 14px;
+    /* color: var(--text-secondary); */
 }
 
 .group-toolbar-modes {

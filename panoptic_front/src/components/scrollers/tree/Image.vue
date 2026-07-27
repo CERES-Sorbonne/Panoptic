@@ -13,8 +13,8 @@ import { useInstanceStore } from '@/data/instanceStore.js'
 import { useDataStore } from '@/data/dataStore'
 
 const panoptic = usePanopticStore()
-const store    = useColumnStore()
-const data     = useDataStore()
+const store = useColumnStore()
+const data = useDataStore()
 
 const props = defineProps({
     image: { type: ImageIterator, required: true },
@@ -52,8 +52,8 @@ const inst = computed(() => {
 
 const isSelected = computed(() => props.selected ?? false)
 
-const hover    = ref(false)
-const hideImg  = inject('hideImg')
+const hover = ref(false)
+const hideImg = inject('hideImg')
 const inputKey = inject('inputKey') as string
 
 const score = computed(() => {
@@ -64,36 +64,20 @@ const score = computed(() => {
 </script>
 
 <template>
-    <div
-        class="full-container"
-        :class="(!props.noBorder ? 'img-border' : '')"
-        :style="`width: ${w + 2}px;`"
-    >
+    <div class="full-container" :class="[!props.noBorder ? 'img-border' : '', isSelected ? 'selected' : '']"
+        :style="`width: ${w + 2}px;`">
         <Zoomable v-if="!hideImg && instanceId !== undefined" :image="inst">
-            <div
-                class="img-container"
-                :style="`width: ${w + 2}px; height: ${props.size}px;`"
-                @click="panoptic.showModal(ModalId.IMAGE, props.image)"
-                @mouseenter="hover = true"
-                @mouseleave="hover = false"
-            >
+            <div class="img-container" :style="`width: ${w + 2}px; height: ${props.size}px;`"
+                @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
+                @mouseleave="hover = false">
                 <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
-                <CenteredImage
-                    :instance-id="instanceId"
-                    :width="w"
-                    :height="props.size"
-                    style="position: absolute; top: 0"
-                />
+                <CenteredImage :instance-id="instanceId" :width="w" :height="props.size"
+                    style="position: absolute; top: 0" />
 
                 <div v-if="hover || isSelected" class="w-100 box-shadow"
                     :style="`width: ${w + 2}px; height: ${props.size}px;`" />
-                <SelectCircle
-                    v-if="hover || isSelected"
-                    :model-value="isSelected"
-                    @update:model-value="v => emits('update:selected', v)"
-                    class="select"
-                    :light-mode="true"
-                />
+                <SelectCircle v-if="hover || isSelected" :model-value="isSelected"
+                    @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
             </div>
         </Zoomable>
 
@@ -101,8 +85,7 @@ const score = computed(() => {
              unresolved slot means an empty group, so render nothing instead. -->
         <div v-else-if="!hideImg && !data.isLoaded"
             class="d-flex align-items-center justify-content-center bg-light text-muted border border-secondary-subtle"
-            :style="`width: ${w + 2}px; height: ${props.size}px;`"
-        >
+            :style="`width: ${w + 2}px; height: ${props.size}px;`">
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
 
@@ -118,14 +101,8 @@ const score = computed(() => {
             <div v-for="property, index in props.properties" :key="property.id">
                 <!-- <div class="custom-hr ms-2 me-2" v-if="index > 0"></div> -->
                 <div style="height: 1px;" v-if="index > 0"></div>
-                <TreePropertyInput
-                    :group-id="props.image.groupId"
-                    :input-key="inputKey"
-                    :property="property"
-                    :instance="inst"
-                    :width="props.size"
-                    :idx="props.image.getImageOrder()"
-                />
+                <TreePropertyInput :group-id="props.image.groupId" :input-key="inputKey" :property="property"
+                    :instance="inst" :width="props.size" :idx="props.image.getImageOrder()" />
             </div>
         </div>
 
@@ -141,40 +118,62 @@ const score = computed(() => {
     z-index: 100;
 }
 
+/* Count / score chips: dark pills that read on any image, as on the cluster cards. */
 .image-count {
-    padding: 0px 4px;
-    background-color: var(--border-color);
-    color: var(--grey-text);
+    padding: 1px 5px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
     font-size: 10px;
-    line-height: 15px;
-    margin: 2px;
-    border-radius: 5px;
+    line-height: 13px;
+    margin: 4px;
+    border-radius: 999px;
+    white-space: nowrap;
 }
 
 .simi-ratio {
     position: absolute;
     bottom: 0;
     right: 0;
-    padding: 0px 4px;
-    background-color: var(--border-color);
-    color: var(--grey-text);
+    padding: 1px 5px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
     font-size: 10px;
-    line-height: 15px;
-    margin: 2px;
-    border-radius: 5px;
+    line-height: 13px;
+    margin: 4px;
+    border-radius: 999px;
     z-index: 100;
 }
 
+/* Photo card, same shape as the cluster view's card: rounded box clipping the image, a
+   surface behind it, and the ring drawn on top as an inset overlay (see .img-border). */
 .full-container {
     position: relative;
-    background-color: white;
+    display: flex;
+    flex-direction: column;
+    /* No surface of its own: the property rows show the view's background through. */
+    background-color: transparent;
+    border-radius: 5px;
+    overflow: hidden;
     margin-bottom: 7px;
     margin-right: 7px;
 }
 
-.img-border {
+/* Ring as an inset overlay rather than a real border: it stays inside the cell's own width
+   (no bleed into the neighbour, and the cell keeps the size the scroller computed) and paints
+   above the image and its hover overlays, so the top edge stays visible. */
+.img-border::after {
+    content: '';
+    position: absolute;
+    inset: 0;
     border: 1px solid var(--border-color);
-    border-radius: 3px;
+    border-radius: 5px;
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* Selected cell: the ring itself turns primary, instead of adding a second outline. */
+.img-border.selected::after {
+    border: 2px solid var(--primary, #4f46e5);
 }
 
 .img-container {
@@ -182,12 +181,14 @@ const score = computed(() => {
     margin: auto;
     padding: auto;
     cursor: pointer;
+    background-color: var(--bg-subtle, #f3f4f6);
+    overflow: hidden;
 }
 
 .prop-container {
     width: 100%;
-    border-top: 1px solid var(--border-color);
-    padding: 2px;
+    /* border-top: 1px solid var(--border-color); */
+    padding: 4px;
     padding-top: 0px;
     padding-bottom: 0px;
     font-size: 12px;

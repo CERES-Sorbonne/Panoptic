@@ -143,6 +143,7 @@
             "empty": "No images to display.",
             "no_grouping": "Group by at least one property.",
             "no_lines": "No groups to display",
+            "images": "images",
             "groups": "groups",
             "leaf_clusters": "leaf clusters",
             "mode_single": "Single image",

@@ -7,6 +7,9 @@ import TextInput from '@/components/property_inputs/TextInput.vue';
 const props = withDefaults(defineProps<{
     modelValue?: string
     width?: number
+    // Caps how wide the edit popup may grow (it otherwise widens with the text, up to 400px).
+    // Used where the input sits in a fixed slot that it must not overflow.
+    maxWidth?: number
     height?: number
     teleport?: boolean
     offset?: number
@@ -45,6 +48,9 @@ function computeSize() {
     let prevElem = previewElem.value
     if (prevElem && prevElem.offsetWidth > widthGoal.value) {
         widthGoal.value = prevElem.offsetWidth
+    }
+    if (props.maxWidth) {
+        widthGoal.value = Math.min(widthGoal.value, props.maxWidth)
     }
     loadValue()
 }
