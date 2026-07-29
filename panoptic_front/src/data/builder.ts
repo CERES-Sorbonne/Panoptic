@@ -50,9 +50,7 @@ export function buildTabState(): TabState {
 export function createMapOptions(): MapOptions {
     return {
         showPoints: false,
-        groupOption: 'cluster',
-        selectedMap: 0,
-        imageSize: 50
+        selectedMap: 0
     }
 }
 

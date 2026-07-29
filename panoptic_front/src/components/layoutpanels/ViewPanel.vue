@@ -127,8 +127,8 @@ onUnmounted(() => {
                 style="padding-left: 0.45rem; padding-top: var(--spacing-xs);">
                 <GraphView :collection="collection" :height="dimensions.height - 15" :view="view" />
             </div>
-            <MapView v-if="tab && view && collection && view.type == 'map'" :tab="tab" :collection="collection"
-                :map-options="view.mapOptions" />
+            <MapView v-if="tab && view && collection && view.type == 'map'" :collection="collection"
+                :map-options="view.mapOptions" :image-size="view.imageSize" />
 
             <div v-if="tab && view && collection && view.type == 'reco' && dimensions.width > 0"
                 style="padding-left: 0.45rem">

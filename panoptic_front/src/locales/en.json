@@ -507,6 +507,9 @@
         "path": "Path",
         "source": "Source"
     },
+    "map": {
+        "groups": "Groups"
+    },
     "confirm": "Confirm",
     "cancel": "Cancel",
     "call": "Run"

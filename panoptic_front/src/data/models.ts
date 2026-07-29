@@ -321,8 +321,6 @@ export interface TabState {
 export interface MapOptions {
     showPoints: boolean
     selectedMap: number
-    groupOption: string
-    imageSize: number
 }
 
 // Per-view options for the group recommendation view. Stores which group the

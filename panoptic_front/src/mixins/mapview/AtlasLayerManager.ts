@@ -48,14 +48,13 @@ export class AtlasLayerManager {
 
         // Group points by sheet index
         const sheetPointsMap: PointData[][] = Array.from({ length: atlas.atlasNb }, () => [])
-        console.log(atlas)
         for (let p of points) {
             if (!atlas.sha1Mapping[p.sha1]) continue
             let sheetIndex = atlas.sha1Mapping[p.sha1][0]
             sheetPointsMap[sheetIndex].push(p)
         }
 
-        let maxPerSheet = Math.max(...sheetPointsMap.map(v => v.length))
+        const maxPerSheet = Math.max(...sheetPointsMap.map(v => v.length))
 
         // Process each sheet
         for (let s = 0; s < atlas.atlasNb; s++) {
@@ -164,16 +163,12 @@ export class AtlasLayerManager {
         this.layers.forEach(l => l.updateTints())
     }
 
-    public updateBorderColors() {
-        this.layers.forEach(l => l.updateBorderColors())
-    }
-
     public updatePositions() {
         this.layers.forEach(l => l.updatePositions())
     }
-    
-    public updateBorderWidths() {
-        this.layers.forEach(l => l.updateBorderWidths())
+
+    public updateBorder() {
+        this.layers.forEach(l => l.updateBorder())
     }
 
     public setShowAsPoint(show: boolean) {

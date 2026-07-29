@@ -66,39 +66,45 @@ export const useInstanceStore = defineStore('instanceStore', () => {
 
     // --- registration ---
 
+    // Creates (and stores) the base entry for an instance. projectId defaults to the
+    // currently connected project so callers outside register() can build entries too.
+    function createEntry(id: number, projectId?: string): InstanceEntry {
+        const pid = projectId ?? usePanopticStore().connectionState?.connectedProject ?? ''
+        const slot = columnStore.slotMap.get(id)
+        const sha1 = slot !== undefined ? (columnStore.sha1s()[slot] ?? '') : ''
+        // 1. Create the base entry object
+        const entry: InstanceEntry = {
+            id,
+            sha1,
+            imageUrl: `${SERVER_PREFIX}/projects/${pid}/image/by_size/${sha1}`,
+            properties: {},
+            propertyStatus: {},
+            selected: slot !== undefined ? columnStore.isSelected(slot) : false,
+        }
+
+        // 2. Direct root key value assignment
+        const propertiesList = dataStore?.properties
+            ? Object.values(dataStore.properties)
+            : []
+        for (const prop of propertiesList) {
+            if (prop && prop.systemKey) {
+                entry[prop.systemKey] = dataStore.getSysField(id, prop.systemKey)
+            }
+        }
+        instanceData[id] = entry
+        return entry
+    }
+
     function register(key: string, instanceIds: number[], propIds: number[], projectId: string) {
         registrations.set(key, { instanceIds: [...instanceIds], propIds: [...propIds] })
         updateRegisteredCount()
 
-        // Gather all property definitions to find system properties
-        const propertiesList = dataStore?.properties 
-            ? Object.values(dataStore.properties) 
-            : []
-
         for (const id of instanceIds) {
             if (instanceData[id]) continue
-            const slot = columnStore.slotMap.get(id)
-            const sha1 = slot !== undefined ? (columnStore.sha1s()[slot] ?? '') : ''
-            // 1. Create the base entry object
-            const entry: InstanceEntry = {
-                id,
-                sha1,
-                imageUrl: `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${sha1}`,
-                properties: {},
-                propertyStatus: {},
-                selected: slot !== undefined ? columnStore.isSelected(slot) : false,
-            }
-
-            // 2. Direct root key value assignment
-            for (const prop of propertiesList) {
-                if (prop && prop.systemKey) {
-                    entry[prop.systemKey] = dataStore.getSysField(id, prop.systemKey)
-                }
-            }
-            instanceData[id] = entry
+            createEntry(id, projectId)
         }
 
-        
+
         if (instanceIds.length && propIds.length) scheduleFetch()
     }
 
@@ -187,18 +193,18 @@ export const useInstanceStore = defineStore('instanceStore', () => {
             const slot = columnStore.slotMap.get(id)
             if (slot === undefined) continue
 
-            const entry = instanceData[id]
-            if (entry) {
-                for (const [pidStr, value] of Object.entries(values)) {
-                    const pid = Number(pidStr)
-                    entry.properties[pid] = value
-                    entry.propertyStatus[pid] = 'confirmed'
+            // Values can be fetched for instances outside any registration (e.g. ensureValues
+            // on a selection), so create the entry rather than dropping the values.
+            const entry = instanceData[id] ?? createEntry(id)
+            for (const [pidStr, value] of Object.entries(values)) {
+                const pid = Number(pidStr)
+                entry.properties[pid] = value
+                entry.propertyStatus[pid] = 'confirmed'
 
-                    // Directly update root value if it's a system property
-                    const prop = dataStore.properties?.[pid]
-                    if (prop?.systemKey) {
-                        entry[prop.systemKey] = value
-                    }
+                // Directly update root value if it's a system property
+                const prop = dataStore.properties?.[pid]
+                if (prop?.systemKey) {
+                    entry[prop.systemKey] = value
                 }
             }
         }

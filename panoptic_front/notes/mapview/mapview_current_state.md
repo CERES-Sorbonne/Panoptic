@@ -76,6 +76,10 @@ It is also the last consumer of two-source membership: `showMap` filters by
 `filterManager.result.slots`, while `generateGroups` reads `group.slots`. Those agree today
 only because nothing between them re-filters.
 
+**DONE** — `MapView` now takes a `GroupInspector`. Membership is read from `result.root.slots`
+only; `filterManager` is no longer touched. `selectImages` / `unselectImages` were added to the
+inspector interface (both implementations already had them) so the lasso needs no concrete class.
+
 ### B. It reads one level of the tree, at the root, and calls that "the groups"
 
 `generateGroups` takes `root.children` and partitions them by `type === Cluster`. Three
@@ -92,6 +96,10 @@ consequences:
   clusters as *direct children of the root*. Whenever a grouping is active those are two
   disjoint sets, so the map's `'cluster'` mode shows nothing the group view produced, and vice
   versa. `isLeftover` ("No cluster") nodes are not distinguished either.
+**DONE** — `groupOption` is gone (model, builder, toolbar dropdown, i18n usage). The map colours by
+the tree's *display leaves*: `displayLeaves()` walks from the root and stops at a childless group or a
+`view.closed` one, so nesting and open/close are both honoured. The cluster button now targets every
+*true* leaf instead of the root, which is what fixes bug 1 below.
 
 ### C. Everything is rebuilt on every version tick
 
@@ -115,6 +123,12 @@ it is re-evaluated on every version tick even though only the "create map" butto
 it. And `updateColors` calls `columnStore.getSelectedIds()`, allocating the full selected-id
 array on every selection tick.
 
+**DONE** — geometry is cached on `(mapId, root identity, root.slots identity, root.slots.length)`.
+A version tick that cannot move a point (open/close, sort, cluster graft, selection) only recolours;
+`createMap` runs on a real membership/map change. The length is part of the key because an incremental
+add pushes into the same `root.slots` array. `rootInstances` became a getter passed to the toolbar
+(`ActionButton2` accepts a function), and `updateColors` reads `isSelectedId(id, ns)` per point instead
+of allocating `getSelectedIds()`.
 ### D. Selection is hard-wired to the global namespace
 
 Scrollers take their namespace from the manager
@@ -130,6 +144,9 @@ Related: the lasso maps a point to **all instances sharing its sha1**
 probably the behaviour you want on a map, but it is an unstated rule, and it is not the rule
 the tree uses.
 
+**DONE** — the map reads `collection.selectionNamespace` for both the selection tint
+(`isSelectedId(id, ns)`, watched via `selectionTick(ns)`) and, through `collection.selectImages`, for
+writes. The sha1 → all-instances lasso rule is kept, and now stated in a comment.
 ### E. sha1 vs slot identity is re-derived by hand
 
 The map is keyed by **sha1** (one point per sha1); the tree is keyed by **slot**. `showMap`
@@ -139,6 +156,10 @@ rebuilds a `sha1 → {id, ratio}` table by scanning the whole column store, and
 
 Visible consequence: the legend's count is a **sha1 count** while every other view shows an
 **instance count**. Same group, two numbers.
+
+**DONE** — slot → sha1/id goes through `columnStore.sha1s()` / `instanceIds()` in one pass over the
+root's slots; the hand-rolled full-column scan is gone. The sha1-vs-instance count disagreement went
+with the legend.
 
 ### F. It doesn't participate in the layout language
 
@@ -156,6 +177,13 @@ Visible consequence: the legend's count is a **sha1 count** while every other vi
 - **`imageSize` exists twice**: `view.imageSize` (30–500) in the `ViewPanel` header, and
   `mapOptions.imageSize` (10–100) in the map toolbar. The header slider is live and does
   nothing on this view.
+**DONE** — `MapMenu.vue` is deleted (legend, hover preview, group dim/lookAt); an inspection split view
+can take its place later. `Resizable` / `mapWidth` / the `console.log`, the `tab` prop, `hasAtlas`, the
+`.preview-overlay` rule and the unused imports went with it. `Toolbar.vue` now uses the theme variables.
+Dead files removed: `ImageMap.vue`, `ImagePreview.vue`, `MapRendererView.vue`.
+
+Still open: the map is the only view `ViewPanel` doesn't pass `width`/`height` to, and `view.imageSize`
+in the panel header still does nothing on this view.
 
 ---
 

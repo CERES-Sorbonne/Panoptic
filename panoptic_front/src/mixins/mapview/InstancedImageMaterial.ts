@@ -74,9 +74,6 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                         // Portrait: Height is 1.0, Width is Ratio
                         sizeScale = vec2(vRatio, 1.0);
                     }
-                    if(uZoom < z1/2.0) {
-                        sizeScale = vec2(1.0, 1.0);
-                    }
 
                     transformed.xy *= sizeScale * zoomScale;
                 }

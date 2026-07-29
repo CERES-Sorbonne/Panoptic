@@ -2,6 +2,11 @@ import * as THREE from 'three'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { InstancedImageMaterial } from './InstancedImageMaterial'
 
+// Total z spread used to break ties between overlapping points within one layer — must stay well
+// under HDLayer's HD_Z_OFFSET (1.5) so a fully-stacked atlas layer can never render in front of
+// the HD hover preview.
+const STACK_Z_RANGE = 0.3
+
 export class AtlasLayer {
     public mesh: THREE.InstancedMesh
     private geometry: THREE.PlaneGeometry
@@ -46,8 +51,7 @@ export class AtlasLayer {
         this.updatePositions()
         this.updateRatios()
         this.updateTints()
-        this.updateBorderColors()
-        this.updateBorderWidths()
+        this.updateBorder()
 
         this.mesh.frustumCulled = false
         this.mesh.matrixAutoUpdate = false
@@ -56,11 +60,18 @@ export class AtlasLayer {
 
     /**
      * Updates Matrices based on point x, y and ratio.
+     *
+     * All points share the same nominal z, so overlapping quads (points close together on the
+     * map) had no depth ordering — whichever instance happened to rasterize last won the tie,
+     * painting its border across the photo behind it. A tiny per-index z step (bounded so the
+     * whole layer stays well under HDLayer's HD_Z_OFFSET) gives overlaps a stable resolution via
+     * the depth buffer: later-index points sit fractionally closer to the camera and win.
      */
     public updatePositions() {
+        const zStep = STACK_Z_RANGE / Math.max(1, this.points.length)
         this.points.forEach((p, i) => {
             this.matrixHelper.makeScale(1.0, 1.0, 1.0)
-            this.matrixHelper.setPosition(p.x, p.y, p.z)
+            this.matrixHelper.setPosition(p.x, p.y, p.z + i * zStep)
             this.mesh.setMatrixAt(i, this.matrixHelper)
         })
         this.mesh.instanceMatrix.needsUpdate = true
@@ -95,32 +106,24 @@ export class AtlasLayer {
     }
 
     /**
-     * Updates the vBorderCol attribute.
+     * Updates the vBorderCol + vBorderWidth attributes together — they always change together
+     * (MapRenderer.updateBorder), so this avoids a second full pass over the points array.
      */
-    public updateBorderColors() {
-        const attr = this.geometry.getAttribute('vBorderCol') as THREE.InstancedBufferAttribute
-        const array = attr.array as Float32Array
+    public updateBorder() {
+        const colAttr = this.geometry.getAttribute('vBorderCol') as THREE.InstancedBufferAttribute
+        const widthAttr = this.geometry.getAttribute('vBorderWidth') as THREE.InstancedBufferAttribute
+        const colArray = colAttr.array as Float32Array
+        const widthArray = widthAttr.array as Float32Array
 
         this.points.forEach((p, i) => {
             this.colorHelper.set(p.borderColor || '#000000')
-            array[i * 3] = this.colorHelper.r
-            array[i * 3 + 1] = this.colorHelper.g
-            array[i * 3 + 2] = this.colorHelper.b
+            colArray[i * 3] = this.colorHelper.r
+            colArray[i * 3 + 1] = this.colorHelper.g
+            colArray[i * 3 + 2] = this.colorHelper.b
+            widthArray[i] = p.border ?? 0.0
         })
-        attr.needsUpdate = true
-    }
-
-    /**
-     * Updates the vBorderWidth attribute.
-     */
-    public updateBorderWidths() {
-        const attr = this.geometry.getAttribute('vBorderWidth') as THREE.InstancedBufferAttribute
-        const array = attr.array as Float32Array
-
-        this.points.forEach((p, i) => {
-            array[i] = p.border ?? 0.0 // Default to 0 if not specified
-        })
-        attr.needsUpdate = true
+        colAttr.needsUpdate = true
+        widthAttr.needsUpdate = true
     }
 
     /**

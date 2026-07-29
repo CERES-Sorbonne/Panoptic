@@ -8,6 +8,8 @@ const HD_Z_OFFSET = 1.5
 
 const SCALE_NORMAL = 1.0
 const SCALE_HOVER = 2.0
+const OPACITY_HIDDEN = 0.0
+const OPACITY_VISIBLE = 1.0
 const LERP_FACTOR = 0.2
 const ANIMATION_THRESHOLD = 0.005
 
@@ -16,8 +18,15 @@ interface AnimationState {
     point: PointData
     currentScale: number
     targetScale: number
+    currentOpacity: number
+    targetOpacity: number
     isHovered: boolean
     isInShowList: boolean
+}
+
+function isAnimating(state: AnimationState): boolean {
+    return Math.abs(state.targetScale - state.currentScale) > ANIMATION_THRESHOLD
+        || Math.abs(state.targetOpacity - state.currentOpacity) > ANIMATION_THRESHOLD
 }
 
 export class HDLayer {
@@ -92,10 +101,21 @@ export class HDLayer {
         this.updateBorder()
     }
 
+    /**
+     * Per-frame bookkeeping: HDLayer only ever holds hover-preview meshes (hover()/unhover()
+     * manage those directly), so the animation loop never has an actual "show list" to pass in.
+     * This just flips isInShowList and reaps anything that finished animating out — the render
+     * loop doesn't need the sort/Set/full tint+border re-apply that show([]) did every frame.
+     */
+    public tick() {
+        if (this.animationMap.size === 0) return
+        this.animationMap.forEach((state) => { state.isInShowList = false })
+        this.cleanupUnusedImages()
+    }
+
     private cleanupUnusedImages() {
         this.animationMap.forEach((state, id) => {
-            const isAnimating = Math.abs(state.targetScale - state.currentScale) > ANIMATION_THRESHOLD
-            if (!state.isInShowList && !state.isHovered && !isAnimating) {
+            if (!state.isInShowList && !state.isHovered && !isAnimating(state)) {
                 this.removeImage(id)
             }
         })
@@ -129,8 +149,12 @@ export class HDLayer {
         })
 
         mat.setZoomReference(this.zoomRef)
+        mat.setZoomParams(this.zoomParams)
         mat.setBorder(p.border, p.borderColor)
         mat.setRatio(p.ratio)
+        // Starts fully transparent — updateAnimations() fades it in toward targetOpacity, same
+        // lerp as the scale-up, so the preview eases in instead of popping in at full size.
+        mat.opacity = OPACITY_HIDDEN
 
         const mesh = new THREE.Mesh(sharedPlaneGeo, mat)
         mesh.position.set(p.x, p.y, HD_Z_OFFSET)
@@ -138,7 +162,7 @@ export class HDLayer {
         mesh.scale.set(1.0, 1.0, 1.0)
 
         this.group.add(mesh)
-        
+
         const isActuallyHovered = this.currentHoveredId === p.id
 
         this.animationMap.set(p.id!, {
@@ -146,8 +170,10 @@ export class HDLayer {
             point: p,
             currentScale: SCALE_NORMAL,
             targetScale: isActuallyHovered ? SCALE_HOVER : SCALE_NORMAL,
+            currentOpacity: OPACITY_HIDDEN,
+            targetOpacity: isActuallyHovered ? OPACITY_VISIBLE : OPACITY_HIDDEN,
             isHovered: isActuallyHovered,
-            isInShowList: true 
+            isInShowList: true
         })
 
         if (isActuallyHovered) {
@@ -170,11 +196,13 @@ export class HDLayer {
             if (id === point.id) {
                 state.isHovered = true
                 state.targetScale = SCALE_HOVER
+                state.targetOpacity = OPACITY_VISIBLE
                 state.mesh.renderOrder = Number.MAX_SAFE_INTEGER
             } else if (state.isHovered) {
                 // If another point was hovered, reset it
                 state.isHovered = false
                 state.targetScale = SCALE_NORMAL
+                state.targetOpacity = OPACITY_HIDDEN
                 state.mesh.renderOrder = 2000 + (state.point.order || 0)
             }
         })
@@ -193,6 +221,7 @@ export class HDLayer {
             if (state.isHovered) {
                 state.isHovered = false
                 state.targetScale = SCALE_NORMAL
+                state.targetOpacity = OPACITY_HIDDEN
                 state.mesh.renderOrder = 2000 + (state.point.order || 0)
             }
         })
@@ -201,11 +230,19 @@ export class HDLayer {
     public updateAnimations() {
         let needsCleanup = false
         this.animationMap.forEach(state => {
-            const diff = state.targetScale - state.currentScale
-            if (Math.abs(diff) > 0.001) {
-                state.currentScale += diff * LERP_FACTOR
+            const scaleDiff = state.targetScale - state.currentScale
+            if (Math.abs(scaleDiff) > ANIMATION_THRESHOLD) {
+                state.currentScale += scaleDiff * LERP_FACTOR
                 state.mesh.scale.set(state.currentScale, state.currentScale, 1.0)
-            } else if (!state.isInShowList && !state.isHovered) {
+            }
+
+            const opacityDiff = state.targetOpacity - state.currentOpacity
+            if (Math.abs(opacityDiff) > ANIMATION_THRESHOLD) {
+                state.currentOpacity += opacityDiff * LERP_FACTOR
+                ;(state.mesh.material as HDImageMaterial).opacity = state.currentOpacity
+            }
+
+            if (!isAnimating(state) && !state.isInShowList && !state.isHovered) {
                 needsCleanup = true
             }
         })

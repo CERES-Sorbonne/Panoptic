@@ -14,7 +14,10 @@ const props = defineProps({
     selectedImagesIds: Array<number>
 })
 
-const images = computed(() => props.selectedImagesIds.map(id => data.instances[id]))
+// data.instances only holds instances registered by a visible component, while a selection
+// can span instances that were never rendered. Fall back to a minimal stub so consumers
+// (stamping, actions) still get every selected id.
+const images = computed(() => (props.selectedImagesIds ?? []).map(id => data.instances[id] ?? ({ id } as any)))
 
 const emits = defineEmits(['remove:selected', 'stamped'])
 

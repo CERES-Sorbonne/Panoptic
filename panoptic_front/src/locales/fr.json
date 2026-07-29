@@ -535,7 +535,8 @@
         "show_boxes": "Afficher les boites",
         "display": "Affichage",
         "group_property": "Groupes",
-        "group_cluster": "Clusters"
+        "group_cluster": "Clusters",
+        "groups": "Groupes"
     },
     "none": "Vide...",
     "installing": "Installation...",

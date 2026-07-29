@@ -96,8 +96,11 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 texelColor.rgb *= diffuse;
 
                 vec3 finalRGB = mix(uBorderColor, texelColor.rgb, borderMask);
-                
-                diffuseColor = vec4(finalRGB, texelColor.a * outsideMask);
+
+                // opacity is MeshBasicMaterial's own uniform (declared upstream in the
+                // unmodified part of this shader) — folded in here since this replace fully
+                // overwrites diffuseColor.a, which would otherwise drop the hover fade animation.
+                diffuseColor = vec4(finalRGB, texelColor.a * outsideMask * opacity);
                 `
             );
 

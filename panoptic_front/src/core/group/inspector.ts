@@ -43,6 +43,9 @@ export interface GroupInspector {
     toggleGroupIterator(iterator: GroupIterator, shift?: boolean): void
     toggleImageIterator(iterator: ImageIterator, shift?: boolean): void
     isGroupSelected(group: Group): boolean
+    // Direct id-based selection, for views that don't navigate by iterator (the map's lasso).
+    selectImages(imageIds: number[]): void
+    unselectImages(imageIds: number[]): void
 
     // Cluster / custom-group ops reachable from group lines
     cluster(targetGroupId: number, req: ClusterRequest): void

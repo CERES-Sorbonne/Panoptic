@@ -111,7 +111,7 @@ export class MapRenderer {
 
         if (this.hdLayer) {
             this.hdLayer.updateAnimations()
-            this.hdLayer.show([])
+            this.hdLayer.tick()
         }
 
         this.updateHoverState()
@@ -143,8 +143,7 @@ export class MapRenderer {
     }
 
     public updateBorder() {
-        this.atlasLayers.updateBorderColors()
-        this.atlasLayers.updateBorderWidths()
+        this.atlasLayers.updateBorder()
         this.hdLayer.updateBorder()
     }
 
