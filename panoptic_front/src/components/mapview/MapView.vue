@@ -15,7 +15,7 @@ import Toolbar from './Toolbar.vue'
 import Zoomable from '../Zoomable.vue'
 import CenteredImage from '../images/CenteredImage.vue'
 import InstanceData from '../data/InstanceData.vue'
-import ActionButton from '../actions/ActionButton.vue'
+import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
 
 const BORDER_WIDTH = 0.05
@@ -552,8 +552,11 @@ onMounted(async () => {
                                     </div>
                                 </WithToolTip>
                                 <div class="group-action-btn cluster-btn">
-                                    <ActionButton action="group" :defer="true" :busy="props.collection.isClustering(leaf.id)"
-                                        @submit="(req: ClusterRequest) => props.collection.cluster(leaf.id, req)" />
+                                    <ActionButton2 action="group" :no-border="true" :defer="true"
+                                        :busy="props.collection.isClustering(leaf.id)"
+                                        @submit="(req: ClusterRequest) => props.collection.cluster(leaf.id, req)">
+                                        <i class="bi bi-intersect"></i>
+                                    </ActionButton2>
                                 </div>
                             </div>
                         </div>
