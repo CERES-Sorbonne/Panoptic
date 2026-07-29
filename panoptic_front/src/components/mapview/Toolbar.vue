@@ -34,7 +34,7 @@ async function updateMap(event) {
 <template>
     <div class="map-header-bar">
         <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @call="updateMap" :images="props.images">
-            <i class="bi bi-boxes" /> {{ $t('map.create') }}
+            <i class="bi bi-boxes me-1" /> {{ $t('map.create') }}
         </ActionButton2>
 
         <div v-if="props.hasMaps" style="min-width: 150px;" class="map-select">
@@ -53,7 +53,7 @@ async function updateMap(event) {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 8px;
+    padding: 3px 3px;
     background: var(--bg-primary);
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
@@ -62,7 +62,7 @@ async function updateMap(event) {
 .tool {
     color: var(--text-primary);
     line-height: 100%;
-    padding: 6px;
+    padding: 3px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.2s ease;

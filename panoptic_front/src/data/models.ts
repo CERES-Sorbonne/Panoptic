@@ -1025,6 +1025,9 @@ export interface PointData {
     color: string
     tint?: string,
     tintAlpha: number
+    // 0 = full colour, 1 = fully desaturated (per-pixel greyscale, not a flat colour wash — kept
+    // separate from tint so "dim this group" and "tint this selection" can compose independently.
+    desaturate?: number
     sha1: string
     ratio: number,
     id?: number,

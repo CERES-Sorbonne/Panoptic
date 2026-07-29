@@ -58,8 +58,8 @@ export class HDLayer {
 
     public updateTints() {
         this.animationMap.forEach((state) => {
-            const mat = state.mesh.material as THREE.MeshBasicMaterial
-            mat.color.set(state.point.tint || '#FFFFFF')
+            const mat = state.mesh.material as HDImageMaterial
+            if (mat.setTint) mat.setTint(state.point.tint, state.point.tintAlpha)
         })
     }
 
@@ -152,6 +152,7 @@ export class HDLayer {
         mat.setZoomParams(this.zoomParams)
         mat.setBorder(p.border, p.borderColor)
         mat.setRatio(p.ratio)
+        mat.setTint(p.tint, p.tintAlpha)
         // Starts fully transparent — updateAnimations() fades it in toward targetOpacity, same
         // lerp as the scale-up, so the preview eases in instead of popping in at full size.
         mat.opacity = OPACITY_HIDDEN

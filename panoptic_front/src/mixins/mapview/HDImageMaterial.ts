@@ -8,6 +8,8 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
     private _borderColor = { value: new THREE.Color(0x000000) };
     private _borderWidth = { value: 0.00 };
     private _radius = { value: 0.05 };
+    private _tint = { value: new THREE.Color(0xFFFFFF) };
+    private _tintAlpha = { value: 0.0 };
 
     constructor(parameters: THREE.MeshBasicMaterialParameters) {
         super(parameters);
@@ -19,6 +21,8 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
             shader.uniforms.uBorderColor = this._borderColor;
             shader.uniforms.uBorderWidth = this._borderWidth;
             shader.uniforms.uRadius = this._radius;
+            shader.uniforms.uTint = this._tint;
+            shader.uniforms.uTintAlpha = this._tintAlpha;
 
             shader.vertexShader = `
                 varying vec2 vRawUv;
@@ -66,6 +70,8 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uRatio;
                 uniform vec3 uBorderColor;
                 uniform float uRadius;
+                uniform vec3 uTint;
+                uniform float uTintAlpha;
 
                 float sdRoundedBox(vec2 p, vec2 b, float r) {
                     vec2 q = abs(p) - b + r;
@@ -93,9 +99,9 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 float borderMask = smoothstep(edgeSoftness, 0.0, d + uBorderWidth);
 
                 vec4 texelColor = texture2D( map, vRawUv );
-                texelColor.rgb *= diffuse;
 
-                vec3 finalRGB = mix(uBorderColor, texelColor.rgb, borderMask);
+                vec3 tintedColor = mix(texelColor.rgb, uTint, uTintAlpha);
+                vec3 finalRGB = mix(uBorderColor, tintedColor, borderMask);
 
                 // opacity is MeshBasicMaterial's own uniform (declared upstream in the
                 // unmodified part of this shader) — folded in here since this replace fully
@@ -127,5 +133,10 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
     public setBorder(width: number, color: string) {
         this._borderWidth.value = width
         this._borderColor.value = new THREE.Color(color)
+    }
+
+    public setTint(tint: string | undefined, alpha: number | undefined) {
+        this._tint.value.set(tint || '#FFFFFF')
+        this._tintAlpha.value = alpha ?? 0.0
     }
 }

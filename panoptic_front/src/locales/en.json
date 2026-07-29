@@ -477,7 +477,8 @@
         "subcluster-group": "Sub-cluster this group",
         "inspect-group": "Inspect in the side panel\nHold shift to open a second inspector",
         "open-group": "Show the sub-groups",
-        "close-group": "Back to the parent group\nCloses the other groups of this level"
+        "close-group": "Back to the parent group\nCloses the other groups of this level",
+        "goto-group": "Focus this group on the map"
     },
     "datepicker": {
         "cancel": "Cancel",

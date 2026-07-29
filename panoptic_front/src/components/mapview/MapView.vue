@@ -7,6 +7,7 @@ import { useColumnStore } from '@/data/columnStore'
 import { generateColors, isTag } from '@/utils/utils'
 import { Group } from '@/core/group/types'
 import type { GroupInspector } from '@/core/group/inspector'
+import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
 
 // Components
@@ -14,10 +15,24 @@ import Toolbar from './Toolbar.vue'
 import Zoomable from '../Zoomable.vue'
 import CenteredImage from '../images/CenteredImage.vue'
 import InstanceData from '../data/InstanceData.vue'
+import ActionButton from '../actions/ActionButton.vue'
+import WithToolTip from '../tooltips/withToolTip.vue'
 
 const BORDER_WIDTH = 0.05
 const WHITE_TINT = '#FFFFFF'
 const SELECTED_TINT = '#5DACFF'
+// Non-members of a focused group go fully desaturated (per-pixel greyscale) rather than a flat
+// black/grey wash — that reads as "muted", not "darkened", and is easier on the eye.
+const DIM_DESATURATE = 1.0
+// z priority tiers, front-to-back: SELECTED > BASE > DIM. Without this, "selected"/"focused" were
+// colour-only, and which point actually drew on top of an overlapping neighbour was pure array
+// index (AtlasLayer's STACK_Z_RANGE tie-break) — a selected or focused-group point could still
+// end up hidden behind an unrelated one. Each tier is spaced well past AtlasLayer's own
+// STACK_Z_RANGE (0.1) so index ties never spill into the next tier, and the top tier stays well
+// under HDLayer's HD_Z_OFFSET (1.5) so the hover/hover-dot preview still always wins.
+const DIM_Z = 0.0
+const BASE_Z = 0.5
+const SELECTED_Z = 1.0
 
 const data = useDataStore()
 const media = useMediaStore()
@@ -40,6 +55,19 @@ const { map: renderer, hoverInstanceId } = useMapRenderer(canvasContainer)
 // State
 const mouseMode = ref('pan')
 const defaultColor = '#777777'
+
+// The group clicked in the group-list island — its points render at full strength while every
+// other point on the map dims out, giving the click a "solo this group" effect. Click the same
+// group again (or it disappears from the tree) to go back to showing everything normally.
+const selectedGroupId = ref<number | null>(null)
+function toggleGroupSelection(leaf: { id: number }) {
+    selectedGroupId.value = selectedGroupId.value === leaf.id ? null : leaf.id
+}
+// Whether the previous updateColors() run had a group soloed — lets updateColors skip the
+// position re-upload on ticks where soloing is (and stays) off.
+let hadActiveLeaf = false
+// Same idea, for whether any image was selected — selection also bumps z (SELECTED_Z) now.
+let hadSelected = false
 
 // Last instance the pointer hovered over a point for — kept sticky (only overwritten on a real
 // hover, never cleared) so the inspector doesn't blank out the moment the cursor leaves a point.
@@ -124,6 +152,10 @@ function buildLeaves() {
     const colors = generateColors(groups.length)
 
     const res: { id: number, name: string, color: string, points: PointData[] }[] = []
+    // Debug: per-group slot vs. matched-point counts, to see where coverage is lost (a slot whose
+    // sha1 isn't in sha1ToPoint yet — map data not loaded, or a stale point map — never gets a
+    // leaf, so it stays uncoloured).
+    const debugGroups: { id: number, slots: number, matched: number }[] = []
     groups.forEach((g, index) => {
         const color = leafColor(g, colors[index])
         const seen = new Set<PointData>()
@@ -131,9 +163,52 @@ function buildLeaves() {
             const point = sha1ToPoint[sha1s[slot]]
             if (point) seen.add(point)
         }
+        debugGroups.push({ id: g.id, slots: g.slots?.length ?? 0, matched: seen.size })
         if (seen.size) res.push({ id: g.id, name: leafName(g, index), color, points: Array.from(seen) })
     })
     leaves.value = res
+
+    const coveredPoints = new Set<PointData>()
+    for (const l of res) for (const p of l.points) coveredPoints.add(p)
+
+    // Split the "some points stay grey" question in two: are these slots missing from the TREE's
+    // own grouping (a GroupManager bug — the slot never made it into any group's .slots), or are
+    // they grouped fine but this file's sha1->point lookup (sha1ToPoint, built once per full
+    // showMap rebuild) failed to resolve them (stale map from an earlier, incomplete load)?
+    const rootSlots = props.collection.result?.root?.slots ?? []
+    const slotsCoveredByGroups = new Set<number>()
+    for (const g of groups) for (const s of g.slots ?? []) slotsCoveredByGroups.add(s)
+    const uncoveredSlots = rootSlots.filter(s => !slotsCoveredByGroups.has(s))
+    const uncoveredPoints = points.value.filter(p => !coveredPoints.has(p))
+
+    console.log('[MapView] buildLeaves', {
+        groupCount: groups.length,
+        leafCount: res.length,
+        totalPoints: points.value.length,
+        pointsCoveredByLeaves: coveredPoints.size,
+        sha1ToPointSize: Object.keys(sha1ToPoint).length,
+        perGroup: debugGroups,
+        selectedGroupId: selectedGroupId.value,
+        rootSlotCount: rootSlots.length,
+        slotsCoveredByGroups: slotsCoveredByGroups.size,
+        uncoveredSlotCount: uncoveredSlots.length,
+        uncoveredSlotSample: uncoveredSlots.slice(0, 10),
+        uncoveredPointCount: uncoveredPoints.length,
+        uncoveredPointSample: uncoveredPoints.slice(0, 10).map(p => ({ id: p.id, sha1: p.sha1 }))
+    })
+
+    // The tree just rebuilt (regroup, sort, open/close...): if the soloed group's id isn't among
+    // the new leaves — regrouping mints new Group objects with new ids — the dim effect would
+    // silently do nothing (activeLeaf never found in updateColors). Drop the stale selection
+    // instead of leaving the map looking like soloing broke.
+    if (selectedGroupId.value != null && !res.some(l => l.id === selectedGroupId.value)) {
+        console.log('[MapView] selectedGroupId no longer matches any leaf after rebuild, clearing', {
+            selectedGroupId: selectedGroupId.value,
+            leafIds: res.map(l => l.id)
+        })
+        selectedGroupId.value = null
+    }
+
     updateColors()
 }
 
@@ -145,7 +220,8 @@ function updateColors() {
         p.border = 0.0
         p.tint = WHITE_TINT
         p.tintAlpha = 0.0
-        p.z = 1.0
+        p.desaturate = 0.0
+        p.z = BASE_Z
     }
 
     for (const leaf of leaves.value) {
@@ -155,19 +231,78 @@ function updateColors() {
         }
     }
 
-    // Selection tint. Read per point instead of materialising the whole selected-id array:
-    // this runs on every selection tick.
-    for (const p of points.value) {
-        if (columnStore.isSelectedId(p.id, ns)) {
-            p.tint = SELECTED_TINT
-            p.tintAlpha = 0.8
+    // Solo a clicked group: dim every point that isn't one of its members, and drop those
+    // dimmed points behind so the focused group is never occluded by an overlapping neighbour.
+    const activeLeaf = selectedGroupId.value != null
+        ? leaves.value.find(l => l.id === selectedGroupId.value)
+        : undefined
+    if (selectedGroupId.value != null) {
+        console.log('[MapView] updateColors solo check', {
+            selectedGroupId: selectedGroupId.value,
+            activeLeafFound: !!activeLeaf,
+            activeLeafPoints: activeLeaf?.points.length,
+            leafIds: leaves.value.map(l => l.id)
+        })
+    }
+    if (activeLeaf) {
+        const activeSet = new Set(activeLeaf.points)
+        for (const p of points.value) {
+            if (!activeSet.has(p)) {
+                p.desaturate = DIM_DESATURATE
+                p.z = DIM_Z
+                // The leaf-colouring pass above already painted every OTHER leaf's border too —
+                // left alone, each dimmed group keeps its own bright border ring around its
+                // (now-grey) photos, which is exactly the "still has colour" a solo is meant to
+                // remove. Only the focused leaf's border should survive.
+                p.border = 0.0
+                p.borderColor = defaultColor
+            }
         }
     }
 
+    // Selection tint. A point stands for a whole sha1-pile (possibly several instances, each
+    // independently selectable in the scrollers — see PileLine.vue), and `p.id` is only one
+    // arbitrary representative instance of that pile (see sha1ToId in showMap). Checking that
+    // single instance's selection state left the point untinted whenever a *different* pile
+    // member was the one actually selected. Scan the tree's slots for a selected sha1 match
+    // instead, matching the pile-wide select/deselect handleLasso already does.
+    const sha1sArr = columnStore.sha1s()
+    const selectedSha1s = new Set<string>()
+    const addIfSelected = (slot: number) => {
+        if (columnStore.isSelected(slot, ns)) {
+            const sha1 = sha1sArr[slot]
+            if (sha1) selectedSha1s.add(sha1)
+        }
+    }
+    if (builtSlots) {
+        for (const slot of builtSlots) addIfSelected(slot)
+    } else {
+        for (let slot = 0; slot < columnStore.slotCount(); slot++) addIfSelected(slot)
+    }
+
+    for (const p of points.value) {
+        if (selectedSha1s.has(p.sha1)) {
+            p.tint = SELECTED_TINT
+            p.tintAlpha = 0.8
+            // Selected always wins the depth tie against an overlapping neighbour, whether or
+            // not a group happens to be soloed right now (this runs after the dim block above).
+            p.z = SELECTED_Z
+        }
+    }
+
+    const anySelected = selectedSha1s.size > 0
     if (renderer.value) {
         renderer.value.updateBorder()
         renderer.value.updateTints()
+        renderer.value.updateDesaturation()
+        // Position upload (re-writes every instance matrix + flags the GPU buffer dirty) only
+        // when something that touches z just changed, is still in effect, or just cleared —
+        // plain ticks where neither soloing nor any selection is or was active skip this and
+        // stay cheap.
+        if (activeLeaf || hadActiveLeaf || anySelected || hadSelected) renderer.value.updatePosition()
     }
+    hadActiveLeaf = !!activeLeaf
+    hadSelected = anySelected
 }
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
@@ -177,9 +312,16 @@ async function showMap(mapId: number, force = false) {
 
     const root = props.collection.result?.root
     const slots = root?.slots ?? null
+    const fastPath = !force && mapId === builtMapId && root === builtRoot && slots === builtSlots
+        && (slots?.length ?? -1) === builtSlotCount
+    console.log('[MapView] showMap', {
+        mapId, force, fastPath,
+        rootChanged: root !== builtRoot,
+        slotsChanged: slots !== builtSlots,
+        slotCountChanged: (slots?.length ?? -1) !== builtSlotCount
+    })
     // Nothing that can move a point changed → recolour only (no GPU re-upload).
-    if (!force && mapId === builtMapId && root === builtRoot && slots === builtSlots
-        && (slots?.length ?? -1) === builtSlotCount) {
+    if (fastPath) {
         buildLeaves()
         return
     }
@@ -236,13 +378,14 @@ async function showMap(mapId: number, force = false) {
             id: instanceId,
             x: values[i + 1],
             y: values[i + 2],
-            z: 1.0,
+            z: BASE_Z,
             color: defaultColor,
             sha1: sha1,
             ratio,
             order: 1,
             border: 0.0,
             tintAlpha: 0.0,
+            desaturate: 0.0,
             borderColor: defaultColor
         }
         res.push(p)
@@ -255,6 +398,11 @@ async function showMap(mapId: number, force = false) {
     builtRoot = root
     builtSlots = slots
     builtSlotCount = slots?.length ?? -1
+    console.log('[MapView] showMap rebuild done', {
+        mapRowCount: values.length / 3,
+        sha1ToIdSize: Object.keys(sha1ToId).length,
+        pointsBuilt: res.length
+    })
     buildLeaves()
 
     const atlas = media.atlas
@@ -299,6 +447,7 @@ function focusGroup(leaf: { points: PointData[] }) {
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(() => columnStore.selectionTick(selectNamespace.value), () => updateColors())
+watch(selectedGroupId, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
 watch(() => props.imageSize, (val) => renderer.value?.setImageSize(val))
@@ -375,10 +524,22 @@ onMounted(async () => {
                         <span>{{ leaves.length }}</span>
                     </div>
                     <div class="group-list-body">
-                        <div v-for="leaf in leaves" :key="leaf.id" class="group-item" @click="focusGroup(leaf)">
+                        <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
+                            :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                             <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                             <span class="group-name">{{ leaf.name }}</span>
                             <span class="group-count">{{ leaf.points.length }}</span>
+                            <div class="group-actions" @click.stop>
+                                <WithToolTip message="btn.goto-group">
+                                    <div class="group-action-btn" @click="focusGroup(leaf)">
+                                        <i class="bi bi-crosshair"></i>
+                                    </div>
+                                </WithToolTip>
+                                <div class="group-action-btn cluster-btn">
+                                    <ActionButton action="group" :defer="true" :busy="props.collection.isClustering(leaf.id)"
+                                        @submit="(req: ClusterRequest) => props.collection.cluster(leaf.id, req)" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -514,6 +675,12 @@ onMounted(async () => {
     background-color: var(--hover-bg);
 }
 
+.group-item.active {
+    background-color: var(--hover-bg);
+    outline: 1px solid var(--primary);
+    outline-offset: -1px;
+}
+
 .group-color {
     width: 12px;
     height: 12px;
@@ -535,6 +702,34 @@ onMounted(async () => {
     font-size: 11px;
     color: var(--text-tertiary);
     flex-shrink: 0;
+}
+
+.group-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+.group-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.group-action-btn:hover {
+    background-color: var(--island-border);
+    color: var(--text-primary);
+}
+
+.cluster-btn :deep(.b-box) {
+    padding: 3px;
+    margin: 0;
 }
 
 .cursor-grab {

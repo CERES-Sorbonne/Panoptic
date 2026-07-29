@@ -2,10 +2,13 @@ import * as THREE from 'three'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { InstancedImageMaterial } from './InstancedImageMaterial'
 
-// Total z spread used to break ties between overlapping points within one layer — must stay well
-// under HDLayer's HD_Z_OFFSET (1.5) so a fully-stacked atlas layer can never render in front of
-// the HD hover preview.
-const STACK_Z_RANGE = 0.3
+// Total z spread used to break ties between overlapping points *within one priority tier*
+// (MapView.vue's DIM_Z / BASE_Z / SELECTED_Z — dimmed, normal, selected points render in that
+// front-to-back order regardless of array index). Must stay well under the 0.5 gap between
+// tiers, which in turn stays well under HDLayer's HD_Z_OFFSET (1.5), so ties never spill into
+// the next tier and a fully-stacked atlas layer can never render in front of the HD/hover-dot
+// preview.
+const STACK_Z_RANGE = 0.1
 
 export class AtlasLayer {
     public mesh: THREE.InstancedMesh
@@ -45,6 +48,7 @@ export class AtlasLayer {
         this.geometry.setAttribute('vBorderCol', new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3))
         this.geometry.setAttribute('vBorderWidth', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
         this.geometry.setAttribute('vRatioAttr', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
+        this.geometry.setAttribute('vDesaturate', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
 
         // Initial population of all attributes
         this.updateUVsAndOffsets()
@@ -52,6 +56,7 @@ export class AtlasLayer {
         this.updateRatios()
         this.updateTints()
         this.updateBorder()
+        this.updateDesaturation()
 
         this.mesh.frustumCulled = false
         this.mesh.matrixAutoUpdate = false
@@ -83,6 +88,21 @@ export class AtlasLayer {
 
         this.points.forEach((p, i) => {
             array[i] = p.ratio // Pass the raw ratio (e.g., 1.5 for landscape)
+        })
+        attr.needsUpdate = true
+    }
+
+    /**
+     * Updates the vDesaturate attribute — per-pixel greyscale mix amount, kept separate from
+     * vTint so a dimmed-group point and a selection-tinted point can compose (grey photo, blue
+     * overlay) instead of one flat-colour mix fighting the other.
+     */
+    public updateDesaturation() {
+        const attr = this.geometry.getAttribute('vDesaturate') as THREE.InstancedBufferAttribute
+        const array = attr.array as Float32Array
+
+        this.points.forEach((p, i) => {
+            array[i] = p.desaturate ?? 0.0
         })
         attr.needsUpdate = true
     }

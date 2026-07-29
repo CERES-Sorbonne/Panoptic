@@ -25,13 +25,15 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 attribute vec3 vBorderCol;
                 attribute float vBorderWidth;
                 attribute float vRatioAttr;
+                attribute float vDesaturate;
 
                 varying vec2 vMappedUv;
-                varying vec2 vRawUv; 
+                varying vec2 vRawUv;
                 varying vec4 vInstanceTint;
                 varying vec3 vInstanceBorder;
                 varying float vInstanceBorderWidth;
-                varying float vRatio; 
+                varying float vRatio;
+                varying float vInstanceDesaturate;
 
                 uniform float uGridCols;
                 uniform float uGridRows;
@@ -92,6 +94,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 vInstanceTint = vTint;
                 vInstanceBorder = vBorderCol;
                 vInstanceBorderWidth = vBorderWidth;
+                vInstanceDesaturate = vDesaturate;
                 `
             );
 
@@ -102,6 +105,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying vec3 vInstanceBorder;
                 varying float vInstanceBorderWidth;
                 varying float vRatio;
+                varying float vInstanceDesaturate;
 
                 uniform float uRadius;
                 uniform float uShowAsPoint;
@@ -150,9 +154,14 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     float borderMask = smoothstep(aa, 0.0, d + vInstanceBorderWidth);
 
                     vec4 texelColor = texture2D( map, vMappedUv );
-                    
+
+                    // Grey out (per-pixel luminance, not a flat colour wash) before tinting, so a
+                    // dimmed-group photo and a blue selection overlay compose instead of fighting.
+                    float luminance = dot(texelColor.rgb, vec3(0.299, 0.587, 0.114));
+                    vec3 desaturatedColor = mix(texelColor.rgb, vec3(luminance), vInstanceDesaturate);
+
                     // Mix between original texture and tint color based on tint alpha
-                    vec3 tintedColor = mix(texelColor.rgb, vInstanceTint.rgb, vInstanceTint.a);
+                    vec3 tintedColor = mix(desaturatedColor, vInstanceTint.rgb, vInstanceTint.a);
                     vec3 tintedBorderColor = mix(vInstanceBorder.rgb, vInstanceTint.rgb, vInstanceTint.a);
 
                     vec3 finalRGB = mix(tintedBorderColor, tintedColor, borderMask);

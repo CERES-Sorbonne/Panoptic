@@ -11,6 +11,14 @@ export class AtlasLayerManager {
     // Cache for loaded textures, keyed by atlas ID and sheet index
     private static textureCache = new Map<string, THREE.Texture>()
     private currentAtlasId: number | null = null
+    // Guards against a second loadLayers() call starting before a first one's per-sheet texture
+    // loads finish: disposeLayers() only clears whatever is in `this.layers` at the moment it
+    // runs, it can't stop an older, already-in-flight call from later pushing its own (stale)
+    // layers into the same array once its await resolves. Without this, both calls' layers end
+    // up coexisting — the stale one built from whatever `points` looked like when it was
+    // invoked (e.g. still ungrouped/default-coloured on a fresh reload), sitting at the same
+    // positions as the correct, current layers.
+    private loadToken = 0
 
     constructor(scene: THREE.Scene) {
         this.scene = scene
@@ -34,8 +42,9 @@ export class AtlasLayerManager {
         zoomUniform: { value: number },
         showAsPoint: boolean
     ) {
+        const token = ++this.loadToken
         const isAtlasChanged = this.currentAtlasId !== atlas.id
-        
+
         // Only dispose layers, not textures (they're cached)
         this.disposeLayers()
         
@@ -58,18 +67,22 @@ export class AtlasLayerManager {
 
         // Process each sheet
         for (let s = 0; s < atlas.atlasNb; s++) {
+            // A newer loadLayers() call started (and already disposed our layers) while we were
+            // still working — abandon rather than push stale layers into its result.
+            if (token !== this.loadToken) return
+
             const sheetPoints = sheetPointsMap[s]
             if (sheetPoints.length === 0) continue
 
             const cacheKey = this.getCacheKey(atlas.id, s)
             const textureUrl = `${baseUrl}atlas_sheet/${atlas.id}/${s}`
-            
+
             // Assign order for instanced rendering if needed
             sheetPoints.forEach((p, i) => p.order = (s * maxPerSheet) + i)
 
             try {
                 let texture: THREE.Texture
-                
+
                 // Check if texture is already cached
                 if (AtlasLayerManager.textureCache.has(cacheKey)) {
                     texture = AtlasLayerManager.textureCache.get(cacheKey)!
@@ -79,9 +92,13 @@ export class AtlasLayerManager {
                     texture.colorSpace = THREE.SRGBColorSpace
                     texture.generateMipmaps = true
                     texture.minFilter = THREE.LinearMipmapLinearFilter
-                    
+
                     AtlasLayerManager.textureCache.set(cacheKey, texture)
                 }
+
+                // Re-check right after the await too: this is the actual window where a newer
+                // call is most likely to have started and finished its own disposeLayers().
+                if (token !== this.loadToken) return
 
                 const layer = new AtlasLayer(atlas, texture, sheetPoints, s)
                 layer.setZoomReference(zoomUniform)
@@ -161,6 +178,10 @@ export class AtlasLayerManager {
 
     public updateTints() {
         this.layers.forEach(l => l.updateTints())
+    }
+
+    public updateDesaturation() {
+        this.layers.forEach(l => l.updateDesaturation())
     }
 
     public updatePositions() {

@@ -493,7 +493,8 @@
         "subcluster-group": "Sous-clusteriser ce groupe",
         "inspect-group": "Inspecter dans le panneau latéral\nMaintenir shift pour ouvrir un second inspecteur",
         "open-group": "Afficher les sous-groupes",
-        "close-group": "Revenir au groupe parent\nFerme les autres groupes de ce niveau"
+        "close-group": "Revenir au groupe parent\nFerme les autres groupes de ce niveau",
+        "goto-group": "Centrer la carte sur ce groupe"
     },
     "datepicker": {
         "cancel": "Annuler",
