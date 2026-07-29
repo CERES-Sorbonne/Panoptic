@@ -184,7 +184,14 @@ export class MapControls {
         return worldPos
     }
 
-    public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration: number = 500) {
+    public lookAtRect(
+        rect: { minX: number, minY: number, maxX: number, maxY: number },
+        duration: number = 500,
+        // Screen-space strips (in CSS pixels) covered by floating UI — e.g. the group-list island
+        // on the right — that the rect must stay clear of. Both the fit and the pan target need
+        // to work off the shrunken *usable* area, not the full container.
+        padding: { left?: number, right?: number, top?: number, bottom?: number } = {}
+    ) {
         // 1. Calculate Target Position and Zoom
         const centerX = (rect.minX + rect.maxX) / 2
         const centerY = (rect.minY + rect.maxY) / 2
@@ -194,12 +201,27 @@ export class MapControls {
         const viewWidth = this.camera.right - this.camera.left
         const viewHeight = this.camera.top - this.camera.bottom
 
-        const zoomX = viewWidth / rectWidth
-        const zoomY = viewHeight / rectHeight
-        
+        const containerWidth = this.domElement.clientWidth
+        const containerHeight = this.domElement.clientHeight
+        const leftFrac = containerWidth ? (padding.left ?? 0) / containerWidth : 0
+        const rightFrac = containerWidth ? (padding.right ?? 0) / containerWidth : 0
+        const topFrac = containerHeight ? (padding.top ?? 0) / containerHeight : 0
+        const bottomFrac = containerHeight ? (padding.bottom ?? 0) / containerHeight : 0
+        const usableWidthFrac = Math.max(0.1, 1 - leftFrac - rightFrac)
+        const usableHeightFrac = Math.max(0.1, 1 - topFrac - bottomFrac)
+
+        const zoomX = (viewWidth * usableWidthFrac) / rectWidth
+        const zoomY = (viewHeight * usableHeightFrac) / rectHeight
+
         // Calculate final targets
         const targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, Math.min(zoomX, zoomY) * 0.9)) // 0.9 for some padding
-        const targetPos = new THREE.Vector3(centerX, centerY, this.camera.position.z)
+
+        // Shift the camera off the rect's true center so the rect lands centered in the USABLE
+        // region instead — e.g. with a right-side overlay, the camera sits right of the rect so
+        // the rect itself renders left of the obscured strip.
+        const shiftX = (viewWidth / targetZoom) * (rightFrac - leftFrac) / 2
+        const shiftY = (viewHeight / targetZoom) * (topFrac - bottomFrac) / 2
+        const targetPos = new THREE.Vector3(centerX + shiftX, centerY + shiftY, this.camera.position.z)
 
         // 2. Capture Starting State
         const startPos = this.camera.position.clone()

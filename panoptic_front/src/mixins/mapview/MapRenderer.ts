@@ -231,14 +231,17 @@ export class MapRenderer {
         }
     }
 
-    public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }) {
+    public lookAtRect(
+        rect: { minX: number, minY: number, maxX: number, maxY: number },
+        padding?: { left?: number, right?: number, top?: number, bottom?: number }
+    ) {
         let offset = this.getImageMaxSize()
         let finalRect = deepCopy(rect)
         finalRect.minX -= offset
         finalRect.minY -= offset
         finalRect.maxX += offset
         finalRect.maxY += offset
-        this.controls.lookAtRect(finalRect)
+        this.controls.lookAtRect(finalRect, 500, padding)
     }
 
     public dispose() {

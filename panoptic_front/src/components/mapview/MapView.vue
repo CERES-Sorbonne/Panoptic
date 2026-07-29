@@ -52,6 +52,10 @@ const props = defineProps<{
 const canvasContainer = ref<HTMLElement | null>(null)
 const { map: renderer, hoverInstanceId } = useMapRenderer(canvasContainer)
 
+// The group-list island floats over the canvas's right edge — focusGroup needs its on-screen
+// footprint to keep framed groups from panning/zooming in behind it.
+const groupListIslandRef = ref<HTMLElement | null>(null)
+
 // State
 const mouseMode = ref('pan')
 const defaultColor = '#777777'
@@ -433,15 +437,27 @@ async function deleteMap(mapId: number) {
     await media.deleteMap(mapId)
 }
 
-// Scroll/zoom the camera to frame a group clicked in the group-list island.
-function focusGroup(leaf: { points: PointData[] }) {
+// Scroll/zoom the camera to frame a group clicked in the group-list island, and solo it the same
+// way clicking the group row does — "goto" should land you looking at exactly that group, not a
+// group that still needs a second click to stand out from the rest.
+function focusGroup(leaf: { id: number, points: PointData[] }) {
+    selectedGroupId.value = leaf.id
     if (!renderer.value || !leaf.points.length) return
     let minX = leaf.points[0].x, minY = leaf.points[0].y, maxX = minX, maxY = minY
     for (const p of leaf.points) {
         minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
         maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
     }
-    renderer.value.lookAtRect({ minX, minY, maxX, maxY })
+    // Reserve the strip the island actually covers (its own width plus the gap to the canvas's
+    // right edge) so the framed group doesn't land underneath it.
+    let padding: { right: number } | undefined
+    if (canvasContainer.value && groupListIslandRef.value) {
+        const containerRect = canvasContainer.value.getBoundingClientRect()
+        const islandRect = groupListIslandRef.value.getBoundingClientRect()
+        const right = containerRect.right - islandRect.left
+        if (right > 0) padding = { right }
+    }
+    renderer.value.lookAtRect({ minX, minY, maxX, maxY }, padding)
 }
 
 // Watchers
@@ -508,7 +524,7 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <div v-if="hoverImage || leaves.length" class="group-list-island">
+            <div v-if="hoverImage || leaves.length" ref="groupListIslandRef" class="group-list-island">
                 <InstanceData :instance-ids="hoverImage ? [hoverImage.id] : []" :prop-ids="[]">
                     <div v-if="hoverImage" class="group-inspector">
                         <Zoomable :image="hoverImage">
