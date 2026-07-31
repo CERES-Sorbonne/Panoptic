@@ -19,6 +19,7 @@ import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
+const DEFAULT_HOVER_SCALE = 2.0
 const WHITE_TINT = '#FFFFFF'
 const SELECTED_TINT = '#5DACFF'
 // Non-members of a focused group go fully desaturated (per-pixel greyscale) rather than a flat
@@ -60,8 +61,16 @@ const groupListIslandRef = ref<HTMLElement | null>(null)
 const mouseMode = ref('pan')
 const defaultColor = '#777777'
 
-// Border width of the rendered images, adjustable via the header-bar slider.
-const borderWidth = ref(DEFAULT_BORDER_WIDTH)
+// Border width of the rendered images, adjustable via the header-bar slider. Persisted per view
+// through mapOptions (like selectedMap), so the setting survives reloads. Old persisted tabs
+// have no borderWidth yet — fall back to the default and fill the field in.
+const borderWidth = computed(() => props.mapOptions.borderWidth ?? DEFAULT_BORDER_WIDTH)
+// Same story for how much the HD preview grows on hover.
+const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_SCALE)
+watch(() => props.mapOptions, (opts) => {
+    if (opts && opts.borderWidth == null) opts.borderWidth = DEFAULT_BORDER_WIDTH
+    if (opts && opts.hoverScale == null) opts.hoverScale = DEFAULT_HOVER_SCALE
+}, { immediate: true })
 
 // The group clicked in the group-list island — its points render at full strength while every
 // other point on the map dims out, giving the click a "solo this group" effect. Click the same
@@ -471,11 +480,13 @@ watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMa
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
 watch(() => props.imageSize, (val) => renderer.value?.setImageSize(val))
 watch(borderWidth, () => updateColors())
+watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 
 watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
         r.setImageSize(props.imageSize)
+        r.setHoverScale(hoverScale.value)
         // Flush a createMap call that arrived before the renderer was ready
         if (pendingCreateMap) {
             r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, pendingCreateMap.showAsPoint)
@@ -503,7 +514,8 @@ onMounted(async () => {
         <Toolbar :selected-map="props.mapOptions.selectedMap"
             @update:selected-map="id => props.mapOptions.selectedMap = id" :has-maps="media.hasMaps"
             :images="getRootInstances" :border-width="borderWidth"
-            @update:border-width="borderWidth = $event" @delete:map="deleteMap" />
+            @update:border-width="props.mapOptions.borderWidth = $event" :hover-scale="hoverScale"
+            @update:hover-scale="props.mapOptions.hoverScale = $event" @delete:map="deleteMap" />
 
         <div class="map-view-container">
             <div class="map-container"

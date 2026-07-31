@@ -68,6 +68,8 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 varying vec2 vRawUv;
                 uniform float uBorderWidth;
                 uniform float uRatio;
+                uniform float uZoom;
+                uniform vec3 uZoomParams;
                 uniform vec3 uBorderColor;
                 uniform float uRadius;
                 uniform vec3 uTint;
@@ -96,7 +98,13 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 
                 float edgeSoftness = 0.002;
                 float outsideMask = smoothstep(edgeSoftness, 0.0, d);
-                float borderMask = smoothstep(edgeSoftness, 0.0, d + uBorderWidth);
+                // Same zoom-scaled border as the instanced grid thumbnails (see
+                // InstancedImageMaterial): the ring thins out as you zoom in so it never covers a
+                // close-up, with a floor so it stays visible at extreme zoom-in.
+                const float MIN_BORDER_RATIO = 0.15;
+                float borderScale = clamp(uZoomParams.y / max(uZoom, uZoomParams.y), 0.0, 1.0);
+                float borderW = uBorderWidth * max(borderScale, MIN_BORDER_RATIO);
+                float borderMask = smoothstep(edgeSoftness, 0.0, d + borderW);
 
                 vec4 texelColor = texture2D( map, vRawUv );
 
@@ -106,7 +114,7 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 // opacity is MeshBasicMaterial's own uniform (declared upstream in the
                 // unmodified part of this shader) — folded in here since this replace fully
                 // overwrites diffuseColor.a, which would otherwise drop the hover fade animation.
-                diffuseColor = vec4(finalRGB, texelColor.a * outsideMask * opacity);
+                diffuseColor = vec4(finalRGB, max(texelColor.a, 1.0 - borderMask) * outsideMask * opacity);
                 `
             );
 

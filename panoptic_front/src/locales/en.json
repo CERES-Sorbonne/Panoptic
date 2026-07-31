@@ -510,7 +510,8 @@
     },
     "map": {
         "groups": "Groups",
-        "border_width": "Border width"
+        "border_width": "Border width",
+        "hover_scale": "Hover zoom size"
     },
     "confirm": "Confirm",
     "cancel": "Cancel",

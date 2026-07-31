@@ -109,6 +109,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
 
                 uniform float uRadius;
                 uniform float uShowAsPoint;
+                uniform float uZoom;
+                uniform vec3 uZoomParams;
 
                 float sdRoundedBox(vec2 p, vec2 b, float r) {
                     vec2 q = abs(p) - b + r;
@@ -151,7 +153,16 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     
                     float aa = 0.002; 
                     float outsideMask = smoothstep(aa, 0.0, d);
-                    float borderMask = smoothstep(aa, 0.0, d + vInstanceBorderWidth);
+                    // The border shrinks as the camera zooms in (scale = z1/uZoom, capped at 1):
+                    // zoomed out, the coloured ring is the only way to read a group's colour, but
+                    // on a close-up a full-width ring would just cover the photo. Zooming below z1
+                    // keeps it at full strength, so it is thickest exactly when thumbnails are
+                    // smallest. A floor proportional to the set border width (MIN_BORDER_RATIO)
+                    // stops it from vanishing entirely at extreme zoom-in.
+                    const float MIN_BORDER_RATIO = 0.15;
+                    float borderScale = clamp(uZoomParams.y / max(uZoom, uZoomParams.y), 0.0, 1.0);
+                    float borderW = vInstanceBorderWidth * max(borderScale, MIN_BORDER_RATIO);
+                    float borderMask = smoothstep(aa, 0.0, d + borderW);
 
                     vec4 texelColor = texture2D( map, vMappedUv );
 
@@ -165,7 +176,12 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     vec3 tintedBorderColor = mix(vInstanceBorder.rgb, vInstanceTint.rgb, vInstanceTint.a);
 
                     vec3 finalRGB = mix(tintedBorderColor, tintedColor, borderMask);
-                    diffuseColor = vec4(finalRGB, texelColor.a * outsideMask);
+                    // The border ring is drawn inside the image box, so it must be opaque even
+                    // where the sampled texel is semi-transparent — at the bottom edge the plane's
+                    // uv lands on the atlas cell's opaque/transparent boundary, and with a thin
+                    // (zoom-scaled) border the whole ring would otherwise go see-through, letting
+                    // the white background bleed through as a white glow on the bottom border.
+                    diffuseColor = vec4(finalRGB, max(texelColor.a, 1.0 - borderMask) * outsideMask);
                 }
                 `
             );

@@ -50,7 +50,8 @@ export function buildTabState(): TabState {
 export function createMapOptions(): MapOptions {
     return {
         showPoints: false,
-        selectedMap: 0
+        selectedMap: 0,
+        borderWidth: 0.05
     }
 }
 

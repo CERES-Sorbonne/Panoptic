@@ -16,11 +16,14 @@ const props = defineProps<{
     images: () => Instance[]
     // Border width of the rendered images, controlled by the header-bar slider.
     borderWidth: number
+    // How much the HD preview grows over the hovered image, same slider treatment.
+    hoverScale: number
 }>()
 
 const emits = defineEmits([
     'update:selectedMap',
     'update:borderWidth',
+    'update:hoverScale',
     'delete:map'
 ])
 
@@ -55,6 +58,12 @@ async function updateMap(event) {
             <i class="bi bi-border-outer me-1" style="font-size: 13px;"></i>
             <RangeInput :min="0" :max="0.5" :step="0.005" :model-value="props.borderWidth"
                 @update:model-value="emits('update:borderWidth', $event)" />
+        </WithToolTip>
+
+        <WithToolTip v-if="props.hasMaps" message="map.hover_scale" class="border-width-control d-flex align-items-center">
+            <i class="bi bi-arrows-fullscreen me-1" style="font-size: 13px;"></i>
+            <RangeInput :min="1" :max="6" :step="0.1" :model-value="props.hoverScale"
+                @update:model-value="emits('update:hoverScale', $event)" />
         </WithToolTip>
     </div>
 </template>

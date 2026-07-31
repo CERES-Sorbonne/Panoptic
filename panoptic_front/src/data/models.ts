@@ -321,6 +321,11 @@ export interface TabState {
 export interface MapOptions {
     showPoints: boolean
     selectedMap: number
+    // Border width of the rendered images. Optional so tabs persisted before this existed still
+    // load — the map view fills it in on first render (same pattern as graphOptions).
+    borderWidth?: number
+    // How much the HD preview grows over the hovered point. Optional for the same reason.
+    hoverScale?: number
 }
 
 // Per-view options for the group recommendation view. Stores which group the

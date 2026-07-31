@@ -7,7 +7,7 @@ const textureLoader = new THREE.TextureLoader()
 const HD_Z_OFFSET = 1.5
 
 const SCALE_NORMAL = 1.0
-const SCALE_HOVER = 2.0
+export const DEFAULT_SCALE_HOVER = 2.0
 const OPACITY_HIDDEN = 0.0
 const OPACITY_VISIBLE = 1.0
 const LERP_FACTOR = 0.2
@@ -38,6 +38,8 @@ export class HDLayer {
     private zoomRef: { value: number } = { value: 1.0 }
     private zoomParams: ZoomParams = { h: 1.0, z1: 0.2, z2: 0.8 }
     private currentHoveredId: number | null = null
+    // How much the preview grows over the hovered point, driven by the header-bar slider.
+    private hoverScale = DEFAULT_SCALE_HOVER
 
     constructor(scene: THREE.Scene, baseImgUrl: string) {
         this.scene = scene
@@ -170,7 +172,7 @@ export class HDLayer {
             mesh,
             point: p,
             currentScale: SCALE_NORMAL,
-            targetScale: isActuallyHovered ? SCALE_HOVER : SCALE_NORMAL,
+            targetScale: isActuallyHovered ? this.hoverScale : SCALE_NORMAL,
             currentOpacity: OPACITY_HIDDEN,
             targetOpacity: isActuallyHovered ? OPACITY_VISIBLE : OPACITY_HIDDEN,
             isHovered: isActuallyHovered,
@@ -196,7 +198,7 @@ export class HDLayer {
         this.animationMap.forEach((state, id) => {
             if (id === point.id) {
                 state.isHovered = true
-                state.targetScale = SCALE_HOVER
+                state.targetScale = this.hoverScale
                 state.targetOpacity = OPACITY_VISIBLE
                 state.mesh.renderOrder = Number.MAX_SAFE_INTEGER
             } else if (state.isHovered) {
@@ -264,6 +266,17 @@ export class HDLayer {
             }
             this.animationMap.delete(id)
         }
+    }
+
+    /**
+     * Retargets any live hover too, so dragging the slider resizes the preview under the cursor
+     * instead of only taking effect on the next hover.
+     */
+    public setHoverScale(scale: number) {
+        this.hoverScale = scale
+        this.animationMap.forEach(state => {
+            if (state.isHovered) state.targetScale = scale
+        })
     }
 
     public setZoomParams(params: ZoomParams) {

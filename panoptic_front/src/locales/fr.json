@@ -538,7 +538,8 @@
         "group_property": "Groupes",
         "group_cluster": "Clusters",
         "groups": "Groupes",
-        "border_width": "Largeur de bordure"
+        "border_width": "Largeur de bordure",
+        "hover_scale": "Taille au survol"
     },
     "none": "Vide...",
     "installing": "Installation...",

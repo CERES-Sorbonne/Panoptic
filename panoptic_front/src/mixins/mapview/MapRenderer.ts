@@ -170,6 +170,10 @@ export class MapRenderer {
         this.hdLayer.updateBorder()
     }
 
+    public setHoverScale(scale: number) {
+        this.hdLayer.setHoverScale(scale)
+    }
+
     public updatePosition() {
         this.atlasLayers.updatePositions()
     }
