@@ -18,7 +18,7 @@ import InstanceData from '../data/InstanceData.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
 
-const BORDER_WIDTH = 0.05
+const DEFAULT_BORDER_WIDTH = 0.05
 const WHITE_TINT = '#FFFFFF'
 const SELECTED_TINT = '#5DACFF'
 // Non-members of a focused group go fully desaturated (per-pixel greyscale) rather than a flat
@@ -59,6 +59,9 @@ const groupListIslandRef = ref<HTMLElement | null>(null)
 // State
 const mouseMode = ref('pan')
 const defaultColor = '#777777'
+
+// Border width of the rendered images, adjustable via the header-bar slider.
+const borderWidth = ref(DEFAULT_BORDER_WIDTH)
 
 // The group clicked in the group-list island — its points render at full strength while every
 // other point on the map dims out, giving the click a "solo this group" effect. Click the same
@@ -230,7 +233,7 @@ function updateColors() {
 
     for (const leaf of leaves.value) {
         for (const point of leaf.points) {
-            point.border = BORDER_WIDTH
+            point.border = borderWidth.value
             point.borderColor = leaf.color
         }
     }
@@ -467,6 +470,7 @@ watch(selectedGroupId, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
 watch(() => props.imageSize, (val) => renderer.value?.setImageSize(val))
+watch(borderWidth, () => updateColors())
 
 watch(renderer, (r) => {
     if (r) {
@@ -498,7 +502,8 @@ onMounted(async () => {
     <div class="main-layout">
         <Toolbar :selected-map="props.mapOptions.selectedMap"
             @update:selected-map="id => props.mapOptions.selectedMap = id" :has-maps="media.hasMaps"
-            :images="getRootInstances" @delete:map="deleteMap" />
+            :images="getRootInstances" :border-width="borderWidth"
+            @update:border-width="borderWidth = $event" @delete:map="deleteMap" />
 
         <div class="map-view-container">
             <div class="map-container"

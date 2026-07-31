@@ -2,6 +2,8 @@
 import { Instance } from '@/data/models'
 import PointMapSelection from './PointMapSelection.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
+import RangeInput from '../inputs/RangeInput.vue'
+import WithToolTip from '../tooltips/withToolTip.vue'
 import { useMediaStore } from '@/data/mediaStore'
 
 const media = useMediaStore()
@@ -12,10 +14,13 @@ const props = defineProps<{
     // Images the 'map' action runs on (the collection's current content). A getter, so the
     // list is materialised on click instead of on every tree tick.
     images: () => Instance[]
+    // Border width of the rendered images, controlled by the header-bar slider.
+    borderWidth: number
 }>()
 
 const emits = defineEmits([
     'update:selectedMap',
+    'update:borderWidth',
     'delete:map'
 ])
 
@@ -45,6 +50,12 @@ async function updateMap(event) {
         <div v-if="props.hasMaps" class="tool sb" @click="deleteMap" title="Delete map">
             <i class="bi bi-trash" style="opacity: 0.8;"></i>
         </div>
+
+        <WithToolTip v-if="props.hasMaps" message="map.border_width" class="border-width-control d-flex align-items-center">
+            <i class="bi bi-border-outer me-1" style="font-size: 13px;"></i>
+            <RangeInput :min="0" :max="0.5" :step="0.005" :model-value="props.borderWidth"
+                @update:model-value="emits('update:borderWidth', $event)" />
+        </WithToolTip>
     </div>
 </template>
 
@@ -78,5 +89,16 @@ async function updateMap(event) {
 .map-select {
     background-color: var(--island-surface);
     border-radius: var(--radius-sm);
+}
+
+.border-width-control {
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 3px;
+    gap: 6px;
+}
+
+.border-width-control :deep(.custom-slider) {
+    width: 90px;
 }
 </style>

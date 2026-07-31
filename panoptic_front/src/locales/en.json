@@ -509,7 +509,8 @@
         "source": "Source"
     },
     "map": {
-        "groups": "Groups"
+        "groups": "Groups",
+        "border_width": "Border width"
     },
     "confirm": "Confirm",
     "cancel": "Cancel",

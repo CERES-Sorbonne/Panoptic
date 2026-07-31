@@ -537,7 +537,8 @@
         "display": "Affichage",
         "group_property": "Groupes",
         "group_cluster": "Clusters",
-        "groups": "Groupes"
+        "groups": "Groupes",
+        "border_width": "Largeur de bordure"
     },
     "none": "Vide...",
     "installing": "Installation...",

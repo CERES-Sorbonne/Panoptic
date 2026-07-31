@@ -44,7 +44,7 @@ const props = defineProps({
 const realMessage = computed(() => {
     if (!props.message) return
     let res = ''
-    if (['main', 'modals', 'dropdown', 'btn'].indexOf(props.message.split('.')[0]) > -1) {
+    if (['main', 'modals', 'dropdown', 'btn', 'map'].indexOf(props.message.split('.')[0]) > -1) {
         res = t(props.message)
     } else if (props.message.startsWith('.')) {
         res = t(props.message.slice(1))
