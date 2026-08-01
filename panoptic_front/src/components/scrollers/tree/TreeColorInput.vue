@@ -81,7 +81,6 @@ function set(value, hide) {
 .chip {
     position: absolute;
     inset: 0;
-    border-radius: 3px;
     /* The row sits above the card's edge ring (z-index 5 vs 4), so a full-bleed fill would
        hide it. Redraw those two pixel columns in the border colour instead of insetting the
        fill, which would show as a white gap. */

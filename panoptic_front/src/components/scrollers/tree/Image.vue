@@ -149,7 +149,7 @@ const score = computed(() => {
     flex-direction: column;
     /* No surface of its own: the property rows show the view's background through. */
     background-color: transparent;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
     /* No margin here: the line comps apply me-2/mb-2, which is the GAP the scroller budgets
        for (TreeScroller.fillWidths). A margin of our own would be spent twice, overflow the
@@ -199,6 +199,18 @@ const score = computed(() => {
     padding-top: 0px;
     padding-bottom: 0px;
     font-size: 12px;
+}
+
+/* The bottom row is the card's bottom edge: follow the card ring's corners (4px, minus the
+   1px ring itself) instead of running square into them. Covers the row's surface, its
+   hover/focus overlay and any full-bleed fill (the colour chip). */
+.prop-container :deep(> :last-child.tree-cell),
+.prop-container :deep(> :last-child.tree-cell::after),
+.prop-container> :last-child :deep(.tree-cell),
+.prop-container> :last-child :deep(.tree-cell::after),
+.prop-container> :last-child :deep(.chip) {
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
 }
 
 .select {

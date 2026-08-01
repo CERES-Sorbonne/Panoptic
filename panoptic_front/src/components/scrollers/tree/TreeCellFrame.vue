@@ -52,7 +52,6 @@ const emits = defineEmits(['click', 'iconClick'])
     /* box-sizing: border-box above, and the frame is an inset shadow, so this costs no width */
     padding-left: 4px;
     padding-right: 1px;
-    border-radius: 3px;
     background-color: transparent;
     transition: background-color 0.2s;
     /* the cell ring (.img-border::after in Image.vue) is at z-index 4 and would cover the
@@ -71,20 +70,19 @@ const emits = defineEmits(['click', 'iconClick'])
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: 3px;
     box-shadow: inset 0 0 0 1px transparent;
     transition: box-shadow 0.2s;
     pointer-events: none;
     z-index: 1;
 }
 
-/* grey on hover, blue once editing — same pair as the search bar (TextSearchInput.vue) */
+/* the theme's border colour on hover, blue once editing */
 .tree-cell:hover {
     background-color: white;
 }
 
 .tree-cell:hover::after {
-    box-shadow: inset 0 0 0 1px #999;
+    box-shadow: inset 0 0 0 1px var(--border-color);
 }
 
 .tree-cell:focus-within,
