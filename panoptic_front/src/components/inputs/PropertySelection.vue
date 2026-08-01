@@ -70,10 +70,10 @@ const filteredGroups = computed(() => {
 
 <template>
     <div class="flex flex-column h-100">
-        <div class="p-1 mb-1">
+        <div class="p-1">
             <TextInput v-model="propertyFilter" :focus="true" />
         </div>
-        <div class="flex-grow-1 overflow-auto" style="max-height: 350px; overflow-y: auto;">
+        <div class="flex-grow-1 overflow-auto pb-1" style="max-height: 350px; overflow-y: auto;">
             <template v-for="group in filteredGroups" :key="group.groupId">
                 <div class="group-header" @click="toggleGroup(group.groupId)">
                     <i class="expand-icon" :class="isGroupOpen(group.groupId) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
