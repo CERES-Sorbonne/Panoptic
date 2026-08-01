@@ -15,7 +15,7 @@ import { isTag } from '@/utils/utils'
 
 // Height reserved below each card's image for the typed property-input row. Must match the
 // per-line `size` reserved in ClusterScroller.computeLines.
-const INPUT_ROW = 30
+const INPUT_ROW = 26
 
 const columnStore = useColumnStore()
 const data = useDataStore()
@@ -331,7 +331,6 @@ function groupScore(group: Group): number | null {
                     :property="targetProperty"
                     :model-value="inheritedValue(entry.group)"
                     :instance-id="getInstanceId(entry.slot)"
-                    :width="cardInner(i)"
                     @update:model-value="v => $emit('assign-cluster-value', entry.group.id, v)"
                 />
             </div>
@@ -367,9 +366,12 @@ function groupScore(group: Group): number | null {
     position: relative;
     display: flex;
     flex-direction: column;
-    background-color: var(--bg-subtle, #f3f4f6);
-    border-radius: 5px;
+    /* No surface of its own: the input row shows the view's background through, as in Image.vue. */
+    background-color: transparent;
+    border-radius: 3px;
     overflow: hidden;
+    flex: 0 0 auto;
+    min-width: 0;
 }
 
 /* Every card carries a full ring around the whole card (image + input row), drawn as an inset
@@ -381,18 +383,22 @@ function groupScore(group: Group): number | null {
     position: absolute;
     inset: 0;
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: 4px;
     pointer-events: none;
     z-index: 4;
 }
 
+/* Above the input row (the tree cells sit at z-index 5), so their hover frame and full-bleed
+   colour fill can't cut across the ring — same rule as Image.vue's selected cell. */
 .cluster-card.opened::after {
     border: 2px solid var(--primary, #4f46e5);
+    z-index: 10;
 }
 
 /* Last-made clusters: warm ring so a fresh clustering pass stands out at a glance. */
 .cluster-card.highlighted::after {
     border: 2px solid #f59e0b;
+    z-index: 10;
 }
 
 /* Opened wins the border colour when a card is both. */
@@ -413,6 +419,10 @@ function groupScore(group: Group): number | null {
     width: 100%;
     overflow: hidden;
     flex-shrink: 0;
+    background-color: var(--bg-subtle, #f3f4f6);
+    /* the image is the card's top edge: match the ring's corners (4px minus the 1px ring) */
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
 }
 
 .cluster-image {
@@ -444,14 +454,24 @@ function groupScore(group: Group): number | null {
     flex: 0 0 auto;
 }
 
+/* Same as Image.vue's .prop-container: the input row runs the full width of the card and
+   paints over its edge ring, with no inset, no padding and no surface of its own. */
 .cc-input-row {
-    display: flex;
-    align-items: center;
-    height: 30px;
-    padding: 2px 6px;
-    background: var(--island-surface, #fff);
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    font-size: 12px;
     overflow: hidden;
     cursor: default;
+}
+
+/* The row is the card's bottom edge: follow the card ring's corners (4px minus the 1px ring)
+   instead of running square into them — surface, hover/focus overlay and colour fill alike. */
+.cc-input-row :deep(.tree-cell),
+.cc-input-row :deep(.tree-cell::after),
+.cc-input-row :deep(.chip) {
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
 }
 
 .cc-static-value {

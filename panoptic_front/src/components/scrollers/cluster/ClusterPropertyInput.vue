@@ -1,19 +1,18 @@
 <script setup lang="ts">
-// A single-row, typed property editor for one cluster card, rendered BELOW the image
-// (not overlaid). It mirrors the typed inputs of TreePropertyInput, but instead of binding
-// to one instance's DB value it shows the cluster's shared value and emits the new value up —
-// ClusterView applies it to every instance in the cluster.
-import { computed } from 'vue'
-import PropertyIcon from '@/components/properties/PropertyIcon.vue'
-import TagBadge from '@/components/tagtree/TagBadge.vue'
-import CellTagInput from '@/components/property_cell_input/CellTagInput.vue'
-import CellColorInput from '@/components/property_cell_input/CellColorInput.vue'
-import RowTextInput from '@/components/property_row_input/RowTextInput.vue'
-import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue'
-import RowUrlInput from '@/components/property_row_input/RowUrlInput.vue'
-import RowDateInput from '@/components/property_row_input/RowDateInput.vue'
-import CheckboxInput from '@/components/property_inputs/CheckboxInput.vue'
-import { Property, PropertyType } from '@/data/models'
+// A single-row, typed property editor for one cluster card (and for the inspector header).
+// It renders the SAME inputs as the tree scroller (Tree*Input + TreeCellFrame): they fill their
+// container instead of being sized in pixels, and draw their own frame and property icon.
+// The only difference with TreePropertyInput is the binding: instead of one instance's DB value
+// it shows the cluster's shared value and emits the new value up — GroupView applies it to every
+// instance in the cluster.
+import TreeTextInput from '@/components/scrollers/tree/TreeTextInput.vue'
+import TreeNumberInput from '@/components/scrollers/tree/TreeNumberInput.vue'
+import TreeCheckboxInput from '@/components/scrollers/tree/TreeCheckboxInput.vue'
+import TreeTagInput from '@/components/scrollers/tree/TreeTagInput.vue'
+import TreeColorInput from '@/components/scrollers/tree/TreeColorInput.vue'
+import TreeDateInput from '@/components/scrollers/tree/TreeDateInput.vue'
+import TreeValueRow from '@/components/scrollers/tree/TreeValueRow.vue'
+import { Property, PropertyType, isReadonly } from '@/data/models'
 import { isTag } from '@/utils/utils'
 
 const props = defineProps<{
@@ -22,71 +21,65 @@ const props = defineProps<{
     modelValue?: any
     // Representative instance of the cluster, passed to the tag input as creation context.
     instanceId?: number
-    width: number
-    // Caps how wide the edit popup may grow — for the inspector header, where the input owns
-    // a fixed half of the row and must not spill over the group name.
+    // Kept for the callers' layout; the inputs themselves fill 100% of this box.
+    width?: number
     maxWidth?: number
 }>()
 
 const emits = defineEmits(['update:modelValue'])
 
-// Leave room for the property icon (like TreePropertyInput does with -22).
-const innerWidth = computed(() => Math.max(20, (props.width ?? 100) - 22))
+// Same value in, same value out — don't assign. The inputs are edit-in-place cells: closing
+// one always reports its value, whether or not the user changed anything (the tag popup, for
+// instance, emits its selection on hide). Re-assigning an unchanged value is not free here —
+// it rewrites the property on the whole pile and drains it — so a plain focus/blur would look
+// like it wiped the card. Only a real change is an assignment.
+function sameValue(a: any, b: any) {
+    if (a === b) return true
+    if (a == null && b == null) return true
+    if (Array.isArray(a) && Array.isArray(b)) {
+        return a.length === b.length && a.every((v, i) => v === b[i])
+    }
+    return false
+}
 
 function set(v: any) {
+    if (sameValue(v, props.modelValue)) return
     emits('update:modelValue', v)
 }
 </script>
 
 <template>
-    <div class="cluster-prop-input d-flex text-nowrap overflow-hidden" @click.stop>
-        <PropertyIcon v-if="property.type != PropertyType.checkbox && property.id > 0"
-            :type="property.type" class="cpi-icon" />
+    <div class="cluster-prop-input" :style="{ width: props.width ? props.width + 'px' : '100%' }" @click.stop>
+        <!-- Computed / non-editable properties: value only, no input. -->
+        <TreeValueRow v-if="isReadonly(props.property)" :property="props.property" :value="props.modelValue" />
+
+        <TreeTextInput v-else-if="property.type == PropertyType.string || property.type == PropertyType.url"
+            :model-value="modelValue" :type="props.property.type" @update:model-value="set" />
+
+        <TreeNumberInput v-else-if="property.type == PropertyType.number" :model-value="modelValue"
+            @update:model-value="set" />
+
+        <TreeCheckboxInput v-else-if="property.type == PropertyType.checkbox" :model-value="modelValue"
+            :label="props.property.name" @update:model-value="set" />
 
         <!-- forceMono: at group level a multi-tag property acts like a mono-tag — one tag per group. -->
-        <CellTagInput v-if="isTag(property.type)" :model-value="modelValue" :instance-id="props.instanceId"
-            @update:model-value="set" :no-wrap="true" :can-create="true" :can-customize="true"
-            :force-mono="true" :property="props.property" :teleport="true" :width="innerWidth" />
+        <TreeTagInput v-else-if="isTag(property.type)" :model-value="modelValue" :property="props.property"
+            :instance-id="props.instanceId" :force-mono="true" @update:model-value="set" />
 
-        <CellColorInput v-else-if="property.type == PropertyType.color" :model-value="modelValue"
-            @update:model-value="set" :width="innerWidth" :rounded="true" :min-height="20" :teleport="true"
-            :offset="4" />
+        <TreeColorInput v-else-if="property.type == PropertyType.color" :model-value="modelValue"
+            @update:model-value="set" />
 
-        <RowNumberInput v-else-if="property.type == PropertyType.number" :model-value="modelValue"
-            @update:model-value="set" :width="innerWidth" :height="24" :input-offset="3" />
+        <TreeDateInput v-else-if="property.type == PropertyType.date" :model-value="modelValue"
+            @update:model-value="set" />
 
-        <RowTextInput v-else-if="property.type == PropertyType.string" :model-value="modelValue"
-            @update:model-value="set" :width="innerWidth" :max-width="props.maxWidth" :teleport="true" />
-
-        <RowUrlInput v-else-if="property.type == PropertyType.url" :model-value="modelValue"
-            @update:model-value="set" :width="innerWidth" :teleport="true" />
-
-        <CheckboxInput v-else-if="property.type == PropertyType.checkbox" :model-value="modelValue"
-            @update:model-value="set" :label="props.property.name" :width="innerWidth" />
-
-        <RowDateInput v-else-if="property.type == PropertyType.date" :model-value="modelValue" :teleport="true"
-            @update:model-value="set" :width="innerWidth" />
-
-        <span v-else class="cpi-fallback">{{ modelValue }}</span>
+        <TreeValueRow v-else :property="props.property" :value="props.modelValue" />
     </div>
 </template>
 
 <style scoped>
 .cluster-prop-input {
-    height: 26px;
-    line-height: 26px;
-    font-size: 13px;
-    align-items: center;
-    color: var(--text-primary);
-}
-
-.cpi-icon {
-    margin-right: 3px;
-    flex-shrink: 0;
-}
-
-.cpi-fallback {
+    min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--text-primary);
 }
 </style>

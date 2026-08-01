@@ -49,7 +49,7 @@ const MARGIN_STEP = 20
 
 const GAP = 8 // must match the .cluster-card "me-2" margin in ClusterLine.vue
 const BORDER = 2 // .cluster-card's 1px border on each side, added on top of its width style
-const INPUT_ROW = 30 // .cc-input-row height below each card's image (must match ClusterLine.vue)
+const INPUT_ROW = 26 // .cc-input-row height below each card's image (must match ClusterLine.vue)
 const SCROLLBAR = 8 // RecycleScroller's vertical scrollbar (theme.css ::-webkit-scrollbar width)
 
 // The `width` prop is the box this scroller occupies. RecycleScroller scrolls vertically,

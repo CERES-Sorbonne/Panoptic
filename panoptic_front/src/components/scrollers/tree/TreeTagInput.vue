@@ -11,6 +11,8 @@ const props = defineProps<{
     modelValue?: any
     property: Property
     instanceId: number
+    // Single-tag behaviour even for a multi-tag property (group-level editing in the cluster view).
+    forceMono?: boolean
 }>()
 
 const emits = defineEmits(['update:modelValue', 'focus', 'blur', 'tab'])
@@ -32,6 +34,7 @@ defineExpose({ focus })
         <CellTagInput ref="inputElem" :model-value="props.modelValue" :property="props.property"
             :instance-id="props.instanceId" @update:model-value="v => emits('update:modelValue', v)" :no-wrap="true"
             :auto-focus="true" :can-create="true" :can-customize="true" :teleport="true"
+            :force-mono="props.forceMono"
             @show="isOpen = true; emits('focus')" @hide="isOpen = false; emits('blur')"
             @tab="emits('tab')" />
     </TreeCellFrame>
