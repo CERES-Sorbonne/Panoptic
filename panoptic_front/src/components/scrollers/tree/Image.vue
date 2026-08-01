@@ -74,8 +74,9 @@ const score = computed(() => {
                 <CenteredImage :instance-id="instanceId" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 
-                <div v-if="hover || isSelected" class="w-100 box-shadow"
-                    :style="`width: ${w + 2}px; height: ${props.size}px;`" />
+                <!-- overlay follows the container instead of being sized in px, so it can
+                     never exceed the clipped (and rounded) image area -->
+                <div v-if="hover || isSelected" class="box-shadow" />
                 <SelectCircle v-if="hover || isSelected" :model-value="isSelected"
                     @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
             </div>
@@ -176,8 +177,11 @@ const score = computed(() => {
 }
 
 /* Selected cell: the ring itself turns primary, instead of adding a second outline. */
+/* Above everything the card contains — the property rows sit at z-index 5 so their hover
+   frames and full-bleed colour fills would otherwise cut across the selection ring. */
 .img-border.selected::after {
     border: 2px solid var(--primary, #4f46e5);
+    z-index: 10;
 }
 
 .img-container {
@@ -187,6 +191,10 @@ const score = computed(() => {
     cursor: pointer;
     background-color: var(--bg-subtle, #f3f4f6);
     overflow: hidden;
+    /* the image is the card's top edge: match the ring's corners (4px minus the 1px ring), or
+       the hover shadow squares off past them */
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
 }
 
 .prop-container {
@@ -220,16 +228,17 @@ const score = computed(() => {
 }
 
 .box-shadow {
-    position: relative;
+    position: absolute;
+    /* the container spans the card's full width (w + 2) while the image inside is only w wide,
+       so a full-bleed overlay tints the ring's own pixel columns: stay 1px in */
+    inset: 1px;
+    pointer-events: none;
 }
 
 .box-shadow::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     -webkit-box-shadow: inset 0px 24px 25px -20px rgba(0, 0, 0, 0.3);
     -moz-box-shadow: inset 0px 24px 25px -20px rgba(0, 0, 0, 0.3);
     box-shadow: inset 0px 50px 30px -30px rgba(0, 0, 0, 0.5);
