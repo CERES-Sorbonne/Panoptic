@@ -58,11 +58,19 @@ function openSelectionTab() {
     height: var(--bar-tool-height, 28px);
     box-sizing: border-box;
     background-color: var(--surface, #f7f8fa);
-    border: 1px solid var(--border-color, #dee2e6);
+    /* Same selection ring as a selected image cell (.img-border.selected::after) */
+    border: 2px solid var(--primary, #4f46e5);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
     white-space: nowrap;
     column-gap: 0;
+}
+
+/* The first segment is wrapped in a tooltip trigger, which is inline-flex and centers its
+   child — leaving the segment shorter than the island and offset from the top border. */
+.selection-island > :deep(.wtt-trigger) {
+    height: 100%;
+    align-items: stretch;
 }
 
 .seg {
@@ -79,6 +87,39 @@ function openSelectionTab() {
 .seg:hover {
     background-color: var(--hover-bg, rgba(137, 176, 205, 0.18));
     color: var(--text-primary, #1f2328);
+}
+
+/* The buttons inside a segment carry their own small hover rectangle (.sb, .main2, …),
+   which highlights less than the segment it sits in and reads as a dead gap next to the
+   border. Let the segment own the hover: stretch every wrapper to fill it and drop the
+   inner highlights. */
+.seg :deep(> *),
+.seg :deep(.wtt-trigger),
+.seg :deep(.main2),
+.seg :deep(.slot-wrap),
+.seg :deep(.slot-inner) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    flex: 1;
+}
+
+.seg :deep(.sb),
+.seg :deep(.sbb) {
+    border: none;
+    top: 0;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.seg :deep(.sb:hover),
+.seg :deep(.sbb:hover) {
+    background-color: transparent !important;
 }
 
 .count-seg {
