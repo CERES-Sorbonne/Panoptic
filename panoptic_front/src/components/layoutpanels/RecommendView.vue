@@ -113,8 +113,12 @@ const hero = computed<Instance | null>(() => {
 
 // The panels are flat ImageScrollers, so they only need the instances themselves;
 // each keeps its own selection namespace (disposed on unmount).
+// instanceStore entries are created lazily (on register), so an id may have no
+// entry yet — fall back to a minimal instance, as the image cells do, instead of
+// dropping it. Dropping it would empty the panels and, worse, empty the
+// similarity context sent to the backend.
 function toInstances(ids: number[]): Instance[] {
-    return ids.map(id => data.instances[id]).filter(Boolean) as Instance[]
+    return ids.map(id => (data.instances[id] ?? { id, imageUrl: '' }) as Instance)
 }
 
 const queueInstances = computed(() => toInstances(queueIds.value))
@@ -149,11 +153,7 @@ function persistBlacklist() {
 
 // Ids of the current group's instances, used both as the similarity search
 // context and as the images passed to the header's similarity ActionButton2.
-const groupInstances = computed<Instance[]>(() => {
-    if (!group.value) return []
-    const ids = col.instanceIds()
-    return group.value.slots.map(s => data.instances[ids[s]]).filter(Boolean) as Instance[]
-})
+const groupInstances = computed<Instance[]>(() => toInstances(groupIds.value))
 
 async function applySimilarResult(res: ActionResult) {
     if (!res || !res.groups) return
@@ -191,8 +191,10 @@ async function getReco() {
 
     const func = actions.defaultActions['similar']
     const ctx = actions.getContext(func)
-    ctx.instanceIds = groupInstances.value.map(i => i.id)
-
+    // An empty list means "the whole project" to the backend, which then ignores
+    // every sha1 and returns nothing — never call with an empty context.
+    ctx.instanceIds = groupIds.value
+    if (!ctx.instanceIds.length) return
     const res = await actions.getSimilarImages(ctx)
     await applySimilarResult(res)
 }

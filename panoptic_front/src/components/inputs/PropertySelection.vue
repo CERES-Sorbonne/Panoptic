@@ -35,6 +35,7 @@ function getGroupName(groupId: number): string {
 }
 
 function isGroupOpen(groupId: number): boolean {
+    if (propertyFilter.value) return true
     if (groupOpen[groupId] === undefined) return true
     return groupOpen[groupId]
 }
@@ -43,25 +44,24 @@ function toggleGroup(groupId: number) {
     groupOpen[groupId] = !groupOpen[groupId]
 }
 
-const filteredGroupIds = computed(() => {
-    const filter = propertyFilter.value.toLocaleLowerCase()
-    if (!filter) return new Set(propertyGroups.value.map(g => g.groupId))
+function isPropertyVisible(propId: number, filter: string): boolean {
+    const prop = data.properties[propId]
+    if (!prop || prop.id === deletedID) return false
+    if (props.ignoreIds?.includes(prop.id)) return false
+    if (props.acceptableTypes && props.acceptableTypes.length > 0) {
+        if (!props.acceptableTypes.includes(prop.type)) return false
+    }
+    if (filter && !prop.name.toLocaleLowerCase().includes(filter)) return false
+    return true
+}
 
-    const result = new Set<number>()
+const filteredGroups = computed(() => {
+    const filter = propertyFilter.value.toLocaleLowerCase()
+    const result = []
     for (const group of propertyGroups.value) {
-        for (const propId of group.propertyIds) {
-            const prop = data.properties[propId]
-            if (prop && prop.id !== deletedID) {
-                if (props.ignoreIds?.includes(prop.id)) continue
-                if (props.acceptableTypes && props.acceptableTypes.length > 0) {
-                    if (!props.acceptableTypes.includes(prop.type)) continue
-                }
-                if (prop.name.toLocaleLowerCase().includes(filter)) {
-                    result.add(group.groupId)
-                    break
-                }
-            }
-        }
+        const propertyIds = group.propertyIds.filter(id => isPropertyVisible(id, filter))
+        if (propertyIds.length === 0) continue
+        result.push({ groupId: group.groupId, propertyIds })
     }
     return result
 })
@@ -73,25 +73,23 @@ const filteredGroupIds = computed(() => {
         <div class="p-1 mb-1">
             <TextInput v-model="propertyFilter" :focus="true" />
         </div>
-        <div class="flex-grow-1 overflow-auto" style="max-height: 350px; overflow-y: scroll;">
-            <template v-for="group in propertyGroups" :key="group.groupId">
-                <template v-if="filteredGroupIds.has(group.groupId)">
-                    <div class="group-header" @click="toggleGroup(group.groupId)">
-                        <i class="expand-icon" :class="isGroupOpen(group.groupId) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
-                        <span class="group-name">{{ getGroupName(group.groupId) }}</span>
+        <div class="flex-grow-1 overflow-auto" style="max-height: 350px; overflow-y: auto;">
+            <template v-for="group in filteredGroups" :key="group.groupId">
+                <div class="group-header" @click="toggleGroup(group.groupId)">
+                    <i class="expand-icon" :class="isGroupOpen(group.groupId) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
+                    <span class="group-name">{{ getGroupName(group.groupId) }}</span>
+                </div>
+                <template v-if="isGroupOpen(group.groupId)">
+                    <div
+                        v-for="propId in group.propertyIds"
+                        :key="propId"
+                        class="property-item base-hover text-black"
+                        style="cursor:pointer"
+                        @click="emits('select', propId)"
+                    >
+                        <PropertyIcon :type="data.properties[propId].type" class="me-2" />
+                        <span>{{ data.properties[propId].name }}</span>
                     </div>
-                    <template v-if="isGroupOpen(group.groupId)">
-                        <div 
-                            v-for="propId in group.propertyIds" 
-                            :key="propId"
-                            class="property-item base-hover text-black"
-                            style="cursor:pointer"
-                            @click="emits('select', propId)"
-                        >
-                            <PropertyIcon v-if="data.properties[propId] && data.properties[propId].id !== deletedID" :type="data.properties[propId].type" class="me-2" />
-                            <span>{{ data.properties[propId]?.name }}</span>
-                        </div>
-                    </template>
                 </template>
             </template>
         </div>
@@ -99,14 +97,23 @@ const filteredGroupIds = computed(() => {
 </template>
 
 <style scoped>
+.group-header,
+.property-item {
+    border: none;
+    box-shadow: none;
+}
+
 .group-header {
     display: flex;
     align-items: center;
     gap: 4px;
-    height: 30px;
-    padding: 0 var(--spacing-sm);
+    height: 24px;
+    margin: 4px 4px 0;
+    padding: 0 var(--spacing-xs);
     cursor: pointer;
     white-space: nowrap;
+    background: none;
+    border-radius: 4px;
 }
 
 .group-header:hover {
@@ -135,8 +142,11 @@ const filteredGroupIds = computed(() => {
 .property-item {
     display: flex;
     align-items: center;
-    height: 30px;
-    padding: 0 var(--spacing-sm);
+    height: 26px;
+    margin: 0 4px;
+    padding: 0 var(--spacing-xs) 0 18px;
+    border-radius: 4px;
+    background: none;
 }
 
 .property-item:hover {
