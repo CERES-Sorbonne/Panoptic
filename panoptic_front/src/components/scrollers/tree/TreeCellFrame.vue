@@ -1,0 +1,108 @@
+<script setup lang="ts">
+// The box every tree-cell property row lives in: property icon, then the value.
+//
+// It owns all the geometry and all the states, so the per-type inputs above it only decide
+// what to render inside. Nothing is sized in pixels here: the frame is width:100% of whatever
+// the cell gives it, so it can never be wider or narrower than its slot.
+import PropertyIcon from '@/components/properties/PropertyIcon.vue'
+import { PropertyType } from '@/data/models'
+
+const props = defineProps<{
+    type: PropertyType
+    // Forces the active (blue) frame, for editors whose focus lives in a teleported popup
+    // and therefore never triggers :focus-within here.
+    active?: boolean
+    // Renders the shared "Vide..." placeholder instead of a value.
+    empty?: boolean
+    // Drops the icon column, for types whose input already reads as the icon (checkbox).
+    noIcon?: boolean
+    // Overrides the icon colour, for rows that paint their own background behind it.
+    iconColor?: string
+}>()
+
+const emits = defineEmits(['click', 'iconClick'])
+</script>
+
+<template>
+    <div class="tree-cell" :class="{ active: props.active }" @click="emits('click')">
+        <!-- full-bleed layer under the icon and the value (colour fill) -->
+        <slot name="background" />
+        <div v-if="!props.noIcon" class="icon-zone" :style="props.iconColor ? { color: props.iconColor } : undefined"
+            @click.stop="emits('iconClick')">
+            <PropertyIcon :type="props.type" />
+        </div>
+        <div class="value-zone">
+            <slot />
+            <!-- same "Vide..." the property previews show -->
+            <span v-if="props.empty" class="empty">{{ $t('none') }}</span>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+/* No border and no padding: the frame is drawn as an inset box-shadow, which paints inside
+   the content box and so costs no geometry when it appears — showing it never moves the text.
+   Transparent at rest so the cell's own edge ring shows through underneath. */
+.tree-cell {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 26px;
+    /* box-sizing: border-box above, and the frame is an inset shadow, so this costs no width */
+    padding-left: 4px;
+    border-radius: 3px;
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px transparent;
+    /* both properties, or the surface snaps to white while the frame is still fading in */
+    transition: box-shadow 0.2s, background-color 0.2s;
+    /* the cell ring (.img-border::after in Image.vue) is at z-index 4 and would cover the
+       left/right pixel columns of a full-width row; sit above it */
+    position: relative;
+    z-index: 5;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 18px;
+}
+
+/* grey on hover, blue once editing — same pair as the search bar (TextSearchInput.vue) */
+.tree-cell:hover {
+    box-shadow: inset 0 0 0 1px #999;
+    background-color: white;
+}
+
+.tree-cell:focus-within,
+.tree-cell.active {
+    box-shadow: inset 0 0 0 1px var(--blue);
+    background-color: white;
+}
+
+/* positioned so they paint above the background slot, which is absolute */
+.icon-zone {
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    color: var(--grey-text);
+    margin-right: 2px;
+}
+
+.icon-zone:hover {
+    color: black;
+}
+
+/* min-width: 0 lets the value shrink below its natural width instead of pushing the frame
+   wider than the cell */
+.value-zone {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.empty {
+    color: var(--text-secondary, #6c757d);
+}
+</style>

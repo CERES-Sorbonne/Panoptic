@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import Dropdown from '@/components/dropdowns/Dropdown.vue';
-import { onMounted, ref, watch } from 'vue';
-import TextPreview from '@/components/property_preview/TextPreview.vue';
-import TextInput from '@/components/property_inputs/TextInput.vue';
+import { ref } from 'vue';
+import IconTextInput from '@/components/property_inputs/IconTextInput.vue';
+import PropertyIcon from '@/components/properties/PropertyIcon.vue';
+import { PropertyType } from '@/data/models';
 
 const props = withDefaults(defineProps<{
     modelValue?: string
+    // Property type shown as the icon inside the input. Defaults to the text icon.
+    type?: PropertyType
     width?: number
     // Caps how wide the edit popup may grow (it otherwise widens with the text, up to 400px).
     // Used where the input sits in a fixed slot that it must not overflow.
@@ -19,79 +21,25 @@ const props = withDefaults(defineProps<{
 
 const emits = defineEmits(['update:modelValue', 'focus', 'tab'])
 
-defineExpose({focus})
+defineExpose({ focus })
 
-const previewElem = ref(null)
-const widthGoal = ref(0)
-const localValue = ref(undefined)
-
-function loadValue() {
-    localValue.value = props.modelValue
-}
-
-function computeSize() {
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext("2d");
-    ctx.font = "12px Arial";
-    var length = ctx.measureText(props.modelValue).width;
-    widthGoal.value = 200
-    if (length > 500) {
-        widthGoal.value = 200
-    }
-    if (length > 800) {
-        widthGoal.value = 300
-    }
-    if (length > 1000) {
-        widthGoal.value = 400
-    }
-
-    let prevElem = previewElem.value
-    if (prevElem && prevElem.offsetWidth > widthGoal.value) {
-        widthGoal.value = prevElem.offsetWidth
-    }
-    if (props.maxWidth) {
-        widthGoal.value = Math.min(widthGoal.value, props.maxWidth)
-    }
-    loadValue()
-}
-
-function submit() {
-    let value = localValue.value
-    if (value == '') {
-        value = undefined
-    }
-    console.log('emit', value)
-    emits('update:modelValue', value)
-}
-
-function cancel() {
-    loadValue()
-}
+const inputElem = ref(null)
 
 function focus() {
-    previewElem.value.click()
+    inputElem.value?.focus()
 }
-
-onMounted(loadValue)
-watch(() => props.modelValue, loadValue)
-
 </script>
 
 <template>
-    <Dropdown :offset="props.offset" :no-shadow="true" :teleport="props.teleport" @show="computeSize" @hide="submit"
-        placement="bottom-start">
-        <template #button>
-            <div ref="previewElem" :style="{ width: props.width + 'px' }">
-                <TextPreview :text="props.modelValue" style="cursor: pointer; font-size: 14px;" />
-            </div>
-        </template>
-        <template #popup="{ hide }">
-            <div class="bg-white" style="font-size: 14px; position: relative; top:0.5px; left:-2px" :style="{ width: widthGoal + 'px' }">
-                <TextInput v-model="localValue" :auto-focus="true" :min-height="26" @cancel="cancel(); hide();"
-                    @submit="hide()" @blur="hide" @tab="emits('tab')" @focus="emits('focus')"/>
-            </div>
-        </template>
-    </Dropdown>
+    <div :style="{ width: props.width ? props.width+0.7 + 'px' : '100%' }">
+        <IconTextInput ref="inputElem" :model-value="props.modelValue" :max-width="props.maxWidth ?? 400"
+            :teleport="props.teleport" @update:model-value="v => emits('update:modelValue', v)"
+            @focus="emits('focus')" @tab="emits('tab')">
+            <template #icon>
+                <PropertyIcon :type="props.type ?? PropertyType.string" />
+            </template>
+        </IconTextInput>
+    </div>
 </template>
 
 <style scoped></style>

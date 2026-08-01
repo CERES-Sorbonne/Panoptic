@@ -84,7 +84,7 @@ const inputKey = inject('inputKey') as string
             <div v-for="property, index in props.properties" :key="property.id">
                 <div style="height: 1px;" v-if="index > 0"></div>
                 <TreePropertyInput :group-id="0" :input-key="inputKey" :property="property" :instance="inst"
-                    :width="props.size" :idx="props.idx" />
+                    :idx="props.idx" />
             </div>
         </div>
 

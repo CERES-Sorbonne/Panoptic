@@ -1,61 +1,48 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import { deletedID, isReadonly, Property, PropertyType, Instance } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
-import TagBadge from '@/components/tagtree/TagBadge.vue';
 import DBInput from '@/components/property_inputs/DBInput.vue';
-import CellTagInput from '@/components/property_cell_input/CellTagInput.vue';
-import CellColorInput from '@/components/property_cell_input/CellColorInput.vue';
-import RowTextInput from '@/components/property_row_input/RowTextInput.vue';
-import CheckboxInput from '@/components/property_inputs/CheckboxInput.vue';
-import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
-import RowUrlInput from '@/components/property_row_input/RowUrlInput.vue';
-import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
+import TreeTextInput from './TreeTextInput.vue';
+import TreeNumberInput from './TreeNumberInput.vue';
+import TreeCheckboxInput from './TreeCheckboxInput.vue';
+import TreeTagInput from './TreeTagInput.vue';
+import TreeColorInput from './TreeColorInput.vue';
+import TreeDateInput from './TreeDateInput.vue';
+import TreeValueRow from './TreeValueRow.vue';
 import { InputKey, useInputStore } from '@/data/inputStore';
-import WithToolTip from '@/components/tooltips/withToolTip.vue';
 
-const data = useDataStore()
 const inputs = useInputStore()
 
 const props = defineProps<{
     instance: Instance,
     groupId: number,
     property: Property
-    width: number,
     idx: number,
     inputKey: string
 }>()
 
-const emits = defineEmits(['resize', 'update:selected'])
-
 const focusElem = ref(null)
 const key = computed(() => props.inputKey + '.' + props.property.id)
-const width = computed(() => (props.width ?? 100) - 22)
 
-const inputKey = computed(() => {
-    const key = props.inputKey + '.' + props.property.id
-    const idx = props.idx
-    const instanceId = props.instance.id
-    return { key, idx, instanceId: instanceId, groupId: props.groupId } as InputKey
-})
-
-function log() {
-    console.log(focusElem.value)
-    focusElem.value.focus()
-}
+const inputKey = computed(() => ({
+    key: key.value,
+    idx: props.idx,
+    instanceId: props.instance.id,
+    groupId: props.groupId
+} as InputKey))
 
 function onFocus() {
     inputs.confirmOpen(key.value, props.idx, props.groupId, props.instance.id)
 }
 
-function onHide() {
-
+function focusRequested(val: InputKey) {
+    return val && val.instanceId == props.instance.id && val.key == key.value && val.groupId == props.groupId
 }
 
 onMounted(() => inputs.addInput(key.value, props.idx, props.groupId, props.instance.id))
 onUnmounted(() => inputs.removeInput(key.value, props.idx))
+
 watch(inputKey, (newVal, oldVal) => {
     if (newVal.groupId == oldVal.groupId &&
         newVal.idx == oldVal.idx &&
@@ -67,88 +54,55 @@ watch(inputKey, (newVal, oldVal) => {
     inputs.removeInput(oldVal.key, oldVal.idx)
     nextTick(() => {
         inputs.addInput(newVal.key, newVal.idx, newVal.groupId, newVal.instanceId)
-
         nextTick(() => {
-            let val = inputs.requestInput
-            if (!val) return
-            if (val.instanceId == props.instance.id && val.key == key.value && val.groupId == props.groupId) {
-                focusElem.value.focus()
-            }
+            if (focusRequested(inputs.requestInput)) focusElem.value?.focus()
         })
     })
 })
 
 watch(() => inputs.requestInput, async (val) => {
     await nextTick()
-    if (!val) return
-    if (val.instanceId == props.instance.id && val.key == key.value && props.groupId == val.groupId) {
-        focusElem.value.focus()
-    }
+    if (focusRequested(val)) focusElem.value?.focus()
 })
 
 </script>
 
 <template>
-    <!-- Read-only display for computed / non-editable properties -->
-    <div v-if="isReadonly(props.property)"
-        class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px; font-size: 14px;">
-        <PropertyIcon :type="property.type" style="margin-right: 3px;" />
-        <span v-if="property.type == PropertyType._folders">
-            <TagBadge :name="data.folders[props.instance.properties[props.property.id]]?.name" :color="-1" />
-        </span>
-        <span v-else>{{ props.instance.properties[props.property.id] }}</span>
-    </div>
+    <!-- Computed / non-editable properties: value only, no input. -->
+    <TreeValueRow v-if="isReadonly(props.property)" :property="props.property"
+        :value="props.instance.properties[props.property.id]" />
 
-    <!-- Editable input for regular properties -->
     <DBInput v-else-if="props.instance.id != deletedID" :instance="props.instance" :property-id="props.property.id">
         <template #default="{ value, set, status }">
-            <div class="d-flex text-nowrap overflow-hidden"
-                :class="{ 'value-unconfirmed': status !== 'confirmed' }"
-                :title="status === 'pending' ? 'Saving…' : (status === 'error' ? 'Failed to save' : undefined)"
-                style="height: 26px; line-height: 26px;font-size: 14px;">
-                <WithToolTip :message="props.property.name">
-                    <PropertyIcon v-if="props.property.type != PropertyType.checkbox && property.id > 0"
-                        :type="property.type" style="margin-right: 2px;" @click="log" />
-                </WithToolTip>
+            <div :class="{ 'value-unconfirmed': status !== 'confirmed' }"
+                :title="status === 'pending' ? 'Saving…' : (status === 'error' ? 'Failed to save' : undefined)">
 
-                <CellTagInput v-if="isTag(property.type)" :model-value="value" :instance-id="props.instance.id" @update:model-value="set" :no-wrap="true"
-                    :auto-focus="true" :can-create="true" :can-customize="true" :property="props.property"
-                    :teleport="true" :width="width" ref="focusElem" @show="onFocus" @tab="inputs.requestInputNav()"
-                    @hide="onHide" />
+                <!-- Inputs built for this scroller: they fill the cell and draw their own frame,
+                     property icon included, so nothing here sizes or decorates them. -->
+                <TreeTextInput
+                    v-if="props.property.type == PropertyType.string || props.property.type == PropertyType.url"
+                    :model-value="value" :type="props.property.type" @update:model-value="set" ref="focusElem"
+                    @focus="onFocus" @tab="inputs.requestInputNav()" />
 
-                <CellColorInput v-else-if="props.property.type == PropertyType.color" :model-value="value"
-                    @update:model-value="set" :width="width" :rounded="true" :min-height="20" :teleport="true"
-                    :offset="4" ref="focusElem" @focus="onFocus" @hide="onHide" />
+                <TreeNumberInput v-else-if="props.property.type == PropertyType.number" :model-value="value"
+                    @update:model-value="set" ref="focusElem" @focus="onFocus" @tab="inputs.requestInputNav()" />
 
-                <RowNumberInput v-else-if="props.property.type == PropertyType.number" :model-value="value"
-                    @update:model-value="set" :width="width" :height="26" :input-offset="3" ref="focusElem"
-                    @focus="onFocus" @tab="inputs.requestInputNav()" @hide="onHide" />
+                <TreeCheckboxInput v-else-if="props.property.type == PropertyType.checkbox" :model-value="value"
+                    :label="props.property.name" @update:model-value="set" ref="focusElem" @focus="onFocus"
+                    @tab="inputs.requestInputNav()" />
 
-                <RowTextInput v-else-if="props.property.type == PropertyType.string" :model-value="value"
-                    @update:model-value="set" :width="width" :teleport="true" style="height: 25px;" ref="focusElem"
-                    @focus="onFocus" @tab="inputs.requestInputNav()" @hide="onHide" />
+                <TreeTagInput v-else-if="isTag(props.property.type)" :model-value="value" :property="props.property"
+                    :instance-id="props.instance.id" @update:model-value="set" ref="focusElem" @focus="onFocus"
+                    @tab="inputs.requestInputNav()" />
 
-                <RowUrlInput v-else-if="props.property.type == PropertyType.url" :model-value="value"
-                    @update:model-value="set" :width="width" :teleport="true" ref="focusElem" @focus="onFocus"
-                    @tab="inputs.requestInputNav()" @hide="onHide" />
+                <TreeColorInput v-else-if="props.property.type == PropertyType.color" :model-value="value"
+                    @update:model-value="set" ref="focusElem" @focus="onFocus" @tab="inputs.requestInputNav()" />
 
-                <CheckboxInput v-else-if="props.property.type == PropertyType.checkbox" :model-value="value"
-                    @update:model-value="set" :label="props.property.name" :width="width" ref="focusElem"
-                    @focus="onFocus" @tab="inputs.requestInputNav()" @hide="onHide" />
+                <TreeDateInput v-else-if="props.property.type == PropertyType.date" :model-value="value"
+                    @update:model-value="set" ref="focusElem" @focus="onFocus" @tab="inputs.requestInputNav()" />
 
-                <RowDateInput v-else-if="props.property.type == PropertyType.date" :model-value="value" :teleport="true"
-                    @update:model-value="set" :width="width" ref="focusElem" @focus="onFocus"
-                    @tab="inputs.requestInputNav()" @hide="onHide" />
-
-                <div v-else class="d-flex flex-row overflow-hidden text-nowrap">
-                    <PropertyIcon :type="property.type" style="margin-right: 3px;" />
-                    <span v-if="property.type == PropertyType._folders">
-                        <TagBadge
-                            :name="data.folders[props.instance.properties[props.property.id]]?.name"
-                            :color="-1" />
-                    </span>
-                    <span v-else>{{ props.instance.properties[props.property.id] }}</span>
-                </div>
+                <!-- any type without a dedicated input yet: value only -->
+                <TreeValueRow v-else :property="props.property" :value="value" />
             </div>
         </template>
     </DBInput>
@@ -159,5 +113,12 @@ watch(() => inputs.requestInput, async (val) => {
     opacity: 0.45;
     background-color: var(--light-grey);
     transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+/* the pixel-sized editors have no frame of their own, so the row height lives here */
+.legacy-row {
+    height: 26px;
+    line-height: 26px;
+    font-size: 14px;
 }
 </style>

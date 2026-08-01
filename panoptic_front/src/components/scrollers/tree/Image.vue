@@ -98,12 +98,9 @@ const score = computed(() => {
         </div>
 
         <div class="prop-container" v-if="props.properties.length && !props.hideProperties && instanceId !== undefined">
-            <div v-for="property, index in props.properties" :key="property.id">
-                <!-- <div class="custom-hr ms-2 me-2" v-if="index > 0"></div> -->
-                <div style="height: 1px;" v-if="index > 0"></div>
-                <TreePropertyInput :group-id="props.image.groupId" :input-key="inputKey" :property="property"
-                    :instance="inst" :width="props.size" :idx="props.image.getImageOrder()" />
-            </div>
+            <TreePropertyInput v-for="property in props.properties" :key="property.id"
+                :group-id="props.image.groupId" :input-key="inputKey" :property="property" :instance="inst"
+                :idx="props.image.getImageOrder()" />
         </div>
 
         <div v-if="props.selectedPreview" class="w-100 h-100"
@@ -152,10 +149,17 @@ const score = computed(() => {
     flex-direction: column;
     /* No surface of its own: the property rows show the view's background through. */
     background-color: transparent;
-    border-radius: 5px;
-    overflow: hidden;
-    margin-bottom: 7px;
-    margin-right: 7px;
+    /* border-radius: 5px; */
+    /* overflow: hidden; */
+    /* No margin here: the line comps apply me-2/mb-2, which is the GAP the scroller budgets
+       for (TreeScroller.fillWidths). A margin of our own would be spent twice, overflow the
+       line, and get taken back out of the cards by flex-shrink. */
+    /* The cell width is computed to the pixel by the scroller: never let flex resize it.
+       min-width:0 also drops the automatic min-content floor — without it a card could not
+       shrink below the intrinsic width of whatever input its property rows render, so
+       focusing a row (span -> <input>) visibly widened the card. */
+    flex: 0 0 auto;
+    min-width: 0;
 }
 
 /* Ring as an inset overlay rather than a real border: it stays inside the cell's own width
@@ -166,7 +170,7 @@ const score = computed(() => {
     position: absolute;
     inset: 0;
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: 4px;
     pointer-events: none;
     z-index: 4;
 }
@@ -187,8 +191,11 @@ const score = computed(() => {
 
 .prop-container {
     width: 100%;
+    box-sizing: border-box;
+    /* No inset: the property rows run the full width of the card and paint over its edge ring
+       (.img-border::after) rather than tucking inside it. */
     /* border-top: 1px solid var(--border-color); */
-    padding: 4px;
+    /* padding: 4px; */
     padding-top: 0px;
     padding-bottom: 0px;
     font-size: 12px;

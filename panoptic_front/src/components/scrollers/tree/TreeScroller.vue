@@ -42,10 +42,15 @@ const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
 const hoverGroupBorder = ref(-1)
 
 const scroller = ref(null)
-const MARGIN_STEP = 20
+// One indent column as ImageLine/PileLine actually render it: .ps-2 (8) + .image-line's
+// border-left (1) + its padding-left (10). Must match that CSS or the lines overflow.
+const MARGIN_STEP = 19
 const GAP = 8 // must match the "me-2" margin applied to Image/PileLine cells
 const BORDER = 2 // Image.vue's .full-container 1px border on each side, added on top of its width style
-const WIDTH_OFFSET = 34 // trim off the width prop (vertical scrollbar + 2px gap so cells don't touch it)
+// Trim off the width prop: the vertical scrollbar (15) + 2px so cells don't touch it. This
+// used to be 34, which happened to cover the indent the line math forgot to reserve; now that
+// the indent is accounted for properly, the extra would just be wasted space on the right.
+const WIDTH_OFFSET = 17
 
 // The `width` prop is the box this scroller occupies. RecycleScroller scrolls vertically, so
 // its scrollbar (plus a small margin) eats WIDTH_OFFSET px off the usable content width —
@@ -172,7 +177,10 @@ function GroupToLines(it: GroupIterator) {
     if (group.children.length > 0) return lines
     if (group.view.closed) return lines
 
-    const availableWidth = contentWidth.value - (group.depth * MARGIN_STEP)
+    // getImageLineParents() = ancestors + the group itself, so an image line draws depth + 1
+    // indent columns, not depth. Reserving only `depth` of them made every line that much too
+    // wide, and the overflow came out of the trailing cell.
+    const availableWidth = contentWidth.value - ((group.depth + 1) * MARGIN_STEP)
     const piled = props.manager.result.pileIndex.has(group.id)
     if (!piled) {
         computeImageLines(it, lines, props.imageSize, availableWidth, group)
