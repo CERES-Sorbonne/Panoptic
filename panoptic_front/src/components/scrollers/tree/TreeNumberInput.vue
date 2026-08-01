@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Number property row of a tree cell. Same shape as TreeTextInput: value until clicked,
 // then a real input filling the frame.
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import TreeCellFrame from './TreeCellFrame.vue'
 import { PropertyType } from '@/data/models'
 
@@ -13,9 +13,17 @@ const emits = defineEmits(['update:modelValue', 'focus', 'blur', 'tab'])
 
 const inputElem = ref(null)
 const editing = ref(false)
-const localValue = ref<string>(props.modelValue?.toString() ?? '')
 
-watch(() => props.modelValue, v => localValue.value = v?.toString() ?? '')
+// "No value" covers more than `undefined` here: a group's value can come in as null, and a
+// cluster/undecided card can carry a NaN — none of which is a number to show.
+const value = computed(() => {
+    const v = props.modelValue
+    return typeof v === 'number' && !isNaN(v) ? v : undefined
+})
+
+const localValue = ref<string>(value.value?.toString() ?? '')
+
+watch(value, v => localValue.value = v?.toString() ?? '')
 
 async function focus() {
     editing.value = true
@@ -25,9 +33,9 @@ async function focus() {
 
 function submit() {
     const parsed = localValue.value === '' ? undefined : Number(localValue.value)
-    const value = parsed === undefined || isNaN(parsed) ? undefined : parsed
-    if (value === props.modelValue) return
-    emits('update:modelValue', value)
+    const next = parsed === undefined || isNaN(parsed) ? undefined : parsed
+    if (next === value.value) return
+    emits('update:modelValue', next)
 }
 
 function onBlur() {
@@ -37,7 +45,7 @@ function onBlur() {
 }
 
 function onEscape(e: KeyboardEvent) {
-    localValue.value = props.modelValue?.toString() ?? ''
+    localValue.value = value.value?.toString() ?? ''
     ;(e.target as HTMLInputElement).blur()
 }
 
@@ -45,11 +53,11 @@ defineExpose({ focus })
 </script>
 
 <template>
-    <TreeCellFrame :type="PropertyType.number" :empty="!editing && props.modelValue === undefined" @click="focus">
+    <TreeCellFrame :type="PropertyType.number" :empty="!editing && value === undefined" @click="focus">
         <input v-if="editing" ref="inputElem" class="field" type="number" v-model="localValue"
             @focus="emits('focus')" @blur="onBlur" @keydown.enter.prevent="e => (e.target as HTMLElement).blur()"
             @keydown.esc.stop="onEscape" @keydown.tab.stop.prevent="emits('tab')" />
-        <span v-else-if="props.modelValue !== undefined" class="value">{{ props.modelValue }}</span>
+        <span v-else-if="value !== undefined" class="value">{{ value }}</span>
     </TreeCellFrame>
 </template>
 

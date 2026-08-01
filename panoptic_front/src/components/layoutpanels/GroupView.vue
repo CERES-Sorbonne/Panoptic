@@ -310,7 +310,9 @@ function inheritedValue(g?: Group): any {
         if (cur.type === GroupType.Property) {
             const pv = cur.meta?.propertyValues?.[0]
             if (pv && pv.propertyId === tpid) {
-                if (pv.value === null || pv.value === undefined || pv.value === '') return undefined
+                // NaN is how a numeric "no value" group keys itself — undecided, like null/''.
+                if (pv.value === null || pv.value === undefined || pv.value === ''
+                    || (typeof pv.value === 'number' && isNaN(pv.value))) return undefined
                 return isTag(data.properties?.[tpid]?.type) ? [pv.value] : pv.value
             }
         }

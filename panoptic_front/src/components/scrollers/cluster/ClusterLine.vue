@@ -171,7 +171,9 @@ function inheritedValue(group: Group): any {
         if (g.type === GroupType.Property) {
             const pv = g.meta?.propertyValues?.[0]
             if (pv && pv.propertyId === tpid) {
-                if (pv.value === null || pv.value === undefined || pv.value === '') return undefined
+                // NaN is how a numeric "no value" group keys itself — undecided, like null/''.
+                if (pv.value === null || pv.value === undefined || pv.value === ''
+                    || (typeof pv.value === 'number' && isNaN(pv.value))) return undefined
                 // Tag properties store an id array; a value-group's key value is a single tag id.
                 return isTag(data.properties?.[tpid]?.type) ? [pv.value] : pv.value
             }
