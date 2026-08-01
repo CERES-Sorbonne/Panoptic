@@ -92,8 +92,10 @@ function focus() {
 
 <template>
     <div>
-        <div class="overflow-hidden mb-1 text-wrap">
-            <TagBadge @delete="removeTag(tag)" :show-delete="true" :id="tag.id" v-for="tag in tags" class="me-1" />
+        <!-- selection zone: a tinted header above the menu, chips wrapping onto as many rows
+             as they need (no fixed height, no horizontal scroll) -->
+        <div v-if="tags.length" class="selection">
+            <TagBadge @delete="removeTag(tag)" :show-delete="true" :id="tag.id" v-for="tag in tags" :key="tag.id" />
         </div>
         <TagMenu :property="props.property" :excluded="allExcluded" :can-create="props.canCreate"
             :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete"
@@ -101,3 +103,20 @@ function focus() {
 
     </div>
 </template>
+
+<style scoped>
+.selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px 2px;
+    /* deliberately a shade under the white tag list below, so the two zones read apart */
+    background-color: color-mix(in srgb, var(--border-color) 20%, white);
+}
+
+/* The search field belongs to TagMenu but reads as part of this header: same tint, no rule
+   between the two zones — the tint change is the separation. */
+:deep(.search-row) {
+    background-color: color-mix(in srgb, var(--border-color) 20%, white);
+}
+</style>

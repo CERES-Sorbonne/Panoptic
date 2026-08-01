@@ -544,6 +544,8 @@
         "hover_scale": "Taille au survol"
     },
     "none": "Vide...",
+    "tag_menu_hint": "Ajoutez ou créez des tags",
+    "tag_menu_create": "Créer",
     "installing": "Installation...",
     "installed": "Installé",
     "confirm": "Confirmer",

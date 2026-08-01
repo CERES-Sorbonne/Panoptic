@@ -490,6 +490,8 @@
         "correct": "Rectify"
     },
     "none": "Empty...",
+    "tag_menu_hint": "Add or create tags",
+    "tag_menu_create": "Create",
     "tmp": "Tooltip to be written",
     "common": {
         "properties": {

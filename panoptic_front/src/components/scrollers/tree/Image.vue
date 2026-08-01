@@ -149,8 +149,8 @@ const score = computed(() => {
     flex-direction: column;
     /* No surface of its own: the property rows show the view's background through. */
     background-color: transparent;
-    /* border-radius: 5px; */
-    /* overflow: hidden; */
+    border-radius: 4px;
+    overflow: hidden;
     /* No margin here: the line comps apply me-2/mb-2, which is the GAP the scroller budgets
        for (TreeScroller.fillWidths). A margin of our own would be spent twice, overflow the
        line, and get taken back out of the cards by flex-shrink. */

@@ -30,8 +30,8 @@ defineExpose({ focus })
     <!-- no icon: the box itself is what the property icon would have shown -->
     <TreeCellFrame :type="PropertyType.checkbox" :no-icon="true" @click="toggle">
         <input ref="inputElem" class="box" type="checkbox" :checked="!!props.modelValue" @click.stop="toggle"
-            @focus="emits('focus')" @blur="emits('blur')" @keydown.tab.stop.prevent="emits('tab')" />
-        <span v-if="props.label" class="label">{{ props.label }}</span>
+            @focus="emits('focus')" @blur="emits('blur')" @keydown.tab.stop.prevent="emits('tab')" /><span
+            v-if="props.label" class="label2">{{ props.label }}</span>
     </TreeCellFrame>
 </template>
 
@@ -42,8 +42,9 @@ defineExpose({ focus })
     cursor: pointer;
 }
 
-.label {
-    margin-left: 4px;
+/* the markup joins the two tags directly, so this is the whole gap — no whitespace node */
+.label2 {
+    margin-left: 3px;
     vertical-align: middle;
 }
 </style>

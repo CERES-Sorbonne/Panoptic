@@ -124,7 +124,8 @@ onMounted(updateLocal)
         </template>
 
         <template #popup="{hide}">
-            <div class="p-1" style="max-width: 250px;">
+            <!-- no padding: the tag input's tinted header runs to the popup's edges -->
+            <div style="max-width: 250px; overflow: hidden; border-radius: 4px;">
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"

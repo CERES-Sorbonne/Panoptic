@@ -38,7 +38,9 @@ const tagFilter = ref('')
 
 
 const tagProposals = ref(null);
-const selectedIndex = ref(0)
+// undefined = nothing highlighted. The list opens with no row looking hovered; typing or an
+// arrow key puts the highlight on the first match.
+const selectedIndex = ref(undefined)
 
 const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredTagList.value.some(t => t.value == tagFilter.value))
 
@@ -125,6 +127,11 @@ function endSelection(index) {
     }
 }
 
+// Searching means the top match is the one Enter should take.
+watch(tagFilter, (val) => {
+    selectedIndex.value = val.length ? 0 : undefined
+})
+
 watch(filteredTagList, () => {
     if (filteredTagList.value.length == 0 && isCreatePossible.value) {
         selectedIndex.value = 0
@@ -135,12 +142,15 @@ watch(filteredTagList, () => {
 
 <template>
     <div class="m-0 p-0">
-        <div class="w-100 mb-1">
-            <input type="text" class="w-100" v-model="tagFilter" ref="searchElem"
+        <div class="w-100 search-row">
+            <input type="text" class="w-100 search" v-model="tagFilter" ref="searchElem"
                 style="font-size: 13px; min-width: 100px;" @keydown.down="moveSelected(1)"
                 @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""
                 @keydown.tab.stop.prevent="emits('tab')" />
         </div>
+
+        <!-- what the list below is for -->
+        <div class="list-hint">{{ $t('tag_menu_hint') }}</div>
 
         <div class="pb-0" style="max-height: 300px; overflow-y: auto;">
             <div v-for="tag, index in filteredTagList" :class="optionClass(index)" style="cursor: pointer;"
@@ -168,7 +178,7 @@ watch(filteredTagList, () => {
             <div v-if="props.canCreate && isCreatePossible" :class="optionClass(filteredTagList.length)"
                 style="cursor: pointer;" @mouseover="selectedIndex = filteredTagList.length"
                 @click.prevent.stop="selectOption">
-                <span class="text-muted ms-1">Create </span>
+                <span class="text-muted ms-1">{{ $t('tag_menu_create') }} </span>
                 <TagBadge :name="tagFilter" :color="-1" />
             </div>
         </div>
@@ -176,6 +186,28 @@ watch(filteredTagList, () => {
 </template>
 
 <style scoped>
+/* No chrome of its own: it sits in whatever surface the host gives it (the tinted selection
+   zone in TagInput) and reads as a caret on that surface rather than as a boxed field. */
+.search {
+    appearance: none;
+    border: none;
+    outline: none;
+    /* no surface of its own: it sits on the host's tint and reads as a caret on it */
+    background-color: transparent;
+    padding: 2px 0;
+    font: inherit;
+}
+
+.search-row {
+    padding: 4px 8px 6px;
+}
+
+.list-hint {
+    padding: 6px 8px 2px;
+    font-size: 12px;
+    color: var(--text-secondary, #6c757d);
+}
+
 .list {
     max-height: 400px;
     overflow-y: scroll;

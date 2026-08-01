@@ -53,6 +53,12 @@ function cancel() {
 </template>
 
 <style scoped>
+/* floating-vue's trigger wrapper is inline-block: its line box would add descender space
+   under the row, which the non-dropdown property rows don't have */
+:deep(.v-popper) {
+    display: block;
+}
+
 .value {
     font-size: inherit;
     overflow: hidden;

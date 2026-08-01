@@ -51,11 +51,10 @@ const emits = defineEmits(['click', 'iconClick'])
     height: 26px;
     /* box-sizing: border-box above, and the frame is an inset shadow, so this costs no width */
     padding-left: 4px;
+    padding-right: 1px;
     border-radius: 3px;
     background-color: transparent;
-    box-shadow: inset 0 0 0 1px transparent;
-    /* both properties, or the surface snaps to white while the frame is still fading in */
-    transition: box-shadow 0.2s, background-color 0.2s;
+    transition: background-color 0.2s;
     /* the cell ring (.img-border::after in Image.vue) is at z-index 4 and would cover the
        left/right pixel columns of a full-width row; sit above it */
     position: relative;
@@ -65,16 +64,37 @@ const emits = defineEmits(['click', 'iconClick'])
     line-height: 18px;
 }
 
+/* The frame is drawn on an overlay rather than on the row itself, so it paints ABOVE the
+   background slot (the colour fill). That fill can then run edge to edge instead of insetting
+   itself by 1px, which read as a margin the other rows don't have. */
+.tree-cell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: box-shadow 0.2s;
+    pointer-events: none;
+    z-index: 1;
+}
+
 /* grey on hover, blue once editing — same pair as the search bar (TextSearchInput.vue) */
 .tree-cell:hover {
-    box-shadow: inset 0 0 0 1px #999;
     background-color: white;
+}
+
+.tree-cell:hover::after {
+    box-shadow: inset 0 0 0 1px #999;
 }
 
 .tree-cell:focus-within,
 .tree-cell.active {
-    box-shadow: inset 0 0 0 1px var(--blue);
     background-color: white;
+}
+
+.tree-cell:focus-within::after,
+.tree-cell.active::after {
+    box-shadow: inset 0 0 0 1px var(--blue);
 }
 
 /* positioned so they paint above the background slot, which is absolute */

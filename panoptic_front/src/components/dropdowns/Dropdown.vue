@@ -47,7 +47,9 @@ async function focus() {
 async function onShow() {
     // 2. Calculate width before showing
     if (buttonElem.value) {
-        const width = buttonElem.value.getBoundingClientRect().width
+        // floor: a fractional trigger width rounds the popup up to the next pixel, which shows
+        // as the popup sticking out 1px past the cell it belongs to
+        const width = Math.floor(buttonElem.value.getBoundingClientRect().width)
         popupWidth.value = `${width}px`
     }
 
@@ -121,6 +123,10 @@ onUnmounted(() => {
     min-width: 0px; /* This is now overridden by the inline style when visible */
     font-size: 14px;
     border: none;
+    /* full-bleed content (tinted headers, hovered list rows) must stop at the rounded edge
+       instead of painting over the popup's own outline */
+    overflow: hidden;
+    box-sizing: border-box;
 
     /* box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -webkit-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);

@@ -70,11 +70,17 @@ function set(value, hide) {
 </template>
 
 <style scoped>
-/* fills the whole row, icon column included; 1px clear on the sides so it never paints over
-   the card's edge ring, which only overlaps this row horizontally */
+/* floating-vue's trigger wrapper is inline-block: its line box adds descender space under the
+   row, which read as a margin the other property rows don't have */
+:deep(.v-popper) {
+    display: block;
+}
+
+/* Edge to edge, icon column included: the frame's border is drawn on TreeCellFrame's ::after
+   overlay, which paints above this, so no inset is needed to keep it visible. */
 .chip {
     position: absolute;
-    inset: 0 1px;
+    inset: 0;
     border-radius: 3px;
 }
 
