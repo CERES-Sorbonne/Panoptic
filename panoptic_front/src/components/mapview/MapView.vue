@@ -168,10 +168,6 @@ function buildLeaves() {
     const colors = generateColors(groups.length)
 
     const res: { id: number, name: string, color: string, points: PointData[] }[] = []
-    // Debug: per-group slot vs. matched-point counts, to see where coverage is lost (a slot whose
-    // sha1 isn't in sha1ToPoint yet — map data not loaded, or a stale point map — never gets a
-    // leaf, so it stays uncoloured).
-    const debugGroups: { id: number, slots: number, matched: number }[] = []
     groups.forEach((g, index) => {
         const color = leafColor(g, colors[index])
         const seen = new Set<PointData>()
@@ -179,49 +175,15 @@ function buildLeaves() {
             const point = sha1ToPoint[sha1s[slot]]
             if (point) seen.add(point)
         }
-        debugGroups.push({ id: g.id, slots: g.slots?.length ?? 0, matched: seen.size })
         if (seen.size) res.push({ id: g.id, name: leafName(g, index), color, points: Array.from(seen) })
     })
     leaves.value = res
-
-    const coveredPoints = new Set<PointData>()
-    for (const l of res) for (const p of l.points) coveredPoints.add(p)
-
-    // Split the "some points stay grey" question in two: are these slots missing from the TREE's
-    // own grouping (a GroupManager bug — the slot never made it into any group's .slots), or are
-    // they grouped fine but this file's sha1->point lookup (sha1ToPoint, built once per full
-    // showMap rebuild) failed to resolve them (stale map from an earlier, incomplete load)?
-    const rootSlots = props.collection.result?.root?.slots ?? []
-    const slotsCoveredByGroups = new Set<number>()
-    for (const g of groups) for (const s of g.slots ?? []) slotsCoveredByGroups.add(s)
-    const uncoveredSlots = rootSlots.filter(s => !slotsCoveredByGroups.has(s))
-    const uncoveredPoints = points.value.filter(p => !coveredPoints.has(p))
-
-    console.log('[MapView] buildLeaves', {
-        groupCount: groups.length,
-        leafCount: res.length,
-        totalPoints: points.value.length,
-        pointsCoveredByLeaves: coveredPoints.size,
-        sha1ToPointSize: Object.keys(sha1ToPoint).length,
-        perGroup: debugGroups,
-        selectedGroupId: selectedGroupId.value,
-        rootSlotCount: rootSlots.length,
-        slotsCoveredByGroups: slotsCoveredByGroups.size,
-        uncoveredSlotCount: uncoveredSlots.length,
-        uncoveredSlotSample: uncoveredSlots.slice(0, 10),
-        uncoveredPointCount: uncoveredPoints.length,
-        uncoveredPointSample: uncoveredPoints.slice(0, 10).map(p => ({ id: p.id, sha1: p.sha1 }))
-    })
 
     // The tree just rebuilt (regroup, sort, open/close...): if the soloed group's id isn't among
     // the new leaves — regrouping mints new Group objects with new ids — the dim effect would
     // silently do nothing (activeLeaf never found in updateColors). Drop the stale selection
     // instead of leaving the map looking like soloing broke.
     if (selectedGroupId.value != null && !res.some(l => l.id === selectedGroupId.value)) {
-        console.log('[MapView] selectedGroupId no longer matches any leaf after rebuild, clearing', {
-            selectedGroupId: selectedGroupId.value,
-            leafIds: res.map(l => l.id)
-        })
         selectedGroupId.value = null
     }
 
@@ -252,14 +214,6 @@ function updateColors() {
     const activeLeaf = selectedGroupId.value != null
         ? leaves.value.find(l => l.id === selectedGroupId.value)
         : undefined
-    if (selectedGroupId.value != null) {
-        console.log('[MapView] updateColors solo check', {
-            selectedGroupId: selectedGroupId.value,
-            activeLeafFound: !!activeLeaf,
-            activeLeafPoints: activeLeaf?.points.length,
-            leafIds: leaves.value.map(l => l.id)
-        })
-    }
     if (activeLeaf) {
         const activeSet = new Set(activeLeaf.points)
         for (const p of points.value) {
@@ -330,12 +284,6 @@ async function showMap(mapId: number, force = false) {
     const slots = root?.slots ?? null
     const fastPath = !force && mapId === builtMapId && root === builtRoot && slots === builtSlots
         && (slots?.length ?? -1) === builtSlotCount
-    console.log('[MapView] showMap', {
-        mapId, force, fastPath,
-        rootChanged: root !== builtRoot,
-        slotsChanged: slots !== builtSlots,
-        slotCountChanged: (slots?.length ?? -1) !== builtSlotCount
-    })
     // Nothing that can move a point changed → recolour only (no GPU re-upload).
     if (fastPath) {
         buildLeaves()
@@ -414,11 +362,6 @@ async function showMap(mapId: number, force = false) {
     builtRoot = root
     builtSlots = slots
     builtSlotCount = slots?.length ?? -1
-    console.log('[MapView] showMap rebuild done', {
-        mapRowCount: values.length / 3,
-        sha1ToIdSize: Object.keys(sha1ToId).length,
-        pointsBuilt: res.length
-    })
     buildLeaves()
 
     const atlas = media.atlas

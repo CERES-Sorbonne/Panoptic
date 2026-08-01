@@ -21,6 +21,7 @@ from panoptic.core.databases.data.models import (
     Commit, DataCommit, DeleteCommit, File, FileSource, Folder, Instance, InstanceValue,
     Property, Sha1Value, Tag, UpsertCommit, FileValue,
 )
+from panoptic.core.databases.entity_schema import OP_CREATE
 from panoptic.core.plugin.action_registry import ActionRegistry, build_function_description
 from panoptic.core.task.task import Task
 from panoptic.models.action_models import FunctionDescription
@@ -111,6 +112,30 @@ class PluginProjectInterface:
     # ------------------------------------------------------------------
     # Write — data.db  (source is always the plugin name)
     # ------------------------------------------------------------------
+
+    def add_property(self, name: str, dtype: str, mode: str = 'sha1',
+                     readonly: bool = False, property_group_id: int = None) -> Property:
+        """Create a property owned by this plugin and return it with its allocated id.
+
+        readonly=True marks the property non-editable (access='read'): the UI renders it
+        read-only and the HTTP routes refuse any write to it. The plugin itself keeps
+        writing its values normally — this interface commits straight through DataWriter,
+        which is deliberately not guarded.
+        """
+        with self._project_db() as pdb:
+            new_id = pdb.allocate_properties(1)
+        if not isinstance(new_id, int):
+            new_id = list(new_id)[0]
+        prop = Property(
+            id=new_id, dtype=dtype, mode=mode, name=name,
+            access='read' if readonly else 'write',
+            tag_list_id=new_id, property_group_id=property_group_id,
+            commit_id=0, operation=OP_CREATE,
+        )
+        commit = UpsertCommit()
+        commit.properties[new_id] = prop
+        self.apply_upsert_commit(commit)
+        return prop
 
     def apply_commit(self, commit: DataCommit, group_id: int = None) -> Commit:
         """Unified create/update/delete for the logged (revertable) entities."""

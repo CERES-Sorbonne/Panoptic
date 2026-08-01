@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
-import { deletedID, Property, PropertyType, Instance } from '@/data/models';
+import { deletedID, isReadonly, Property, PropertyType, Instance } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
@@ -89,8 +89,8 @@ watch(() => inputs.requestInput, async (val) => {
 </script>
 
 <template>
-    <!-- Read-only display for system properties (those with a systemKey) -->
-    <div v-if="props.property.systemKey"
+    <!-- Read-only display for computed / non-editable properties -->
+    <div v-if="isReadonly(props.property)"
         class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px; font-size: 14px;">
         <PropertyIcon :type="property.type" style="margin-right: 3px;" />
         <span v-if="property.type == PropertyType._folders">

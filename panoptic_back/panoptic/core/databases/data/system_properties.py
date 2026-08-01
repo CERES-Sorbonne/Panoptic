@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+from panoptic.core.databases.data.models import Property
+
 
 class SystemProperty(NamedTuple):
     key: str     # system_key identifier
@@ -23,3 +25,13 @@ SYSTEM_PROPERTIES: list[SystemProperty] = [
 
 # Keyed lookup for O(1) access by system_key
 SYSTEM_PROPERTY_MAP: dict[str, SystemProperty] = {p.key: p for p in SYSTEM_PROPERTIES}
+
+
+def is_readonly(prop: Property) -> bool:
+    """A property is read-only if panoptic computes it (system_key) or its owner
+    (a plugin, an import) declared it non-editable via access='read'.
+
+    Only the route layer enforces this: plugins and the importer commit straight
+    through DataWriter and must stay able to write their own read-only properties.
+    """
+    return bool(prop.system_key) or prop.access == 'read'

@@ -273,6 +273,8 @@
             "clear": "Nettoyer",
             "apply": "Appliquer",
             "erase": "Effacer",
+            "add_property": "Ajouter une propriété",
+            "empty": "Aucune propriété sélectionnée",
             "erase_tooltip": "Effacer le champ pour toute la sélection",
             "cancel_tooltip": "Annuler les changements"
         },

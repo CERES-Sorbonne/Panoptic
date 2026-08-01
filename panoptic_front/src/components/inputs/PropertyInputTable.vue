@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Instance, Property, PropertyMode, PropertyType } from '@/data/models';
+import { Instance, isReadonly, Property, PropertyMode, PropertyType } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
@@ -54,7 +54,7 @@ async function paint(index: number, propertyId: number) {
                             {{ data.properties[property.id].name }}
                         </span>
                     </td>
-                    <td v-if="property.id > 0 && !property.systemKey" class="ps-1 border-left" style="width: 100%;">
+                    <td v-if="property.id > 0 && !isReadonly(property)" class="ps-1 border-left" style="width: 100%;">
                         <GridPropInput :property="data.properties[property.id]" :instance="image"
                             :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20"
                             :ref="e => inputElem[property.id] = e" />
@@ -67,7 +67,7 @@ async function paint(index: number, propertyId: number) {
                         </span>
                     </td>
 
-                    <td v-if="!property.computed && !property.systemKey" class="border-left"
+                    <td v-if="!isReadonly(property)" class="border-left"
                         style="padding: 2px 3px; width: 44px;">
                         <div class="d-flex flex-row justify-content-center align-items-center gap-1">
                             <span class="btn-icon" @mouseup="paint(index, property.id)"

@@ -268,6 +268,8 @@
             "clear": "Clear",
             "apply": "Apply",
             "erase": "Erase",
+            "add_property": "Add a property",
+            "empty": "No property selected yet",
             "erase_tooltip": "Erase this field for whole selection",
             "cancel_tooltip": "Cancel changes"
         },

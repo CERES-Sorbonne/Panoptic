@@ -2,7 +2,7 @@
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { useDataStore } from '@/data/dataStore';
 import { useModalStore } from '@/data/modalStore';
-import { deletedID, ModalId, PropertyMode } from '@/data/models';
+import { deletedID, isReadonly, ModalId, PropertyMode } from '@/data/models';
 import { InstanceEntry } from '@/data/instanceStore';
 import { computed, reactive } from 'vue';
 
@@ -22,9 +22,9 @@ const emits = defineEmits<{
 
 const closed = reactive({})
 
-const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed && !p.systemKey && p.id != deletedID))
-const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed && !p.systemKey && p.id != deletedID))
-const metaProperties = computed(() => data.propertyList.filter(p => (p.id < 0 || p.systemKey) && p.id != deletedID))
+const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !isReadonly(p) && p.id != deletedID))
+const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !isReadonly(p) && p.id != deletedID))
+const metaProperties = computed(() => data.propertyList.filter(p => (p.id < 0 || isReadonly(p)) && p.id != deletedID))
 
 function toggleClosed(index: number) {
     if (closed[index]) {

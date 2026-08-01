@@ -45,9 +45,17 @@ export interface Property {
     type: PropertyType
     mode: PropertyMode
     systemKey?: string
+    access?: PropertyAccess
     propertyGroupId?: number
-    computed?: boolean
     tags?: TagIndex
+}
+
+export type PropertyAccess = 'read' | 'write'
+
+// Single edit gate: panoptic computes it (systemKey), or its owner — a plugin, an
+// import — declared it non-editable. The backend refuses writes to these with a 403.
+export function isReadonly(property: Property): boolean {
+    return Boolean(property.systemKey) || property.access === 'read'
 }
 
 export interface PropertyDescription extends Property {

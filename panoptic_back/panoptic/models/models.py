@@ -41,7 +41,6 @@ class Property:
     type: PropertyType
     mode: PropertyMode
     property_group_id: int | None = None
-    computed: bool = False
 
 
 @dataclass(slots=True)

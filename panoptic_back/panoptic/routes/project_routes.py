@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import orjson
 from sys import platform
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 import msgspec
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
@@ -24,6 +24,7 @@ from panoptic.models.stream_models import (
     FileValuesColumn, FullInstance, ImageValuesColumn, InstanceValuesColumn,
     LoadState, StreamChunk, StreamResult, TagCount,
 )
+from panoptic.core.databases.data.system_properties import is_readonly
 from panoptic.core.databases.entity_schema import OP_CREATE, OP_DELETE
 from panoptic.core.databases.data.create import (
     FILES_SCHEMA, INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
@@ -995,6 +996,18 @@ def _to_ids(val: Any, n: int) -> range:
     return val
 
 
+def _readonly_guard(project: Project, ids: Iterable[int]) -> dict[int, Property]:
+    """Load the existing properties once and refuse the commit if any targeted one
+    is read-only (see is_readonly). Returns the id -> Property map so callers can
+    merge updates onto the stored row instead of rebuilding it from scratch."""
+    existing = {p.id: p for p in project.get_properties()}
+    for pid in ids:
+        prop = existing.get(pid)
+        if prop is not None and is_readonly(prop):
+            raise HTTPException(403, f'Property {prop.id} ({prop.name}) is read-only')
+    return existing
+
+
 @project_router.post('/commit/upsert')
 def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), user_id: str = None):
     from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE
@@ -1005,6 +1018,16 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), us
     # Properties — allocate IDs for id < 0
     new_props = [p for p in req.properties if p.id < 0]
     upd_props  = [p for p in req.properties if p.id >= 0]
+
+    # Read-only guard — every existing property this commit touches, whether through a
+    # property update, a tag, or a value. Ids < 0 are new properties allocated below and
+    # can never be read-only. Runs before allocating so a refused commit consumes no ids.
+    touched = {p.id for p in upd_props}
+    touched.update(t.property_id for t in req.tags)
+    touched.update(v.property_id for v in req.instance_values)
+    touched.update(v.property_id for v in req.image_values)
+    touched.update(v.property_id for v in req.file_values)
+    existing_props = _readonly_guard(project, (i for i in touched if i is not None and i >= 0))
 
     if new_props:
         ids = _to_ids(project.allocate_properties(len(new_props)), len(new_props))
@@ -1017,12 +1040,21 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), us
                 property_group_id=p.property_group_id,
                 commit_id=0, operation=OP_CREATE,
             )
+
     for p in upd_props:
+        # Merge onto the stored row: a partial update must not wipe fields the client
+        # did not send (notably access / system_key / tag_list_id).
+        old = existing_props.get(p.id)
         upsert.properties[p.id] = Property(
-            id=p.id, dtype=p.type or p.dtype or 'text',
-            mode=p.mode or 'sha1', name=p.name or '',
-            access='write', tag_list_id=p.id,
-            property_group_id=p.property_group_id,
+            id=p.id,
+            dtype=p.type or p.dtype or (old.dtype if old else None) or 'text',
+            mode=p.mode or (old.mode if old else None) or 'sha1',
+            name=p.name if p.name is not None else (old.name if old else ''),
+            access=(old.access if old else None) or 'write',
+            tag_list_id=(old.tag_list_id if old else p.id),
+            system_key=old.system_key if old else None,
+            property_group_id=(p.property_group_id if p.property_group_id is not None
+                               else (old.property_group_id if old else None)),
             commit_id=0, operation=OP_UPDATE,
         )
 
@@ -1102,6 +1134,14 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), us
 @project_router.post('/commit/delete')
 def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep), user_id: str = None):
     from panoptic.core.databases.entity_schema import OP_DELETE
+
+    # Read-only guard — deleting a system property orphans its system_key resolution,
+    # and clearing values of a computed property is meaningless.
+    touched = set(req.empty_properties)
+    touched.update(v.property_id for v in req.empty_instance_values)
+    touched.update(v.property_id for v in req.empty_image_values)
+    touched.update(v.property_id for v in req.empty_file_values)
+    _readonly_guard(project, (i for i in touched if i is not None))
 
     reload = False
     # Structural (instances): hard delete + GC, not undoable → frontend full-reload.
