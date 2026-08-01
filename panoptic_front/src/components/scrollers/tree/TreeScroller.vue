@@ -74,7 +74,7 @@ function imageLineSizeFor(imgSize: number) {
         offset += 28
     }
     if (nb > 1) {
-        offset += (nb - 1) * 27
+        offset += (nb - 1) * 26
     }
     return imgSize + offset + 6
 }
@@ -86,7 +86,7 @@ function pileLineSizeFor(imgSize: number) {
         offset += 28
     }
     if (nb > 1) {
-        offset += (nb - 1) * 27
+        offset += (nb - 1) * 26
     }
     return imgSize + offset + 6
 }

@@ -203,7 +203,13 @@ watch(() => props.property, () => {
 }
 
 .prop-row.selected {
-    background-color: rgba(38, 117, 191, 0.32);
+    background-color: rgba(38, 117, 191, 0.18);
+}
+
+/* A visible row already carries the blue fill, so the plain hover-bg never shows.
+   Lighten the fill instead, keeping the hover feedback in the same colour family. */
+.prop-row.selected:hover {
+    background-color: rgba(38, 117, 191, 0.10);
 }
 
 .prop-icon {
