@@ -33,8 +33,11 @@ export class AtlasLayer {
         this.material = new InstancedImageMaterial({
             map: texture,
             transparent: true,
-            // CRITICAL: Tells GPU to discard transparent pixels so they don't block depth
-            alphaTest: 0.1,
+            // CRITICAL: Tells GPU to discard transparent pixels so they don't block depth.
+            // Cut at half coverage, not 0.1: an antialiased edge pixel that passes the test both
+            // blends with the white background AND writes depth, so the dot/photo behind it can
+            // never fill in — that showed up as a pale ring tracing every overlapping point.
+            alphaTest: 0.5,
             // CRITICAL: Allows Z-buffer to handle sorting automatically
             depthTest: true,
             depthWrite: true

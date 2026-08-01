@@ -125,12 +125,15 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 if(uShowAsPoint > 0.5) {
     vec2 p = vRawUv - 0.5;
     float dist = length(p);
-    
+
     // Use a larger radius (0.5 fills the square) to ensure visibility
-    float pointRadius = 0.45; 
-    float aa = 0.1; // Softer edge for points
-    float pointMask = smoothstep(pointRadius + aa, pointRadius, dist);
-    
+    float pointRadius = 0.45;
+    // Antialias over roughly one screen pixel (fwidth) rather than a fixed slice of the quad:
+    // a constant uv-space width is a large fraction of the dot's radius, so the fade read as a
+    // pale halo where the dot blended into the white background.
+    float aa = fwidth(dist);
+    float pointMask = smoothstep(pointRadius + aa, pointRadius - aa, dist);
+
     // Instead of multiplying, use the logic from your image mode:
     // This ensures that if it's visible in image mode, it's visible here.
     vec3 finalRGB = mix(vInstanceBorder, vInstanceTint.rgb, vInstanceTint.a);
@@ -212,6 +215,18 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
 
     public setShowAsPoint(show: boolean) {
         this._showAsPoint.value = show ? 1.0 : 0.0;
+        // Point mode drops the depth buffer entirely: dots are flat single-colour discs with
+        // nothing to occlude, so depth ordering buys nothing, while depth-writing antialiased
+        // edges blocked the disc behind them and traced a pale ring around every overlap.
+        // Without depth write the alphaTest cut can go back to ~0, keeping the edges smooth.
+        // Image mode keeps depth (photos really do occlude each other and the z tiers order them).
+        this.depthWrite = !show;
+        const alphaTest = show ? 0.0 : 0.5;
+        if (this.alphaTest !== alphaTest) {
+            // Crossing 0 toggles the USE_ALPHATEST define, so the program must be rebuilt.
+            this.alphaTest = alphaTest;
+            this.needsUpdate = true;
+        }
         if (this.userData.shader) {
             this.userData.shader.uniforms.uShowAsPoint.value = this._showAsPoint.value;
         }
