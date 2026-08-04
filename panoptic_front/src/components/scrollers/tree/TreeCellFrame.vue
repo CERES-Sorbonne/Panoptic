@@ -6,6 +6,7 @@
 // the cell gives it, so it can never be wider or narrower than its slot.
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import { PropertyType } from '@/data/models'
+import { ref } from 'vue'
 
 const props = defineProps<{
     type: PropertyType
@@ -21,17 +22,24 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits(['click', 'iconClick'])
+
+// Exposed so an input that edits in a teleported popup (the multi-line text editor) can align
+// that popup on the exact box its value occupies.
+const valueZone = ref<HTMLElement>(null)
+const root = ref<HTMLElement>(null)
+const iconZone = ref<HTMLElement>(null)
+defineExpose({ valueZone, root, iconZone })
 </script>
 
 <template>
-    <div class="tree-cell" :class="{ active: props.active }" @click="emits('click')">
+    <div class="tree-cell" ref="root" :class="{ active: props.active }" @click="emits('click')">
         <!-- full-bleed layer under the icon and the value (colour fill) -->
         <slot name="background" />
-        <div v-if="!props.noIcon" class="icon-zone" :style="props.iconColor ? { color: props.iconColor } : undefined"
+        <div v-if="!props.noIcon" class="icon-zone" ref="iconZone" :style="props.iconColor ? { color: props.iconColor } : undefined"
             @click.stop="emits('iconClick')">
             <PropertyIcon :type="props.type" />
         </div>
-        <div class="value-zone">
+        <div class="value-zone" ref="valueZone">
             <slot />
             <!-- same "Vide..." the property previews show -->
             <span v-if="props.empty" class="empty">{{ $t('none') }}</span>
