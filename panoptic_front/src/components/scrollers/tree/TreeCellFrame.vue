@@ -34,9 +34,12 @@ defineExpose({ valueZone, root, iconZone })
 <template>
     <div class="tree-cell" ref="root" :class="{ active: props.active }" @click="emits('click')">
         <!-- full-bleed layer under the icon and the value (colour fill) -->
+        <!-- the icon's mousedown.prevent above keeps an open inline editor focused until its own
+             click handler runs, so that click reads as a toggle rather than a blur then reopen -->
+
         <slot name="background" />
         <div v-if="!props.noIcon" class="icon-zone" ref="iconZone" :style="props.iconColor ? { color: props.iconColor } : undefined"
-            @click.stop="emits('iconClick')">
+            @mousedown.prevent @click.stop="emits('iconClick')">
             <PropertyIcon :type="props.type" />
         </div>
         <div class="value-zone" ref="valueZone">

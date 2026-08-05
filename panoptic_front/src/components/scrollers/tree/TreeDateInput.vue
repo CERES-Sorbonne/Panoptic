@@ -24,6 +24,13 @@ function focus() {
     dropdownElem.value?.show()
 }
 
+// The icon stops the cell's click, so the dropdown's own trigger never sees it: it has to be
+// driven by hand here — and as a toggle, like a second click on the row.
+function toggle() {
+    if (isOpen.value) dropdownElem.value?.hide()
+    else focus()
+}
+
 function submit(hide) {
     if (localValue.value !== props.modelValue) emits('update:modelValue', localValue.value)
     hide()
@@ -39,7 +46,8 @@ function cancel() {
         @show="isOpen = true; emits('focus')" @hide="isOpen = false; emits('blur')">
         <template #button>
             <!-- focus lives in the teleported popup, so :focus-within never fires here -->
-            <TreeCellFrame :type="PropertyType.date" :active="isOpen" :empty="!props.modelValue">
+            <TreeCellFrame :type="PropertyType.date" :active="isOpen" :empty="!props.modelValue"
+                @icon-click="toggle">
                 <DatePreview v-if="props.modelValue" :date="props.modelValue" class="value" />
             </TreeCellFrame>
         </template>

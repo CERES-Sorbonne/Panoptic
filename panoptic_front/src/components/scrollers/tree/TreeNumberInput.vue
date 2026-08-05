@@ -31,6 +31,12 @@ async function focus() {
     inputElem.value?.focus()
 }
 
+// a second click on the icon closes the editor it opened
+function toggle() {
+    if (editing.value) (inputElem.value as HTMLElement)?.blur()
+    else focus()
+}
+
 function submit() {
     const parsed = localValue.value === '' ? undefined : Number(localValue.value)
     const next = parsed === undefined || isNaN(parsed) ? undefined : parsed
@@ -53,7 +59,9 @@ defineExpose({ focus })
 </script>
 
 <template>
-    <TreeCellFrame :type="PropertyType.number" :empty="!editing && value === undefined" @click="focus">
+    <!-- the icon stops the cell's click, so it opens the editor itself — and toggles it -->
+    <TreeCellFrame :type="PropertyType.number" :empty="!editing && value === undefined" @click="focus"
+        @icon-click="toggle">
         <input v-if="editing" ref="inputElem" class="field" type="number" v-model="localValue"
             @focus="emits('focus')" @blur="onBlur" @keydown.enter.prevent="e => (e.target as HTMLElement).blur()"
             @keydown.esc.stop="onEscape" @keydown.tab.stop.prevent="emits('tab')" />

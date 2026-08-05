@@ -36,6 +36,13 @@ function focus() {
     dropdownElem.value?.show()
 }
 
+// The icon stops the cell's click, so the dropdown's own trigger never sees it: it has to be
+// driven by hand here — and as a toggle, like a second click on the row.
+function toggle() {
+    if (isOpen.value) dropdownElem.value?.hide()
+    else focus()
+}
+
 function set(value, hide) {
     emits('update:modelValue', value)
     hide()
@@ -47,7 +54,7 @@ function set(value, hide) {
         @show="isOpen = true; emits('focus')" @hide="isOpen = false; emits('blur')">
         <template #button>
             <TreeCellFrame :type="PropertyType.color" :active="isOpen" :empty="color === undefined"
-                :icon-color="iconColor">
+                :icon-color="iconColor" @icon-click="toggle">
                 <template #background>
                     <div v-if="color" class="chip" :style="{ backgroundColor: color }" />
                 </template>
