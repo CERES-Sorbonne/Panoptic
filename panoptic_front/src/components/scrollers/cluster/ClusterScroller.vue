@@ -29,11 +29,8 @@ const props = defineProps<{
     openedIds?: number[],
     // Group ids to highlight (e.g. the clusters created by the last action).
     highlightIds?: number[],
-    // Property whose value each cluster's badge reflects (assignment target). undefined = none.
-    targetPropertyId?: number,
     // One assignment target per grouping level (outermost first): each card gets one input row
-    // per level, so grouping by A then B shows both A's and B's value. Falls back to the single
-    // targetPropertyId when not given.
+    // per level, so grouping by A then B shows both A's and B's value.
     targetPropertyIds?: number[],
     // How each card renders its group: one representative image, or a mosaic of the first few.
     viewMode?: GroupViewMode
@@ -67,14 +64,9 @@ const layoutContentWidth = computed(() => Math.max(0, (props.layoutWidth ?? prop
 
 const maxPerLine = computed(() => Math.ceil(contentWidth.value / props.imageSize * 1.5))
 
-// The target properties, one per grouping level. Kept in one place so the per-line height math
-// and ClusterLine's rows agree on how many input rows a card has.
-const targetPropertyIds = computed<number[]>(() => {
-    if (props.targetPropertyIds?.length) return props.targetPropertyIds
-    return props.targetPropertyId != null ? [props.targetPropertyId] : []
-})
-// Always reserve at least one row, so a card keeps its shape when there is no target at all.
-const inputRows = computed(() => Math.max(1, targetPropertyIds.value.length))
+// One input row per grouping level, but always at least one so a card keeps its shape when
+// there is no target at all. ClusterLine applies the same rule to what it renders.
+const inputRows = computed(() => Math.max(1, props.targetPropertyIds?.length ?? 0))
 
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
@@ -334,7 +326,7 @@ watch(() => props.manager.version.value, triggerUpdate)
                         :hover-border="hoverGroupBorder"
                         :manager="props.manager"
                         :properties="props.properties"
-                        :target-property-ids="targetPropertyIds"
+                        :target-property-ids="props.targetPropertyIds ?? []"
                         :highlight-ids="props.highlightIds ?? []"
                         :opened-ids="props.openedIds ?? []"
                         :view-mode="props.viewMode ?? 'single'"

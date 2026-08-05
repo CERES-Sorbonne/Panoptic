@@ -83,7 +83,24 @@ const targetPropertyId = computed<number | null>(() => {
 
 // Every grouping level, outermost first: the cards show one input per level, so grouping by
 // A then B lets both values be read and edited on each card.
-const targetPropertyIds = computed<number[]>(() => props.collection.groupState?.groupBy ?? [])
+// Read off the RENDERED TREE, not from groupState: the settings change (and its version bump)
+// lands before the regroup does, so anything keyed on groupBy showed the new level's input row
+// over the old, still-ungrouped tree. Walking down the first property child at each level — how
+// the engine nests the grouping levels — the rows can only describe groups that exist, so they
+// appear exactly when the groups do. Clusters grafted underneath carry no value and end the walk.
+const targetPropertyIds = computed<number[]>(() => {
+    props.collection.version.value // reactive dep
+    const ids: number[] = []
+    let group: Group | undefined = props.collection.result?.root
+    while (group?.children?.length) {
+        const child: Group | undefined = group.children.find(c => c.type === GroupType.Property)
+        const pid = child?.meta?.propertyValues?.[0]?.propertyId
+        if (pid == null) break
+        ids.push(pid)
+        group = child
+    }
+    return ids
+})
 
 // ---- The empty bucket -----------------------------------------------------------------------
 // The undecided pile: the leaf-level property group whose target value is null/undefined. Clustering
@@ -101,7 +118,18 @@ function isEmptyBucketGroup(g: Group): boolean {
 // out: the new clusters after a clustering pass, or the parent card a collapse folded a whole
 // level into. Collect the CARDS, i.e. stop at a closed group (which stands in for its subtree)
 // exactly as the scroller does, instead of always walking down to the leaves.
+// The ring is a transient "here is what just happened" cue, not a state: it fades out on its own
+// after HIGHLIGHT_MS so an old action's result cannot linger and be read as current. Every new
+// highlight restarts the timer, and it is dropped on unmount.
+const HIGHLIGHT_MS = 3000
 const highlightIds = ref<number[]>([])
+let highlightHandle: ReturnType<typeof setTimeout> | undefined
+function setHighlight(ids: number[]) {
+    clearTimeout(highlightHandle)
+    highlightIds.value = ids
+    if (ids.length) highlightHandle = setTimeout(() => highlightIds.value = [], HIGHLIGHT_MS)
+}
+
 function markHighlight(groups: Group[]) {
     const ids: number[] = []
     const walk = (g: Group) => {
@@ -109,7 +137,7 @@ function markHighlight(groups: Group[]) {
         else if (g.id != null) ids.push(g.id)
     }
     groups.forEach(walk)
-    highlightIds.value = ids
+    setHighlight(ids)
 }
 
 // Highlighting is the only part of clustering this view still owns — and the only part that is
@@ -120,7 +148,10 @@ function onClusterDone({ targetGroupId, groups }: { targetGroupId: number, group
     if (props.collection.result?.index?.[targetGroupId]) markHighlight(groups)
 }
 onMounted(() => props.collection.onCluster.addListener(onClusterDone))
-onUnmounted(() => props.collection.onCluster.removeListener(onClusterDone))
+onUnmounted(() => {
+    props.collection.onCluster.removeListener(onClusterDone)
+    clearTimeout(highlightHandle)
+})
 
 // Open / close, exactly as in the tree view — the card grid just renders the same open state
 // differently: an open group is replaced by its children, a closed one stands in for them.
@@ -137,7 +168,7 @@ function onCloseGroup(groupId: number) {
     props.collection.closeGroup(groupId, true)
     // The closed group is now the card standing in for the level that just folded away —
     // highlight it so it is obvious where the children went.
-    highlightIds.value = [groupId]
+    setHighlight([groupId])
 }
 
 // Drop a group's clusters, exactly like the tree view's "close clusters" button: the
@@ -197,7 +228,9 @@ const hasImages = computed(() => {
 })
 // The view requires ≥1 grouping property: the leaf grouping IS the assignment target. With no
 // grouping there is no target, so we prompt to pick one instead of showing the flat collection.
-const hasGrouping = computed(() => (props.collection.groupState?.groupBy?.length ?? 0) > 0)
+// Keyed on the rendered tree (targetPropertyIds), not on groupState, so the prompt stays up
+// until the groups actually exist instead of flashing the ungrouped root for one frame.
+const hasGrouping = computed(() => targetPropertyIds.value.length > 0)
 
 // ---- Detail inspector (right side) -------------------------------------------
 // Up to two clusters can be inspected at once, stacked vertically. A plain click
