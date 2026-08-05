@@ -84,7 +84,7 @@ function mapTag(id: number | string): Tag[] {
 </script>
 
 <template>
-    <div class="d-flex text-nowrap p-0 m-0" v-if="property">
+    <div class="d-flex align-items-center text-nowrap p-0 m-0" v-if="property">
         <div class="me-2">{{ property.name }}: </div>
         <div v-if="property.type == PropertyType.color" :style="{ backgroundColor: color }" class="color-holder">
         </div>
@@ -101,15 +101,21 @@ function mapTag(id: number | string): Tag[] {
             <span v-if="props.value.value != undefined">{{ props.value.value }}</span>
             <span v-else class="text-secondary">indéfini</span>
         </span>
-        <span v-else>
-            <span v-for="tag in mapTag(props.value.value)">
-                <TagBadge :id="tag.id"/>
-            </span>
+        <span v-else class="tag-list">
+            <TagBadge v-for="tag in mapTag(props.value.value)" :key="tag.id" :id="tag.id" />
         </span>
     </div>
 </template>
 
 <style scoped>
+/* Wrapper spans around the badges used to introduce their own line box, whose leading pushed the
+   chips off the row's centre line. A flex row drops the leading. */
+.tag-list {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .color-holder {
     margin-top: 6px;
     height: 15px;

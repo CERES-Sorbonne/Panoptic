@@ -65,7 +65,10 @@ function groupLabel(g: Group) {
     cursor: pointer;
     color: var(--text-secondary);
     transition: background-color var(--transition-fast);
-    height: 24px;
+    min-height: 24px;
+    /* the popup renders at 14px; without this the button inherits the ambient 16px and its chip
+       comes out taller than the same chip in the options */
+    font-size: 14px;
 }
 
 .group-select-button:hover {

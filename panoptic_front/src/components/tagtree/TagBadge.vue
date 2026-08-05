@@ -63,11 +63,13 @@ const name = computed(() => {
 
 <style scoped>
 .tag-badge {
-    position: relative;
-    top: -1px;
     margin: 0;
-    padding: 2px 8px;
+    padding: 0px 6px;
     border-radius: 4px !important;
+    /* .badge ships line-height: 1, so the chip's line box places the baseline differently from the
+       surrounding text and the label reads a couple of pixels low. Inheriting the text line-height
+       makes both line boxes identical, so centring the chip also aligns the baselines. */
+    line-height: inherit;
     /* .badge ships 700 weight at .75em, which reads as a different typeface next to the rest
        of the UI: take the surrounding text's size and weight instead. */
     font-size: inherit;
