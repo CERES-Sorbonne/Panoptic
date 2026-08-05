@@ -6,7 +6,8 @@
 // the cell gives it, so it can never be wider or narrower than its slot.
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import { PropertyType } from '@/data/models'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useHoverSource } from '@/data/hoverStore'
 
 const props = defineProps<{
     type: PropertyType
@@ -29,10 +30,34 @@ const valueZone = ref<HTMLElement>(null)
 const root = ref<HTMLElement>(null)
 const iconZone = ref<HTMLElement>(null)
 defineExpose({ valueZone, root, iconZone })
+
+// Every tree/cluster row funnels through this frame, so pointing at a property is reported
+// once, here, rather than in each of the seven typed inputs. Outside those two scrollers no
+// provider exists and the source reports nothing. Release on unmount is its job too.
+const { enter, leave, setFocus } = useHoverSource(root)
+
+// Focus, unlike hover, must survive the pointer wandering off: it lasts as long as the editor
+// is open. Inline editors are caught by focusin/focusout on the row — and the claim is marked
+// as living in the DOM, so the store can drop it by itself if the focusout never arrives (the
+// number cell removes its <input> the instant it blurs). Editors whose focus lives in a
+// teleported popup have nothing focused in the row and are driven by the `active` prop instead.
+function onFocusIn() {
+    setFocus(true, true)
+}
+
+function onFocusOut(e: FocusEvent) {
+    // focus moving between two elements of the same row fires focusout then focusin: ignoring
+    // the internal hop keeps the highlight from blinking.
+    if (root.value?.contains(e.relatedTarget as Node)) return
+    if (!props.active) setFocus(false)
+}
+
+watch(() => props.active, on => setFocus(on))
 </script>
 
 <template>
-    <div class="tree-cell" ref="root" :class="{ active: props.active }" @click="emits('click')">
+    <div class="tree-cell" ref="root" :class="{ active: props.active }" @click="emits('click')"
+        @pointerenter="enter" @pointerleave="leave" @focusin="onFocusIn" @focusout="onFocusOut">
         <!-- full-bleed layer under the icon and the value (colour fill) -->
         <!-- the icon's mousedown.prevent above keeps an open inline editor focused until its own
              click handler runs, so that click reads as a toggle rather than a blur then reopen -->

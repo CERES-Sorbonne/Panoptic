@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
+import { hoverPropertyKey } from '@/data/hoverStore'
 import { deletedID, isReadonly, Property, PropertyType, Instance } from '@/data/models';
 import { isTag } from '@/utils/utils';
 import DBInput from '@/components/property_inputs/DBInput.vue';
@@ -21,6 +22,9 @@ const props = defineProps<{
     idx: number,
     inputKey: string
 }>()
+
+// so the frame below can report hover/focus on this property to the hover store
+provide(hoverPropertyKey, () => props.property.id)
 
 const focusElem = ref(null)
 const key = computed(() => props.inputKey + '.' + props.property.id)

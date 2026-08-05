@@ -13,18 +13,23 @@ import { Dropdowns } from '@/data/dropdowns';
 import { useI18n } from 'vue-i18n';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { TabManager } from '@/core/TabManager';
+import { useHoverStore } from '@/data/hoverStore';
 
 const { t } = useI18n(({ useScope: 'global' }))
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
 const data = useDataStore()
+const hover = useHoverStore()
 
 const props = defineProps<{
     tab: TabManager
     property: Property,
     open?: boolean
 }>()
+
+// Pointing at (or editing) a cell of this property anywhere in the app lights up its row here.
+const remoteHover = computed(() => hover.activeProperty === props.property.id)
 
 const valuesOpen = ref(false)
 const editName = ref(false)
@@ -124,7 +129,8 @@ watch(() => props.property, () => {
 
 <template>
     <div>
-        <div class="prop-row" :class="{ selected: propertyVisible }" @click="toggleVisible">
+        <div class="prop-row" :class="{ selected: propertyVisible, hovered: remoteHover }" @click="toggleVisible">
+            <span class="prop-caret"><i class="bi bi-dot" /></span>
             <PropertyIcon :type="props.property.type" class="prop-icon" />
 
             <template v-if="props.open">
@@ -212,6 +218,32 @@ watch(() => props.property, () => {
     background-color: rgba(38, 117, 191, 0.10);
 }
 
+/* A dot, not a chevron: the group header's caret means open/close, and this marks the active
+   row. bi-dot is drawn small inside a wide, tall glyph box — hence the large font-size and the
+   zero line-height, which keep the row's height its own. */
+.prop-caret {
+    width: 8px;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+    color: var(--text-primary);
+    /* the row's 6px gap either side is too much air for a glyph this small */
+    margin: 0 -4px 0 -2px;
+    /* hidden rather than removed: the row must not shift when it appears */
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+/* .hovered means a cell of this property is pointed at or being edited in a scroller — the
+   panel's own :hover deliberately does NOT show it, so the marker only ever answers the
+   scroller. The row still gets its hover-bg, which is feedback enough for the panel itself. */
+.prop-row.hovered .prop-caret {
+    opacity: 1;
+}
+
 .prop-icon {
     width: 16px;
     display: inline-flex;
@@ -220,6 +252,13 @@ watch(() => props.property, () => {
     flex-shrink: 0;
     font-size: 12px;
     color: var(--text-secondary);
+    /* grown rather than resized: the row keeps its geometry, so nothing after it shifts */
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.prop-row.hovered .prop-icon {
+    transform: scale(1.2);
+    color: var(--text-primary);
 }
 
 .prop-name {

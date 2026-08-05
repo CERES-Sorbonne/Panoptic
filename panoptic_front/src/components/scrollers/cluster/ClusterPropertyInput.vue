@@ -14,6 +14,8 @@ import TreeDateInput from '@/components/scrollers/tree/TreeDateInput.vue'
 import TreeValueRow from '@/components/scrollers/tree/TreeValueRow.vue'
 import { Property, PropertyType, isReadonly } from '@/data/models'
 import { isTag } from '@/utils/utils'
+import { provide } from 'vue'
+import { hoverPropertyKey } from '@/data/hoverStore'
 
 const props = defineProps<{
     property: Property
@@ -27,6 +29,9 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits(['update:modelValue'])
+
+// so the frame below can report hover/focus on this property to the hover store
+provide(hoverPropertyKey, () => props.property.id)
 
 // Same value in, same value out — don't assign. The inputs are edit-in-place cells: closing
 // one always reports its value, whether or not the user changed anything (the tag popup, for
