@@ -1023,6 +1023,9 @@ export interface ImageAtlas {
     cellWidth: number
     cellHeight: number
     sha1Mapping: Record<string, [number, number]>
+    // Client-side only: bumped each time the atlas is (re)fetched. The backend always
+    // reuses id 0, so this is what tells the renderer that the sheets on disk changed.
+    version?: number
 }
 
 export interface ZoomParams {

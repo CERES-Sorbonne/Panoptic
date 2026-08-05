@@ -11,6 +11,7 @@ export class AtlasLayerManager {
     // Cache for loaded textures, keyed by atlas ID and sheet index
     private static textureCache = new Map<string, THREE.Texture>()
     private currentAtlasId: number | null = null
+    private currentAtlasVersion: number | undefined = undefined
     // Guards against a second loadLayers() call starting before a first one's per-sheet texture
     // loads finish: disposeLayers() only clears whatever is in `this.layers` at the moment it
     // runs, it can't stop an older, already-in-flight call from later pushing its own (stale)
@@ -27,8 +28,8 @@ export class AtlasLayerManager {
     /**
      * Generates a cache key for a specific atlas sheet
      */
-    private getCacheKey(atlasId: number, sheetIndex: number): string {
-        return `${atlasId}_${sheetIndex}`
+    private getCacheKey(atlas: ImageAtlas, sheetIndex: number): string {
+        return `${atlas.id}_${atlas.version ?? 0}_${sheetIndex}`
     }
 
     /**
@@ -43,15 +44,20 @@ export class AtlasLayerManager {
         showAsPoint: boolean
     ) {
         const token = ++this.loadToken
-        const isAtlasChanged = this.currentAtlasId !== atlas.id
 
         // Only dispose layers, not textures (they're cached)
         this.disposeLayers()
-        
-        // If atlas changed, we could optionally clear old atlas textures from cache
-        // For now, we keep all textures cached to support quick switching between multiple atlases
-        
+
+        // Textures are cached per (atlas id, version, sheet). Re-importing a source rewrites
+        // atlas id 0's sheets on disk, so the previous version's textures are now garbage —
+        // free them instead of letting them leak. Different ids stay cached to support quick
+        // switching between multiple atlases.
+        if (this.currentAtlasId === atlas.id && this.currentAtlasVersion !== atlas.version) {
+            AtlasLayerManager.clearAtlasFromCache(atlas.id, this.currentAtlasVersion)
+        }
+
         this.currentAtlasId = atlas.id
+        this.currentAtlasVersion = atlas.version
 
         const loader = new THREE.TextureLoader()
 
@@ -74,8 +80,11 @@ export class AtlasLayerManager {
             const sheetPoints = sheetPointsMap[s]
             if (sheetPoints.length === 0) continue
 
-            const cacheKey = this.getCacheKey(atlas.id, s)
+            const cacheKey = this.getCacheKey(atlas, s)
+            // The version query param busts the browser's HTTP cache: the sheet path is
+            // identical across rebuilds, so without it we can be served the old PNG.
             const textureUrl = `${baseUrl}atlas_sheet/${atlas.id}/${s}`
+                + (atlas.version !== undefined ? `?v=${atlas.version}` : '')
 
             // Assign order for instanced rendering if needed
             sheetPoints.forEach((p, i) => p.order = (s * maxPerSheet) + i)
@@ -158,12 +167,14 @@ export class AtlasLayerManager {
     }
 
     /**
-     * Clears textures for a specific atlas from the cache
+     * Clears textures for a specific atlas from the cache. Pass a version to only drop that
+     * one generation's sheets, or omit it to drop every generation of the atlas.
      */
-    public static clearAtlasFromCache(atlasId: string) {
+    public static clearAtlasFromCache(atlasId: number, version?: number) {
+        const prefix = version !== undefined ? `${atlasId}_${version}_` : `${atlasId}_`
         const keysToDelete: string[] = []
         AtlasLayerManager.textureCache.forEach((texture, key) => {
-            if (key.startsWith(`${atlasId}_`)) {
+            if (key.startsWith(prefix)) {
                 texture.dispose()
                 keysToDelete.push(key)
             }

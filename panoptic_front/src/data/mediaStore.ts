@@ -21,7 +21,12 @@ export const useMediaStore = defineStore('mediaStore', () => {
     }
 
     async function loadAtlas() {
-        atlas.value = await apiGetAtlas(0)
+        const loaded = await apiGetAtlas(0)
+        // GenerateAtlasTask always rewrites atlas id 0 in place, so nothing in the payload
+        // distinguishes a rebuilt atlas from the previous one. Stamp a version so the
+        // renderer can drop its cached sheet textures instead of reusing stale images.
+        if (loaded) loaded.version = Date.now()
+        atlas.value = loaded
     }
 
     async function updateVectorTypes() {
