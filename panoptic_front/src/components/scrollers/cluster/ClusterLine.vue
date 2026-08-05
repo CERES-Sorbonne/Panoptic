@@ -33,8 +33,9 @@ const props = defineProps<{
     openedIds: number[]
     // Group ids to highlight (e.g. the clusters created by the last action).
     highlightIds?: number[]
-    // Assignment target property — the value each card's top chip reflects. undefined = none.
-    targetPropertyId?: number
+    // Assignment targets, one per grouping level (outermost first): a card shows one input row
+    // per level, so grouping by A then B shows both A's and B's value.
+    targetPropertyIds?: number[]
     // 'single' = one representative image fills the card; the mosaic modes show several of the
     // group's images, gridded — with or without a large one on the left half (see MOSAIC_GRID).
     viewMode?: GroupViewMode
@@ -91,9 +92,13 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco
 
 const hoveredCard = ref<number | null>(null)
 
-// The assignment target property, whose value each card's input edits.
-const targetProperty = computed(() =>
-    props.targetPropertyId != null ? data.properties?.[props.targetPropertyId] : null)
+// One target property per grouping level: each gets its own input row on every card.
+const targetProperties = computed(() =>
+    (props.targetPropertyIds ?? []).map(id => data.properties?.[id]).filter(Boolean))
+
+// A card reserves one row per level (see ClusterScroller's `size`), at least one so it keeps
+// its shape when there is no target at all.
+const inputRows = computed(() => Math.max(1, targetProperties.value.length))
 
 // Inner (image) width for the card at column `i` — precomputed by the scroller so the
 // cards add up to exactly the line width. Falls back to the line's base image size.
@@ -156,15 +161,14 @@ function isSelected(group: Group) {
     return props.manager.isGroupSelected(group)
 }
 
-// The value shown (and editable) in each card's input, ALWAYS on the current target property. Every
+// The value shown (and editable) in one of a card's inputs, on the given target property. Every
 // card is editable now — including value-groups (edit re-attributes the whole group). There is no
 // `mixed` state: a value-group is homogeneous by construction. A card inherits the value of its
 // nearest ancestor value-group KEYED ON THE TARGET PROPERTY only (so a value-group shows its own
 // value, a sub-cluster of it pre-fills with it), and undefined otherwise (undecided). Ancestors
 // grouped by a *different* property (nested grouping) are skipped — their value is not the target's,
 // and feeding it to the target input would be a type mismatch (e.g. a tag array into a text input).
-function inheritedValue(group: Group): any {
-    const tpid = props.targetPropertyId
+function inheritedValue(group: Group, tpid: number): any {
     if (tpid == null) return undefined
     let g: Group | undefined = group
     while (g) {
@@ -203,7 +207,7 @@ function groupScore(group: Group): number | null {
                 opened: props.openedIds.includes(entry.group.id),
                 highlighted: highlightSet.has(entry.group.id),
             }"
-            :style="{ width: cardInner(i) + 'px', height: (props.imageSize + INPUT_ROW) + 'px' }"
+            :style="{ width: cardInner(i) + 'px', height: (props.imageSize + INPUT_ROW * inputRows) + 'px' }"
             @mouseenter="hoveredCard = entry.group.id"
             @mouseleave="hoveredCard = null"
         >
@@ -327,13 +331,12 @@ function groupScore(group: Group): number | null {
                  A value-group shows its own value (editing re-attributes the whole group); a cluster
                  or empty bucket inherits its ancestor value-group's value (undefined = undecided).
                  Assigning writes to the whole pile, which then drains into its value-group. -->
-            <div class="cc-input-row" @click.stop>
+            <div v-for="prop in targetProperties" :key="prop.id" class="cc-input-row" @click.stop>
                 <ClusterPropertyInput
-                    v-if="targetProperty"
-                    :property="targetProperty"
-                    :model-value="inheritedValue(entry.group)"
+                    :property="prop"
+                    :model-value="inheritedValue(entry.group, prop.id)"
                     :instance-id="getInstanceId(entry.slot)"
-                    @update:model-value="v => $emit('assign-cluster-value', entry.group.id, v)"
+                    @update:model-value="v => $emit('assign-cluster-value', entry.group.id, v, prop.id)"
                 />
             </div>
         </div>
@@ -343,7 +346,7 @@ function groupScore(group: Group): number | null {
             v-for="n in props.item.emptyCount"
             :key="'empty-' + n"
             class="cluster-card cluster-card-empty me-2 mb-2"
-            :style="{ width: cardInner(props.item.data.length + n - 1) + 'px', height: (props.imageSize + INPUT_ROW) + 'px' }"
+            :style="{ width: cardInner(props.item.data.length + n - 1) + 'px', height: (props.imageSize + INPUT_ROW * inputRows) + 'px' }"
         ></div>
     </div>
 </template>
@@ -469,9 +472,9 @@ function groupScore(group: Group): number | null {
 
 /* The row is the card's bottom edge: follow the card ring's corners (4px minus the 1px ring)
    instead of running square into them — surface, hover/focus overlay and colour fill alike. */
-.cc-input-row :deep(.tree-cell),
-.cc-input-row :deep(.tree-cell::after),
-.cc-input-row :deep(.chip) {
+.cc-input-row:last-child :deep(.tree-cell),
+.cc-input-row:last-child :deep(.tree-cell::after),
+.cc-input-row:last-child :deep(.chip) {
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;
 }

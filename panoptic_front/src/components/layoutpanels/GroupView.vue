@@ -77,9 +77,13 @@ const counts = computed(() => {
 // there is no separate free-floating axis. The view requires ≥1 grouping property; with none there
 // is no target.
 const targetPropertyId = computed<number | null>(() => {
-    const gb = props.collection.groupState?.groupBy ?? []
+    const gb = targetPropertyIds.value
     return gb.length ? gb[gb.length - 1] : null
 })
+
+// Every grouping level, outermost first: the cards show one input per level, so grouping by
+// A then B lets both values be read and edited on each card.
+const targetPropertyIds = computed<number[]>(() => props.collection.groupState?.groupBy ?? [])
 
 // ---- The empty bucket -----------------------------------------------------------------------
 // The undecided pile: the leaf-level property group whose target value is null/undefined. Clustering
@@ -161,16 +165,23 @@ function clusterInstances(groupId: number) {
 // From the per-card typed property input (ClusterPropertyInput): the value is already typed
 // (tag id array, number, date, …). A defined value assigns it and drains the pile into its
 // value-group; an undefined value clears the property (undecide) and the pile stays in place.
-async function assignClusterValue(groupId: number, value: any) {
-    if (targetPropertyId.value == null) return
+// `propertyId` names which grouping level's input was edited; defaults to the leaf target.
+async function assignClusterValue(groupId: number, value: any, propertyId?: number) {
+    const pid = propertyId ?? targetPropertyId.value
+    if (pid == null) return
     const imgs = clusterInstances(groupId)
     if (!imgs.length) return
-    await data.setPropertyValue(targetPropertyId.value, imgs, value)
+    await data.setPropertyValue(pid, imgs, value)
     // The value write kicks off the collection's reflow (updateSelection) asynchronously, so
     // awaiting setPropertyValue alone left the drain racing it. settle() waits for that reflow,
     // giving the documented order: tree reflows into the value-group, THEN the pile drains.
     await props.collection.settle()
-    if (value !== undefined && value !== null) props.collection.drainCluster(groupId, imgs.map(i => i.id))
+    // Draining moves the assigned images out of their pile into the value-group the write just
+    // created — which only exists for the LEAF grouping. An outer-level assignment reflows the
+    // tree on its own, so there is nothing to drain.
+    if (value !== undefined && value !== null && pid === targetPropertyId.value) {
+        props.collection.drainCluster(groupId, imgs.map(i => i.id))
+    }
 }
 
 // ---- Standalone tree fed to ClusterScroller --------------------------------------
@@ -459,7 +470,7 @@ onUnmounted(() => {
                         :width="primaryWidth"
                         :layout-width="totalWidth"
                         :properties="props.properties"
-                        :target-property-id="targetPropertyId ?? undefined"
+                        :target-property-ids="targetPropertyIds"
                         :view-mode="viewMode"
                         :highlight-ids="highlightIds"
                         :opened-ids="detailGroupIds"
