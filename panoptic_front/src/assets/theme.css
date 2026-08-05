@@ -48,6 +48,9 @@
   --grey: rgb(246, 246, 247);
   --light-grey: rgb(233, 233, 233);
   --blue: #007bff;
+  /* The blue of an edited cell: its frame while editing, and the ring of the popup that frame
+     opens. Softened, because it outlines a whole row rather than marking a point. */
+  --cell-blue: color-mix(in srgb, var(--blue) 45%, white);
   --tab-grey: rgb(226, 226, 226);
   --selected-grey: #e5e3e3;
 

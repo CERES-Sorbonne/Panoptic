@@ -52,7 +52,7 @@ const name = computed(() => {
 <template>
     <div class="badge tag-badge" :style="{ backgroundColor: background, color: textColor }">
 
-        <span class="m-0 p-0">
+        <span class="m-0 p-0 label">
             <span>{{ name }}</span>
             <!-- trails the label, as on the chips in the tag editor -->
             <span v-if="showDelete" @click.prevent.stop="$emit('delete')" class="bi bi-x tag-x"></span>
@@ -74,10 +74,19 @@ const name = computed(() => {
     font-weight: 400;
 }
 
+/* The delete glyph is a font icon with taller metrics than the label: left inline it stretches
+   the badge's line box and pushes the label off centre. Laying the two out as a flex row takes
+   the glyph's metrics out of the line entirely. */
+.label {
+    display: inline-flex;
+    align-items: center;
+}
+
 /* inherits the badge's text colour, dimmed, so it never fights the label */
 .tag-x {
     margin-left: 3px;
     opacity: 0.55;
+    line-height: 1;
 }
 
 .tag-x:hover {

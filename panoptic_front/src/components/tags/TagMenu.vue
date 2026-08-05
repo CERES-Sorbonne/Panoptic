@@ -152,10 +152,10 @@ watch(filteredTagList, () => {
         <!-- what the list below is for -->
         <div class="list-hint">{{ $t('tag_menu_hint') }}</div>
 
-        <div class="pb-0" style="max-height: 300px; overflow-y: auto;">
-            <div v-for="tag, index in filteredTagList" :class="optionClass(index)" style="cursor: pointer;"
-                @mouseover="selectedIndex = index" @mouseleave="endSelection(index)">
-                <div class="ms-2 d-flex">
+        <div class="pb-0 tag-list" style="max-height: 300px; overflow-y: auto;">
+            <div v-for="tag, index in filteredTagList" :class="[optionClass(index), 'tag-row']"
+                style="cursor: pointer;" @mouseover="selectedIndex = index" @mouseleave="endSelection(index)">
+                <div class="ms-2 d-flex align-items-center">
                     <div class="flex-grow-1" style="overflow: hidden;" @click="selectOption">
                         <TagBadge :id="tag.id" />
                     </div>
@@ -175,11 +175,14 @@ watch(filteredTagList, () => {
 
                 </div>
             </div>
-            <div v-if="props.canCreate && isCreatePossible" :class="optionClass(filteredTagList.length)"
+            <div v-if="props.canCreate && isCreatePossible" :class="[optionClass(filteredTagList.length), 'tag-row']"
                 style="cursor: pointer;" @mouseover="selectedIndex = filteredTagList.length"
                 @click.prevent.stop="selectOption">
-                <span class="text-muted ms-1">{{ $t('tag_menu_create') }} </span>
-                <TagBadge :name="tagFilter" :color="-1" />
+                <!-- same ms-2 indent as the tag rows above: it is one of them, not a footer -->
+                <div class="ms-2 d-flex align-items-center">
+                    <span class="text-muted me-1">{{ $t('tag_menu_create') }}</span>
+                    <TagBadge :name="tagFilter" :color="-1" />
+                </div>
             </div>
         </div>
     </div>
@@ -200,6 +203,17 @@ watch(filteredTagList, () => {
 
 .search-row {
     padding: 4px 8px 6px;
+}
+
+/* A row is a badge with room around it, not a line of text: without this the badges stack edge
+   to edge and read as one block. The padding is what separates them; the badge itself is then
+   centred in the row it sits in. */
+.tag-row {
+    /* pulled 4px out on each side and given the same back as padding: the row's highlight runs
+       wider than its content instead of hugging the badge, while the badge itself does not move */
+    margin: 0 -4px;
+    padding: 3px 4px;
+    border-radius: 3px;
 }
 
 .list-hint {

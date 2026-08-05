@@ -100,7 +100,7 @@ defineExpose({ valueZone, root, iconZone })
 
 .tree-cell:focus-within::after,
 .tree-cell.active::after {
-    box-shadow: inset 0 0 0 1px var(--blue);
+    box-shadow: inset 0 0 0 1px var(--cell-blue);
 }
 
 /* positioned so they paint above the background slot, which is absolute */
