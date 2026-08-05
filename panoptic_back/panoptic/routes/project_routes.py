@@ -24,7 +24,7 @@ from panoptic.models.stream_models import (
     FileValuesColumn, FullInstance, ImageValuesColumn, InstanceValuesColumn,
     LoadState, StreamChunk, StreamResult, TagCount,
 )
-from panoptic.core.databases.data.system_properties import is_readonly
+from panoptic.core.databases.data.system_properties import is_readonly, is_system
 from panoptic.core.databases.entity_schema import OP_CREATE, OP_DELETE
 from panoptic.core.databases.data.create import (
     FILES_SCHEMA, INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
@@ -996,15 +996,31 @@ def _to_ids(val: Any, n: int) -> range:
     return val
 
 
-def _readonly_guard(project: Project, ids: Iterable[int]) -> dict[int, Property]:
+def _readonly_guard(project: Project, ids: Iterable[int],
+                    existing: dict[int, Property] = None) -> dict[int, Property]:
     """Load the existing properties once and refuse the commit if any targeted one
     is read-only (see is_readonly). Returns the id -> Property map so callers can
     merge updates onto the stored row instead of rebuilding it from scratch."""
-    existing = {p.id: p for p in project.get_properties()}
+    if existing is None:
+        existing = {p.id: p for p in project.get_properties()}
     for pid in ids:
         prop = existing.get(pid)
         if prop is not None and is_readonly(prop):
             raise HTTPException(403, f'Property {prop.id} ({prop.name}) is read-only')
+    return existing
+
+
+def _system_guard(project: Project, ids: Iterable[int],
+                  existing: dict[int, Property] = None) -> dict[int, Property]:
+    """Same as _readonly_guard but only refuses system / metadata properties.
+    Used for property deletion: a read-only property (plugin or import owned) may
+    be deleted, a computed one may not."""
+    if existing is None:
+        existing = {p.id: p for p in project.get_properties()}
+    for pid in ids:
+        prop = existing.get(pid)
+        if prop is not None and is_system(prop):
+            raise HTTPException(403, f'Property {prop.id} ({prop.name}) is a system property')
     return existing
 
 
@@ -1135,13 +1151,16 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), us
 def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep), user_id: str = None):
     from panoptic.core.databases.entity_schema import OP_DELETE
 
-    # Read-only guard — deleting a system property orphans its system_key resolution,
-    # and clearing values of a computed property is meaningless.
-    touched = set(req.empty_properties)
+    # Deleting a system property orphans its system_key resolution → refused.
+    # A plain read-only property (plugin / import owned) can be deleted outright,
+    # but its values cannot be cleared piecemeal.
+    existing = _system_guard(project, (i for i in req.empty_properties if i is not None))
+
+    touched = set()
     touched.update(v.property_id for v in req.empty_instance_values)
     touched.update(v.property_id for v in req.empty_image_values)
     touched.update(v.property_id for v in req.empty_file_values)
-    _readonly_guard(project, (i for i in touched if i is not None))
+    _readonly_guard(project, (i for i in touched if i is not None), existing)
 
     reload = False
     # Structural (instances): hard delete + GC, not undoable → frontend full-reload.

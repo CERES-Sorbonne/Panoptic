@@ -27,6 +27,15 @@ SYSTEM_PROPERTIES: list[SystemProperty] = [
 SYSTEM_PROPERTY_MAP: dict[str, SystemProperty] = {p.key: p for p in SYSTEM_PROPERTIES}
 
 
+def is_system(prop: Property) -> bool:
+    """A property is a system / metadata property if panoptic computes it from the
+    instance or file tables (system_key). Those cannot be deleted: dropping one
+    orphans its system_key resolution. Plain read-only properties (access='read',
+    owned by a plugin or an import) can be deleted, only not edited.
+    """
+    return bool(prop.system_key)
+
+
 def is_readonly(prop: Property) -> bool:
     """A property is read-only if panoptic computes it (system_key) or its owner
     (a plugin, an import) declared it non-editable via access='read'.
