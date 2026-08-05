@@ -10,14 +10,15 @@ import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
 import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
-import { Instance, Property, PropertyType } from '@/data/models';
+import { Property, PropertyType } from '@/data/models';
+import { InstanceEntry } from '@/data/instanceStore';
 import { isTag } from '@/utils/utils';
 import { computed, ref } from 'vue';
 
 const data = useDataStore()
 
 const props = defineProps<{
-    instance: Instance
+    instance: InstanceEntry
     property: Property
     minHeight: number
     width: number

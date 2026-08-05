@@ -29,7 +29,7 @@ const projectName = computed(() => project.state?.name ?? '')
 const currentUser = computed(() => panoptic.connectionState?.user?.name ?? null)
 
 // Global selection ids, reactive via selectionVersion.
-const selectedImageIds = computed(() => { col.selectionVersion.value; return col.getSelectedIds() })
+const selectedImageIds = computed(() => { col.selectionVersion; return col.getSelectedIds() })
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 function clearSelection() {

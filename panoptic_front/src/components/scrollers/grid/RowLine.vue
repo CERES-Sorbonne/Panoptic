@@ -8,6 +8,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
 import { useColumnStore } from '@/data/columnStore';
+import { emptyInstanceEntry, useInstanceStore } from '@/data/instanceStore';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GridPropInput from './GridPropInput.vue';
 import { TabManager } from '@/core/TabManager';
@@ -39,19 +40,18 @@ const hover = ref(false)
 
 
 const tab = computed(() => props.tab.state)
-const rawImage = computed(() => {
+const instanceId = computed(() => {
     if (props.item.type == 'pile') {
         const handle = (props.item as PileRowLine).data
-        const instanceId = columnStore.instanceIds()[handle.slots[0]]
-        return store.instances[instanceId] ?? { id: instanceId, imageUrl: '', properties: {} }
+        return columnStore.instanceIds()[handle.slots[0]]
     }
-    return (props.item as RowLine).data
+    return (props.item as RowLine).data.id
 })
 
 // Use the reactive instance from the store so property values populated by
 // InstanceData (via register) are reflected here without an extra fetch.
 const image = computed(() =>
-    (store.instances[rawImage.value.id] ?? rawImage.value) as typeof rawImage.value
+    useInstanceStore().instanceData[instanceId.value] ?? emptyInstanceEntry(instanceId.value)
 )
 
 const pile = computed(() => {

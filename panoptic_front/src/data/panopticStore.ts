@@ -153,18 +153,18 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     // Project management
     // ---------------------------------------------------------------
 
-    async function loadProject(projectId: string) {
+    async function loadProject(projectId: string | number) {
         project.clear()
         await apiLoadProject(projectId)
     }
 
-    async function closeProject(projectId: string) {
+    async function closeProject(projectId: string | number) {
         notifs.value = []
         project.clear()
         await apiCloseProject(projectId)
     }
 
-    async function deleteProject(projectId: string) {
+    async function deleteProject(projectId: string | number) {
         const deleteFiles: boolean = window.confirm("Would you also like to delete the associated files?")
         await apiDeleteProject(projectId, deleteFiles)
         await fetchProjects()

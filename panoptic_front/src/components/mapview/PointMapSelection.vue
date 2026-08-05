@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
-import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
+import SelectDropdown from '../dropdowns/SelectDropdown.vue';
+import { SelectOption } from '@/data/models';
 import { keyState } from '@/data/keyState';
 import { useMediaStore } from '@/data/mediaStore';
 import { objValues } from '@/utils/utils';

@@ -136,7 +136,7 @@ watch(relative, () => proposeReparse.value = true)
 
                     <tr v-for="p, i in uploadConfirm.colToProperty" class="border"
                         :class="!take[i] ? 'dimmed' : ''">
-                        <td class="border text-center"><input v-if="i != 0" type="checkbox" v-model="take[i]" />
+                        <td class="border text-center"><input v-if="Number(i) != 0" type="checkbox" v-model="take[i]" />
                         </td>
                         <td class="border text-center">{{ i }}</td>
                         <td class="border">

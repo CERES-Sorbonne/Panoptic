@@ -464,8 +464,8 @@ watch(visiblePropertiesNb, () => {
     // pe(false) skips Oe() when the visible range is stable — no full pool
     // reset, no LIFO slot scramble, no sha1 changes, no blank flash.
     for (const l of lines) {
-        if (l.type === 'images') l.size = imageLineSizeFor(l.imageSize)
-        else if (l.type === 'piles') l.size = pileLineSizeFor(l.imageSize)
+        if (l.type === 'images') l.size = imageLineSizeFor((l as ImageLine).imageSize)
+        else if (l.type === 'piles') l.size = pileLineSizeFor((l as ScrollerPileLine).imageSize)
     }
 
     imageLines.value = [...lines]
@@ -494,25 +494,25 @@ watch(() => props.manager.version.value, triggerUpdate)
                 <template v-if="true">
                     <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                     <div v-if="item.type == 'group' && !props.hideGroup">
-                        <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                        <GroupLineVue :item="(item as GroupLine)" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                             :manager="props.manager" :hide-options="props.hideOptions" :data="props.manager.result"
                             @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
                             @group:close="closeGroup" @group:open="openGroup" @select="toggleGroupSelect"
                             @reco="emit('reco', $event)" />
                     </div>
                     <div v-else-if="item.type == 'images'">
-                        <ImageLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
+                        <ImageLineVue :image-size="(item as ImageLine).imageSize" :input-index="index * maxPerLine" :item="(item as ImageLine)"
                             :index="props.manager.result.index" :hover-border="hoverGroupBorder"
                             :parent-ids="getImageLineParents(item)" :properties="props.properties"
-                            @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
+                            @update:selected-image="e => updateImageSelection(e, (item as ImageLine))" @scroll="scrollTo"
                             @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                     </div>
                     <div v-else-if="item.type == 'piles'">
-                        <PileLine :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
+                        <PileLine :image-size="(item as ScrollerPileLine).imageSize" :input-index="index * maxPerLine" :item="(item as ScrollerPileLine)"
                             :index="props.manager.result.index" :hover-border="hoverGroupBorder"
                             :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                             :sha1-scores="props.sha1Scores" :preview="props.preview"
-                            @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
+                            @update:selected-image="e => updateImageSelection(e, (item as ImageLine))" @scroll="scrollTo"
                             @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                     </div>
                     <div v-else-if="item.type == 'filler'">

@@ -144,9 +144,9 @@ function rebuildWindow() {
     const bottomH = totalH - cumSizes[end + 1]
 
     const items: ScrollerLine[] = []
-    if (topH    > 0) items.push({ id: '__top__',    type: 'fillter', size: topH })
+    if (topH    > 0) items.push({ id: '__top__',    type: 'fillter', size: topH, data: null })
     for (let i = start; i <= end; i++) items.push(dataLines[i])
-    if (bottomH > 0) items.push({ id: '__bottom__', type: 'fillter', size: bottomH })
+    if (bottomH > 0) items.push({ id: '__bottom__', type: 'fillter', size: bottomH, data: null })
 
     rowLines.value = items
 }
@@ -215,7 +215,7 @@ function computeLines() {
     }
 
     visit(props.manager.result.root)
-    lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length })
+    lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length, data: null })
 
     dataLines = lines
     buildCumSizes()

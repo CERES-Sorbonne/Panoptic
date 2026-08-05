@@ -95,15 +95,15 @@ export async function apiGetPlugins() {
     })) as PluginKey[]
 }
 
-export async function apiLoadProject(projectId: string) {
+export async function apiLoadProject(projectId: string | number) {
     await panopticApi.post('/load', { id: projectId })
 }
 
-export async function apiCloseProject(projectId: string) {
+export async function apiCloseProject(projectId: string | number) {
     await panopticApi.post('/close', { id: projectId })
 }
 
-export async function apiDeleteProject(projectId: string, deleteFiles: boolean) {
+export async function apiDeleteProject(projectId: string | number, deleteFiles: boolean) {
     await panopticApi.post('/delete_project', { id: projectId, delete_files: deleteFiles })
 }
 

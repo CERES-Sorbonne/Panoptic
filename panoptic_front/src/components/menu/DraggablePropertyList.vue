@@ -2,7 +2,7 @@
 import { TabManager } from '@/core/TabManager';
 import { useDataStore } from '@/data/dataStore';
 import { PropertyGroupNode } from '@/data/models';
-import { defineProps, defineEmits, reactive, onMounted, ref, watch, nextTick, triggerRef } from 'vue'
+import { reactive, onMounted, ref, watch, nextTick, triggerRef } from 'vue'
 import draggableComponent from 'vuedraggable';
 import PropertyOptions from './PropertyOptions.vue';
 import PropertyGroup from './PropertyGroup.vue';

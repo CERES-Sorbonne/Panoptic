@@ -57,7 +57,7 @@ function updateOperator(filterId: number, operator: FilterOperator.and | FilterO
                     </template>
                     <span v-else class="text-secondary">{{ $t('modals.filters.' + filter.groupOperator) }}</span>
                 </td>
-                <FilterRow v-if="(children as Filter).propertyId !== undefined" :filter="children"
+                <FilterRow v-if="(children as Filter).propertyId !== undefined" :filter="(children as Filter)"
                     :manager="props.manager" />
                 <td v-else colspan="3" :style="subGroupStyle">
                     <div class="border rounded">

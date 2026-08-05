@@ -33,7 +33,7 @@ const columnStore = useColumnStore()
 const loaded = ref(true)
 
 const selected = computed(() => {
-    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
+    columnStore.selectionVersion  // reactive dep on global selection (step 2)
     if (props.item.type == 'image') {
         return columnStore.isSelectedId((props.item as RowLine).data.id)
     } else if (props.item.type == 'pile') {

@@ -74,7 +74,7 @@ watch(() => props.plugin, updateLocalDefaults)
             <div v-for="param in localDefaults" class="param">
                 <!-- {{ param }} -->
                 <template v-if="localDefaults[param.name]">
-                    <ParamInput :input="param" />
+                    <ParamInput :input="param" :source="props.plugin.name" />
                     <div class="text-secondary">{{ param.description }}</div>
                 </template>
             </div>

@@ -13,7 +13,7 @@ import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
-import ColumnStatusDropdown from '../Dropdowns/ColumnStatusDropdown.vue';
+import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue';
 import { useInputStore } from '@/data/inputStore';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
@@ -32,7 +32,7 @@ const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 const localQuery = ref<TextQuery>({ type: 'text', text: '' })
 
 // Global selection ids (note §5, step 2), reactive via selectionVersion.
-const selectedImageIds = computed(() => { col.selectionVersion.value; return col.getSelectedIds() })
+const selectedImageIds = computed(() => { col.selectionVersion; return col.getSelectedIds() })
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 

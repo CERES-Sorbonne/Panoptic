@@ -1,7 +1,7 @@
 <script setup>
 
 import { globalStore } from '../../data/store';
-import TagList from '../foldertree/TagList.vue';
+import TagList from '../FolderTree/TagList.vue';
 
 const emits = defineEmits(['update:selected'])
 

@@ -117,7 +117,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     // signal (Q-I).
     const selectionVersions = reactive<Record<string, number>>({ global: 0 })
     // Backward-compatible global tick: existing global consumers read
-    // `col.selectionVersion.value` (Pinia unwraps it; the `.value` is a no-op).
+    // `col.selectionVersion` (Pinia unwraps the computed ref).
     const selectionVersion = computed(() => selectionVersions.global)
     const isReady = ref(false)
     const instanceCount = ref(0)

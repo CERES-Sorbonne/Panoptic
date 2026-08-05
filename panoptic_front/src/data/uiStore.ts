@@ -124,7 +124,9 @@ export const useUiStore = defineStore('uiStore', () => {
         }
     }
 
-    function setPanelState(key: keyof PanelStates, value: boolean) {
+    type BooleanPanelKey = { [K in keyof PanelStates]: PanelStates[K] extends boolean ? K : never }[keyof PanelStates]
+
+    function setPanelState(key: BooleanPanelKey, value: boolean) {
         panelStates[key] = value
     }
 

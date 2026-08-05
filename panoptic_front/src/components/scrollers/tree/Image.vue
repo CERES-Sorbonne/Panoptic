@@ -9,7 +9,7 @@ import Zoomable from '@/components/Zoomable.vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from './TreePropertyInput.vue'
 import { useColumnStore } from '@/data/columnStore'
-import { useInstanceStore } from '@/data/instanceStore.js'
+import { emptyInstanceEntry, useInstanceStore } from '@/data/instanceStore'
 import { useDataStore } from '@/data/dataStore'
 
 const panoptic = usePanopticStore()
@@ -45,9 +45,9 @@ const instanceId = computed(() => store.instanceIds()[props.image.slot])
 const inst = computed(() => {
     const id = instanceId.value
     if (id === undefined || isNaN(id)) {
-        return { id: -1, properties: {} }
+        return emptyInstanceEntry(-1)
     }
-    return useInstanceStore().instanceData[id] ?? { id: id, properties: {}, baseUrl: '', sha1: '' }
+    return useInstanceStore().instanceData[id] ?? emptyInstanceEntry(id)
 })
 
 const isSelected = computed(() => props.selected ?? false)

@@ -22,6 +22,11 @@ export interface InstanceEntry {
     [systemKey: string]: any // <-- Index signature to allow dynamic direct keys safely
 }
 
+// Placeholder used by components that render before an instance has streamed in.
+export function emptyInstanceEntry(id: number): InstanceEntry {
+    return { id, sha1: '', imageUrl: '', properties: {}, propertyStatus: {}, selected: false }
+}
+
 type Registration = { instanceIds: number[]; propIds: number[] }
 
 export const useInstanceStore = defineStore('instanceStore', () => {

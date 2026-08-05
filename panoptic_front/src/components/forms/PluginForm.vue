@@ -18,7 +18,7 @@ const pipPath = ref('')
 const pluginName = ref('')
 const isLoading = ref(false)
 
-const takenNames = computed(() => panoptic.plugins.map(p => p.name))
+const takenNames = computed(() => panoptic.plugins.map(p => p.id))
 const isNameValid = computed(() => {
     if (pluginName.value == '') return false
     if (takenNames.value.includes(pluginName.value)) return false

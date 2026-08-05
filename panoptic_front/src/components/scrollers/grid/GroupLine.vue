@@ -30,7 +30,7 @@ function toggleClosed() {
 }
 
 const selected = computed(() => {
-    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
+    columnStore.selectionVersion  // reactive dep on global selection (step 2)
     return !props.item.data.slots.some(s => !columnStore.isSelected(s))
 })
 

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
+import { LoadState } from '@/data/models'
 import LoadWheel from './LoadWheel.vue'
 import Percentage from './Percentage.vue'
 
@@ -31,7 +32,9 @@ const columnProgressMap = computed(() => {
 })
 const showPanel = computed(() => !data.isLoaded || loadingColumns.value.length > 0)
 
-const state = computed(() => data.loadState)
+// dataStore no longer exposes a streamed LoadState (init is a single fetch), so the
+// per-step indicators stay in their loading state until isLoaded flips.
+const state = computed<LoadState | undefined>(() => undefined)
 const pct = computed(() => {
     if (!state.value || !state.value.maxInstance) return 0
     return Math.round(state.value.counterInstance / state.value.maxInstance * 100)

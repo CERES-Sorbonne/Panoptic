@@ -96,7 +96,7 @@ async function call() {
         for (let i in localInputs.value) {
             actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
         }
-        await actions.updateDefaultParams()
+        await actions.updateDefaultParams(funcId)
 
         const update = {}
         update[props.action] = localFunction.value

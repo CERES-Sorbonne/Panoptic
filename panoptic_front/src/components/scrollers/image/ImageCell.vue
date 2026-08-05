@@ -8,7 +8,7 @@ import { Property } from '@/data/models'
 import Zoomable from '@/components/Zoomable.vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from '@/components/scrollers/tree/TreePropertyInput.vue'
-import { useInstanceStore } from '@/data/instanceStore.js'
+import { emptyInstanceEntry, useInstanceStore } from '@/data/instanceStore'
 import { useDataStore } from '@/data/dataStore'
 import { Instance } from '@/data/models'
 
@@ -41,7 +41,7 @@ const w = computed(() => props.width ?? props.size)
 // Reactive per-instance data (property values live here, keyed by instance id).
 const inst = computed(() => {
     const id = props.instance.id
-    return useInstanceStore().instanceData[id] ?? { id, properties: {}, baseUrl: '', sha1: '' }
+    return useInstanceStore().instanceData[id] ?? emptyInstanceEntry(id)
 })
 
 const isSelected = computed(() => props.selected ?? false)

@@ -2,6 +2,8 @@ import { getFolderAndParents, isTag } from "@/utils/utils"
 import { Folder, FolderIndex, Instance, TagIndex } from "./models"
 import { GroupManager } from "@/core/GroupManager"
 import { useDataStore } from "./dataStore"
+import { useColumnStore } from "./columnStore"
+import { useInstanceStore } from "./instanceStore"
 
 export function buildFolderNodes(folders: Array<Folder>) {
     let res = {} as FolderIndex
@@ -35,7 +37,7 @@ export function buildFolderNodes(folders: Array<Folder>) {
 export function computeTagCount() {
     const data = useDataStore()
     const tags = data.tags
-    const images = data.instanceList
+    const images = Object.values(useInstanceStore().instanceData)
     const properties = data.propertyList.filter(p => isTag(p.type))
 
     for(let tag of Object.values(tags)) {
@@ -59,6 +61,7 @@ export function computeTagCount() {
 
 export function countImagePerFolder(folders: FolderIndex, images: Instance[]) {
     const data = useDataStore()
+    const col = useColumnStore()
     const folderProp = Object.values(data.properties).find(p => p.systemKey === 'folder')
     const folderPropId = folderProp?.id
     const folderToParents: {[fId: number]: number[]} = {}
@@ -70,8 +73,8 @@ export function countImagePerFolder(folders: FolderIndex, images: Instance[]) {
 
     images.forEach(img => {
         if (folderPropId === undefined) return
-        const slot = data.slotMap.get(img.id)
-        const folderId: number = slot !== undefined ? data.readSlot(folderPropId, slot) : undefined
+        const slot = col.slotMap.get(img.id)
+        const folderId: number = slot !== undefined ? col.readSlot(folderPropId, slot) : undefined
         if (folderId != null && folderToParents[folderId]) {
             folderToParents[folderId].forEach(id => folders[id].count += 1)
         }

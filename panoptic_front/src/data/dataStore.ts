@@ -337,7 +337,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (needsPropertyTree) computePropertyTree()
 
         // Re-fetch all tag counts if any tag property had value changes
-        const allChunks = (delta.instanceValues ?? []).concat(delta.imageValues ?? [])
+        const allChunks: { propertyId: number }[] = [...(delta.instanceValues ?? []), ...(delta.imageValues ?? [])]
         for (let i = 0; i < allChunks.length; i++) {
             if (isTag(properties.value[allChunks[i].propertyId]?.type)) {
                 fetchTagCounts()

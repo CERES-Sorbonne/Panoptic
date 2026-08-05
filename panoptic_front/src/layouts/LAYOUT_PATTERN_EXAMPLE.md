@@ -1,14 +1,18 @@
-<!--
-  EXAMPLE: How to use SplitLayout with uiStore
+# EXAMPLE: How to use SplitLayout with uiStore
 
-  This demonstrates the layout + state separation pattern:
-  - SplitLayout is pure layout (no data logic)
-  - uiStore manages UI state (panel sizes, visibility)
-  - View component connects them together
-  - Each reactive state in uiStore has its own watcher for persistence
--->
+This demonstrates the layout + state separation pattern:
 
+- `SplitLayout` is pure layout (no data logic)
+- `uiStore` manages UI state (panel sizes, visibility)
+- View component connects them together
+- Each reactive state in `uiStore` has its own watcher for persistence
+
+`PropertyList` / `PropertyDetail` below are stand-ins for any data-aware feature
+component — they are not real files.
+
+```vue
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useUiStore } from '@/data/uiStore'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import PropertyList from '@/components/properties/PropertyList.vue'
@@ -52,30 +56,29 @@ function handleResize(newSize: number) {
         </template>
     </SplitLayout>
 </template>
+```
 
-<!--
-  KEY PATTERN RULES:
+## Key pattern rules
 
-  1. Layout components (SplitLayout) are PURE:
-     - Only accept layout props (size, direction, gap, resizable)
-     - Only emit layout events (@resize, etc)
-     - No imports from @/data stores
-     - No business logic
+1. Layout components (`SplitLayout`) are PURE:
+   - Only accept layout props (size, direction, gap, resizable)
+   - Only emit layout events (`@resize`, etc)
+   - No imports from `@/data` stores
+   - No business logic
 
-  2. UI State (uiStore) manages:
-     - Panel visibility (panelStates)
-     - Panel sizes (resizeStates)
-     - Scroll positions (scrollStates)
-     - Each state is watched and auto-persisted to backend
+2. UI State (`uiStore`) manages:
+   - Panel visibility (`panelStates`)
+   - Panel sizes (`resizeStates`)
+   - Scroll positions (`scrollStates`)
+   - Each state is watched and auto-persisted to backend
 
-  3. View components (like this one) connect them:
-     - Import uiStore
-     - Map uiStore state to layout props
-     - Map layout events to uiStore updates
-     - Import and compose feature components
+3. View components (like this one) connect them:
+   - Import `uiStore`
+   - Map `uiStore` state to layout props
+   - Map layout events to `uiStore` updates
+   - Import and compose feature components
 
-  4. Feature components (@src/components) are data-aware:
-     - Handle business logic
-     - Import stores as needed
-     - Never know about layout structure
--->
+4. Feature components (`@src/components`) are data-aware:
+   - Handle business logic
+   - Import stores as needed
+   - Never know about layout structure

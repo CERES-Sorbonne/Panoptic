@@ -1,6 +1,7 @@
 import { buildGroup, ClusterParam, Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
 import { useDataStore } from "@/data/dataStore"
+import { InstanceEntry } from "@/data/instanceStore"
 import { deletedID, PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { useColumnStore } from "@/data/columnStore"
@@ -11,7 +12,7 @@ import { Exception } from "sass"
 let _tmpIdCounter = -10000
 export function getTmpId() { return _tmpIdCounter-- }
 
-export function hasProperty(image: Instance, propertyId: number) {
+export function hasProperty(image: InstanceEntry, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
 
@@ -43,7 +44,7 @@ export function getFolderChildren(folderId: number) {
     return res
 }
 
-export function computedPropValue(property: Ref<Property>, image: Ref<Instance>) {
+export function computedPropValue(property: Ref<Property>, image: Ref<InstanceEntry>) {
     const propValue = computed(() => {
         if (!hasProperty(image.value, property.value.id)) {
             return undefined
@@ -268,14 +269,14 @@ export async function fileToBase64(file) {
     });
 }
 
-export function getComputedValues(instance: Instance) {
+export function getComputedValues(instance: InstanceEntry) {
     const res = [instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
     return res;
 }
 
 
-export function computeTagToInstance(instances: Instance[], properties: Property[], tags: Tag[], tagIndex: TagIndex) {
-    const res: { [tId: number]: Instance[] } = {}
+export function computeTagToInstance(instances: InstanceEntry[], properties: Property[], tags: Tag[], tagIndex: TagIndex) {
+    const res: { [tId: number]: InstanceEntry[] } = {}
 
     for (let tag of tags) {
         res[tag.id] = []

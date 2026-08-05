@@ -40,7 +40,7 @@ async function submit() {
     for (let i in localInputs.value) {
         actions.index[props.functionId].params[i].defaultValue = localInputs.value[i].defaultValue
     }
-    await actions.updateDefaultParams()
+    await actions.updateDefaultParams(props.functionId)
     emits('changed')
 }
 

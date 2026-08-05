@@ -1,13 +1,14 @@
 <!-- Wrapper to connect any property input to a value in the database -->
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
-import { Instance, Property } from '@/data/models';
+import { Property } from '@/data/models';
+import { InstanceEntry } from '@/data/instanceStore';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 const data = useDataStore()
 
 const props = defineProps<{
-    instance: Instance
+    instance: InstanceEntry
     propertyId: number
 }>()
 const emits = defineEmits([])

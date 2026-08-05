@@ -66,7 +66,7 @@ function toggleGroup(group) {
 }
 
 const selectedCount = computed(() => {
-    col.selectionVersion.value  // reactive dep on global selection (step 2)
+    col.selectionVersion  // reactive dep on global selection (step 2)
     return col.selectedCount()
 })
 

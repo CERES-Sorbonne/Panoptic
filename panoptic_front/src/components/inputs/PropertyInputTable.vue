@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Instance, isReadonly, Property, PropertyMode, PropertyType } from '@/data/models';
+import { isReadonly, Property, PropertyMode, PropertyType } from '@/data/models';
+import { InstanceEntry } from '@/data/instanceStore';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
@@ -10,7 +11,7 @@ import { nextTick, ref, shallowRef } from 'vue';
 const data = useDataStore()
 
 const props = defineProps<{
-    image: Instance
+    image: InstanceEntry
     properties: Property[]
     visibleProperties: { [id: number]: boolean }
 }>()
