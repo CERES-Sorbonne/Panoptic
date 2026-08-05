@@ -102,6 +102,7 @@
             "selected_images": "image(s)",
             "tag_selection": "Tagger ",
             "remove_selection_tooltip": "Annuler la sélection",
+            "show_selection_tooltip": "Afficher les images sélectionnées",
             "filters": "Filtrer",
             "groupby": "Grouper",
             "sort": {

@@ -7,8 +7,11 @@ import { useDataStore } from '@/data/dataStore';
 import ActionButton2 from '../actions/ActionButton2.vue';
 import { useTabStore } from '@/data/tabStore';
 import WithToolTip from '../tooltips/withToolTip.vue';
+import { useModalStore } from '@/data/modalStore';
+import { ModalId } from '@/data/models';
 
 const data = useDataStore()
+const modals = useModalStore()
 
 const props = defineProps({
     selectedImagesIds: Array<number>
@@ -25,6 +28,10 @@ function openSelectionTab() {
     // useTabStore().addTab('Selection', true)
 }
 
+function openSelectionModal() {
+    modals.openModal(ModalId.SELECTION, { ids: props.selectedImagesIds ?? [] })
+}
+
 </script>
 
 <template>
@@ -33,6 +40,10 @@ function openSelectionTab() {
             <div class="seg count-seg" @click="emits('remove:selected')">
                 <i class="bi bi-x clear-icon" />
                 <span class="count">{{ images.length }}</span>
+            </div>
+        </WithToolTip>
+        <WithToolTip message="main.menu.show_selection_tooltip">
+            <div class="seg" @click="openSelectionModal">
                 <i class="bi bi-image" />
             </div>
         </WithToolTip>

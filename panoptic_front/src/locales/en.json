@@ -101,6 +101,7 @@
             "selected_images": "selected images",
             "tag_selection": "Tag the ",
             "remove_selection_tooltip": "Cancel selection",
+            "show_selection_tooltip": "Show selected images",
             "filters": "Filter ",
             "groupby": "Group ",
             "sort": {

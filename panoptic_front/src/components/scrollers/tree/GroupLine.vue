@@ -33,6 +33,15 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:o
 
 const hoverGroup = ref(false)
 
+// Number of fast-row dropdowns currently open. v-show alone isn't enough: once the mouse
+// leaves the line the row gets `display: none`, its button's bounding rect collapses to
+// 0x0, and floating-vue — which repositions on any content change, e.g. switching the
+// function inside ActionButton2 — then anchors the (teleported, still open) popup at the
+// top-left of the screen. Keeping the row laid out while a popup is open fixes that.
+const openFastPopups = ref(0)
+function onFastShow() { openFastPopups.value++ }
+function onFastHide() { openFastPopups.value = Math.max(0, openFastPopups.value - 1) }
+
 // The group tree is plain, non-reactive data: the manager's `version` ref is the only
 // change signal. Every computed derived from the tree must read it, otherwise it caches
 // its first value and refreshes only when some *other* reactive dep of this component
@@ -312,11 +321,11 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                  elsewhere in the DOM) isn't torn down when the mouse leaves this row.
                  A local "fast-row" class is used instead of bootstrap's d-flex, whose
                  `display: flex !important` would otherwise beat v-show's inline style. -->
-            <div v-show="hoverGroup" class="fast-row">
+            <div v-show="hoverGroup || openFastPopups > 0" class="fast-row">
                 <div v-if="!hasSubgroups" class="ms-1">
                     <WithToolTip message="dropdown.stamp.paint_group">
                         <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;"
-                            :show-number="true" />
+                            :show-number="true" @show="onFastShow" @hide="onFastHide" />
                     </WithToolTip>
                 </div>
 
@@ -326,7 +335,8 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                 </div>
                 <div class="ms-1">
                     <ActionButton2 :no-border="true" action="execute" :defer="true"
-                        :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster">
+                        :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster"
+                        @show="onFastShow" @hide="onFastHide">
                         <div class="bi bi-terminal"
                             style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
                         </div>

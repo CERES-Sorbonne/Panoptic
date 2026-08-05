@@ -19,7 +19,7 @@ const props = defineProps<{
     showNumber?: boolean
 }>()
 
-const emits = defineEmits(['stamped'])
+const emits = defineEmits(['stamped', 'show', 'hide'])
 
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
@@ -89,7 +89,7 @@ async function apply() {
 
 <template>
     <div class="m-0 p-0">
-        <Dropdown ref="dropdownElem" :teleport="true">
+        <Dropdown ref="dropdownElem" :teleport="true" @show="emits('show')" @hide="emits('hide')">
             <template #button>
                 <slot name="button">
                     <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">

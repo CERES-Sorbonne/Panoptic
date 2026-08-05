@@ -28,6 +28,7 @@ import FileSourceModal from '@/components/modals/FileSourceModal.vue'
 import TagModal from '@/components/modals/TagModal.vue'
 import FirstModal from '@/components/modals/FirstModal.vue'
 import NotifModal from '@/components/modals/NotifModal.vue'
+import SelectionModal from '@/components/modals/SelectionModal.vue'
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
@@ -145,6 +146,7 @@ onMounted(async () => {
     <TagModal />
     <FirstModal />
     <NotifModal />
+    <SelectionModal />
 </template>
 
 <style scoped>

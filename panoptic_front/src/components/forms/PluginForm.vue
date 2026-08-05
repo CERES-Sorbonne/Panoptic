@@ -53,7 +53,7 @@ function setLocalPath(value) {
 }
 
 function propmptFolder() {
-    panoptic.showModal(ModalId.FOLDERSELECTION, { callback: setLocalPath })
+    panoptic.showModal(ModalId.FOLDERSELECTION, { callback: setLocalPath, mode: 'images' })
 }
 
 function onNameFocus() {

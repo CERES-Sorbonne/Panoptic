@@ -12,6 +12,9 @@ import wTT from "@/components/tooltips/withToolTip.vue";
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
 import UserSelector from '@/components/home/UserSelector.vue';
+import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
+import FirstModal from '@/components/modals/FirstModal.vue';
+import NotifModal from '@/components/modals/NotifModal.vue';
 
 const panoptic = usePanopticStore()
 
@@ -105,6 +108,10 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
     <div v-if="show">
         <Egg />
         <Tutorial v-if="showTutorial" />
+
+        <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+        <FirstModal />
+        <NotifModal />
 
         <div class="window2 d-flex ">
             <div v-if="hasProjects" class="project-menu">

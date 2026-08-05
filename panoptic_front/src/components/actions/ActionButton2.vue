@@ -23,7 +23,7 @@ const props = defineProps<{
     defer?: boolean,
     busy?: boolean
 }>()
-const emits = defineEmits(['instances', 'groups', 'call', 'submit'])
+const emits = defineEmits(['instances', 'groups', 'call', 'submit', 'show', 'hide'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
@@ -99,6 +99,7 @@ function handleMainClick() {
 function handleShow() {
     showFunctionSelect.value = false
     loadAction()
+    emits('show')
 }
 
 function selectFunction(func) {
@@ -118,7 +119,7 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
+    <Dropdown :teleport="true" @show="handleShow" @hide="emits('hide')" ref="dropdownElem">
         <template #button>
             <div class="d-flex main2" :class="{ sbb: !props.noBorder, sb: props.noBorder }">
                 <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">

@@ -184,8 +184,9 @@ onMounted(async () => {
 .file-explorer {
     display: flex;
     width: 100%;
-    height: 100%;
-    min-height: 0;
+    /* The modal body has no resolved height, so height:100% would collapse. */
+    height: 70vh;
+    min-height: 400px;
     background-color: var(--island-surface);
     font-size: var(--font-size-sm);
     color: var(--text-primary);
