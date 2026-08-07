@@ -213,6 +213,12 @@ export function buildChartModel(
     let list = Array.from(drafts.values())
     let foldedSeries = 0
 
+    // A numeric second level reads top to bottom like the x axis reads left to right:
+    // sort the series ascending by value, whatever order the tree keeps them in.
+    if (seriesProp && NUMERIC_TYPES.has(seriesProp.type)) {
+        list.sort((a, b) => seriesNumericValue(a.key) - seriesNumericValue(b.key))
+    }
+
     if (list.length > MAX_SERIES) {
         // Keep the biggest values (by image count) but leave the survivors in tree order, so
         // a colour follows its value rather than its rank.
@@ -318,6 +324,13 @@ function axisKind(property: Property): XKind {
     if (property.type === PropertyType.date) return 'time'
     if (NUMERIC_TYPES.has(property.type)) return 'value'
     return 'category'
+}
+
+/** Sort key for a numeric series: the raw value, with missing values last. */
+function seriesNumericValue(key: string): number {
+    if (key === '__novalue__') return Number.MAX_VALUE
+    const n = Number(key)
+    return Number.isFinite(n) ? n : Number.MAX_VALUE
 }
 
 function toTime(raw: any): number | undefined {
