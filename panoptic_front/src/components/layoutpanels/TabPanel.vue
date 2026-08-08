@@ -4,11 +4,13 @@ import IslandPanel from '@/layouts/IslandPanel.vue'
 import TabButton from '@/components/mainview/TabButton.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
+import { useI18n } from 'vue-i18n'
 
 const tabStore = useTabStore()
+const { t } = useI18n()
 
 async function addTab() {
-    await tabStore.addTab('New Tab')
+    await tabStore.addTab(t('main.menu.new_tab'))
 }
 
 function selectTab(tabId: string) {
@@ -125,7 +127,7 @@ function selectTab(tabId: string) {
     background-color: transparent;
     line-height: 1;
     font-size: 13px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     cursor: pointer;
     transition: background-color var(--transition-fast), color var(--transition-fast);
 }
@@ -138,7 +140,8 @@ function selectTab(tabId: string) {
 .tab-bar :deep(.tab-button.active) {
     background-color: var(--primary-light);
     border-bottom: none;
-    color: var(--primary);
+    /* The tint alone marks the active tab — the label stays black like the others. */
+    color: var(--text-primary);
 }
 
 /* Close (×) button — floats over the top-right corner of the pill on hover
@@ -194,19 +197,11 @@ function selectTab(tabId: string) {
     display: none;
 }
 
-/* Inline rename field — shrink TextInput so it fits the 24px pill without
-   stretching the bar, and let it blend with the island surface. */
-.tab-bar :deep(.tab-button .input-field) {
-    height: 22px;
-    background-color: var(--bg-primary);
-    border-color: var(--border-color);
-    border-radius: var(--radius-sm);
-}
-
-.tab-bar :deep(.tab-button .text-input2) {
-    height: 20px;
-    padding: 0 4px;
-    font-size: 13px;
+/* Inline rename — the field is chromeless (see TabButton.vue), so the pill
+   itself is the only visible container. Keep it looking active while editing
+   so the tab being renamed stays obvious. */
+.tab-bar :deep(.tab-button.editing) {
+    background-color: var(--primary-light);
     color: var(--text-primary);
 }
 

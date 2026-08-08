@@ -841,12 +841,17 @@ export const useDataStore = defineStore('dataStore', () => {
         })
 
         propertyTree.value = tree
-        propertyOrder.value.groups     = groupOrder
-        propertyOrder.value.properties = propsOrder
+        // The flat order must be derived from the finished tree, not from the merge
+        // fallbacks: properties with no saved rank fall back to `baseOrder + id`, which
+        // ignores group membership entirely and leaves consumers (getVisibleProperties)
+        // showing id order until the user drags something.
+        flattenTreeOrder()
         triggerRef(propertyOrder)
     }
 
-    async function triggerPropertyTreeChange() {
+    // Renumber propertyOrder from propertyTree positions — the tree is the source of
+    // truth for display order, propertyOrder is its flat projection.
+    function flattenTreeOrder() {
         const groupOrder: Record<number, number> = {}
         const propOrder:  Record<number, number> = {}
         for (let i = 0; i < propertyTree.value.length; i++) {
@@ -859,6 +864,10 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         propertyOrder.value.properties = propOrder
         propertyOrder.value.groups     = groupOrder
+    }
+
+    async function triggerPropertyTreeChange() {
+        flattenTreeOrder()
         await savePropertyOrderToStorage()
         triggerRef(properties)
     }

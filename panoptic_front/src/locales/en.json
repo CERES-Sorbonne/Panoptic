@@ -82,6 +82,7 @@
             }
         },
         "menu": {
+            "new_tab": "New Tab",
             "add_tab_tooltip": "Create a new tab",
             "rename_tab_tooltip": "Rename tab",
             "delete_tab_tooltip": "Delete tab",
@@ -467,6 +468,33 @@
             "add": "add",
             "set": "set",
             "del": "remove"
+        },
+        "tasks": {
+            "title": "Tasks",
+            "running": "Running",
+            "pending": "Pending",
+            "past": "Past",
+            "failed": "{count} failed",
+            "workers": "{count} workers",
+            "rate": "{rate}/s",
+            "eta": "{time} left",
+            "waiting": "Waiting to start",
+            "done": "Done",
+            "seconds": "{value}s",
+            "minutes": "{value}m",
+            "hours": "{value}h",
+            "names": {
+                "LoadPluginTask": "Loading plugins",
+                "ImportSourceTask": "Importing images",
+                "ComputeVectorsTask": "Computing image vectors",
+                "GenerateAtlasTask": "Creating image atlas"
+            },
+            "steps": {
+                "Loading plugin": "Loading plugin",
+                "Scanning folder structure": "Scanning folders",
+                "Reconciling removed files": "Checking for deleted files",
+                "Importing files": "Importing files"
+            }
         }
     },
     "btn": {

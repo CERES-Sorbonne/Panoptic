@@ -82,6 +82,7 @@
             }
         },
         "menu": {
+            "new_tab": "Nouvel onglet",
             "add_tab_tooltip": "Créer un nouvel onglet",
             "rename_tab_tooltip": "Renommer l'onglet",
             "delete_tab_tooltip": "Supprimer l'onglet",
@@ -483,6 +484,33 @@
         },
         "property": {
             "select": "Selectionez une propriété"
+        },
+        "tasks": {
+            "title": "Tâches",
+            "running": "En cours",
+            "pending": "En attente",
+            "past": "Terminées",
+            "failed": "{count} échec(s)",
+            "workers": "{count} workers",
+            "rate": "{rate}/s",
+            "eta": "{time} restant",
+            "waiting": "En attente de démarrage",
+            "done": "Terminé",
+            "seconds": "{value}s",
+            "minutes": "{value}min",
+            "hours": "{value}h",
+            "names": {
+                "LoadPluginTask": "Chargement des plugins",
+                "ImportSourceTask": "Import des images",
+                "ComputeVectorsTask": "Calculs des vecteurs d'images",
+                "GenerateAtlasTask": "Création d'atlas d'image"
+            },
+            "steps": {
+                "Loading plugin": "Chargement du plugin",
+                "Scanning folder structure": "Analyse des dossiers",
+                "Reconciling removed files": "Vérification des fichiers supprimés",
+                "Importing files": "Import des fichiers"
+            }
         }
     },
     "btn": {

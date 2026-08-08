@@ -53,7 +53,8 @@ const isMono = () => props.forceMono || props.property.type == PropertyType.tag
 
 async function focus() {
     if (editing.value) return
-    localValue.value = props.modelValue ?? []
+    // a copy: the picker edits localValue in place, and props.modelValue must survive a cancel
+    localValue.value = [...(props.modelValue ?? [])]
     editing.value = true
     place()
     setWidth(PICKER_WIDTH, PICKER_WIDTH)
@@ -80,12 +81,24 @@ function onKeyDown(e: KeyboardEvent) {
     close(false)
 }
 
+// Order-insensitive: the picker rebuilds the list on every pick, so a value that came back to the
+// same set of tags is not a change.
+function sameTags(a: number[], b: number[]) {
+    if (a.length != b.length) return false
+    const set = new Set(a)
+    return b.every(id => set.has(id))
+}
+
 function close(commit = true) {
     if (!editing.value) return
     editing.value = false
     stopWatch()
     window.removeEventListener('keydown', onKeyDown, true)
-    if (commit) emits('update:modelValue', localValue.value)
+    // Only a real change is committed: merely opening and closing the picker must not write the
+    // cell (an empty cell would be sent an empty value, which still counts as an edit downstream).
+    if (commit && !sameTags(localValue.value, props.modelValue ?? [])) {
+        emits('update:modelValue', localValue.value)
+    }
     emits('blur')
 }
 

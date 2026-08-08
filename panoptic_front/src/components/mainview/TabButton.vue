@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
 import { useTabStore } from '@/data/tabStore';
-import TextInput from '../inputs/TextInput.vue'
 
 const tabStore = useTabStore()
 
@@ -11,6 +10,7 @@ const newTabName = ref('')
 const isHover = ref(false)
 const isEdit = ref(false)
 const rootElem = ref<HTMLElement>(null)
+const inputElem = ref<HTMLInputElement>(null)
 
 const props = defineProps<{
     tab: TabManager
@@ -38,9 +38,23 @@ function doubleClick() {
 function setEditTab() {
     isEdit.value = true
     newTabName.value = props.tab.state.name
+    // Select the whole name so typing replaces it — the field looks like plain
+    // text, so a visible selection is the only cue that it is editable.
+    nextTick(() => {
+        inputElem.value?.focus()
+        inputElem.value?.select()
+    })
+}
+
+function cancelEdit() {
+    newTabName.value = props.tab.state.name
+    isEdit.value = false
 }
 
 function endEdit() {
+    // Escape already closed the editor (and restored the name) — a trailing
+    // blur must not re-commit it.
+    if (!isEdit.value) return
     if (newTabName.value.trim()) {
         props.tab.renameTab(newTabName.value)
     } else {
@@ -80,10 +94,17 @@ onMounted(() => {
             </span>
         </template>
         <template v-else>
-            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @focusout="focusOut">
-                <TextInput v-model="newTabName" :focus="true" @enter="endEdit" @keydown.escape="focusOut" />
+            <div class="tab-button editing" :class="(tabId == tabStore.mainTab ? ' active' : '')">
+                <!-- The sizer is an invisible copy of the text that gives the wrapper its
+                     width; the input is stretched over it. Same font as the sizer (both
+                     inherit from .tab-button), so the field grows exactly with the name
+                     and the caret sits where the label was. -->
+                <span class="tab-name-edit">
+                    <span class="tab-name-sizer">{{ newTabName }}</span>
+                    <input ref="inputElem" class="tab-name-input" type="text" v-model="newTabName"
+                        @keydown.enter="endEdit" @keydown.escape="cancelEdit" @focusout="focusOut" />
+                </span>
             </div>
-
         </template>
     </div>
 </template>
@@ -91,6 +112,41 @@ onMounted(() => {
 <style scoped>
 .tab-button.active {
     background-color: var(--primary-light);
+}
+
+/* Rename field: chromeless, so editing reads as typing directly on the tab
+   label rather than a box appearing inside the pill. */
+.tab-name-edit {
+    position: relative;
+    display: inline-block;
+    min-width: 1ch;
+}
+
+/* Invisible but laid out — it is what sizes the wrapper to the text. `pre`
+   keeps trailing spaces so the width doesn't jump while typing them. */
+.tab-name-sizer {
+    visibility: hidden;
+    white-space: pre;
+}
+
+.tab-name-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    /* Match the label exactly: same font/size/weight/colour as .tab-button. */
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+}
+
+.tab-name-input::selection {
+    background-color: var(--primary-light, #cfe2ff);
 }
 </style>
 

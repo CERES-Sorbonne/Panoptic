@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
 import { ModalId } from '@/data/models';
@@ -22,7 +22,7 @@ const props = defineProps<{
 const emits = defineEmits(['update:filterOpen'])
 
 async function addTab(event: any) {
-    await tabStore.addTab('New Tab')
+    await tabStore.addTab(t('main.menu.new_tab'))
 }
 
 const langs = ['fr', 'en']

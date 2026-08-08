@@ -1,8 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import messages from './locales/conf'
 
-import {createI18n} from 'vue-i18n'
 import VueTour from 'vue3-tour'
 
 import App from './App.vue'
@@ -18,12 +16,9 @@ import 'vue3-tour/dist/vue3-tour.css'
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
-export const i18n = createI18n({
-    legacy: false,
-    locale: 'fr', // set locale
-    fallbackLocale: 'en', // set fallback locale
-    messages,
-})
+// The instance lives in locales/i18n so non-component modules can reach it too.
+export { i18n } from './locales/i18n'
+import { i18n } from './locales/i18n'
 
 const pinia = createPinia()
 

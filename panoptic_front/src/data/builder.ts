@@ -5,6 +5,7 @@ import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
 import { createCollectionState } from "@/core/CollectionManager";
 import { TAB_MODEL_VERSION } from "./tabStore";
+import { t } from "@/locales/i18n";
 
 export function createCollectionConfig(): CollectionConfig {
     return reactive({
@@ -35,7 +36,7 @@ export function buildTabState(): TabState {
     return reactive({
         version: TAB_MODEL_VERSION,
         id: '',
-        name: 'New Tab',
+        name: t('main.menu.new_tab'),
         collections: [collection],
         views: [createViewState('tree', collection.id), createViewState('grid', collection.id)],
         splitView: false,
