@@ -123,6 +123,12 @@ function toggleSourceSelect(group: SourceNode) {
             <!-- Folders not attached to any file source -->
             <FolderList v-if="looseFolders.length > 0" :folders="looseFolders"
                 :filter-manager="tabStore.getMainTab()?.collection.filterManager" :tab="tabStore.getMainTab()" />
+
+            <!-- Same action as the header + button, spelled out -->
+            <div class="add-source" @click="promptFolder()">
+                <i class="bi bi-plus" />
+                <span>{{ $t('modals.filesource.add_source') }}</span>
+            </div>
         </div>
     </IslandPanel>
 </template>
@@ -134,7 +140,7 @@ function toggleSourceSelect(group: SourceNode) {
     align-items: center;
     justify-content: space-between;
     height: 30px;
-    padding: 0 var(--spacing-md) 0 var(--spacing-sm);
+    padding: 0 2px 0 var(--spacing-sm);
 }
 
 .tw-title {
@@ -236,6 +242,23 @@ function toggleSourceSelect(group: SourceNode) {
 
 .source-header:hover .source-option {
     opacity: 1;
+}
+
+.add-source {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 2px;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.add-source:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 
 .source-empty {

@@ -7,6 +7,7 @@ import FileExplorer from './FileExplorer.vue';
 import { useDataStore } from '@/data/dataStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { projectApi } from '@/data/apiProjectRoutes';
+import { t } from '@/locales/i18n';
 
 const data = useDataStore()
 const panoptic = usePanopticStore()
@@ -83,7 +84,7 @@ async function testIiifConnection() {
             } catch {
                 iiifTestResult.value = {
                     success: false,
-                    error: 'Invalid JSON in custom headers field',
+                    error: t('modals.filesource.error_invalid_headers'),
                 }
                 iiifTesting.value = false
                 return
@@ -95,7 +96,7 @@ async function testIiifConnection() {
     } catch (error: any) {
         iiifTestResult.value = {
             success: false,
-            error: error?.response?.data?.error || error?.message || 'Network error or server unavailable',
+            error: error?.response?.data?.error || error?.message || t('modals.filesource.error_network'),
         }
     } finally {
         iiifTesting.value = false
@@ -129,7 +130,7 @@ async function importIiif() {
         await projectApi.post('/import/iiif', config)
         close()
     } catch (error: any) {
-        alert(error?.response?.data?.detail || error?.message || 'Import failed')
+        alert(error?.response?.data?.detail || error?.message || t('modals.filesource.error_import'))
     } finally {
         iiifSubmitting.value = false
     }
@@ -139,7 +140,7 @@ async function importIiif() {
 <template>
     <Modal2 :id="ModalId.FILESOURCE">
         <template #title>
-            Add file source
+            {{ $t('modals.filesource.title') }}
         </template>
         <template #content>
             <div class="h-100 overflow-hidden">
@@ -150,11 +151,11 @@ async function importIiif() {
                         <div v-if="page == ''" class="source-home">
                             <div class="source-card" @click="selectedPage = PAGE.Local">
                                 <i class="bi bi-folder source-icon" />
-                                <div class="source-label">Local folder</div>
+                                <div class="source-label">{{ $t('modals.filesource.local') }}</div>
                             </div>
                             <div class="source-card" @click="selectedPage = PAGE.Iiif">
                                 <i class="bi bi-globe2 source-icon" />
-                                <div class="source-label">IIIF</div>
+                                <div class="source-label">{{ $t('modals.filesource.iiif') }}</div>
                             </div>
                         </div>
 
@@ -163,34 +164,34 @@ async function importIiif() {
 
                         <!-- IIIF: manifest / collection URL -->
                         <div v-if="page == PAGE.Iiif" class="p-4">
-                            <label class="form-label">IIIF Manifest or Collection URL</label>
+                            <label class="form-label">{{ $t('modals.filesource.iiif_url_label') }}</label>
                             <input v-model="iiifUrl" type="url" class="form-control"
                                 placeholder="https://.../manifest.json"
                                 @keydown.enter="testIiifConnection" />
                             <div class="text-secondary mt-2" style="font-size: 12px;">
-                                Paste a IIIF Presentation API manifest or collection URL (v2 or v3).
+                                {{ $t('modals.filesource.iiif_url_hint') }}
                             </div>
 
                             <!-- Test result alert -->
                             <div v-if="iiifTestResult" :class="['alert mt-3', iiifTestResult.success ? 'alert-success' : 'alert-danger']">
                                 <div v-if="iiifTestResult.success" class="alert-content">
                                     <i class="bi bi-check-circle me-2" />
-                                    <strong>Connection successful!</strong>
+                                    <strong>{{ $t('modals.filesource.test_success') }}</strong>
                                     <div class="mt-2 ms-4">
                                         <div v-if="iiifTestResult.label || iiifTestResult.title" class="mb-1">
-                                            <strong>Title:</strong> {{ iiifTestResult.label || iiifTestResult.title }}
+                                            <strong>{{ $t('modals.filesource.result_title') }}</strong> {{ iiifTestResult.label || iiifTestResult.title }}
                                         </div>
                                         <div v-if="iiifTestResult.version" class="mb-1">
-                                            <strong>IIIF Version:</strong> v{{ iiifTestResult.version }}
+                                            <strong>{{ $t('modals.filesource.result_version') }}</strong> v{{ iiifTestResult.version }}
                                         </div>
                                         <div v-if="iiifTestResult.itemCount !== undefined" class="mb-1">
-                                            <strong>Items:</strong> {{ iiifTestResult.itemCount }}
+                                            <strong>{{ $t('modals.filesource.result_items') }}</strong> {{ iiifTestResult.itemCount }}
                                         </div>
                                     </div>
                                 </div>
                                 <div v-else class="alert-content">
                                     <i class="bi bi-exclamation-circle me-2" />
-                                    <strong>Connection failed:</strong>
+                                    <strong>{{ $t('modals.filesource.test_failed') }}</strong>
                                     <div class="mt-2 ms-4">
                                         {{ iiifTestResult.error }}
                                     </div>
@@ -202,58 +203,58 @@ async function importIiif() {
                                 <div class="form-section">
                                     <label class="form-label d-flex align-items-center">
                                         <i class="bi bi-lock me-2" />
-                                        Authentication (Optional)
+                                        {{ $t('modals.filesource.auth_section') }}
                                     </label>
 
                                     <div class="mb-3">
-                                        <label class="form-label">Auth Type</label>
+                                        <label class="form-label">{{ $t('modals.filesource.auth_type') }}</label>
                                         <select v-model="iiifAuthType" class="form-select form-select-sm">
-                                            <option value="none">None</option>
-                                            <option value="bearer">Bearer Token</option>
-                                            <option value="basic">Basic Auth</option>
-                                            <option value="custom">Custom Header (X-API-Key)</option>
+                                            <option value="none">{{ $t('modals.filesource.auth_none') }}</option>
+                                            <option value="bearer">{{ $t('modals.filesource.auth_bearer') }}</option>
+                                            <option value="basic">{{ $t('modals.filesource.auth_basic') }}</option>
+                                            <option value="custom">{{ $t('modals.filesource.auth_custom') }}</option>
                                         </select>
                                     </div>
 
                                     <!-- Bearer Token -->
                                     <div v-if="iiifAuthType === 'bearer'" class="mb-3">
-                                        <label class="form-label">API Key / Token</label>
+                                        <label class="form-label">{{ $t('modals.filesource.token_label') }}</label>
                                         <input v-model="iiifAuthToken" type="password" class="form-control form-control-sm"
-                                            placeholder="your-api-key" />
-                                        <small class="text-muted">Sent as: Authorization: Bearer &lt;token&gt;</small>
+                                            :placeholder="$t('modals.filesource.token_placeholder')" />
+                                        <small class="text-muted">{{ $t('modals.filesource.token_hint') }}</small>
                                     </div>
 
                                     <!-- Basic Auth -->
                                     <div v-if="iiifAuthType === 'basic'">
                                         <div class="mb-3">
-                                            <label class="form-label">Username</label>
+                                            <label class="form-label">{{ $t('modals.filesource.username') }}</label>
                                             <input v-model="iiifAuthUsername" type="text" class="form-control form-control-sm" />
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label">Password</label>
+                                            <label class="form-label">{{ $t('modals.filesource.password') }}</label>
                                             <input v-model="iiifAuthPassword" type="password" class="form-control form-control-sm" />
                                         </div>
-                                        <small class="text-muted">Sent as: Authorization: Basic &lt;base64(user:pass)&gt;</small>
+                                        <small class="text-muted">{{ $t('modals.filesource.basic_hint') }}</small>
                                     </div>
 
                                     <!-- Custom Header -->
                                     <div v-if="iiifAuthType === 'custom'" class="mb-3">
-                                        <label class="form-label">API Key</label>
+                                        <label class="form-label">{{ $t('modals.filesource.api_key') }}</label>
                                         <input v-model="iiifAuthToken" type="password" class="form-control form-control-sm"
-                                            placeholder="your-api-key" />
-                                        <small class="text-muted">Sent as: X-API-Key: &lt;key&gt;</small>
+                                            :placeholder="$t('modals.filesource.token_placeholder')" />
+                                        <small class="text-muted">{{ $t('modals.filesource.api_key_hint') }}</small>
                                     </div>
 
                                     <!-- Custom Headers -->
                                     <div class="mb-3">
                                         <label class="form-label d-flex align-items-center">
-                                            Custom Headers (JSON)
-                                            <span class="badge bg-secondary ms-2">Optional</span>
+                                            {{ $t('modals.filesource.headers_label') }}
+                                            <span class="badge bg-secondary ms-2">{{ $t('modals.filesource.optional') }}</span>
                                         </label>
                                         <textarea v-model="iiifCustomHeaders" class="form-control form-control-sm"
                                             placeholder='{"X-Custom": "value", "Accept-Language": "en"}'
                                             rows="3" />
-                                        <small class="text-muted">Additional HTTP headers as JSON object</small>
+                                        <small class="text-muted">{{ $t('modals.filesource.headers_hint') }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -266,14 +267,14 @@ async function importIiif() {
                                     <span v-if="iiifTesting" class="spinner-border spinner-border-sm me-1"
                                         role="status" />
                                     <i v-else class="bi bi-arrow-repeat me-1" />
-                                    Test Connection
+                                    {{ $t('modals.filesource.test_connection') }}
                                 </button>
                                 <button class="btn btn-primary"
                                     :disabled="!iiifUrl.trim() || iiifSubmitting || !iiifTestResult?.success"
                                     @click="importIiif">
                                     <span v-if="iiifSubmitting" class="spinner-border spinner-border-sm me-1"
                                         role="status" />
-                                    Import
+                                    {{ $t('modals.filesource.import') }}
                                 </button>
                             </div>
                         </div>
