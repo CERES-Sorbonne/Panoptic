@@ -329,3 +329,90 @@ def get_packages():
         except Exception:
             pass
     return res
+
+
+# ---------------------------------------------------------------------------
+# Legacy (0.x) project migration
+# ---------------------------------------------------------------------------
+
+class LegacyMigrateRequest(BaseModel):
+    legacyPath: str
+    destPath: str
+    name: str | None = None
+    load: bool = False
+
+class LegacyDismissRequest(BaseModel):
+    path: str | None = None
+
+
+def _legacy_scan_json(scan) -> dict:
+    """camelCase — the frontend consumes these keys verbatim."""
+    if scan is None:
+        return {'registries': [], 'projects': [], 'skipped': False, 'reason': None, 'scanned': False}
+    return {
+        'scanned': True,
+        'skipped': scan.skipped,
+        'reason': scan.reason,
+        'registries': [
+            {'path': r.path, 'shape': r.shape, 'projects': r.projects,
+             'plugins': r.plugins, 'problem': r.problem}
+            for r in scan.registries
+        ],
+        'projects': [
+            {'legacyPath': p.legacy_path, 'name': p.name, 'registry': p.registry,
+             'shape': p.shape, 'recordedVersion': p.recorded_version,
+             'instanceCount': p.instance_count, 'exists': p.exists,
+             'status': p.status, 'problem': p.problem,
+             'migratedTo': p.migrated_to, 'suggestedPath': p.suggested_path,
+             'plugins': p.plugins, 'dbSize': p.db_size}
+            for p in scan.projects
+        ],
+    }
+
+
+def _legacy_run_json(run) -> dict:
+    return {
+        'id': run.id, 'legacyPath': run.legacy_path, 'destPath': run.dest_path,
+        'name': run.name, 'status': run.status, 'stage': run.stage,
+        'stageIndex': run.stage_index, 'stageCount': run.stage_count,
+        'detail': run.detail, 'error': run.error, 'warnings': run.warnings,
+        'plugins': run.plugins, 'reportPath': run.report_path,
+        'projectId': run.project_id,
+    }
+
+
+@panoptic_router.get('/legacy/projects')
+async def get_legacy_projects_route(rescan: bool = False):
+    service = get_panoptic().legacy
+    scan = service.scan
+    if scan is None or rescan:
+        scan = await anyio.to_thread.run_sync(service.discover)
+    return _legacy_scan_json(scan)
+
+
+@panoptic_router.post('/legacy/migrate', status_code=202)
+def migrate_legacy_project_route(req: LegacyMigrateRequest):
+    try:
+        run = get_panoptic().legacy.migrate(
+            req.legacyPath, req.destPath, req.name, load=req.load)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return _legacy_run_json(run)
+
+
+@panoptic_router.post('/legacy/dismiss')
+async def dismiss_legacy_route(req: LegacyDismissRequest):
+    scan = await anyio.to_thread.run_sync(
+        lambda: get_panoptic().legacy.dismiss(req.path))
+    return _legacy_scan_json(scan)
+
+
+@panoptic_router.get('/legacy/report/{run_id}')
+def get_legacy_report_route(run_id: str):
+    run = get_panoptic().legacy.get_run(run_id)
+    if not run or not run.report_path:
+        raise HTTPException(404, "No report for this migration run")
+    if not os.path.isfile(run.report_path):
+        raise HTTPException(404, f"Report file {run.report_path} is missing")
+    with open(run.report_path, encoding='utf-8') as fh:
+        return Response(fh.read(), media_type='text/markdown')

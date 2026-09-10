@@ -9,9 +9,9 @@ from panoptic.core.databases.project.create import (
     ID_REGISTRY_SHEMA,  # The KeyValueSchema instance
     TAB_DATA_SCHEMA,
     PLUGIN_DATA_SCHEMA,
-    USER_DEFAULTS_SCHEMA, PROJECT_CONFIG_SHEMA
+    USER_DEFAULTS_SCHEMA, PROJECT_CONFIG_SHEMA, PROJECT_FLAGS_SCHEMA
 )
-from panoptic.core.databases.project.models import TabData, PluginData, UserDefaults, ProjectConfig
+from panoptic.core.databases.project.models import TabData, PluginData, UserDefaults, ProjectConfig, ProjectFlags
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models.models import Tag, Property, Instance
 from panoptic.core.databases.data.models import File, Folder, FileSource
@@ -30,6 +30,7 @@ class ProjectDB(SQLiteWriter):
         with self.transaction() as tx:
             ID_REGISTRY_SHEMA.ensure_keys(tx)
             PROJECT_CONFIG_SHEMA.ensure_keys(tx)
+            PROJECT_FLAGS_SCHEMA.ensure_keys(tx)
 
         self.config = PROJECT_CONFIG_SHEMA.get(self.conn)
         if not self.config.id:
@@ -45,6 +46,23 @@ class ProjectDB(SQLiteWriter):
         with self.transaction() as tx:
             PROJECT_CONFIG_SHEMA.set(tx, self.config)
 
+
+    # --- Flags ---
+
+    def get_flags(self) -> ProjectFlags:
+        return PROJECT_FLAGS_SCHEMA.get(self.conn)
+
+    def get_flag(self, key: str):
+        if key not in PROJECT_FLAGS_SCHEMA._field_names:
+            raise ValueError(f"Key '{key}' is not a valid project flag.")
+        with self.transaction() as tx:
+            return PROJECT_FLAGS_SCHEMA.get_key(tx, key)
+
+    def set_flag(self, key: str, value) -> None:
+        if key not in PROJECT_FLAGS_SCHEMA._field_names:
+            raise ValueError(f"Key '{key}' is not a valid project flag.")
+        with self.transaction() as tx:
+            PROJECT_FLAGS_SCHEMA.set_key(tx, key, value)
 
     def allocate(self, key: str, number: int = 1) -> Union[int, range]:
         """

@@ -482,6 +482,27 @@ class DataReader(SQLiteReader):
         ref = self.resolve_image_ref(sha1)
         return ref['path'] if ref and ref['kind'] == 'local' else None
 
+    def get_local_paths(self) -> dict[str, str]:
+        """{sha1: local filesystem path} for every sha1 backed by a local file.
+
+        Bulk counterpart to get_file_path_for_sha1: one query for the whole
+        project instead of one connection + query per sha1 (see
+        GenerateThumbnailsTask). IIIF sha1s are absent — they have no local file.
+        """
+        rows = self.conn.execute(
+            "SELECT f.sha1, fo.path, f.name"
+            " FROM files f"
+            " JOIN folders fo ON fo.id = f.folder_id"
+            " JOIN file_sources fs ON fs.id = fo.source_id"
+            " WHERE f.sha1 IS NOT NULL AND f.name IS NOT NULL"
+            "   AND fo.path IS NOT NULL AND fs.dtype != 'iiif'"
+        ).fetchall()
+        paths: dict[str, str] = {}
+        for sha1, path, name in rows:
+            # first file wins, like resolve_image_ref's LIMIT 1
+            paths.setdefault(sha1, f"{path}/{name}")
+        return paths
+
     def resolve_image_ref(self, sha1: str) -> dict | None:
         """Resolve a sha1 to a fetchable image reference, branching on the source type.
 

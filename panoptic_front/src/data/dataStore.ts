@@ -14,7 +14,7 @@ import {
     apiPostDeleteEmptyClones, apiReImportFolder, apiResyncFileSource, apiRedo, apiSetUIData,
     apiUndo,
 } from './apiProjectRoutes'
-import { buildFolderNodes, setTagsChildren } from './storeutils'
+import { buildFolderNodes, buildTagTree, wouldCreateTagCycle } from './storeutils'
 import {
     EventEmitter, deepCopy, getTagChildren, getTagParents,
     hasPropertyChanges, isTag,
@@ -153,7 +153,18 @@ export const useDataStore = defineStore('dataStore', () => {
             properties.value[tag.propertyId].tags[tag.id] = tag
             updated.add(tag.propertyId)
         }
-        for (const propId of updated) setTagsChildren(properties.value[propId].tags)
+        _rebuildTagTrees(updated)
+    }
+
+    // Rebuild the hierarchy of the given properties (cycle-breaking + children), then refresh
+    // the transitive caches every consumer reads. Called on any change to the tag set, deletes
+    // included: a delete drops edges, and stale `children` / `allParents` would keep pointing
+    // at the removed tag.
+    function _rebuildTagTrees(propIds: Iterable<number>) {
+        for (const propId of propIds) {
+            const propTags = properties.value[propId]?.tags
+            if (propTags) buildTagTree(propTags)
+        }
         for (const tag of objValues(tags.value)) {
             tag.allChildren = getTagChildren(tag, tags.value)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
@@ -195,10 +206,14 @@ export const useDataStore = defineStore('dataStore', () => {
             }
         }
         if (commit.emptyTags) {
+            const touched = new Set<number>()
             for (const id of commit.emptyTags) {
+                if (!tags.value[id]) continue
+                touched.add(tags.value[id].propertyId)
                 tags.value[id].id = deletedID
                 tags.value[id].value = deletedName
             }
+            _rebuildTagTrees(touched)
         }
         if (commit.emptyInstances) {
             for (const id of commit.emptyInstances) {
@@ -524,13 +539,17 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function addTagParent(tagId: number, parentId: number) {
-        const tag = Object.assign({}, tags.value[tagId])
+        // Refuse an edge that would close a loop instead of storing one buildTagTree would
+        // then ignore. The backend keeps `parents` verbatim and does not check this.
+        if (wouldCreateTagCycle(tags.value, tagId, parentId)) return
+        const tag = deepCopy(tags.value[tagId])
+        if (tag.parents.includes(parentId)) return
         tag.parents.push(parentId)
         await sendCommit({ tags: [tag] })
     }
 
     async function deleteTagParent(tagId: number, parentId: number) {
-        const tag = Object.assign({}, tags.value[tagId])
+        const tag = deepCopy(tags.value[tagId])
         tag.parents = tag.parents.filter(p => p !== parentId)
         await sendCommit({ tags: [tag] })
     }
@@ -544,7 +563,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function updateTag(tagId: number, value?: any, color?: number) {
-        const tag = Object.assign({}, tags.value[tagId])
+        const tag = deepCopy(tags.value[tagId])
         if (value !== undefined) tag.value = value
         if (color !== undefined) tag.color = color
         await sendCommit({ tags: [tag] })

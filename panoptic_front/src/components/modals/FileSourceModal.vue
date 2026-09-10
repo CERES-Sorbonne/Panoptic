@@ -106,7 +106,7 @@ async function testIiifConnection() {
 // IIIF import — send the manifest/collection URL with optional auth to the backend.
 async function importIiif() {
     const url = iiifUrl.value.trim()
-    if (!url || iiifSubmitting.value) return
+    if (!url || iiifSubmitting.value || !iiifTestResult.value?.success) return
     iiifSubmitting.value = true
     try {
         const config: any = { url }
@@ -144,7 +144,7 @@ async function importIiif() {
         </template>
         <template #content>
             <div class="h-100 overflow-hidden">
-                <PageWindow :options="options" v-model:page="selectedPage">
+                <PageWindow :options="options" v-model:page="selectedPage" hide-menu>
 
                     <template #default="{ page }">
                         <!-- Home: choose the source type -->
@@ -163,52 +163,65 @@ async function importIiif() {
                         <FileExplorer v-if="page == PAGE.Local" mode="images" @select="selectLocalFolder" />
 
                         <!-- IIIF: manifest / collection URL -->
-                        <div v-if="page == PAGE.Iiif" class="p-4">
-                            <label class="form-label">{{ $t('modals.filesource.iiif_url_label') }}</label>
-                            <input v-model="iiifUrl" type="url" class="form-control"
-                                placeholder="https://.../manifest.json"
-                                @keydown.enter="testIiifConnection" />
-                            <div class="text-secondary mt-2" style="font-size: 12px;">
-                                {{ $t('modals.filesource.iiif_url_hint') }}
-                            </div>
-
-                            <!-- Test result alert -->
-                            <div v-if="iiifTestResult" :class="['alert mt-3', iiifTestResult.success ? 'alert-success' : 'alert-danger']">
-                                <div v-if="iiifTestResult.success" class="alert-content">
-                                    <i class="bi bi-check-circle me-2" />
-                                    <strong>{{ $t('modals.filesource.test_success') }}</strong>
-                                    <div class="mt-2 ms-4">
-                                        <div v-if="iiifTestResult.label || iiifTestResult.title" class="mb-1">
-                                            <strong>{{ $t('modals.filesource.result_title') }}</strong> {{ iiifTestResult.label || iiifTestResult.title }}
+                        <div v-if="page == PAGE.Iiif" class="iiif-page">
+                            <div class="iiif-body">
+                                <div class="field">
+                                    <label class="field-label">{{ $t('modals.filesource.iiif_url_label') }}</label>
+                                    <input v-model="iiifUrl" type="url" class="fs-input url-input"
+                                        placeholder="https://.../manifest.json" @keydown.enter="testIiifConnection" />
+                                    <div class="field-hint">{{ $t('modals.filesource.iiif_url_hint') }}</div>
+                                    <div class="actions">
+                                        <div class="action" :class="{ disabled: !iiifUrl.trim() || iiifTesting || iiifSubmitting }"
+                                            @click="testIiifConnection">
+                                            <span v-if="iiifTesting" class="spinner-border spinner-border-sm me-1" role="status" />
+                                            <i v-else class="bi bi-arrow-repeat me-1" />
+                                            {{ $t('modals.filesource.test_connection') }}
                                         </div>
-                                        <div v-if="iiifTestResult.version" class="mb-1">
-                                            <strong>{{ $t('modals.filesource.result_version') }}</strong> v{{ iiifTestResult.version }}
-                                        </div>
-                                        <div v-if="iiifTestResult.itemCount !== undefined" class="mb-1">
-                                            <strong>{{ $t('modals.filesource.result_items') }}</strong> {{ iiifTestResult.itemCount }}
+                                        <div class="action primary"
+                                            :class="{ disabled: !iiifUrl.trim() || iiifSubmitting || !iiifTestResult?.success }"
+                                            @click="importIiif">
+                                            <span v-if="iiifSubmitting" class="spinner-border spinner-border-sm me-1" role="status" />
+                                            {{ $t('modals.filesource.import') }}
                                         </div>
                                     </div>
                                 </div>
-                                <div v-else class="alert-content">
-                                    <i class="bi bi-exclamation-circle me-2" />
-                                    <strong>{{ $t('modals.filesource.test_failed') }}</strong>
-                                    <div class="mt-2 ms-4">
-                                        {{ iiifTestResult.error }}
+
+                                <!-- Test result -->
+                                <div v-if="iiifTestResult" class="result" :class="iiifTestResult.success ? 'ok' : 'ko'">
+                                    <i :class="iiifTestResult.success ? 'bi bi-check-circle' : 'bi bi-exclamation-circle'"
+                                        class="result-icon" />
+                                    <div class="result-body">
+                                        <div class="result-title">
+                                            {{ iiifTestResult.success ? $t('modals.filesource.test_success') : $t('modals.filesource.test_failed') }}
+                                        </div>
+                                        <template v-if="iiifTestResult.success">
+                                            <div v-if="iiifTestResult.label || iiifTestResult.title" class="result-line">
+                                                <span class="result-key">{{ $t('modals.filesource.result_title') }}</span>
+                                                {{ iiifTestResult.label || iiifTestResult.title }}
+                                            </div>
+                                            <div v-if="iiifTestResult.version" class="result-line">
+                                                <span class="result-key">{{ $t('modals.filesource.result_version') }}</span>
+                                                v{{ iiifTestResult.version }}
+                                            </div>
+                                            <div v-if="iiifTestResult.itemCount !== undefined" class="result-line">
+                                                <span class="result-key">{{ $t('modals.filesource.result_items') }}</span>
+                                                {{ iiifTestResult.itemCount }}
+                                            </div>
+                                        </template>
+                                        <div v-else class="result-line">{{ iiifTestResult.error }}</div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Authentication options (show if test succeeded) -->
-                            <div v-if="iiifTestResult?.success" class="mt-4">
-                                <div class="form-section">
-                                    <label class="form-label d-flex align-items-center">
-                                        <i class="bi bi-lock me-2" />
+                                <!-- Authentication options (show if test succeeded) -->
+                                <div v-if="iiifTestResult?.success" class="section">
+                                    <div class="section-title">
+                                        <i class="bi bi-lock" />
                                         {{ $t('modals.filesource.auth_section') }}
-                                    </label>
+                                    </div>
 
-                                    <div class="mb-3">
-                                        <label class="form-label">{{ $t('modals.filesource.auth_type') }}</label>
-                                        <select v-model="iiifAuthType" class="form-select form-select-sm">
+                                    <div class="field">
+                                        <label class="field-label">{{ $t('modals.filesource.auth_type') }}</label>
+                                        <select v-model="iiifAuthType" class="fs-input">
                                             <option value="none">{{ $t('modals.filesource.auth_none') }}</option>
                                             <option value="bearer">{{ $t('modals.filesource.auth_bearer') }}</option>
                                             <option value="basic">{{ $t('modals.filesource.auth_basic') }}</option>
@@ -217,66 +230,47 @@ async function importIiif() {
                                     </div>
 
                                     <!-- Bearer Token -->
-                                    <div v-if="iiifAuthType === 'bearer'" class="mb-3">
-                                        <label class="form-label">{{ $t('modals.filesource.token_label') }}</label>
-                                        <input v-model="iiifAuthToken" type="password" class="form-control form-control-sm"
+                                    <div v-if="iiifAuthType === 'bearer'" class="field">
+                                        <label class="field-label">{{ $t('modals.filesource.token_label') }}</label>
+                                        <input v-model="iiifAuthToken" type="password" class="fs-input"
                                             :placeholder="$t('modals.filesource.token_placeholder')" />
-                                        <small class="text-muted">{{ $t('modals.filesource.token_hint') }}</small>
+                                        <div class="field-hint mono">{{ $t('modals.filesource.token_hint') }}</div>
                                     </div>
 
                                     <!-- Basic Auth -->
-                                    <div v-if="iiifAuthType === 'basic'">
-                                        <div class="mb-3">
-                                            <label class="form-label">{{ $t('modals.filesource.username') }}</label>
-                                            <input v-model="iiifAuthUsername" type="text" class="form-control form-control-sm" />
+                                    <template v-if="iiifAuthType === 'basic'">
+                                        <div class="field">
+                                            <label class="field-label">{{ $t('modals.filesource.username') }}</label>
+                                            <input v-model="iiifAuthUsername" type="text" class="fs-input" />
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">{{ $t('modals.filesource.password') }}</label>
-                                            <input v-model="iiifAuthPassword" type="password" class="form-control form-control-sm" />
+                                        <div class="field">
+                                            <label class="field-label">{{ $t('modals.filesource.password') }}</label>
+                                            <input v-model="iiifAuthPassword" type="password" class="fs-input" />
+                                            <div class="field-hint mono">{{ $t('modals.filesource.basic_hint') }}</div>
                                         </div>
-                                        <small class="text-muted">{{ $t('modals.filesource.basic_hint') }}</small>
-                                    </div>
+                                    </template>
 
                                     <!-- Custom Header -->
-                                    <div v-if="iiifAuthType === 'custom'" class="mb-3">
-                                        <label class="form-label">{{ $t('modals.filesource.api_key') }}</label>
-                                        <input v-model="iiifAuthToken" type="password" class="form-control form-control-sm"
+                                    <div v-if="iiifAuthType === 'custom'" class="field">
+                                        <label class="field-label">{{ $t('modals.filesource.api_key') }}</label>
+                                        <input v-model="iiifAuthToken" type="password" class="fs-input"
                                             :placeholder="$t('modals.filesource.token_placeholder')" />
-                                        <small class="text-muted">{{ $t('modals.filesource.api_key_hint') }}</small>
+                                        <div class="field-hint mono">{{ $t('modals.filesource.api_key_hint') }}</div>
                                     </div>
 
                                     <!-- Custom Headers -->
-                                    <div class="mb-3">
-                                        <label class="form-label d-flex align-items-center">
+                                    <div class="field">
+                                        <label class="field-label">
                                             {{ $t('modals.filesource.headers_label') }}
-                                            <span class="badge bg-secondary ms-2">{{ $t('modals.filesource.optional') }}</span>
+                                            <span class="tag">{{ $t('modals.filesource.optional') }}</span>
                                         </label>
-                                        <textarea v-model="iiifCustomHeaders" class="form-control form-control-sm"
-                                            placeholder='{"X-Custom": "value", "Accept-Language": "en"}'
-                                            rows="3" />
-                                        <small class="text-muted">{{ $t('modals.filesource.headers_hint') }}</small>
+                                        <textarea v-model="iiifCustomHeaders" class="fs-input mono" rows="3"
+                                            placeholder='{"X-Custom": "value", "Accept-Language": "en"}' />
+                                        <div class="field-hint">{{ $t('modals.filesource.headers_hint') }}</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Action buttons -->
-                            <div class="d-flex justify-content-end gap-2 mt-3">
-                                <button class="btn btn-outline-secondary"
-                                    :disabled="!iiifUrl.trim() || iiifTesting || iiifSubmitting"
-                                    @click="testIiifConnection">
-                                    <span v-if="iiifTesting" class="spinner-border spinner-border-sm me-1"
-                                        role="status" />
-                                    <i v-else class="bi bi-arrow-repeat me-1" />
-                                    {{ $t('modals.filesource.test_connection') }}
-                                </button>
-                                <button class="btn btn-primary"
-                                    :disabled="!iiifUrl.trim() || iiifSubmitting || !iiifTestResult?.success"
-                                    @click="importIiif">
-                                    <span v-if="iiifSubmitting" class="spinner-border spinner-border-sm me-1"
-                                        role="status" />
-                                    {{ $t('modals.filesource.import') }}
-                                </button>
-                            </div>
                         </div>
 
                     </template>
@@ -327,40 +321,203 @@ async function importIiif() {
     font-weight: var(--font-weight-medium);
 }
 
-.alert {
-    border: 1px solid;
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    font-size: 14px;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
-
-.alert-content {
+/* ── IIIF page: scrollable form + pinned action bar ──────────────────── */
+.iiif-page {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--island-surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
 }
 
-.form-section {
+.iiif-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+    /* keep the form as a readable column instead of stretching modal-wide */
+    max-width: 620px;
+}
+
+.field {
+    margin-bottom: var(--spacing-md);
+}
+
+.field-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.fs-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+.fs-input:focus {
+    border-color: var(--focus-ring);
+}
+
+/* The URL is the primary input of this page */
+.url-input {
+    padding: 10px 12px;
+    font-size: var(--font-size-base);
+}
+
+.field-hint {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
+.mono {
+    font-family: var(--font-mono);
+}
+
+textarea.fs-input {
+    resize: vertical;
+    line-height: var(--line-height-normal);
+}
+
+select.fs-input {
+    height: auto;
+    cursor: pointer;
+}
+
+.tag {
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-tertiary);
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: var(--font-weight-medium);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Connection test feedback */
+.result {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-left-width: 3px;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+}
+
+.result.ok {
+    border-left-color: var(--success);
+}
+
+.result.ko {
+    border-left-color: var(--error);
+}
+
+.result-icon {
+    line-height: 1.4;
+}
+
+.result.ok .result-icon {
+    color: var(--success);
+}
+
+.result.ko .result-icon {
+    color: var(--error);
+}
+
+.result-title {
+    font-weight: var(--font-weight-semibold);
+}
+
+.result-line {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+}
+
+.result-key {
+    color: var(--text-tertiary);
+    margin-right: 4px;
+}
+
+.section {
     padding: var(--spacing-md);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background-color: var(--bg-secondary);
 }
 
-.form-section .form-label {
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-sm);
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-bottom: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
+
+/* Buttons sit right under the URL field they act on */
+.actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.action {
+    display: flex;
+    align-items: center;
+    padding: 6px 14px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-medium);
+    transition: background-color var(--transition-fast);
+}
+
+.action:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.action.primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--text-inverse);
+}
+
+.action.primary:hover {
+    background-color: var(--primary-dark);
+    color: var(--text-inverse);
+}
+
+.action.disabled {
+    pointer-events: none;
+    color: var(--disabled-text);
+    background-color: var(--disabled-bg);
+    border-color: var(--border-light);
+}
+
 </style>

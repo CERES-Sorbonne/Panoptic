@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ImageType } from '@/data/models'
-import { apiGetImageTypes, apiUpsertImageType, apiDeleteImageType, apiGetImageStats } from '@/data/apiProjectRoutes'
+import { apiGetImageTypes, apiUpsertImageType, apiDeleteImageType, apiGetImageStats, apiGenerateImages } from '@/data/apiProjectRoutes'
 import SectionDivider from '../utils/SectionDivider.vue'
 
 const FORMATS = ['jpeg', 'webp', 'png']
@@ -11,6 +11,8 @@ const counts = ref<{ [typeId: number]: number }>({})
 const sha1Count = ref(0)
 
 const showCreate = ref(false)
+const generating = ref(false)
+const launched = ref<{ [key: string]: boolean }>({})
 const newType = reactive({ name: '', format: 'jpeg', size: 256, autoGen: true })
 
 async function load() {
@@ -28,6 +30,19 @@ async function deleteType(id: number) {
 async function toggleAutoGen(type: ImageType) {
     await apiUpsertImageType({ ...type, autoGen: !type.autoGen })
     await load()
+}
+
+async function generate(typeId?: number) {
+    if (generating.value) return
+    generating.value = true
+    const key = typeId == undefined ? 'all' : String(typeId)
+    try {
+        await apiGenerateImages(typeId == undefined ? undefined : [typeId])
+        launched.value[key] = true
+        setTimeout(() => delete launched.value[key], 2000)
+    } finally {
+        generating.value = false
+    }
 }
 
 async function createType() {
@@ -64,7 +79,11 @@ onMounted(load)
             </thead>
             <tbody>
                 <tr v-for="type in imageTypes" :key="type.id">
-                    <td><i class="bb bi bi-x" @click="deleteType(type.id)" /></td>
+                    <td>
+                        <i class="bb bi bi-x" @click="deleteType(type.id)" />
+                        <i v-if="launched[type.id]" class="bi bi-check text-success ms-1" />
+                        <i v-else class="bb bi bi-arrow-clockwise ms-1" @click="generate(type.id)" />
+                    </td>
                     <td>{{ type.name }}</td>
                     <td>{{ type.format }}</td>
                     <td>{{ type.width ?? '∞' }} px</td>
@@ -78,6 +97,13 @@ onMounted(load)
                 </tr>
             </tbody>
         </table>
+
+        <div class="mb-2">
+            <span class="bb" :class="{ disabled: generating }" @click="generate()">
+                {{ $t('modals.settings.generateImages') }}
+                <i :class="launched['all'] ? 'bi bi-check text-success' : 'bi bi-arrow-clockwise'" />
+            </span>
+        </div>
 
         <div v-if="!showCreate">
             <span class="bb" @click="showCreate = true">{{ $t('modals.settings.createNewImageType') }} <i class="bi bi-plus" /></span>
@@ -139,6 +165,11 @@ input[type="number"] {
     padding: 2px 4px;
     border: 1px solid var(--border-color);
     border-radius: 3px;
+}
+
+.disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 select {

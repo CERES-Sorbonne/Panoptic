@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User, PluginType } from './models'
+import { DirInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User, PluginType, LegacyScan, LegacyMigrationRun } from './models'
 import { PluginKey, usePanopticStore } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -140,4 +140,30 @@ export async function apiGetVersion() {
 export async function apiGetPackagesInfo() {
     const res = await panopticApi.get('/packages')
     return res.data
+}
+
+// -------------------------------------------------------------------
+// Migration des projets d'une ancienne version de Panoptic (0.x)
+// Le backend renvoie déjà du camelCase sur ces routes: pas de keysToCamel
+// (qui serait un no-op mais recopierait inutilement les payloads).
+// -------------------------------------------------------------------
+
+export async function apiGetLegacyProjects(rescan = false) {
+    const res = await panopticApi.get('/legacy/projects', { params: { rescan } })
+    return res.data as LegacyScan
+}
+
+export async function apiMigrateLegacyProject(legacyPath: string, destPath: string, name?: string, load?: boolean) {
+    const res = await panopticApi.post('/legacy/migrate', { legacyPath, destPath, name, load })
+    return res.data as LegacyMigrationRun
+}
+
+export async function apiDismissLegacy(path?: string) {
+    const res = await panopticApi.post('/legacy/dismiss', path ? { path } : {})
+    return res.data as LegacyScan
+}
+
+export async function apiGetLegacyReport(runId: string) {
+    const res = await panopticApi.get(`/legacy/report/${runId}`)
+    return res.data as string
 }

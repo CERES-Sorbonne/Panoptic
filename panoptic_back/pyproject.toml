@@ -79,3 +79,15 @@ include = [
 ignore-vcs = true
 
 
+exclude = [
+    "panoptic/migration/tests",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["panoptic"]
+artifacts = [
+    "panoptic/migration/schema/*.sql",
+]
+exclude = [
+    "panoptic/migration/tests",
+]

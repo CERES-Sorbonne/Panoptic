@@ -11,6 +11,7 @@ Responsibilities:
 import asyncio
 import hashlib
 import logging
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -90,6 +91,65 @@ class PanopticServer:
     def on_startup(self) -> None:
         """Call from FastAPI/uvicorn startup hook to capture the running event loop."""
         self._loop = asyncio.get_running_loop()
+        self._start_legacy_scan()
+
+    # ------------------------------------------------------------------
+    # Legacy (0.x) project migration
+    # ------------------------------------------------------------------
+
+    def _start_legacy_scan(self) -> None:
+        """Discover old-Panoptic projects off the startup path.
+
+        Discovery must never block or crash startup, so it runs on its own
+        thread and every exception dies here.
+        """
+        service = getattr(self._panoptic, 'legacy', None)
+        if service is None:
+            return
+        service.on_migration_state = self._make_legacy_migration_callback()
+
+        def _scan() -> None:
+            try:
+                scan = service.discover()
+            except Exception:
+                logging.exception("legacy project discovery failed")
+                return
+            try:
+                self._loop.call_soon_threadsafe(
+                    lambda: asyncio.ensure_future(self._emit_legacy_projects(scan)))
+            except Exception:
+                logging.exception("could not broadcast legacy_projects")
+
+        threading.Thread(target=_scan, name='legacy-scan', daemon=True).start()
+
+    async def _emit_legacy_projects(self, scan=None) -> None:
+        from panoptic.routes.panoptic_routes import _legacy_scan_json
+        if scan is None:
+            service = getattr(self._panoptic, 'legacy', None)
+            scan = service.scan if service else None
+        await self._sio.emit('legacy_projects', _legacy_scan_json(scan))
+
+    def _make_legacy_migration_callback(self):
+        """sync (migration thread) -> async emit of `legacy_migration_state`."""
+        from panoptic.routes.panoptic_routes import _legacy_run_json
+
+        def on_state(run) -> None:
+            payload = _legacy_run_json(run)
+            finished = payload['status'] in ('done', 'failed')
+
+            async def _emit() -> None:
+                await self._sio.emit('legacy_migration_state', payload)
+                if payload['status'] == 'done':
+                    await self._emit_update_projects()
+                if finished:
+                    await self._emit_legacy_projects()
+
+            loop = self._loop
+            if loop is None:
+                return
+            loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_emit()))
+
+        return on_state
 
     async def shutdown(self) -> None:
         """Tear down all watchers so every DataReader connection closes before the

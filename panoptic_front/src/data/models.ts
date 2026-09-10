@@ -172,6 +172,12 @@ export interface Tag {
 
     allParents?: number[]
     allChildren?: number[]
+
+    // Derived by buildTagTree: the acyclic subset of `parents` actually used to build the
+    // tree, and the edges dropped because they would have closed a loop. `parents` itself
+    // stays raw — it is what the backend stores and what a commit sends back.
+    effectiveParents?: number[]
+    ignoredParents?: number[]
 }
 
 export interface TagIndex {
@@ -392,7 +398,58 @@ export enum ModalId {
     FIRSTMODAL = "firstmodal",
     NOTIF = "notif",
     FILESOURCE = "filesource",
-    SELECTION = "selection"
+    SELECTION = "selection",
+    LEGACY = "legacy"
+}
+
+// Migration des projets d'une ancienne version de Panoptic (0.x)
+export interface LegacyRegistry {
+    path: string
+    shape: string
+    projects: number
+    plugins: string[]
+    problem?: string
+}
+
+export interface LegacyProject {
+    legacyPath: string
+    name: string
+    registry: string
+    shape?: string
+    recordedVersion?: number
+    instanceCount?: number
+    exists: boolean
+    status?: string
+    problem?: string
+    migratedTo?: string
+    suggestedPath: string
+    plugins: string[]
+    dbSize?: number
+}
+
+export interface LegacyScan {
+    scanned: boolean
+    skipped: boolean
+    reason?: string
+    registries: LegacyRegistry[]
+    projects: LegacyProject[]
+}
+
+export interface LegacyMigrationRun {
+    id: string
+    legacyPath: string
+    destPath: string
+    name: string
+    status: 'pending' | 'running' | 'done' | 'failed'
+    stage?: string
+    stageIndex: number
+    stageCount: number
+    detail?: string
+    error?: string
+    warnings: string[]
+    plugins: string[]
+    reportPath?: string
+    projectId?: string
 }
 
 export interface StatusUpdate {

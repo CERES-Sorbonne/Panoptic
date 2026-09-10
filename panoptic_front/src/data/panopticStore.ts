@@ -18,11 +18,16 @@ import {
     apiLoadProject,
     apiUpdatePlugin,
     apiGetPackagesInfo,
-    apiUpdateProject
+    apiUpdateProject,
+    apiGetLegacyProjects,
+    apiMigrateLegacyProject,
+    apiDismissLegacy,
+    apiGetLegacyReport,
+    SERVER_PREFIX
 } from "./apiPanopticRoutes"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { ConnectionState, ModalId, Notif, PluginAddPayload, PluginType, ProjectRef, User } from "./models"
+import { ConnectionState, LegacyMigrationRun, LegacyScan, ModalId, Notif, PluginAddPayload, PluginType, ProjectRef, User } from "./models"
 import { useModalStore } from "./modalStore"
 import { useSocketStore } from "./socketStore"
 
@@ -56,6 +61,14 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const connectionState = ref<ConnectionState>()
     const projectsLoaded = ref(false)
 
+    // Migration des anciens projets (0.x)
+    const legacyScan = ref<LegacyScan>()
+    const legacyScanLoaded = ref(false)
+    const legacyMigration = ref<LegacyMigrationRun>()
+    // L'intro (legacy ou first) ne s'affiche qu'une fois par session: HomeView est
+    // démonté/remonté à chaque fermeture de projet, donc le drapeau vit dans le store.
+    const introShown = ref(false)
+
     // TODO: remove openModalId/modalData — use modalStore directly
     const openModalId = ref(null)
     const modalData = ref(null)
@@ -68,10 +81,20 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const isUserValid = computed(() => isConnected.value)
     const isProjectLoaded = computed(() => isConnected.value && !!connectionState.value.connectedProject)
 
+    // Anciens projets encore proposables: lisibles, non migrés, non ignorés
+    const legacyProjects = computed(() => legacyScan.value?.projects ?? [])
+    const migratableLegacyProjects = computed(() => legacyProjects.value.filter(p => p.exists && p.shape && !p.migratedTo))
+    const hasLegacyProjects = computed(() => !legacyScan.value?.skipped && legacyProjects.value.length > 0)
+    const isMigrationRunning = computed(() => {
+        const status = legacyMigration.value?.status
+        return status == 'pending' || status == 'running'
+    })
+
     function init() {
         console.log('[panopticStore] Initializing socket connection')
         const socket = useSocketStore()
         socket.init()
+        fetchLegacyProjects()
     }
 
     // ---------------------------------------------------------------
@@ -125,6 +148,49 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         } catch {
             localStorage.removeItem(LAST_USER_KEY)
         }
+    }
+
+    // ---------------------------------------------------------------
+    // Migration des anciens projets (0.x)
+    // ---------------------------------------------------------------
+
+    async function fetchLegacyProjects(rescan = false) {
+        try {
+            legacyScan.value = await apiGetLegacyProjects(rescan)
+        } catch {
+            // backend sans support migration: on n'affiche simplement rien
+        } finally {
+            legacyScanLoaded.value = true
+        }
+    }
+
+    // Poussé par le socket (scan de démarrage et fin de migration)
+    function importLegacyScan(scan: LegacyScan) {
+        legacyScan.value = scan
+        legacyScanLoaded.value = true
+    }
+
+    // Poussé par le socket à chaque étape du pipeline
+    function importLegacyMigration(run: LegacyMigrationRun) {
+        legacyMigration.value = run
+    }
+
+    async function migrateLegacyProject(legacyPath: string, destPath: string, name?: string, load?: boolean) {
+        const run = await apiMigrateLegacyProject(legacyPath, destPath, name, load)
+        legacyMigration.value = run
+        return run
+    }
+
+    async function dismissLegacy(path?: string) {
+        legacyScan.value = await apiDismissLegacy(path)
+    }
+
+    async function getLegacyReport(runId: string) {
+        return apiGetLegacyReport(runId)
+    }
+
+    function getLegacyReportUrl(runId: string) {
+        return SERVER_PREFIX + '/legacy/report/' + runId
     }
 
     async function fetchVersion() {
@@ -284,6 +350,10 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,
         getPackagesInfo,
+        legacyScan, legacyScanLoaded, legacyMigration, legacyProjects, migratableLegacyProjects, introShown,
+        hasLegacyProjects, isMigrationRunning,
+        fetchLegacyProjects, importLegacyScan, importLegacyMigration, migrateLegacyProject,
+        dismissLegacy, getLegacyReport, getLegacyReportUrl,
         updateConnectionState, setConnect, setFailedConnect
     }
 })

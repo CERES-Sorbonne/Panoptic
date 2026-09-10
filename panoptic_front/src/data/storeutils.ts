@@ -1,5 +1,5 @@
 import { getFolderAndParents, isTag } from "@/utils/utils"
-import { Folder, FolderIndex, Instance, TagIndex } from "./models"
+import { deletedID, Folder, FolderIndex, Instance, TagIndex } from "./models"
 import { GroupManager } from "@/core/GroupManager"
 import { useDataStore } from "./dataStore"
 import { useColumnStore } from "./columnStore"
@@ -81,14 +81,78 @@ export function countImagePerFolder(folders: FolderIndex, images: Instance[]) {
     })
 }
 
-export function setTagsChildren(tags: TagIndex) {
-    for(let tagId in tags) {
-        const tag = tags[tagId]
+// The backend stores `tag.parents` verbatim: it never validates the hierarchy, so the raw
+// edge set may contain cycles (two users concurrently making A a parent of B and B a parent
+// of A), self-edges and dangling ids. Resolving that is the frontend's job, and it has to be
+// *deterministic*: every client must derive the same tree from the same edge set, whatever
+// order the tags arrived in. So we sort the edges (child id, then parent id) and add them
+// greedily, skipping any edge that would close a loop. The skipped edges are kept in
+// `ignoredParents` — `parents` stays the untouched source of truth, so the user can still
+// remove a dropped edge, and it is what gets sent back on the next commit.
+export function buildTagTree(tags: TagIndex) {
+    const ids = Object.keys(tags).map(Number).filter(id => tags[id]?.id !== deletedID)
+    ids.sort((a, b) => a - b)
+
+    for (const id of ids) {
+        const tag = tags[id]
         tag.children = []
+        tag.effectiveParents = []
+        tag.ignoredParents = []
     }
 
-    for(let tagId in tags) {
-        const tag = tags[tagId]
-        tag.parents.filter(tId => tId > 0).forEach(tId => tags[tId].children.push(tag.id))
+    // Is `from` reachable from `target` by walking accepted parent edges? Only ever called on
+    // the already-acyclic accepted graph, so no visited set is needed to terminate — but the
+    // graph is a DAG, not a tree, so we keep one to avoid re-walking shared ancestors.
+    const reaches = (from: number, target: number) => {
+        const stack = [from]
+        const seen = new Set<number>()
+        while (stack.length) {
+            const cur = stack.pop()
+            if (cur === target) return true
+            if (seen.has(cur)) continue
+            seen.add(cur)
+            const parents = tags[cur]?.effectiveParents
+            if (parents) stack.push(...parents)
+        }
+        return false
     }
+
+    for (const id of ids) {
+        const tag = tags[id]
+        const parents = [...new Set(tag.parents)].sort((a, b) => a - b)
+        for (const parentId of parents) {
+            // Drop self-edges, the legacy 0 root, and ids pointing at nothing (a tag deleted
+            // by another user, or an unresolved negative placeholder).
+            if (parentId === id || parentId <= 0) continue
+            const parent = tags[parentId]
+            if (!parent || parent.id === deletedID) continue
+
+            if (reaches(parentId, id)) {
+                tag.ignoredParents.push(parentId)
+                continue
+            }
+            tag.effectiveParents.push(parentId)
+            parent.children.push(id)
+        }
+    }
+}
+
+// Would linking `childId` under `parentId` close a loop in the currently accepted tree?
+// Lets the UI refuse the edge up front instead of committing one that buildTagTree would
+// silently ignore afterwards.
+export function wouldCreateTagCycle(tags: TagIndex, childId: number, parentId: number) {
+    if (childId === parentId) return true
+    // Walking `children` (the accepted edges) rather than the cached `allChildren` keeps this
+    // usable on any index, including one buildTagTree has just rebuilt.
+    const stack = [childId]
+    const seen = new Set<number>()
+    while (stack.length) {
+        const cur = stack.pop()
+        if (cur === parentId) return true
+        if (seen.has(cur)) continue
+        seen.add(cur)
+        const children = tags[cur]?.children
+        if (children) stack.push(...children)
+    }
+    return false
 }

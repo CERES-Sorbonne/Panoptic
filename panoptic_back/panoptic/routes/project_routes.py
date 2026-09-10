@@ -1566,6 +1566,22 @@ def delete_image_type(type_id: int, project: Project = Depends(_dep)):
     return {'ok': True}
 
 
+class _GenerateImagesRequest(BaseModel):
+    type_ids: Optional[list[int]] = None
+
+
+@project_router.post('/image_types/generate')
+def generate_images(req: _GenerateImagesRequest, project: Project = Depends(_dep)):
+    """(Re)generate missing renditions for the given image types (all of them by default)."""
+    from panoptic.core.task.generate_thumbnails_task import GenerateThumbnailsTask
+
+    type_ids = req.type_ids
+    if type_ids is None:
+        type_ids = [t.id for t in project.get_image_types()]
+    project.add_task(GenerateThumbnailsTask(project, clear_flag=False, type_ids=type_ids))
+    return {'ok': True}
+
+
 @project_router.get('/image_stats')
 def get_image_stats(project: Project = Depends(_dep)):
     return project.get_image_stats()

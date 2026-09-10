@@ -102,29 +102,33 @@ export function getGroupParents(group: Group): Group[] {
 
 export function getTagChildren(tag: Tag, tags: TagIndex) {
     const res = []
-    const recursive = (t: Tag) => {
-        if (!t || t.id === deletedID) return
+    const seen = new Set<number>()
+    const stack = [tag]
+    while (stack.length) {
+        const t = stack.pop()
+        if (!t || t.id === deletedID || seen.has(t.id)) continue
+        seen.add(t.id)
         res.push(t.id)
         if (t.children) {
-            t.children.filter(c => c != deletedID).forEach(cId => recursive(tags[cId]))
+            for (const cId of t.children) if (cId != deletedID) stack.push(tags[cId])
         }
-
     }
-    recursive(tag)
     return res
 }
 
-export function getTagParents(tag: Tag, tags) {
+export function getTagParents(tag: Tag, tags: TagIndex) {
     const res = []
-    const recursive = (t: Tag) => {
-        if (!t) return
-        for (let pId of t.parents) {
-            if (pId == 0) continue
-            res.push(pId)
-            recursive(tags[pId])
-        }
+    const seen = new Set<number>([tag.id])
+    const stack = [...(tag.effectiveParents ?? tag.parents ?? [])]
+    while (stack.length) {
+        const pId = stack.pop()
+        if (pId <= 0 || seen.has(pId)) continue
+        const parent = tags[pId]
+        if (!parent || parent.id === deletedID) continue
+        seen.add(pId)
+        res.push(pId)
+        stack.push(...(parent.effectiveParents ?? parent.parents ?? []))
     }
-    recursive(tag)
     return res
 }
 // export async function getSimilarImagesFromText(context: ActionContext) {

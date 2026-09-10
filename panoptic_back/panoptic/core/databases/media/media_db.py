@@ -37,6 +37,16 @@ class MediaDB(SQLiteWriter):
     def get_images(self, **filters) -> list[Image]:
         return IMAGE_SHEMA.get(self.conn, **filters)
 
+    def get_image_keys(self, sha1s: list[str]) -> set[tuple[int, str]]:
+        """(type_id, sha1) pairs that already have a stored blob, without reading it."""
+        if not sha1s:
+            return set()
+        marks = ','.join('?' * len(sha1s))
+        rows = self.conn.execute(
+            f"SELECT type_id, sha1 FROM images WHERE sha1 IN ({marks})", list(sha1s)
+        ).fetchall()
+        return {(r[0], r[1]) for r in rows}
+
     def upsert_images(self, images: list[Image]) -> None:
         with self.transaction() as tx:
             IMAGE_SHEMA.upsert(tx, images)

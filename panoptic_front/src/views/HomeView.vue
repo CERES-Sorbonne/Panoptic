@@ -15,6 +15,7 @@ import UserSelector from '@/components/home/UserSelector.vue';
 import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
 import FirstModal from '@/components/modals/FirstModal.vue';
 import NotifModal from '@/components/modals/NotifModal.vue';
+import LegacyImportModal from '@/components/modals/LegacyImportModal.vue';
 
 const panoptic = usePanopticStore()
 
@@ -26,8 +27,11 @@ const langs = ['fr', 'en']
 
 const hasProjects = computed(() => panoptic.projects.length > 0)
 
-const showFirstModal = computed(() => !hasProjects.value)
-const showTutorial = computed(() => !hasProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
+// Cas classique de mise à jour: aucun projet récent mais plusieurs anciens.
+// La proposition de migration passe donc avant FirstModal et le tutoriel.
+const hasLegacyProjects = computed(() => panoptic.hasLegacyProjects)
+const showFirstModal = computed(() => !hasProjects.value && !hasLegacyProjects.value)
+const showTutorial = computed(() => !hasProjects.value && !hasLegacyProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
 const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourceType == PluginType.PIP && p.sourcePath == 'panopticml'))
 
@@ -95,12 +99,26 @@ async function downloadPackagesInfos() {
     }
 }
 
-watch(() => panoptic.projectsLoaded, (loaded) => {
-    if (!loaded) return
+// Le scan des anciens projets arrive de façon asynchrone: on attend son résultat
+// avant de décider quelle intro afficher, sinon FirstModal gagne la course.
+watch(() => [panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjects.value], () => {
+    if (!panoptic.projectsLoaded || !panoptic.legacyScanLoaded) return
+    if (hasLegacyProjects.value) {
+        if (panoptic.introShown && panoptic.openModalId !== ModalId.FIRSTMODAL) return
+        panoptic.introShown = true
+        panoptic.showModal(ModalId.LEGACY)
+        return
+    }
+    if (panoptic.introShown) return
+    panoptic.introShown = true
     if (showFirstModal.value) {
         panoptic.showModal(ModalId.FIRSTMODAL)
     }
 }, { immediate: true })
+
+function openLegacyModal() {
+    panoptic.showModal(ModalId.LEGACY)
+}
 
 </script>
 
@@ -111,6 +129,7 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
 
         <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
         <FirstModal />
+        <LegacyImportModal />
         <NotifModal />
 
         <div class="window2 d-flex ">
@@ -148,6 +167,11 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
                 </div>
             </div>
             <div class="flex-grow-1">
+                <div v-if="hasLegacyProjects" class="legacy-banner" @click="openLegacyModal">
+                    <i class="bi bi-box-arrow-in-down me-1"></i>
+                    <b>{{ $t('main.home.legacy.banner', { count: panoptic.legacyProjects.length }) }}</b>
+                    <span class="legacy-banner-btn ms-2">{{ $t('main.home.legacy.banner_button') }}</span>
+                </div>
                 <div class="d-flex flex-column main-menu justify-content-center">
                     <div>
                         <div class="icon">
@@ -280,6 +304,22 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
     padding: 4px;
     font-size: 15px;
     color: rgb(50, 50, 50);
+}
+
+.legacy-banner {
+    background-color: rgb(238, 238, 255);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 15px;
+    text-align: left;
+    cursor: pointer;
+    color: rgb(45, 45, 45);
+}
+
+.legacy-banner-btn {
+    background-color: rgb(170, 170, 255);
+    color: white;
+    border-radius: 8px;
+    padding: 2px 8px;
 }
 
 .user-section {

@@ -453,6 +453,10 @@ export async function apiDeleteImageType(typeId: number) {
     await projectApi.delete(`/image_types/${typeId}`)
 }
 
+export async function apiGenerateImages(typeIds?: number[]) {
+    await projectApi.post('/image_types/generate', { type_ids: typeIds ?? null })
+}
+
 export async function apiGetImageStats(): Promise<ImageStats> {
     const res = await projectApi.get('/image_stats')
     return keysToCamel(res.data) as ImageStats

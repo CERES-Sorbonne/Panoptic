@@ -5,6 +5,8 @@ import {
     ConnectionState,
     DbCommit,
     Folder,
+    LegacyMigrationRun,
+    LegacyScan,
     PointMap,
     ProjectSettings,
     ProjectState,
@@ -88,6 +90,15 @@ export const useSocketStore = defineStore('socketStore', () => {
 
         socket.on('update_projects', () => {
             usePanopticStore().fetchProjects()
+        })
+
+        // Migration des anciens projets (0.x): payloads déjà en camelCase côté backend
+        socket.on('legacy_projects', (data: LegacyScan) => {
+            usePanopticStore().importLegacyScan(data)
+        })
+
+        socket.on('legacy_migration_state', (data: LegacyMigrationRun) => {
+            usePanopticStore().importLegacyMigration(data)
         })
 
         socket.on('update_plugins', () => {

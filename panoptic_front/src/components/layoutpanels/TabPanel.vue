@@ -197,12 +197,13 @@ function selectTab(tabId: string) {
     display: none;
 }
 
-/* Inline rename — the field is chromeless (see TabButton.vue), so the pill
-   itself is the only visible container. Keep it looking active while editing
-   so the tab being renamed stays obvious. */
+/* Inline rename — the pill turns into a visible text field: white ground and a
+   primary ring, so it is obvious an input is open and not just an active tab. */
 .tab-bar :deep(.tab-button.editing) {
-    background-color: var(--primary-light);
+    background-color: var(--bg-primary);
     color: var(--text-primary);
+    box-shadow: 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-light);
+    cursor: text;
 }
 
 /* Compact, borderless PyCharm-style icon button used for the add-tab button.

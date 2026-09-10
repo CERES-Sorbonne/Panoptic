@@ -27,7 +27,11 @@
                 "import_details": "Choose an existing Panoptic folder.",
                 "import_button": "Import"
             },
-            "version_tooltip": "Display debug info of panoptic"
+            "version_tooltip": "Display debug info of panoptic",
+            "legacy": {
+                "banner": "Projects from an older version were found",
+                "banner_button": "Convert"
+            }
         },
         "status": {
             "no_project": "No open Panoptic project"
@@ -343,6 +347,7 @@
             "params": "Params",
             "createNewVectorType": "Add vector type",
             "createNewImageType": "Add image type",
+            "generateImages": "Recompute all missing thumbnails",
             "name": "Name",
             "format": "Format",
             "maxSize": "Max size",
@@ -441,6 +446,40 @@
             "error_network": "Network error or server unavailable",
             "error_import": "Import failed",
             "add_source": "Add an image source"
+        },
+        "legacy": {
+            "title": "Convert old Panoptic projects",
+            "safety": "The conversion creates a copy of the original project.",
+            "registry": "{count} project(s) listed (format {shape}) in",
+            "shape": "Format",
+            "images": "{count} images",
+            "plugins": "Plugins used: {plugins} (nothing is installed automatically)",
+            "destination": "Destination folder of the converted copy",
+            "migrate": "Convert",
+            "unavailable": "Cannot be converted",
+            "ignore": "Ignore",
+            "already": "Already converted to",
+            "previous_failed": "A previous attempt failed",
+            "dismiss_all": "Don't ask again",
+            "later": "Later",
+            "done": "Conversion finished",
+            "failed": "Conversion failed",
+            "failed_hint": "The original project is intact. Delete the partial destination folder before trying again.",
+            "warnings": "Logs",
+            "report": "Open the report",
+            "stages": {
+                "read-legacy": "Reading the old project",
+                "write-data-db": "Writing the data database",
+                "write-media-db": "Writing the media database",
+                "write-project-db": "Writing the project database",
+                "check": "Checking",
+                "register-project": "Registering the project"
+            },
+            "losses": {
+                "title": "Warning",
+                "tabs": "Tabs are not preserved.",
+                "vectors": "Vectors must be recomputed (PanopticML)."
+            }
         }
     },
     "tutorial": {

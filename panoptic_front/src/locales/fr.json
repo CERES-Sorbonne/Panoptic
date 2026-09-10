@@ -27,7 +27,11 @@
                 "import_details": "Choisissez un dossier Panoptic existant.",
                 "import_button": "Importer"
             },
-            "version_tooltip": "Afficher les informations de debug panoptic"
+            "version_tooltip": "Afficher les informations de debug panoptic",
+            "legacy": {
+                "banner": "Des projets d'une ancienne version ont été trouvés",
+                "banner_button": "Convertir"
+            }
         },
         "status": {
             "no_project": "Aucun projet Panoptic ouvert"
@@ -348,6 +352,7 @@
             "params": "Paramètres",
             "createNewVectorType": "Ajouter un type de vecteur",
             "createNewImageType": "Ajouter un type d'image",
+            "generateImages": "Recalculer toutes les miniatures manquantes",
             "name": "Nom",
             "format": "Format",
             "maxSize": "Taille max",
@@ -451,6 +456,40 @@
             "error_network": "Erreur réseau ou serveur indisponible",
             "error_import": "Échec de l'import",
             "add_source": "Ajouter une source d'images"
+        },
+        "legacy": {
+            "title": "Convertir d'anciens projets Panoptic",
+            "safety": "La conversion crée une copie du projet original.",
+            "registry": "{count} projet(s) listés (format {shape}) dans",
+            "shape": "Format",
+            "images": "{count} images",
+            "plugins": "Plugins utilisés : {plugins} (rien n'est installé automatiquement)",
+            "destination": "Dossier de destination de la copie convertie",
+            "migrate": "Convertir",
+            "unavailable": "Non convertible",
+            "ignore": "Ignorer",
+            "already": "Déjà converti dans",
+            "previous_failed": "Une tentative précédente a échoué",
+            "dismiss_all": "Ne plus me demander",
+            "later": "Plus tard",
+            "done": "Conversion terminée",
+            "failed": "La conversion a échoué",
+            "failed_hint": "Le projet d'origine est intact. Supprimez le dossier de destination partiel avant de réessayer.",
+            "warnings": "Logs",
+            "report": "Ouvrir le rapport",
+            "stages": {
+                "read-legacy": "Lecture de l'ancien projet",
+                "write-data-db": "Écriture de la base de données",
+                "write-media-db": "Écriture de la base des médias",
+                "write-project-db": "Écriture de la base du projet",
+                "check": "Vérification",
+                "register-project": "Enregistrement du projet"
+            },
+            "losses": {
+                "title": "Attention",
+                "tabs": "Les onglets ne sont pas préservés.",
+                "vectors": "Les vecteurs doivent être recalculés (PanopticML)."
+            }
         }
     },
     "tutorial": {

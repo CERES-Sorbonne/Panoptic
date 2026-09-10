@@ -1,0 +1,158 @@
+{
+  "version": "0.7.6",
+  "shape": "v7c",
+  "instances": 12,
+  "folders": [
+    [
+      1,
+      "sample_images",
+      null
+    ],
+    [
+      2,
+      "sub",
+      1
+    ]
+  ],
+  "property_group": [
+    1,
+    "fixture group"
+  ],
+  "properties": {
+    "txt_id": [
+      1,
+      "text",
+      "id"
+    ],
+    "num_id": [
+      2,
+      "number",
+      "id"
+    ],
+    "tag_id": [
+      3,
+      "tag",
+      "id"
+    ],
+    "multi_id": [
+      4,
+      "multi_tags",
+      "id"
+    ],
+    "imglink_id": [
+      5,
+      "image_link",
+      "id"
+    ],
+    "url_id": [
+      6,
+      "url",
+      "id"
+    ],
+    "date_id": [
+      7,
+      "date",
+      "id"
+    ],
+    "path_id": [
+      8,
+      "path",
+      "id"
+    ],
+    "color_id": [
+      9,
+      "color",
+      "id"
+    ],
+    "check_id": [
+      10,
+      "checkbox",
+      "id"
+    ],
+    "txt_sha1": [
+      11,
+      "text",
+      "sha1"
+    ],
+    "num_sha1": [
+      12,
+      "number",
+      "sha1"
+    ],
+    "multi_sha1": [
+      13,
+      "multi_tags",
+      "sha1"
+    ],
+    "check_sha1": [
+      14,
+      "checkbox",
+      "sha1"
+    ]
+  },
+  "tags": {
+    "animal": [
+      1,
+      []
+    ],
+    "mammal": [
+      2,
+      [
+        1
+      ]
+    ],
+    "cat": [
+      3,
+      [
+        2
+      ]
+    ],
+    "dog": [
+      4,
+      [
+        2
+      ]
+    ],
+    "bird": [
+      5,
+      [
+        1
+      ]
+    ],
+    "pet": [
+      6,
+      [
+        3,
+        4
+      ]
+    ],
+    "landscape": [
+      7,
+      []
+    ],
+    "portrait": [
+      8,
+      []
+    ],
+    "sha_alpha": [
+      9,
+      []
+    ],
+    "sha_beta": [
+      10,
+      [
+        9
+      ]
+    ]
+  },
+  "instance_values": 118,
+  "image_values": 48,
+  "tabs": "ui_data:tabs (2)",
+  "plugin_data": [
+    "FaissPlugin",
+    "DummyPlugin"
+  ],
+  "vectors": "vector_type id=1 source=panoptic_ml + 12 vectors (dim 16)",
+  "project_settings": "small=96 medium=320 large=900",
+  "maps": "panoptic_ml/fixture umap (12 points)"
+}

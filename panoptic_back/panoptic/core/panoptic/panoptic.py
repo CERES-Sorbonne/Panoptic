@@ -12,6 +12,7 @@ from panoptic.core.panoptic.models import ProjectState
 from panoptic.core.plugin.plugin_installer import (
     SOURCE_GIT, SOURCE_PATH, SOURCE_PIP, PluginInstaller,
 )
+from panoptic.core.panoptic.legacy_migration import LegacyMigrationService
 from panoptic.core.project.project import Project
 
 
@@ -22,6 +23,7 @@ class Panoptic:
 
         self.db:         PanopticDB | None       = None
         self._installer: PluginInstaller | None  = None
+        self.legacy:     LegacyMigrationService | None = None
 
         self._loaded_projects: dict[str, Project] = {}
         self._sessions:        dict[str, str]       = {}  # token → user_id
@@ -35,6 +37,7 @@ class Panoptic:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db         = PanopticDB(str(self.db_path))
         self._installer = PluginInstaller(self.plugins_dir)
+        self.legacy     = LegacyMigrationService(self)
 
     def close(self):
         with self._lock:

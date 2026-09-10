@@ -3,6 +3,8 @@ const props = defineProps<{
     page?: string
     options: string[]
     langKey?: string
+    // Hide the left option list once a page is selected (full-width page content)
+    hideMenu?: boolean
 }>()
 const emits = defineEmits(['update:page'])
 
@@ -14,7 +16,7 @@ function changePage(page: string) {
 
 <template>
     <div class="d-flex h-100">
-        <div class="option-list" style="min-width: 150px;">
+        <div v-if="!(props.hideMenu && props.page != '')" class="option-list" style="min-width: 150px;">
             <div
             v-for="option in props.options"
             :key="option"
@@ -38,7 +40,7 @@ function changePage(page: string) {
                     <!-- <div class="me-5"></div> -->
                     <slot name="header" :page="props.page"></slot>
                 </div>
-                <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
+                <div class="flex-grow-1" style="min-height: 0; overflow-y: auto; overflow-x: hidden;">
                     <slot :page="props.page"></slot>
                 </div>
             </div>

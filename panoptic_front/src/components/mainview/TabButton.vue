@@ -38,8 +38,8 @@ function doubleClick() {
 function setEditTab() {
     isEdit.value = true
     newTabName.value = props.tab.state.name
-    // Select the whole name so typing replaces it — the field looks like plain
-    // text, so a visible selection is the only cue that it is editable.
+    // Select the whole name so typing replaces it, and so the highlight confirms
+    // the field is live alongside the pill's input chrome.
     nextTick(() => {
         inputElem.value?.focus()
         inputElem.value?.select()
@@ -114,8 +114,8 @@ onMounted(() => {
     background-color: var(--primary-light);
 }
 
-/* Rename field: chromeless, so editing reads as typing directly on the tab
-   label rather than a box appearing inside the pill. */
+/* Rename field: the pill itself supplies the input chrome (see .tab-button.editing
+   in TabPanel.vue), so the input stretches over the label with no box of its own. */
 .tab-name-edit {
     position: relative;
     display: inline-block;
@@ -143,10 +143,13 @@ onMounted(() => {
     font: inherit;
     letter-spacing: inherit;
     color: inherit;
+    caret-color: var(--primary);
+    cursor: text;
 }
 
 .tab-name-input::selection {
-    background-color: var(--primary-light, #cfe2ff);
+    background-color: var(--primary);
+    color: var(--text-inverse);
 }
 </style>
 

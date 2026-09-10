@@ -30,7 +30,7 @@ const panoptic = usePanopticStore()
                     </button>
                     <button class="tw-action" title="Add group"
                         @click="data.addPropertyGroup('New Group')">
-                        <i class="bi bi-plus-lg"></i>
+                        <i class="bi bi-folder-plus"></i>
                     </button>
                     <button class="tw-action" title="Options"><i class="bi bi-three-dots"></i></button>
                     <button class="tw-action" title="Hide" @click="uiStore.panelStates.activeBottomPanel = null"><i class="bi bi-dash"></i></button>
@@ -54,7 +54,7 @@ const panoptic = usePanopticStore()
     align-items: center;
     justify-content: space-between;
     height: 30px;
-    padding: 0 var(--spacing-sm);
+    padding: 0 2px 0 var(--spacing-sm);
 }
 
 .tw-title {

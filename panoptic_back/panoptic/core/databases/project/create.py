@@ -1,10 +1,11 @@
 from panoptic.core.databases.entity_schema import EntitySchema
 from panoptic.core.databases.db_description import DbDescription
 from panoptic.core.databases.key_value_shema import KeyValueSchema
-from panoptic.core.databases.project.models import IdRegistry, ProjectConfig, PluginData, TabData, UserDefaults
+from panoptic.core.databases.project.models import IdRegistry, ProjectConfig, ProjectFlags, PluginData, TabData, UserDefaults
 
 ID_REGISTRY_SHEMA = KeyValueSchema(IdRegistry, 'id_registry')
 PROJECT_CONFIG_SHEMA = KeyValueSchema(ProjectConfig, 'project_config')
+PROJECT_FLAGS_SCHEMA = KeyValueSchema(ProjectFlags, 'project_flags')
 PLUGIN_DATA_SCHEMA = EntitySchema(PluginData, 'plugin_data')
 TAB_DATA_SCHEMA = EntitySchema(TabData, 'tab_data')
 USER_DEFAULTS_SCHEMA = EntitySchema(UserDefaults, 'user_defaults')
@@ -12,6 +13,7 @@ USER_DEFAULTS_SCHEMA = EntitySchema(UserDefaults, 'user_defaults')
 ALL_SCHEMAS = [
     ID_REGISTRY_SHEMA,
     PROJECT_CONFIG_SHEMA,
+    PROJECT_FLAGS_SCHEMA,
     PLUGIN_DATA_SCHEMA,
     TAB_DATA_SCHEMA,
     USER_DEFAULTS_SCHEMA,

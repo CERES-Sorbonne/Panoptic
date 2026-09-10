@@ -19,13 +19,10 @@ const tag = computed(() => data.properties[props.propertyId].tags[props.tagId])
 const realChildren = computed(() => tag.value?.children ?? [])
 const excluded = computed(() => {
     const res = new Set<number>()
-
-    const recursive = (t: Tag) => {
-        if (t == undefined) return
-        res.add(t.id)
-        t.parents.forEach(p => recursive(data.properties[props.propertyId].tags[p]))
+    if (tag.value) {
+        res.add(tag.value.id)
+        tag.value.allParents?.forEach(p => res.add(p))
     }
-    recursive(tag.value)
     return Array.from(res)
 })
 

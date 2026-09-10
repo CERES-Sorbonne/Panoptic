@@ -7,6 +7,7 @@ import { sum } from "@/utils/utils";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { keyState } from "@/data/keyState";
+import { wouldCreateTagCycle } from "@/data/storeutils";
 
 
 interface Line {
@@ -53,6 +54,12 @@ const selectedIndex = computed(() => {
     props.selectedTags.forEach(t => res[t.id] = true)
     return res
 })
+
+// The tree is drawn from the resolved (acyclic) edges; `tag.parents` may still hold an edge
+// buildTagTree dropped because it closed a loop.
+function tagParents(tag: Tag) {
+    return tag.effectiveParents ?? tag.parents
+}
 
 const tagList = computed(() => {
     let res = data.tagList.filter(t => t.propertyId == props.property.id && t.id != deletedID)
@@ -123,7 +130,15 @@ function computeTagDepth(tags: Tag[]) {
     const depths = tagDepth.value
     const filtered = new Set(tags.map(t => t.id))
     while (tags.length) {
-        const valid = tags.filter(t => !t.parents.some(c => depths[c] == undefined && filtered.has(c)))
+        const valid = tags.filter(t => !tagParents(t).some(c => depths[c] == undefined && filtered.has(c)))
+        // effectiveParents is acyclic by construction, so a layer is always drainable. If a
+        // stale index ever slips a loop through, place the rest on this level rather than
+        // spinning here forever and freezing the tab.
+        if (!valid.length) {
+            for (let tag of tags) depths[tag.id] = depth
+            depth += 1
+            break
+        }
         for (let tag of valid) {
             depths[tag.id] = depth
         }
@@ -210,7 +225,7 @@ async function reorderLines() {
                 for (let tag of col) {
                     const children: Tag[] = []
                     for (childIndex; childIndex < nextCol.length; childIndex++) {
-                        if (!nextCol[childIndex].parents.find(p => p == tag.id)) break
+                        if (!tagParents(nextCol[childIndex]).find(p => p == tag.id)) break
                         children.push(nextCol[childIndex])
                     }
                     goals[tag.id] = sum(children.map(c => indexes[c.id])) / children.length
@@ -382,7 +397,8 @@ async function endDraw() {
     document.removeEventListener('mouseup', endDraw)
     document.removeEventListener('mousemove', followMouse)
 
-    if (source != target && target > -1) {
+    // addTagParent refuses a looping edge; skip the redraw too so nothing flickers.
+    if (source != target && target > -1 && !wouldCreateTagCycle(data.tags, target, source)) {
         await data.addTagParent(target, source)
         lines.value = []
         tagColumns.value = []

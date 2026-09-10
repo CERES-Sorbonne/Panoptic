@@ -7,8 +7,11 @@ from panoptic.core.databases.panoptic.create import (
     USERS_SCHEMA,
     PROJECTS_SCHEMA,
     PLUGINS_SCHEMA,
+    LEGACY_MIGRATIONS_SCHEMA,
 )
-from panoptic.core.databases.panoptic.models import PanopticConfig, User, ProjectKey, PluginKey
+from panoptic.core.databases.panoptic.models import (
+    PanopticConfig, User, ProjectKey, PluginKey, LegacyMigration,
+)
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 
 DEFAULT_USER_ID = "default"
@@ -117,3 +120,33 @@ class PanopticDB(SQLiteWriter):
     def delete_plugin(self, plugin_id: str) -> None:
         with self.transaction() as tx:
             PLUGINS_SCHEMA.delete(tx, id=plugin_id)
+
+    # ------------------------------------------------------------------
+    # Config
+    # ------------------------------------------------------------------
+
+    def set_config_key(self, key: str, value) -> PanopticConfig:
+        with self.transaction() as tx:
+            PANOPTIC_CONFIG_SCHEMA.set_key(tx, key, value)
+        self.config = PANOPTIC_CONFIG_SCHEMA.get(self.conn)
+        return self.config
+
+    # ------------------------------------------------------------------
+    # Legacy migrations  (old 0.x projects already migrated or dismissed)
+    # ------------------------------------------------------------------
+
+    def get_legacy_migrations(self) -> list[LegacyMigration]:
+        return LEGACY_MIGRATIONS_SCHEMA.get(self.conn)
+
+    def get_legacy_migration(self, legacy_path: str) -> LegacyMigration | None:
+        rows = LEGACY_MIGRATIONS_SCHEMA.get(self.conn, legacy_path=legacy_path)
+        return rows[0] if rows else None
+
+    def set_legacy_migration(self, migration: LegacyMigration) -> LegacyMigration:
+        with self.transaction() as tx:
+            LEGACY_MIGRATIONS_SCHEMA.upsert(tx, migration)
+        return migration
+
+    def delete_legacy_migration(self, legacy_path: str) -> None:
+        with self.transaction() as tx:
+            LEGACY_MIGRATIONS_SCHEMA.delete(tx, legacy_path=legacy_path)

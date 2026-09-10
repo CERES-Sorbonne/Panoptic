@@ -2,6 +2,7 @@
 import { computed, ref, shallowRef, watch } from 'vue'
 import { deletedID, buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
+import { wouldCreateTagCycle } from '@/data/storeutils';
 import { deepCopy, isTag } from '@/utils/utils';
 import { useColumnStore } from '@/data/columnStore';
 import { usePanopticStore } from '@/data/panopticStore';
@@ -114,7 +115,12 @@ function hide() {
 
 async function addChild(tag: Tag) {
     const parentSet = new Set<number>(tag.parents)
-    selectedTags.value.forEach(t => parentSet.add(t.id))
+    // Skip any selected tag that already sits under `tag`: that edge would close a loop and
+    // buildTagTree would ignore it anyway.
+    selectedTags.value
+        .filter(t => !wouldCreateTagCycle(data.tags, tag.id, t.id))
+        .forEach(t => parentSet.add(t.id))
+    if (parentSet.size === new Set(tag.parents).size) return
     const update = deepCopy(tag)
     update.parents = Array.from(parentSet)
     const commit = { tags: [update] }
@@ -122,7 +128,11 @@ async function addChild(tag: Tag) {
 }
 
 async function addParent(tag: Tag) {
-    const toUpdate = selectedTags.value.filter(t => !t.parents.find(p => p == tag.id)).map(deepCopy)
+    const toUpdate = selectedTags.value
+        .filter(t => !t.parents.find(p => p == tag.id))
+        .filter(t => !wouldCreateTagCycle(data.tags, t.id, tag.id))
+        .map(deepCopy)
+    if (!toUpdate.length) return
     toUpdate.forEach(t => t.parents.push(tag.id))
     const commit = { tags: toUpdate }
     await data.sendCommit(commit)

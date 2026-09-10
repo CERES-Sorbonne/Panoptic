@@ -64,6 +64,7 @@ class Project:
         self.folder.mkdir(parents=True, exist_ok=True)
         with ProjectDB(self.project_db_path) as db:
             self.config = db.config
+            thumbnails_dirty = db.get_flag('thumbnails_dirty')
         with DataWriter(str(self.data_db_path)) as _:
             pass  # seeds data.db schema
         self._media = MediaDB(str(self.media_db_path), datastore_desc)
@@ -75,6 +76,11 @@ class Project:
         if self._plugin_keys:
             from panoptic.core.plugin.load_plugin_task import LoadPluginTask
             self.task_manager.add_task(LoadPluginTask(self, self._plugin_keys))
+        if thumbnails_dirty:
+            # e.g. a converted legacy project: backfill the missing renditions
+            # from the original files instead of asking for a re-import.
+            from panoptic.core.task.generate_thumbnails_task import GenerateThumbnailsTask
+            self.task_manager.add_task(GenerateThumbnailsTask(self))
 
     def _ensure_default_image_types(self):
         existing = self._media.get_image_types()
@@ -409,6 +415,10 @@ class Project:
         with self._data_reader() as r:
             return r.get_file_path_for_sha1(sha1)
 
+    def get_local_paths(self) -> dict:
+        with self._data_reader() as r:
+            return r.get_local_paths()
+
     def resolve_image_ref(self, sha1: str) -> dict | None:
         """Resolve a sha1 to a fetchable image ref ({'kind': 'local'|'iiif', ...})."""
         with self._data_reader() as r:
@@ -442,6 +452,9 @@ class Project:
             "SELECT data FROM images WHERE type_id=? AND sha1=?", (type_id, sha1)
         ).fetchone()
         return row[0] if row else None
+
+    def get_image_keys(self, sha1s: List[str]) -> set:
+        return self._media.get_image_keys(sha1s)
 
     def upsert_images(self, images: List[Image]):
         self._media.upsert_images(images)
