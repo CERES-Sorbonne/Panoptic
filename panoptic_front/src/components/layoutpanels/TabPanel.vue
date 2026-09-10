@@ -202,7 +202,8 @@ function selectTab(tabId: string) {
 .tab-bar :deep(.tab-button.editing) {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    box-shadow: 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-light);
+    /* Inset ring: an outer glow would spill past the tab bar's height. */
+    box-shadow: inset 0 0 0 1px var(--primary);
     cursor: text;
 }
 
