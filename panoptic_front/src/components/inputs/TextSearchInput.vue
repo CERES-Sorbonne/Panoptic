@@ -109,7 +109,7 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
                 :icon-only="true" :size="size * 0.6" :teleport="false" />
         </div>
         <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
-        <div class="input-field d-flex items-align-center">
+        <div class="input-field d-flex align-items-center">
             <input class="text-input2" :style="{ height: size + 'px' }" type="text" v-model="searchText"
                 :placeholder="$t('main.menu.search')" ref="inputElem" @focusin="isFocus = true"
                 @focusout="isFocus = false" @blur="confirmSearch"

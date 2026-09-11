@@ -4,6 +4,7 @@
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import TabContainer from '@/components/TabContainer.vue'
 import PropertyGroupPanel from './PropertyGroupPanel.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { useUiStore } from '@/data/uiStore'
 import { useTabStore } from '@/data/tabStore'
 import { useDataStore } from '@/data/dataStore'
@@ -24,16 +25,19 @@ const panoptic = usePanopticStore()
             <div class="tw-header">
                 <span class="tw-title">{{ $t('main.nav.properties.title') }}</span>
                 <div class="tw-actions">
-                    <button class="tw-action" title="Add property"
-                        @click="panoptic.showModal(ModalId.PROPERTY); goNext()">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                    <button class="tw-action" title="Add group"
-                        @click="data.addPropertyGroup('New Group')">
-                        <i class="bi bi-folder-plus"></i>
-                    </button>
-                    <button class="tw-action" title="Options"><i class="bi bi-three-dots"></i></button>
-                    <button class="tw-action" title="Hide" @click="uiStore.panelStates.activeBottomPanel = null"><i class="bi bi-dash"></i></button>
+                    <wTT message="main.nav.properties.add_property" pos="bottom">
+                        <button class="tw-action" @click="panoptic.showModal(ModalId.PROPERTY); goNext()">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </wTT>
+                    <wTT message="main.nav.properties.add_property_group" pos="bottom">
+                        <button class="tw-action" @click="data.addPropertyGroup('New Group')">
+                            <i class="bi bi-folder-plus"></i>
+                        </button>
+                    </wTT>
+                    <wTT message="main.nav.hide_panel" pos="bottom">
+                        <button class="tw-action" @click="uiStore.panelStates.activeBottomPanel = null"><i class="bi bi-dash"></i></button>
+                    </wTT>
                 </div>
             </div>
         </template>

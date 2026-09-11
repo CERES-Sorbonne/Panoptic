@@ -3,6 +3,7 @@
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import FolderList from '@/components/FolderTree/FolderList.vue'
 import FileSourceOptionDropdown from '@/components/dropdowns/FileSourceOptionDropdown.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { computed } from 'vue'
 import { useUiStore } from '@/data/uiStore'
 import { useDataStore } from '@/data/dataStore'
@@ -104,8 +105,12 @@ function toggleSourceSelect(group: SourceNode) {
             <div class="tw-header">
                 <span class="tw-title">{{ $t('main.nav.folders.title') }}</span>
                 <div class="tw-actions">
-                    <button class="tw-action" title="Add folder" @click="promptFolder()">＋</button>
-                    <button class="tw-action" title="Hide" @click="uiStore.panelStates.leftPanelOpen = false">－</button>
+                    <wTT message="modals.filesource.add_source" pos="bottom">
+                        <button class="tw-action" @click="promptFolder()">＋</button>
+                    </wTT>
+                    <wTT message="main.nav.hide_panel" pos="bottom">
+                        <button class="tw-action" @click="uiStore.panelStates.leftPanelOpen = false">－</button>
+                    </wTT>
                 </div>
             </div>
         </template>

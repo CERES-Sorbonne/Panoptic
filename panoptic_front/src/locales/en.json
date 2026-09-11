@@ -37,6 +37,9 @@
             "no_project": "No open Panoptic project"
         },
         "nav": {
+            "hide_panel": "Hide panel",
+            "split_view": "Split right",
+            "unsplit_view": "Unsplit",
             "folders": {
                 "title": "Folders",
                 "add": "Add an images folder",

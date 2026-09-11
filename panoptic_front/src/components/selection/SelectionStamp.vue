@@ -36,17 +36,17 @@ function openSelectionModal() {
 
 <template>
     <div class="selection-island">
-        <WithToolTip message="main.menu.remove_selection_tooltip">
-            <div class="seg count-seg" @click="emits('remove:selected')">
+        <div class="seg count-seg" @click="emits('remove:selected')">
+            <WithToolTip message="main.menu.remove_selection_tooltip">
                 <i class="bi bi-x clear-icon" />
                 <span class="count">{{ images.length }}</span>
-            </div>
-        </WithToolTip>
-        <WithToolTip message="main.menu.show_selection_tooltip">
-            <div class="seg" @click="openSelectionModal">
+            </WithToolTip>
+        </div>
+        <div class="seg" @click="openSelectionModal">
+            <WithToolTip message="main.menu.show_selection_tooltip">
                 <i class="bi bi-image" />
-            </div>
-        </WithToolTip>
+            </WithToolTip>
+        </div>
         <div class="seg">
             <WithToolTip message="dropdown.stamp.paint_selection">
                 <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
@@ -75,13 +75,6 @@ function openSelectionModal() {
     overflow: hidden;
     white-space: nowrap;
     column-gap: 0;
-}
-
-/* The first segment is wrapped in a tooltip trigger, which is inline-flex and centers its
-   child — leaving the segment shorter than the island and offset from the top border. */
-.selection-island > :deep(.wtt-trigger) {
-    height: 100%;
-    align-items: stretch;
 }
 
 .seg {
@@ -126,6 +119,8 @@ function openSelectionModal() {
     align-items: center;
     justify-content: center;
     height: 100%;
+    /* StampDropdown hardcodes an inline 23px width; size to the icon like the other segments */
+    width: auto !important;
 }
 
 .seg :deep(.sb:hover),
@@ -133,8 +128,11 @@ function openSelectionModal() {
     background-color: transparent !important;
 }
 
-.count-seg {
+.count-seg :deep(.wtt-trigger) {
     gap: 3px;
+}
+
+.count-seg {
     font-size: var(--font-size-sm, 0.8rem);
     /* first segment — no leading divider */
     border-left: none;

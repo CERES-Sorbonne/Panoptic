@@ -100,7 +100,7 @@
   --radius-xl: 1rem;
 
   /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family: InterVariable, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Courier New', monospace;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -164,7 +164,10 @@ body {
   overflow: hidden;
   color: var(--text-color);
   background-color: var(--bg-primary);
-  font-family: Inter, Din, Barlow, 'IBM Plex Sans', sans-serif !important;
+  /* !important: theme.css is injected before bootstrap.min.css (App.vue is
+     imported ahead of it in main.js), so Bootstrap's `body` rule would
+     otherwise win the specificity tie. */
+  font-family: var(--font-family) !important;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -175,8 +178,27 @@ input,
 textarea,
 select,
 button {
-  font-family: Inter, Din, Barlow, 'IBM Plex Sans', sans-serif;
+  font-family: inherit;
   font-size: var(--font-size-base);
+}
+
+/* Cross-browser form-control normalization.
+
+   Firefox forces `line-height: normal` on single-line text inputs and ignores
+   any value you set, while Chrome honours the inherited one (1.5 here). That
+   alone puts the text at two different heights. Declaring `normal` explicitly
+   makes Chrome agree with the value Firefox is going to use regardless, and
+   because the font is now self-hosted, `normal` resolves to the same metrics
+   everywhere.
+
+   Firefox's UA sheet also adds block padding to text inputs that Chrome's does
+   not, which shifts the text within a fixed-height control. Zero it. Only the
+   block axis is touched, so UA inline padding survives; both are element-level
+   declarations, so any class (Bootstrap's `.form-control`, our `.text-input`)
+   still overrides them. */
+input {
+  line-height: normal;
+  padding-block: 0;
 }
 
 code,

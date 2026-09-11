@@ -49,7 +49,7 @@ const capitalizeFirst = (text: any) => {
                 :class="{ 'sbb': !props.noBorder, 'sb': props.noBorder }">
 
                 <!-- Icon-only mode: just the selected option's icon (or chevron fallback) -->
-                <div v-if="props.iconOnly" class="display display-flex display-container">
+                <div v-if="props.iconOnly" class="display display-flex display-container icon-only">
                     <span v-if="selectedOption?.icon" :class="'bi bi-' + selectedOption.icon"></span>
                     <i v-else class="bi bi-chevron-down" />
                 </div>
@@ -155,5 +155,22 @@ const capitalizeFirst = (text: any) => {
 
 .bi-chevron-down {
     flex-shrink: 0;
+}
+
+/* Icon-only mode: give the glyph a real box instead of letting inline text
+   metrics place it. `line-height: normal` on the icon font and the
+   `vertical-align: -.125em` bootstrap-icons puts on `.bi::before` resolve
+   differently in Firefox and Chrome, which made the icon sit higher on
+   Firefox next to a fixed-height input. */
+.icon-only > .bi {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.icon-only > .bi::before {
+    display: block;
+    vertical-align: 0;
 }
 </style>

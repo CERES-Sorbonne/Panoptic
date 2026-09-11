@@ -5,6 +5,10 @@ import VueTour from 'vue3-tour'
 
 import App from './App.vue'
 
+// Self-hosted Inter (npm: inter-ui). Bundled rather than relied on from the
+// system so font metrics — and therefore baselines and line boxes — are
+// identical in every browser and on every OS.
+import "inter-ui/inter-variable.css"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
 import "bootstrap"
