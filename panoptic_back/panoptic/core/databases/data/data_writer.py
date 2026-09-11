@@ -19,11 +19,14 @@ from panoptic.core.databases.data.models import (
     PropertyGroup, Tag,
 )
 from panoptic.core.databases.data.resolver import (
-    ENTITY_SPECS, encode_key, decode_key, diff_changes, resolve,
+    ENTITY_SPECS, encode_key, decode_key, key_of, diff_changes, resolve,
 )
 
 _SQLITE_MAX_VARS = 900
 _TAG_DTYPES = {PropertyType.tag.value, PropertyType.multi_tags.value}
+_MONO_TAG_DTYPE = PropertyType.tag.value
+# (junction entity type -> anchor pk field) — the two cell-shaped tag junctions.
+_TAG_JUNCTIONS = {'instance_tag_value': 'instance_id', 'sha1_tag_value': 'sha1'}
 
 
 class DataWriter(SQLiteWriter):
@@ -72,8 +75,7 @@ class DataWriter(SQLiteWriter):
             if ops:
                 self._append_ops(tx, ops, seq)
                 touched = {(o.entity_type, o.entity_key) for o in ops}
-                for et, key in touched:
-                    self._materialize(tx, et, key, seq)
+                self._materialize_many(tx, touched, seq)
             return commit
 
     # ------------------------------------------------------------------
@@ -266,13 +268,17 @@ class DataWriter(SQLiteWriter):
         return rows[0] if rows else None
 
     def _materialize(self, tx: Cursor, entity_type: str, key: str, sequence: int) -> None:
-        """Re-resolve one entity from its enabled ops and upsert the result row.
+        """Re-resolve one entity from its enabled ops and upsert the result row."""
+        spec = ENTITY_SPECS[entity_type]
+        self._write_result(tx, spec, key,
+                           resolve(spec, key, self._enabled_ops(tx, entity_type, key)), sequence)
+
+    def _write_result(self, tx: Cursor, spec, key: str, resolved, sequence: int) -> None:
+        """Upsert one resolved entity into its result table.
 
         Writes a fresh ``sequence`` only when the resolved state actually changes, so the
-        delta reported to clients is minimal. A resolve to ``None`` tombstones a live row.
+        delta reported to clients is minimal. A ``resolved`` of ``None`` tombstones a live row.
         """
-        spec = ENTITY_SPECS[entity_type]
-        resolved = resolve(spec, key, self._enabled_ops(tx, entity_type, key))
         current = self._current_row(tx, spec, key)
 
         if resolved is None:
@@ -284,6 +290,81 @@ class DataWriter(SQLiteWriter):
         if current is not None and self._same_state(spec, current, resolved):
             return
         spec.schema.upsert(tx, resolved, sequence=sequence)
+
+    def _materialize_many(self, tx: Cursor, touched: Iterable[tuple[str, str]],
+                          sequence: int) -> None:
+        """Materialize every touched entity, then enforce mono-tag arity on the cells they hit."""
+        touched = list(touched)
+        for et, key in touched:
+            self._materialize(tx, et, key, sequence)
+        losers, winners = self._mono_tag_arity(tx, touched)
+        for et, key in losers:
+            self._write_result(tx, ENTITY_SPECS[et], key, None, sequence)
+        for (et, key), resolved in winners.items():
+            self._write_result(tx, ENTITY_SPECS[et], key, resolved, sequence)
+
+    # ------------------------------------------------------------------
+    # Mono-tag arity  (a `tag` property holds at most one tag)
+    # ------------------------------------------------------------------
+
+    def _mono_tag_cells(self, tx: Cursor, touched: Iterable[tuple[str, str]]) -> dict:
+        """Map each mono-tag cell hit by ``touched`` to *all* junction keys known for it.
+
+        Members come from the result table (tombstones included — a row pruned by an earlier
+        resolution must be reconsidered when a sibling changes) plus the touched keys.
+        """
+        cells: dict[tuple, set] = {}
+        for et, key in touched:
+            anchor_field = _TAG_JUNCTIONS.get(et)
+            if anchor_field is None:
+                continue
+            pk = dict(zip(ENTITY_SPECS[et].pk_fields, decode_key(key)))
+            cells.setdefault((et, pk[anchor_field], pk['property_id']), set()).add(key)
+        if not cells:
+            return {}
+
+        props = PROPERTIES_SCHEMA.get_index(tx, id=list({pid for (_, _, pid) in cells}))
+        out: dict[tuple, set] = {}
+        for (et, anchor_val, pid), keys in cells.items():
+            prop = props.get(pid)
+            if prop is None or prop.dtype != _MONO_TAG_DTYPE:
+                continue
+            spec = ENTITY_SPECS[et]
+            rows = spec.schema.get(tx, state=0,
+                                   **{_TAG_JUNCTIONS[et]: anchor_val, 'property_id': pid})
+            out[(et, anchor_val, pid)] = keys | {key_of(spec, r) for r in rows}
+        return out
+
+    def _mono_tag_arity(self, tx: Cursor, touched: Iterable[tuple[str, str]],
+                        up_to: int | None = None) -> tuple[set, dict]:
+        """Resolve each affected mono-tag cell as a whole and elect its single surviving tag.
+
+        A mono cell's tags live in independent junction entities that fold on their own, so a
+        non-LIFO undo (or two concurrent writers) can leave several alive at once. The arity is
+        an invariant of the *cell*, not of a junction row, so it is enforced here at fold time
+        rather than at write time: the tag asserted by the newest enabled commit wins (tag id
+        breaks ties), every other alive tag is tombstoned. Deterministic from the enabled set
+        alone, so undo stays order-independent — and since no op is ever dropped, undoing the
+        winner's commit revives the tag it displaced.
+
+        Returns ``(losers, winners)`` as ``{(entity_type, key)}`` and
+        ``{(entity_type, key): resolved_row}``.
+        """
+        losers: set[tuple[str, str]] = set()
+        winners: dict[tuple[str, str], Any] = {}
+        for (et, _, _), keys in self._mono_tag_cells(tx, touched).items():
+            spec = ENTITY_SPECS[et]
+            alive = {}
+            for key in keys:
+                resolved = resolve(spec, key, self._enabled_ops(tx, et, key, up_to=up_to))
+                if resolved is not None:
+                    alive[key] = resolved
+            if not alive:
+                continue
+            winner = max(alive, key=lambda k: (alive[k].commit_id, decode_key(k)[-1]))
+            winners[(et, winner)] = alive[winner]
+            losers |= {(et, k) for k in alive if k != winner}
+        return losers, winners
 
     @staticmethod
     def _same_state(spec, a, b) -> bool:
@@ -314,8 +395,9 @@ class DataWriter(SQLiteWriter):
             seq = self._exec_get_sequence(tx)
             tx.execute(f"UPDATE {COMMITS_SCHEMA.table} SET active = ? WHERE id = ?",
                        (1 if active else 0, commit_id))
-            for et, key in self._touched_by_commit(tx, commit_id):
-                self._materialize(tx, et, key, seq)
+            touched = self._touched_by_commit(tx, commit_id)
+            self._materialize_many(tx, touched, seq)
+            for et, key in touched:
                 # A tag's existence lives in the `tag` entity, but its assignments live in
                 # separate junction rows under other (still-active) commits. Toggling the tag
                 # doesn't touch those rows, so bump their sequence to re-ship the affected value
@@ -348,9 +430,16 @@ class DataWriter(SQLiteWriter):
                 (GENESIS_COMMIT_ID, horizon_commit_id),
             ).fetchall()]
 
+            # Elect the mono-tag winners *before* the fold: compaction collapses every commit
+            # id below the horizon into genesis, so the losers must be physically dropped here
+            # or the baseline would freeze a mono cell holding several tags.
+            losers, _ = self._mono_tag_arity(tx, touched, up_to=horizon_commit_id)
+
             for et, key in touched:
                 spec = ENTITY_SPECS[et]
                 resolved = resolve(spec, key, self._enabled_ops(tx, et, key, up_to=horizon_commit_id))
+                if (et, key) in losers:
+                    resolved = None
                 tx.execute(
                     "DELETE FROM entity_log WHERE entity_type = ? AND entity_key = ? AND commit_id <= ?",
                     (et, key, horizon_commit_id),

@@ -44,6 +44,7 @@
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images",
                 "del": "Retirer",
+                "reimport": "Réimporter",
                 "del_alert": "Retirer le dossier supprimera toutes les instances associées aux images contenues dans le dossier.",
                 "local_source": "Disque local"
             },
@@ -545,7 +546,10 @@
             "values": "valeur(s) modifiée(s)",
             "tags": "tag(s) modifié(s)",
             "undo": "Annuler",
-            "redo": "Refaire"
+            "redo": "Refaire",
+            "mine": "Mes modifications",
+            "all": "Tous les utilisateurs",
+            "empty": "Aucune modification"
         },
         "action": {
             "execute": "Execute une fonction plugin sur les instances",

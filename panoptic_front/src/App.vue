@@ -31,6 +31,14 @@ function setMousePos(e) {
     keyState.mouseY = e.clientY
 }
 
+// Don't steal Ctrl/Cmd+Z from a text field: there the browser's own undo is what the user means.
+function isEditing(ev: KeyboardEvent) {
+    const el = (ev.target ?? document.activeElement) as HTMLElement
+    if (!el) return false
+    const tag = el.tagName
+    return tag == 'INPUT' || tag == 'TEXTAREA' || el.isContentEditable
+}
+
 function onKeyDown(ev: KeyboardEvent) {
     if (ev.key == 'Meta') keyState.cmd = true;
     if (ev.key == 'Control') keyState.ctrl = true;
@@ -44,8 +52,14 @@ function onKeyDown(ev: KeyboardEvent) {
     if (ev.key == 'ArrowLeft') keyState.left = true;
     if (ev.key == 'ArrowRight') { keyState.right = true; }
 
-    if (ev.key == 'Z' && keyState.ctrl) data.redo()
-    if (ev.key == 'z' && keyState.ctrl) data.undo()
+    // Undo / redo: Cmd+Z on mac, Ctrl+Z elsewhere (+Shift to redo). Read the modifiers off the
+    // event rather than keyState: on mac Cmd never sets keyState.ctrl, and ev.key case depends on
+    // Shift, so `ev.key == 'Z'` alone is not a reliable redo test.
+    if (ev.key?.toLowerCase() == 'z' && (ev.metaKey || ev.ctrlKey) && !isEditing(ev)) {
+        ev.preventDefault()
+        if (ev.shiftKey) data.redo()
+        else data.undo()
+    }
 
     if (ev.key == 'f' && (keyState.ctrl || keyState.cmd)) {
         ev.preventDefault()

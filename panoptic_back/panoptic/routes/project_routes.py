@@ -1180,42 +1180,61 @@ def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep), us
     return {'ok': True, 'reload': reload}
 
 
+def _commit_info(c) -> dict:
+    """Commit is an ``array_like`` msgspec struct — serialize by name or the frontend gets a
+    positional array it can't read by key (same reason /commits builds dicts by hand)."""
+    return {'id': c.id, 'group_id': c.group_id, 'source': c.source,
+            'timestamp': c.timestamp, 'active': c.active, 'author': c.author}
+
+
 @project_router.post('/undo')
 def undo_route(project: Project = Depends(_dep), user_id: str = None):
+    """Undo the caller's own most recent still-active commit. Commits authored by other users
+    are never touched: selective undo is per-author (see DataWriter.set_commit_active)."""
     commits = [c for c in project.get_commits() if c.author == user_id]
     active = [c for c in commits if c.active]
     if not active:
         raise HTTPException(400, 'Nothing to undo')
     last = max(active, key=lambda c: c.id)      # last active = most recent
     project.set_commit_active(last.id, False)
-    return _json(last)
+    return _json(_commit_info(last))
 
 
 @project_router.post('/redo')
 def redo_route(project: Project = Depends(_dep), user_id: str = None):
+    """Redo the caller's own oldest undone commit (LIFO against undo). Per-author, as above."""
     commits = [c for c in project.get_commits() if c.author == user_id]
     inactive = [c for c in commits if not c.active]
     if not inactive:
         raise HTTPException(400, 'Nothing to redo')
     first = min(inactive, key=lambda c: c.id)   # first deactivated = reactivate in LIFO order
     project.set_commit_active(first.id, True)
-    return _json(first)
+    return _json(_commit_info(first))
 
 
 @project_router.get('/history')
-def get_history(project: Project = Depends(_dep), user_id: str = None):
-    """Per-user undo/redo stacks (ascending by commit id), each entry {timestamp, tags, values}.
+def get_history(project: Project = Depends(_dep), user_id: str = None, scope: str = 'own'):
+    """Undo/redo stacks (ascending by commit id), each entry {id, timestamp, author, own, tags, values}.
+
+    ``scope='own'`` (the default) keeps only the caller's commits — this is what gates Ctrl+Z,
+    since undo/redo may only ever touch your own commits. ``scope='all'`` returns every author's
+    commits so the history dropdown can show what the whole project did; entries with own=False
+    are display-only.
 
     The frontend history panel renders these lists and undo/redo gate on their length, so this
     must return arrays (not counts) for Ctrl+Z / the HistoryDropdown to work.
     """
-    commits = sorted((c for c in project.get_commits() if c.author == user_id),
-                     key=lambda c: c.id)
+    commits = sorted(project.get_commits(), key=lambda c: c.id)
+    if scope != 'all':
+        commits = [c for c in commits if c.author == user_id]
     stats = project.get_commit_stats([c.id for c in commits])
 
     def stat(c):
         s = stats.get(c.id, {'tags': 0, 'values': 0})
-        return {'timestamp': c.timestamp, 'tags': s['tags'], 'values': s['values']}
+        # `source` labels the authorless commits — imports, plugins, file sources, system —
+        # which never carry an author because they aren't written by a user through the UI.
+        return {'id': c.id, 'timestamp': c.timestamp, 'author': c.author, 'source': c.source,
+                'own': c.author == user_id, 'tags': s['tags'], 'values': s['values']}
 
     return _json({
         'undo': [stat(c) for c in commits if c.active],

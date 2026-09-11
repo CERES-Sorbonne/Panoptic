@@ -375,12 +375,12 @@ export async function apiDeleteMap(mapId: number) {
 
 export async function apiUndo() {
     const res = await projectApi.post('/undo')
-    return keysToCamel(res.data) as DbCommit
+    return keysToCamel(res.data) as DbCommitInfo
 }
 
 export async function apiRedo() {
     const res = await projectApi.post('/redo')
-    return keysToCamel(res.data) as DbCommit
+    return keysToCamel(res.data) as DbCommitInfo
 }
 
 export async function apiGetCommits(limit: number = 500): Promise<DbCommitInfo[]> {
@@ -434,8 +434,10 @@ export async function apiCommitDelete(commit: DbCommit): Promise<any> {
     return keysToCamel(res.data)
 }
 
-export async function apiGetHistory() {
-    const res = await projectApi.get('/history')
+// scope 'own' (default) = only this user's commits — the stacks Ctrl+Z acts on.
+// scope 'all' = every author's commits, for displaying the project-wide history.
+export async function apiGetHistory(scope: 'own' | 'all' = 'own') {
+    const res = await projectApi.get('/history', { params: { scope } })
     return res.data as CommitHistory
 }
 

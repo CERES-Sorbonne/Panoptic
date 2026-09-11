@@ -30,7 +30,7 @@ function deleteFolder() {
             <div class="project-menu">
                 <div class="menu-item" @click="reImport(); hide()">
                     <i class="bi bi-arrow-clockwise"></i>
-                    <span>Re import</span>
+                    <span>{{ $t('main.nav.folders.reimport') }}</span>
                 </div>
                 <div class="menu-item" @click="deleteFolder(); hide()">
                     <i class="bi bi-trash"></i>

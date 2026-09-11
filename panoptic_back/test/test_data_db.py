@@ -344,3 +344,62 @@ def test_compaction_baseline():
     assert reader.get_properties(id=10)[0].name == 'c'
     writer.set_commit_active(c3.id, False)            # undo falls back to the baseline ('b')
     assert reader.get_properties(id=10)[0].name == 'b'
+
+
+# ---------------------------------------------------------------------------
+# Mono-tag arity: a `tag` property holds at most one tag, whatever the undo order
+# ---------------------------------------------------------------------------
+
+def _mono_tags(writer, instance_id=1):
+    from panoptic.core.databases.data.create import INSTANCE_TAG_VALUES_SCHEMA
+    with writer.transaction() as tx:
+        return sorted(r.tag_id for r in INSTANCE_TAG_VALUES_SCHEMA.get(tx, instance_id=instance_id))
+
+
+def test_mono_tag_never_holds_two_tags_through_nonsequential_undo():
+    writer, reader = _setup('data_mono_tag')
+    writer.add_structural(instances=[Instance(id=1, file_id=1, sha1='a')])
+    writer.apply_commit('t', DataCommit(properties=[_prop(10, dtype=PropertyType.tag.value)]))
+
+    def set_tag(tag_id):
+        return writer.apply_commit('t', DataCommit(instance_values=[
+            InstanceValue(property_id=10, instance_id=1, value=[tag_id], operation=OP_UPDATE)]))
+
+    c1, c2, c3 = set_tag(1), set_tag(2), set_tag(3)
+    assert _mono_tags(writer) == [3]
+
+    # Undo the *middle* commit: tag 1's delete disappears with it, but the cell must still
+    # hold a single tag — the newest enabled write (tag 3) wins.
+    writer.set_commit_active(c2.id, False)
+    assert _mono_tags(writer) == [3]
+
+    # Undo the winner too: the displaced tag comes back, still alone.
+    writer.set_commit_active(c3.id, False)
+    assert _mono_tags(writer) == [1]
+
+    # Redo is symmetric.
+    writer.set_commit_active(c2.id, True)
+    assert _mono_tags(writer) == [2]
+    writer.set_commit_active(c3.id, True)
+    assert _mono_tags(writer) == [3]
+
+
+def test_mono_tag_arity_survives_compaction():
+    writer, reader = _setup('data_mono_tag_compact')
+    writer.add_structural(instances=[Instance(id=1, file_id=1, sha1='a')])
+    writer.apply_commit('t', DataCommit(properties=[_prop(10, dtype=PropertyType.tag.value)]))
+    commits = [writer.apply_commit('t', DataCommit(instance_values=[
+        InstanceValue(property_id=10, instance_id=1, value=[tag_id], operation=OP_UPDATE)]))
+        for tag_id in (1, 2, 3)]
+    writer.set_commit_active(commits[1].id, False)  # undo the middle write
+    writer.compact(10)
+    assert _mono_tags(writer) == [3]
+
+
+def test_multi_tags_keeps_every_tag():
+    writer, reader = _setup('data_multi_tag_arity')
+    writer.add_structural(instances=[Instance(id=1, file_id=1, sha1='a')])
+    writer.apply_commit('t', DataCommit(properties=[_prop(10, dtype=PropertyType.multi_tags.value)]))
+    writer.apply_commit('t', DataCommit(instance_values=[
+        InstanceValue(property_id=10, instance_id=1, value=[1, 2, 3], operation=OP_UPDATE)]))
+    assert _mono_tags(writer) == [1, 2, 3]

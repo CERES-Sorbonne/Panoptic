@@ -11,7 +11,6 @@ import wTT from '../tooltips/withToolTip.vue'
 import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
-import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue';
 import { useInputStore } from '@/data/inputStore';
@@ -107,9 +106,6 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             </wTT>
         </div>
 
-        <div class="ms-3">
-            <!-- <HistoryDropdown /> -->
-        </div>
         <div>
             <SelectionStamp v-if="hasSelectedImages" class="ms-5" style="font-size: 14px;"
                 :selected-images-ids="selectedImageIds"

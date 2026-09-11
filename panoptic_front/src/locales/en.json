@@ -44,6 +44,7 @@
                 "title": "Folders",
                 "add": "Add an images folder",
                 "del": "Remove",
+                "reimport": "Re-import",
                 "del_alert": "Removing this folder will delete every images from this folder from panoptic",
                 "local_source": "Local disk"
             },
@@ -534,7 +535,10 @@
             "values": "modified values",
             "tags": "modified tags",
             "undo": "Undo",
-            "redo": "Redo"
+            "redo": "Redo",
+            "mine": "My edits",
+            "all": "All users",
+            "empty": "No modification yet"
         },
         "action": {
             "execute": "Run a plugin function",

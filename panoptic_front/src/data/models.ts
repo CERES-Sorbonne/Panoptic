@@ -786,7 +786,13 @@ export interface DbCommit {
 }
 
 export interface CommitStat {
+    id: number
     timestamp: string
+    author?: string
+    source: string        // 'ui', 'import', 'system', or a plugin name — labels authorless commits
+    // False for a commit authored by somebody else (only ever present with scope='all'):
+    // it is shown in the history dropdown but can never be undone by this user.
+    own: boolean
     tags: number
     values: number
 }

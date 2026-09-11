@@ -11,6 +11,7 @@ import { usePanopticStore } from '@/data/panopticStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue'
 import TaskProgressBar from '@/components/dropdowns/TaskProgressBar.vue'
+import HistoryDropdown from '@/components/dropdowns/HistoryDropdown.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
 import { useColumnStore } from '@/data/columnStore'
@@ -76,6 +77,7 @@ function closeProject() {
         <div class="center-tools">
             <ColumnStatusDropdown v-if="tab.activeManager" :tab="tab.activeManager" />
             <TaskProgressBar />
+            <HistoryDropdown />
         </div>
 
         <!-- Right: current user + notifications + language -->
@@ -158,6 +160,7 @@ function closeProject() {
 }
 
 .center-tools :deep(.col-status-btn),
+.center-tools :deep(.history-btn),
 .center-tools :deep(.task-progress-btn) {
     height: var(--bar-tool-height);
     box-sizing: border-box;

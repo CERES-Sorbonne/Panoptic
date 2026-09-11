@@ -784,18 +784,19 @@ export const useDataStore = defineStore('dataStore', () => {
         await apiResyncFileSource(sourceId)
     }
 
+    // Undo / redo only flip the `active` bit of one of *this user's* commits server-side; the
+    // resulting data change comes back through the db_update socket delta, so there is nothing
+    // to apply here beyond refreshing the history stacks.
     async function undo() {
         if (!history.value.undo.length) return
-        const commit = await apiUndo()
-        applyCommit(commit)
+        await apiUndo()
         await getHistory()
         onUndo.value++
     }
 
     async function redo() {
         if (!history.value.redo.length) return
-        const commit = await apiRedo()
-        applyCommit(commit)
+        await apiRedo()
         await getHistory()
         onUndo.value++
     }
