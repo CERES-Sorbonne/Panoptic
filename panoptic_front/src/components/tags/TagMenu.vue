@@ -8,11 +8,10 @@
  */
 import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
-import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
+import TagListScroller from './TagListScroller.vue';
 import { deletedID, Property, Tag, PropertyType, TagIndex } from '@/data/models';
 import { useDataStore, deletedName } from '@/data/dataStore';
-import { objValues, sum } from '@/utils/utils';
+import { objValues } from '@/utils/utils';
 
 const data = useDataStore()
 
@@ -33,6 +32,7 @@ defineExpose({
 })
 
 const searchElem = ref(null)
+const listElem = ref(null)
 
 const tagFilter = ref('')
 
@@ -100,6 +100,7 @@ function moveSelected(value: number) {
     else if (value < 0 && selectedIndex.value > 0) {
         selectedIndex.value -= 1
     }
+    scrollToSelected()
 }
 
 
@@ -119,6 +120,12 @@ const selectOption = async function () {
     if (props.property.type == PropertyType.tag) {
         // emits('tab')
     }
+}
+
+function scrollToSelected() {
+    // The last index can be the "create tag" row, which lives outside the scroller.
+    if (selectedIndex.value == undefined || selectedIndex.value >= filteredTagList.value.length) return
+    listElem.value?.scrollToIndex(selectedIndex.value)
 }
 
 function endSelection(index) {
@@ -152,29 +159,12 @@ watch(filteredTagList, () => {
         <!-- what the list below is for -->
         <div class="list-hint">{{ $t('tag_menu_hint') }}</div>
 
-        <div class="pb-0 tag-list" style="max-height: 300px; overflow-y: auto;">
-            <div v-for="tag, index in filteredTagList" :class="[optionClass(index), 'tag-row']"
-                style="cursor: pointer;" @mouseover="selectedIndex = index" @mouseleave="endSelection(index)">
-                <div class="ms-2 d-flex align-items-center">
-                    <div class="flex-grow-1" style="overflow: hidden;" @click="selectOption">
-                        <TagBadge :id="tag.id" />
-                    </div>
-                    <div v-if="props.canLink"
-                        :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
-                        <TagChildSelectDropdown :property-id="tag.propertyId" :tag-id="tag.id" @hide="focus" />
-                    </div>
-                    <div v-if="props.canCustomize || props.canDelete"
-                        :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
+        <div class="pb-0">
+            <TagListScroller ref="listElem" :property="props.property" :tags="filteredTagList"
+                v-model:selected-index="selectedIndex" :can-link="props.canLink" :can-customize="props.canCustomize"
+                :can-delete="props.canDelete" :max-height="300" @select="index => { selectedIndex = index; selectOption() }"
+                @delete="id => emits('delete', id)" @hide="focus" />
 
-                        <TagOptionsDropdown :property-id="property.id" :tag-id="tag.id" :can-delete="props.canDelete"
-                            :can-customize="props.canCustomize" @delete="id => emits('delete', id)" @hide="focus" />
-                    </div>
-                    <div class="text-secondary" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
-                        {{tag.count + sum(tag.allChildren.map(c => data.tags[c] && data.tags[c].id != deletedID ? data.tags[c].count : 0))}}
-                    </div>
-
-                </div>
-            </div>
             <div v-if="props.canCreate && isCreatePossible" :class="[optionClass(filteredTagList.length), 'tag-row']"
                 style="cursor: pointer;" @mouseover="selectedIndex = filteredTagList.length"
                 @click.prevent.stop="selectOption">

@@ -10,6 +10,9 @@ import { useTabStore } from '@/data/tabStore'
 import { usePanopticStore } from '@/data/panopticStore'
 import { ModalId, SourceNode } from '@/data/models'
 import { getFolderChildren } from '@/utils/utils'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const uiStore = useUiStore()
 const data = useDataStore()
@@ -25,6 +28,13 @@ const sourceGroups = computed(() => (data.rootNodes.filter(n => n.type === 'file
 const looseFolders = computed(() =>
     data.rootNodes.filter(n => n.type === 'folder').map(n => data.folders[n.id]).filter(Boolean)
 )
+
+// The default local source carries the backend id "local_filesystem"; show a
+// translated label for it and the source's own name for everything else.
+function sourceName(node: SourceNode) {
+    if (data.fileSources[node.id]?.dtype === 'local') return t('main.nav.folders.local_source')
+    return node.name
+}
 
 // IIIF sources show the official IIIF logo; other sources use a disk icon.
 function isIiif(node: SourceNode) {
@@ -92,7 +102,7 @@ function toggleSourceSelect(group: SourceNode) {
     <IslandPanel grow>
         <template #header>
             <div class="tw-header">
-                <span class="tw-title">Folders</span>
+                <span class="tw-title">{{ $t('main.nav.folders.title') }}</span>
                 <div class="tw-actions">
                     <button class="tw-action" title="Add folder" @click="promptFolder()">＋</button>
                     <button class="tw-action" title="Hide" @click="uiStore.panelStates.leftPanelOpen = false">－</button>
@@ -108,7 +118,7 @@ function toggleSourceSelect(group: SourceNode) {
                     </span>
                     <img v-if="isIiif(group)" src="/icons/iiif.svg" class="source-logo" alt="IIIF" />
                     <i v-else class="bi bi-hdd source-icon" />
-                    <span class="source-name">{{ group.name }}</span>
+                    <span class="source-name">{{ sourceName(group) }}</span>
                     <span class="source-option">
                         <FileSourceOptionDropdown :source="data.fileSources[group.id]" />
                     </span>

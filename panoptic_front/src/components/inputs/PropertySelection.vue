@@ -5,6 +5,9 @@ import { deletedID, PropertyType, PropertyGroupId } from '@/data/models'
 import TextInput from './TextInput.vue'
 import { useDataStore } from '@/data/dataStore'
 import { useUiStore } from '@/data/uiStore'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const data = useDataStore()
 const uiStore = useUiStore()
@@ -27,8 +30,8 @@ const groupOpen = uiStore.panelStates.propertySelectionExpansions
 const propertyGroups = computed(() => data.propertyTree)
 
 function getGroupName(groupId: number): string {
-    if (groupId === PropertyGroupId.DEFAULT) return 'Default'
-    if (groupId === PropertyGroupId.METADATA) return 'Metadata'
+    if (groupId === PropertyGroupId.DEFAULT) return t('common.properties.default')
+    if (groupId === PropertyGroupId.METADATA) return t('common.properties.metadata')
     const groupData = data.propertyGroups[groupId]
     if (groupData) return groupData.name
     return 'Unknown'

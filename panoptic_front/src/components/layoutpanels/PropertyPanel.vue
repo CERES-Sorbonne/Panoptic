@@ -22,7 +22,7 @@ const panoptic = usePanopticStore()
     <IslandPanel grow>
         <template #header>
             <div class="tw-header">
-                <span class="tw-title">Properties</span>
+                <span class="tw-title">{{ $t('main.nav.properties.title') }}</span>
                 <div class="tw-actions">
                     <button class="tw-action" title="Add property"
                         @click="panoptic.showModal(ModalId.PROPERTY); goNext()">

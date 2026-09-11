@@ -48,7 +48,7 @@ const properties = computed(() => propertyGroups.value.flatMap(g => g.properties
 const selectedPropertyCount = computed(() => properties.value.filter(p => state.properties[p.id]).length)
 
 function groupName(groupId: number) {
-    if (groupId == PropertyGroupId.DEFAULT) return 'default'
+    if (groupId == PropertyGroupId.DEFAULT) return t('common.properties.default')
     if (groupId == PropertyGroupId.METADATA) return t('common.properties.metadata')
     return data.propertyGroups[groupId]?.name
 }

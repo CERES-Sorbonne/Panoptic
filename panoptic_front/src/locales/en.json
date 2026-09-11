@@ -41,7 +41,8 @@
                 "title": "Folders",
                 "add": "Add an images folder",
                 "del": "Remove",
-                "del_alert": "Removing this folder will delete every images from this folder from panoptic"
+                "del_alert": "Removing this folder will delete every images from this folder from panoptic",
+                "local_source": "Local disk"
             },
             "fileSources": {
                 "del": "Remove",
@@ -598,6 +599,7 @@
     "tmp": "Tooltip to be written",
     "common": {
         "properties": {
+            "default": "Project",
             "metadata": "Metadata",
             "instance": "Instance properties",
             "instances": "All instances properties",

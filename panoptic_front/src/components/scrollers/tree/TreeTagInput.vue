@@ -39,11 +39,11 @@ const { popup, popupElem, place, setWidth, fit, watchViewport, stopWatch } = use
 // resized as the search filtered its list would be unusable.
 const PICKER_WIDTH = 200
 // Nudge for the picker alone — the text editor keeps sitting exactly on its cell. Only the BOX
-// moves: the horizontal part is given back as width and as a left padding on the content, so the
-// icon and the first badge stay on the pixels the cell put them on and the right edge stays on
-// the cell's — x reads as an overhang, not as a shift of what's inside.
+// moves: the offset is given back to the icon and to the header's indent, so the icon and the
+// first badge stay on the pixels the cell put them on, and the horizontal part is given back as
+// width so the right edge stays on the cell's — x reads as an overhang, not as a shift.
 // x < 0 reaches past the cell's left edge, y > 0 drops the picker below the cell's top.
-const OFFSET = { x: -4, y: 0 }
+const OFFSET = { x: -4, y: -2 }
 
 const tags = () => (props.modelValue ?? []) as number[]
 
@@ -64,6 +64,7 @@ async function focus() {
     // absolutely positioned, so it is placed from the box's own corner and the content's padding
     // never reaches it: it pays the shift back itself
     popup.value.icon.left -= OFFSET.x
+    popup.value.icon.top -= OFFSET.y
     emits('focus')
     await nextTick()
     inputElem.value?.focus()
@@ -135,7 +136,7 @@ defineExpose({ focus })
 
     <Teleport to="body">
         <div v-if="editing" ref="popupElem" class="cell-popup tag-popup"
-            :style="{ ...popup.text, top: popup.top + 'px', left: popup.left + 'px', width: (popup.width + popup.scrollbar) + 'px',  maxHeight: popup.maxHeight ? popup.maxHeight + 'px' : undefined }">
+            :style="{ ...popup.text, top: popup.top + 'px', left: popup.left + 'px', width: (popup.width + popup.scrollbar) + 'px', maxHeight: popup.maxHeight ? popup.maxHeight + 'px' : undefined }">
             <!-- Same icon, same toggle: it closes the picker it opened. mousedown.prevent so the
                  close is this click's doing rather than the focus loss it would cause first. -->
             <div class="popup-icon" @mousedown.prevent @click="close()"
@@ -144,9 +145,9 @@ defineExpose({ focus })
             </div>
             <!-- Full width, not inset to the value box: the picker's tinted header is a surface,
                  and a surface must run under the icon column too, exactly as the cell's colour
-                 fill does. Its CONTENT is what keeps the cell's alignment, via --cell-indent. -->
+                 fill does. Its CONTENT keeps the cell's alignment, via --cell-indent / --cell-pad-top. -->
             <div ref="contentElem" class="tag-content"
-                :style="{ paddingLeft: -OFFSET.x + 'px', '--cell-indent': popup.contentLeft + 'px', '--cell-pad-top': popup.padTop + 'px' }">
+                :style="{ '--cell-indent': (popup.contentLeft - OFFSET.x) + 'px', '--cell-pad-top': (popup.padTop - OFFSET.y) + 'px' }">
                 <TagInput ref="inputElem" :property="props.property" :model-value="localValue"
                     :instance-id="props.instanceId" :can-create="true" :can-customize="true" :auto-focus="true"
                     :force-mono="props.forceMono" @update:model-value="updateValue" @tab="onTab" />
@@ -156,47 +157,31 @@ defineExpose({ focus })
 </template>
 
 <style scoped>
-/* A menu, not a field: it reads as a surface lifted off the page rather than as the cell turned
-   editable, so it takes a deeper shadow than the text editor. Same edge, more elevation. */
 .tag-popup {
     box-shadow: 0 8px 24px rgba(0, 123, 255, 0.18), 0 2px 8px rgba(0, 0, 0, 0.16);
     border-radius: 5px;
-    /* the tinted header runs to the popup's own edges, corners included */
     overflow: hidden auto;
 }
 
-/* The header's tint runs edge to edge (icon column included); only what it contains is pushed
-   back to the column the cell's value occupies, so nothing appears to move on opening. */
 .tag-content :deep(.selection),
 .tag-content :deep(.search-row) {
     padding-left: var(--cell-indent);
 }
 
-/* the header's own top inset replaced by the cell's, so the first badge sits as far from the
-   popup's top edge as the preview's does from the cell's */
 .tag-content :deep(.selection) {
     padding-top: var(--cell-pad-top);
-}
-
-/* The list is the popup's own content, not a continuation of the cell: it keeps a small, even
-   inset of its own rather than the cell's indent, which would leave it hanging off centre. */
-.tag-content :deep(.list-hint) {
-    padding-left: 8px;
 }
 
 .tag-content :deep(.tag-list) {
     padding: 2px 4px 8px;
 }
 
-/* the list's own bottom inset is inside its scroll box, so the popup needs one of its own to
-   keep the last row off the edge */
 .tag-content {
-    /* the popup IS the picker: the surface fills it, only the content is inset (--cell-indent) */
     width: 100%;
     padding-bottom: 6px;
+    padding-left: 0px;
 }
 
-/* One line of badges, clipped by the cell like every other value row */
 .badges {
     display: flex;
     align-items: center;

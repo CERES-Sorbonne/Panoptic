@@ -34,7 +34,7 @@ const group = computed(() => {
         return data.propertyGroups[props.node.groupId]
     }
     if (props.node.groupId == PropertyGroupId.DEFAULT) {
-        return { id: PropertyGroupId.DEFAULT, name: 'default' }
+        return { id: PropertyGroupId.DEFAULT, name: t('common.properties.default') }
     }
     if (props.node.groupId == PropertyGroupId.METADATA) {
         return { id: PropertyGroupId.METADATA, name: t('common.properties.metadata') }
