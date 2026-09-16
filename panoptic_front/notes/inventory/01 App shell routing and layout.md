@@ -18,8 +18,8 @@ Paths are relative to `panoptic_front/`.
 
 ## Files: boot & routing
 - [x] `index.html`. Vite HTML entry: `#app`, `/favicon.ico`.
-- [ ] `src/main.js` · 39 L. Creates the app. It loads Pinia, `vue-virtual-scroller`, the router, i18n and `vue3-tour`, plus the global CSS (Inter, Bootstrap, bootstrap-icons, `@vueform/toggle`, `vue3-tour`). It also re-exports `i18n`.
-- [ ] `src/App.vue` · 167 L. The root component:
+- [x] `src/main.js` · 39 L. Creates the app. It loads Pinia, `vue-virtual-scroller`, the router, i18n and `vue3-tour`, plus the global CSS (Inter, Bootstrap, bootstrap-icons, `@vueform/toggle`, `vue3-tour`). It also re-exports `i18n`.
+- [x] `src/App.vue` · 167 L. The root component:
   - `RouterView`
   - the global keyboard handling (Ctrl/Cmd+Z undo/redo, which it doesn't take over inside text fields)
   - the global modals

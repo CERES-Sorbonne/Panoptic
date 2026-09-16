@@ -131,6 +131,14 @@
   --z-modal: 1050;
   --z-popover: 1060;
   --z-tooltip: 1070;
+
+  /* Accent used by the tag tree (moved here from App.vue). The values are the
+     resolved ones from that file's old num/calc chain. */
+  --main: 132, 177, 255;
+  --main-color: rgb(var(--main));
+  --background-color: rgb(30, 30, 30);
+  --border-width: 0.13rem;
+  --hr: var(--border-width) solid rgb(24, 24, 24);
 }
 
 /* Light Theme - Default */
@@ -171,6 +179,14 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The mount point. App.vue used to wrap its template in a second <body> tag, which
+   picked up the rule above; the sizing lives here now instead. */
+#app {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 /* Common Element Styles */
@@ -408,6 +424,11 @@ a:focus {
 
 .bw:hover {
   background-color: white !important;
+}
+
+.btn-icon:hover {
+  cursor: pointer;
+  user-select: none;
 }
 
 .btn-icon-hover:hover {
