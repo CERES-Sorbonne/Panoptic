@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { DbCommit, ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -7,7 +7,7 @@ import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
 import { TabManager } from '@/core/TabManager';
 import draggableComponent from 'vuedraggable';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import WithToolTip from '../tooltips/withToolTip.vue';
 

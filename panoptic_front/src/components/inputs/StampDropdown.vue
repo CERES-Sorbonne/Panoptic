@@ -3,10 +3,10 @@ import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, Prop
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { useDataStore } from '@/data/dataStore';
-import { useColumnStore } from '@/data/columnStore';
-import { useInstanceStore } from '@/data/instanceStore';
-import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useColumnStore } from '@/data/stores/columnStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 
 const data = useDataStore()
 const columnStore = useColumnStore()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ImageType } from '@/data/models'
-import { apiGetImageTypes, apiUpsertImageType, apiDeleteImageType, apiGetImageStats, apiGenerateImages } from '@/data/apiProjectRoutes'
+import { apiGetImageTypes, apiUpsertImageType, apiDeleteImageType, apiGetImageStats, apiGenerateImages } from '@/data/api/projectApi'
 import SectionDivider from '../utils/SectionDivider.vue'
 
 const FORMATS = ['jpeg', 'webp', 'png']

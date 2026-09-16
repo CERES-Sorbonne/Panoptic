@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { MapControls } from './MapControl'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { SpatialIndex } from './SpatialIndex'
@@ -8,7 +8,7 @@ import { HoverPointLayer } from './HoverPointLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
-import { useColumnStore } from '@/data/columnStore'
+import { useColumnStore } from '@/data/stores/columnStore'
 
 export class MapRenderer {
     private container: HTMLElement

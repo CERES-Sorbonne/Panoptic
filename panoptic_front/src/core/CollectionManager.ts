@@ -10,8 +10,8 @@ import { FilterContext, FilterManager, FilterState } from "./FilterManager";
 import { SortManager, SortState } from "./SortManager";
 import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest, GroupInspector } from "./GroupManager";
 import { EventEmitter } from "@/utils/utils";
-import { useDataStore } from "@/data/dataStore";
-import { useColumnStore } from "@/data/columnStore";
+import { useDataStore } from "@/data/stores/dataStore";
+import { useColumnStore } from "@/data/stores/columnStore";
 import { Reactive, reactive, watch, WatchStopHandle } from "vue";
 
 export interface RunCollectionState {

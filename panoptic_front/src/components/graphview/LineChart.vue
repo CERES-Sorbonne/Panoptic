@@ -17,8 +17,8 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import VChart from 'vue-echarts'
 
-import { useColumnStore } from '@/data/columnStore'
-import { useInstanceStore } from '@/data/instanceStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { useInstanceStore } from '@/data/stores/instanceStore'
 import { GraphOptions } from '@/data/models'
 import { ChartModel, thumbnailsAvailable } from './chartModel'
 import { buildChartOption, chartLayout } from './chartOptions'

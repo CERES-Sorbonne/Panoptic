@@ -16,8 +16,8 @@ import { deletedID, PropertyIndex, PropertyValue, TagIndex } from "@/data/models
 import { Ref, reactive } from "vue";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
-import { useDataStore } from "@/data/dataStore";
-import { useColumnStore } from "@/data/columnStore";
+import { useDataStore } from "@/data/stores/dataStore";
+import { useColumnStore } from "@/data/stores/columnStore";
 import { computeSha1Piles } from "./sha1Piles";
 
 // ── group/* modules (extracted concerns) ────────────────────────────────────

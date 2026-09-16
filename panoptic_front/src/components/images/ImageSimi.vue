@@ -1,8 +1,8 @@
 <!-- <script setup lang="ts">
 import { computed } from 'vue'
-import { useProjectStore } from '@/data/projectStore'
+import { useProjectStore } from '@/data/stores/projectStore'
 import { Instance, ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 const panoptic = usePanopticStore()
 
 const props = defineProps<{

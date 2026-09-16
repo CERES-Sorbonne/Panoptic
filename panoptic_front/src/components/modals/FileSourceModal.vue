@@ -4,9 +4,9 @@ import { ref } from 'vue';
 import Modal2 from './Modal2.vue';
 import PageWindow from '../utils/PageWindow.vue';
 import FileExplorer from './FileExplorer.vue';
-import { useDataStore } from '@/data/dataStore';
-import { usePanopticStore } from '@/data/panopticStore';
-import { projectApi } from '@/data/apiProjectRoutes';
+import { useDataStore } from '@/data/stores/dataStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { projectApi } from '@/data/api/projectApi';
 import { t } from '@/locales/i18n';
 
 const data = useDataStore()

@@ -9,8 +9,8 @@ import TagMenu from '@/components/tags/TagMenu.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { computed, ref } from 'vue';
 import { Property, Tag, PropertyType } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
-import { useInstanceStore } from '@/data/instanceStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
 
 const data = useDataStore()
 const instanceStore = useInstanceStore()

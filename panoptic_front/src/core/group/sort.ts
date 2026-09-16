@@ -4,7 +4,7 @@
  */
 import { FolderIndex, PropertyIndex, PropertyType } from "@/data/models";
 import { isTag } from "@/utils/utils";
-import { useDataStore } from "@/data/dataStore";
+import { useDataStore } from "@/data/stores/dataStore";
 import { sortParser } from "../SortManager";
 import { Group, GroupOption, GroupSortType } from "./types";
 

@@ -5,7 +5,7 @@
 import TreeCellFrame from './TreeCellFrame.vue'
 import TagBadge from '@/components/tagtree/TagBadge.vue'
 import { Property, PropertyType } from '@/data/models'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { isTag } from '@/utils/utils'
 import { computed } from 'vue'
 

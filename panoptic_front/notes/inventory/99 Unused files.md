@@ -142,7 +142,7 @@ The old global store `src/data/store.ts` was removed during the Pinia rewrite (`
   - **Replaced by:** `actions/ActionButton2.vue` (hand-off mode).
 - [ ] `src/utils/inputTree.ts` · 165 L · 2023-05-16 · its last user was `ActionSelectButton`.
   - **What it was:** keyboard focus traversal between inputs (`nextInput`).
-  - **Replaced by:** nothing directly. `data/inputStore.ts` now handles tree-cell navigation.
+  - **Replaced by:** nothing directly. `data/stores/inputStore.ts` now handles tree-cell navigation.
 - [ ] `src/components/scrollers/image/DualImageScroller.vue` · 55 L · 2026-07-12 "cluster view drag and drop + rename and recluster" · **never referenced**.
   - **What it was:** two `ImageScroller`s side by side for dragging images between groups.
   - **Replaced by:** `layoutpanels/GroupView.vue` + `ClusterDetailPane.vue`.
@@ -179,7 +179,7 @@ The old global store `src/data/store.ts` was removed during the Pinia rewrite (`
   All five were added on 2026-01-15 ("test version for the map view"), and nothing references them now. The map and cluster controls use bootstrap-icons. Every build copies them into `panoptic_back/panoptic/html/icons/`.
 
 ## F. Documentation sitting in `src/`
-- [ ] `src/data/UI_STORE_GUIDE.md` · 224 L · 2026-06-06. How to use `uiStore`. **Action:** move it into `notes/`.
+- [x] `src/data/UI_STORE_GUIDE.md` · 224 L · 2026-06-06. How to use `uiStore`. Moved to `notes/UI_STORE_GUIDE.md`.
 - [ ] `src/layouts/LAYOUT_PATTERN_EXAMPLE.md` · 84 L · 2026-08-05. Example of composing `AppShellLayout` / `SidebarLayout` / `SplitLayout` / `IslandPanel`. **Action:** move it into `notes/`.
 
 ## G. Tooling and misc outside `src/`

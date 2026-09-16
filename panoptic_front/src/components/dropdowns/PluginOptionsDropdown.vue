@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { PluginKey, usePanopticStore } from '@/data/panopticStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
+import { PluginKey } from '@/data/models'
 import Dropdown from './Dropdown.vue';
 import { nextTick, ref } from 'vue';
 

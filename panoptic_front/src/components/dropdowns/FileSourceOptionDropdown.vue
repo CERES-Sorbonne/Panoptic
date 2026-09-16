@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { FileSource } from '@/data/models';
 import Dropdown from './Dropdown.vue';
 import { i18n } from '@/locales/i18n';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 

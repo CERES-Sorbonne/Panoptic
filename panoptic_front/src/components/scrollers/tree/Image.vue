@@ -4,13 +4,13 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import { ImageIterator } from '@/core/GroupManager'
 import { ModalId, Property } from '@/data/models'
-import { usePanopticStore } from '@/data/panopticStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
 import Zoomable from '@/components/Zoomable.vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from './TreePropertyInput.vue'
-import { useColumnStore } from '@/data/columnStore'
-import { emptyInstanceEntry, useInstanceStore } from '@/data/instanceStore'
-import { useDataStore } from '@/data/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { emptyInstanceEntry, useInstanceStore } from '@/data/stores/instanceStore'
+import { useDataStore } from '@/data/stores/dataStore'
 
 const panoptic = usePanopticStore()
 const store = useColumnStore()

@@ -2,12 +2,12 @@
 import { useI18n } from 'vue-i18n';
 const { locale, t } = useI18n();
 import wTT from '../tooltips/withToolTip.vue'
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useTabStore } from '@/data/tabStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import TabButton from './TabButton.vue';
-import { useSocketStore } from '@/data/socketStore';
+import { useSocketStore } from '@/data/stores/socketStore';
 import { computed } from 'vue';
 
 const panoptic = usePanopticStore()

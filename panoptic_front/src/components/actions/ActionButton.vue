@@ -3,7 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { ActionContext, Instance, ParamDescription } from '@/data/models';
 import ParamInput from '../inputs/ParamInput.vue';
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { sourceFromFunction, objValues } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';

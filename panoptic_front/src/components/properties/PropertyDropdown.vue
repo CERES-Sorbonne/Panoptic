@@ -4,7 +4,7 @@ import { Property, PropertyID, PropertyType } from '@/data/models'
 import Dropdown from '../dropdowns/Dropdown.vue'
 import PropertySelection from '../inputs/PropertySelection.vue'
 import PropertyIcon from './PropertyIcon.vue'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 
 const data = useDataStore()
 

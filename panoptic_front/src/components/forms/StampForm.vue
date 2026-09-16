@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import CellTagInput from '../property_cell_input/CellTagInput.vue';
 import CheckboxInput from '../property_inputs/CheckboxInput.vue';
 import CellColorInput from '../property_cell_input/CellColorInput.vue';

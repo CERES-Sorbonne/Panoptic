@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ExecuteActionPayload, ParamDescription } from '@/data/models';
 import { objValues } from '@/utils/utils';
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -9,7 +9,7 @@ import wTT from '../tooltips/withToolTip.vue';
 import FunctionButton from './FunctionButton.vue';
 import LoadWheel from '../loading/LoadWheel.vue';
 import { nextInput } from '@/utils/inputTree';
-import { apiCallActions } from '@/data/apiProjectRoutes';
+import { apiCallActions } from '@/data/api/projectApi';
 
 const actions = useActionStore()
 

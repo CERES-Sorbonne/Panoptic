@@ -26,8 +26,8 @@ import * as groupOps from "./groupOps";
 import { buildGroup } from "./builders";
 import { setOrder } from "./sort";
 import { EventEmitter, getTmpId } from "@/utils/utils";
-import { useColumnStore } from "@/data/columnStore";
-import { useActionStore } from "@/data/actionStore";
+import { useColumnStore } from "@/data/stores/columnStore";
+import { useActionStore } from "@/data/stores/actionStore";
 import { ActionContext, ParamDescription } from "@/data/models";
 import { reactive } from "vue";
 

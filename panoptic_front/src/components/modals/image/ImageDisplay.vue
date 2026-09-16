@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
-import { InstanceEntry } from '@/data/instanceStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { useResizeObserver } from '@vueuse/core';
 import { inject, ref } from 'vue';
 

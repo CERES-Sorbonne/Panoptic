@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import ContentEditable from './ContentEditable.vue';
 
 const props = withDefaults(defineProps<{

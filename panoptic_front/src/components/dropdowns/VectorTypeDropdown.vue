@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import SelectDropdown from '../dropdowns/SelectDropdown.vue';
-import { useMediaStore } from '@/data/mediaStore';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import { SelectOption, VectorType } from '@/data/models';
 
 const media = useMediaStore()

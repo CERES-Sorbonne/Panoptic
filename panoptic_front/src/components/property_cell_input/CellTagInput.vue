@@ -10,7 +10,7 @@ import TagInput from '@/components/property_inputs/TagInput.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Property, PropertyType } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 

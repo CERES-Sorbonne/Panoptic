@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import { ref, watch } from 'vue';
 import { zoomModal } from './modals/zoomModal';
 import { Instance } from '@/data/models';

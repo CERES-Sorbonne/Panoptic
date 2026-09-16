@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TabManager } from '@/core/TabManager';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { PropertyGroupNode } from '@/data/models';
 import { reactive, onMounted, ref, watch, nextTick, triggerRef } from 'vue'
 import draggableComponent from 'vuedraggable';

@@ -7,7 +7,7 @@ import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
 import { PropertyType } from '@/data/models';
 import GroupOptionDropdown from '../dropdowns/GroupOptionDropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 

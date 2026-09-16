@@ -5,8 +5,8 @@ import { computed, nextTick, ref, watch } from 'vue';
 import NotifPreview from '../notif/NotifPreview.vue';
 import NotifBody from '../notif/NotifBody.vue';
 import NotifIcon from '../notif/NotifIcon.vue';
-import { useModalStore } from '@/data/modalStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useModalStore } from '@/data/stores/modalStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import wTT from '../tooltips/withToolTip.vue';
 
 const panoptic = usePanopticStore()

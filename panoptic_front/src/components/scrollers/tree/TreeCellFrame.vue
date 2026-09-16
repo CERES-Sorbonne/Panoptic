@@ -7,7 +7,7 @@
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import { PropertyType } from '@/data/models'
 import { ref, watch } from 'vue'
-import { useHoverSource } from '@/data/hoverStore'
+import { useHoverSource } from '@/data/stores/hoverStore'
 
 const props = defineProps<{
     type: PropertyType

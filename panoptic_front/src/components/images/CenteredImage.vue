@@ -6,11 +6,11 @@ const loadedUrlCache = new Set<string>()
 </script>
 
 <script setup lang="ts">
-import { SERVER_PREFIX } from '@/data/apiPanopticRoutes'
-import { usePanopticStore } from '@/data/panopticStore'
-import { useDataStore } from '@/data/dataStore'
+import { SERVER_PREFIX } from '@/data/api/panopticApi'
+import { usePanopticStore } from '@/data/stores/panopticStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { computed, ref, watch, onUnmounted } from 'vue'
-import { useInstanceStore } from '@/data/instanceStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
 
 const props = defineProps<{
     instanceId:  number

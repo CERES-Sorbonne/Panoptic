@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
-import { hoverPropertyKey } from '@/data/hoverStore'
+import { hoverPropertyKey } from '@/data/stores/hoverStore'
 import { deletedID, isReadonly, Property, PropertyType } from '@/data/models';
-import { InstanceEntry } from '@/data/instanceStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { isTag } from '@/utils/utils';
 import DBInput from '@/components/property_inputs/DBInput.vue';
 import TreeTextInput from './TreeTextInput.vue';
@@ -12,7 +12,7 @@ import TreeTagInput from './TreeTagInput.vue';
 import TreeColorInput from './TreeColorInput.vue';
 import TreeDateInput from './TreeDateInput.vue';
 import TreeValueRow from './TreeValueRow.vue';
-import { InputKey, useInputStore } from '@/data/inputStore';
+import { InputKey, useInputStore } from '@/data/stores/inputStore';
 
 const inputs = useInputStore()
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TabManager } from '@/core/TabManager'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { PropertyGroupId } from '@/data/models'
 import draggableComponent from 'vuedraggable'
 import PropertyGroup from '@/components/menu/PropertyGroup.vue'

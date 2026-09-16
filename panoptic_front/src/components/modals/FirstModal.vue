@@ -2,7 +2,7 @@
 import { ModalId, PluginAddPayload, PluginType } from '@/data/models';
 import Modal from './Modal.vue';
 import { computed, nextTick, ref } from 'vue';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import PanopticIcon from '../icons/PanopticIcon.vue';
 
 const panoptic = usePanopticStore()

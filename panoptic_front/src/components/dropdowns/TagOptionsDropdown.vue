@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import ColorInput from '../property_inputs/ColorInput.vue';
 const data = useDataStore()
 
@@ -11,7 +11,7 @@ const props = defineProps({
     canCustomize: Boolean,
     canDelete: Boolean,
 })
-const emits = defineEmits(['delete', 'hide'])
+const emits = defineEmits(['delete', 'show', 'hide'])
 
 const dropdown = ref(null)
 const localName = ref('')
@@ -52,6 +52,7 @@ function deleteTag() {
 
 function onShow() {
     visible.value = true
+    emits('show')
     updateFromStore()
 }
 
@@ -69,7 +70,7 @@ watch(() => props.tagId, updateFromStore)
 </script>
 
 <template>
-    <Dropdown ref="dropdown" @show="onShow" @hide="onHide" :teleport="false">
+    <Dropdown ref="dropdown" @show="onShow" @hide="onHide" :teleport="true">
         <template v-slot:button>
             <span class="pe-1"><i class="bi bi-three-dots sm-btn"  style="position: relative; top: 1.5px;"/></span>
         </template>

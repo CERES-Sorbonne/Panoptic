@@ -13,7 +13,7 @@ component — they are not real files.
 ```vue
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useUiStore } from '@/data/uiStore'
+import { useUiStore } from '@/data/stores/uiStore'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import PropertyList from '@/components/properties/PropertyList.vue'
 import PropertyDetail from '@/components/properties/PropertyDetail.vue'

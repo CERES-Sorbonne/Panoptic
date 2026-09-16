@@ -3,9 +3,9 @@
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import FileExplorer from './FileExplorer.vue';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { ModalId } from '@/data/models';
-import { useModalStore } from '@/data/modalStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const modalStore = useModalStore()
 const panoptic = usePanopticStore()

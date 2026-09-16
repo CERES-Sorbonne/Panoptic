@@ -5,8 +5,8 @@
  */
 import { computed, reactive, ref, watch } from 'vue';
 import { LegacyProject, ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useModalStore } from '@/data/modalStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const panoptic = usePanopticStore()
 const modalStore = useModalStore()

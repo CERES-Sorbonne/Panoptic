@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useProjectStore } from '@/data/projectStore'
+import { useProjectStore } from '@/data/stores/projectStore'
 import { computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { SortManager, SortDirection } from '@/core/SortManager';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 const data = useDataStore()
 interface Sort {
     propertyId: number

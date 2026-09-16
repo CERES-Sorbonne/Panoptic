@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Filter, FilterGroup, FilterManager, FilterOperator } from '@/core/FilterManager';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import FilterGroupOperator from './FilterGroupOperator.vue';
 import FilterGroupVue from './FilterGroup.vue'
 import FilterRow from './FilterRow.vue';

@@ -1,8 +1,8 @@
 <!-- Wrapper to connect any property input to a value in the database -->
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Property } from '@/data/models';
-import { InstanceEntry } from '@/data/instanceStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 const data = useDataStore()

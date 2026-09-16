@@ -5,11 +5,12 @@ import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
 import { Group, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
-import { keyState } from '@/data/keyState';
-import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
+import { keyState } from '@/data/composables/keyState';
+import { Property, Sha1Scores, PropertyMode, ModalId } from '@/data/models';
+import { ScrollerLine, GroupLine, ScrollerPileLine, ImageLine } from '@/components/scrollers/types';
 import { RecycleScroller } from 'vue-virtual-scroller';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useColumnStore } from '@/data/columnStore'; // <-- Imported columnStore
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useColumnStore } from '@/data/stores/columnStore'; // <-- Imported columnStore
 import InstanceData from '@/components/data/InstanceData.vue';
 
 const panoptic = usePanopticStore()

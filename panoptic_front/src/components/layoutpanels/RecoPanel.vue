@@ -7,7 +7,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import ImageScroller from '@/components/scrollers/image/ImageScroller.vue'
 import { Instance } from '@/data/models'
-import { useColumnStore } from '@/data/columnStore'
+import { useColumnStore } from '@/data/stores/columnStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 

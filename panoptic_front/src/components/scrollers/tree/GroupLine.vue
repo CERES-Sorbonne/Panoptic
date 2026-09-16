@@ -6,15 +6,16 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { ClusterRequest, Group, GroupTree, GroupType } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
-import { GroupLine, ImagePropertyValue, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
+import { ImagePropertyValue, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
+import { GroupLine } from '@/components/scrollers/types'
 import ActionButton from '@/components/actions/ActionButton.vue'
-import { useDataStore } from '@/data/dataStore'
-import { useColumnStore } from '@/data/columnStore' // <-- Imported columnStore
+import { useDataStore } from '@/data/stores/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore' // <-- Imported columnStore
 import { allChildrenSha1Groups } from '@/utils/utils'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import WithToolTip from '../../tooltips/withToolTip.vue'
-import { apiAllocateTags } from '@/data/apiProjectRoutes'
+import { apiAllocateTags } from '@/data/api/projectApi'
 
 const data = useDataStore()
 const columnStore = useColumnStore() // <-- Initialized column store

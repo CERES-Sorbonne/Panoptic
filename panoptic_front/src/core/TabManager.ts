@@ -1,8 +1,8 @@
 import { CollectionConfig, PropertyMode, ViewType, TabState } from "@/data/models"
 import { CollectionManager } from "./CollectionManager"
 import { deepCopy, EventEmitter } from "@/utils/utils"
-import { useDataStore } from "@/data/dataStore"
-import { createClusterOptions, createCollectionConfig, createMapOptions, createViewState, defaultPropertyOption } from "@/data/builder"
+import { useDataStore } from "@/data/stores/dataStore"
+import { createClusterOptions, createCollectionConfig, createMapOptions, createViewState, defaultPropertyOption } from "@/data/lib/builders"
 
 export class TabManager {
     state: TabState

@@ -13,10 +13,10 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
 import { reactive, getCurrentInstance, onUnmounted, watch } from 'vue'
-import { useColumnStore } from '@/data/columnStore'
-import { useInstanceStore } from '@/data/instanceStore'
-import { usePanopticStore } from '@/data/panopticStore'
-import { useDataStore } from '@/data/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { useInstanceStore } from '@/data/stores/instanceStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
+import { useDataStore } from '@/data/stores/dataStore'
 
 const props = defineProps<{
     instanceIds?: number[]

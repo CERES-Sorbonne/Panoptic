@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ModalId } from '@/data/models';
 import { ref, watch } from 'vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import PageWindow from '../utils/PageWindow.vue';
 import Modal2 from './Modal2.vue';
 import VectorSettings from '../settings/VectorSettings.vue';

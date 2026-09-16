@@ -19,7 +19,7 @@ import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { RecycleScroller } from 'vue-virtual-scroller';
 import { deletedID, Property, Tag } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { sum } from '@/utils/utils';
 
 const data = useDataStore()

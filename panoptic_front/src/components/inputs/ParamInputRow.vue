@@ -2,10 +2,10 @@
 import { ref, watch, onMounted } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
-import { useDataStore } from '@/data/dataStore';
-import { useMediaStore } from '@/data/mediaStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import { ParamDescription, VectorType } from '@/data/models';
-import { useActionStore } from '@/data/actionStore.js';
+import { useActionStore } from '@/data/stores/actionStore';
 
 const data = useDataStore()
 const media = useMediaStore()

@@ -2,12 +2,12 @@
 import { computed } from 'vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { useProjectStore } from '@/data/projectStore';
-import { useDataStore } from '@/data/dataStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import ActionButton2 from '../actions/ActionButton2.vue';
-import { useTabStore } from '@/data/tabStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import WithToolTip from '../tooltips/withToolTip.vue';
-import { useModalStore } from '@/data/modalStore';
+import { useModalStore } from '@/data/stores/modalStore';
 import { ModalId } from '@/data/models';
 
 const data = useDataStore()

@@ -3,7 +3,7 @@
 // Clicking it opens a list of running, pending and finished tasks.
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useProjectStore } from '@/data/projectStore'
+import { useProjectStore } from '@/data/stores/projectStore'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import type { TaskState } from '@/data/models'
 

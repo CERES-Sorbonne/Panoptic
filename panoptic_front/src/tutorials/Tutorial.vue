@@ -1,8 +1,8 @@
 <script setup lang="ts">
 
 import { ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useProjectStore } from '@/data/projectStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { onMounted, inject, watch, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 

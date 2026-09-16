@@ -1,7 +1,7 @@
-import { useActionStore } from "@/data/actionStore";
-import { apiCallActions } from "@/data/apiProjectRoutes";
-import { propertyDefault } from "@/data/builder";
-import { useColumnStore } from "@/data/columnStore";
+import { useActionStore } from "@/data/stores/actionStore";
+import { apiCallActions } from "@/data/api/projectApi";
+import { propertyDefault } from "@/data/lib/builders";
+import { useColumnStore } from "@/data/stores/columnStore";
 import { deletedID, ActionContext, ExecuteActionPayload, FolderIndex, PropertyIndex, PropertyType, TagIndex, TextQuery } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
 import { reactive, toRefs } from "vue";

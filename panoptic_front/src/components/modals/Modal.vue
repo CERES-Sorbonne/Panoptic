@@ -2,7 +2,7 @@
 import { ModalId } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import * as bootstrap from 'bootstrap';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 
 const panoptic = usePanopticStore()
 

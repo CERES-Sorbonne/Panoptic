@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ActionContext, ExecuteActionPayload } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()

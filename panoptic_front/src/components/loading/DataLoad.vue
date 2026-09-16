@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useColumnStore } from '@/data/columnStore'
-import { useDataStore } from '@/data/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { LoadState } from '@/data/models'
 import LoadWheel from './LoadWheel.vue'
 import Percentage from './Percentage.vue'

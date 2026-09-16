@@ -3,7 +3,7 @@ import { Colors, DateUnit, PropertyType, PropertyValue, Tag } from '@/data/model
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { pad } from '@/utils/utils'
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 

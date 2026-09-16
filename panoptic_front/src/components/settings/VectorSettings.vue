@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useMediaStore } from '@/data/mediaStore';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import SectionDivider from '../utils/SectionDivider.vue';
 import ActionButton from '../actions/ActionButton.vue';
 import ActionSelect from '../actions/ActionSelect.vue';
 import ActionSelectFlat from '../actions/ActionSelectFlat.vue';
 import { computed, onMounted, ref } from 'vue';
 import { VectorType } from '@/data/models';
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import ComputeVectorButton from './ComputeVectorButton.vue';
 
 const media = useMediaStore()

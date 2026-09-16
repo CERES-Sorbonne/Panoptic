@@ -7,7 +7,7 @@ import TreeCellFrame from './TreeCellFrame.vue'
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import { useCellPopup } from './cellPopup'
 import { PropertyType } from '@/data/models'
-import { keyState } from '@/data/keyState'
+import { keyState } from '@/data/composables/keyState'
 
 const props = defineProps<{
     modelValue?: string

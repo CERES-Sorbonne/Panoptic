@@ -13,10 +13,10 @@ import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue';
-import { useInputStore } from '@/data/inputStore';
+import { useInputStore } from '@/data/stores/inputStore';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
-import { useColumnStore } from '@/data/columnStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 
 const inputs = useInputStore()
 const col = useColumnStore()

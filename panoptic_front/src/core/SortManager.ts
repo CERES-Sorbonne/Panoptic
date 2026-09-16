@@ -8,8 +8,8 @@
  * updateSelection() assumes those columns are already loaded.
  */
 
-import { useDataStore } from "@/data/dataStore"
-import { useColumnStore } from "@/data/columnStore"
+import { useDataStore } from "@/data/stores/dataStore"
+import { useColumnStore } from "@/data/stores/columnStore"
 import { deletedID, FolderIndex, PropertyIndex, Property } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { EventEmitter } from "@/utils/utils"

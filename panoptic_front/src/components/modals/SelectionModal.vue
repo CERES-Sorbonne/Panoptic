@@ -9,7 +9,7 @@ import Modal2 from './Modal2.vue'
 import ImageScroller from '@/components/scrollers/image/ImageScroller.vue'
 import RangeInput from '@/components/inputs/RangeInput.vue'
 import { Instance, ModalId } from '@/data/models'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 
 const data = useDataStore()
 

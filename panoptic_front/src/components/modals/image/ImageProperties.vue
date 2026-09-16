@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
-import { useDataStore } from '@/data/dataStore';
-import { useModalStore } from '@/data/modalStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useModalStore } from '@/data/stores/modalStore';
 import { deletedID, isReadonly, ModalId, PropertyMode } from '@/data/models';
-import { InstanceEntry } from '@/data/instanceStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { computed, reactive } from 'vue';
 
 const data = useDataStore()

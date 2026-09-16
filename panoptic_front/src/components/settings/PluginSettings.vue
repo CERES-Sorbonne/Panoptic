@@ -2,7 +2,7 @@
 import { FunctionDescription, ParamDescription, PluginDefaultParams, PluginDescription } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import ParamInput from '@/components/inputs/ParamInput.vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { deepCopy, objValues } from '@/utils/utils';
 
 const project = useProjectStore()

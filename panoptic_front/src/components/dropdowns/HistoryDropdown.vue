@@ -3,9 +3,9 @@
 // redo arrows. It can show only this user's commits or the commits of all users.
 import { computed, ref, watch } from 'vue'
 import Dropdown from './Dropdown.vue'
-import { useDataStore } from '@/data/dataStore'
-import { usePanopticStore } from '@/data/panopticStore'
-import { apiGetHistory } from '@/data/apiProjectRoutes'
+import { useDataStore } from '@/data/stores/dataStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
+import { apiGetHistory } from '@/data/api/projectApi'
 import { CommitHistory, CommitStat } from '@/data/models'
 import wTT from '@/components/tooltips/withToolTip.vue'
 

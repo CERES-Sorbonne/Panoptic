@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { Tag } from '@/data/models';
 import TagInput from '../tags/TagInput.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 

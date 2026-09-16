@@ -15,7 +15,7 @@ import TreeValueRow from '@/components/scrollers/tree/TreeValueRow.vue'
 import { Property, PropertyType, isReadonly } from '@/data/models'
 import { isTag } from '@/utils/utils'
 import { provide } from 'vue'
-import { hoverPropertyKey } from '@/data/hoverStore'
+import { hoverPropertyKey } from '@/data/stores/hoverStore'
 
 const props = defineProps<{
     property: Property

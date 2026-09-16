@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Left activity bar root node — inserted into AppShellLayout's #activity slot.
 // Toggles the folder panel and the bottom (properties / export) panels.
-import { useUiStore, type BottomPanel } from '@/data/uiStore'
-import { usePanopticStore } from '@/data/panopticStore'
+import { useUiStore, type BottomPanel } from '@/data/stores/uiStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
 import { ModalId } from '@/data/models'
 
 const uiStore = useUiStore()

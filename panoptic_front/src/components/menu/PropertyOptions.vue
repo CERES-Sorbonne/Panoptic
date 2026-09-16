@@ -4,16 +4,16 @@ import { computed, nextTick, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import TagMenu from '../tags/TagMenu.vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { Filter } from '@/core/FilterManager';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { isTag, objValues } from '@/utils/utils';
-import { usePanopticStore } from '@/data/panopticStore';
-import { Dropdowns } from '@/data/dropdowns';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { Dropdowns } from '@/components/dropdowns/registry';
 import { useI18n } from 'vue-i18n';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { TabManager } from '@/core/TabManager';
-import { useHoverStore } from '@/data/hoverStore';
+import { useHoverStore } from '@/data/stores/hoverStore';
 
 const { t } = useI18n(({ useScope: 'global' }))
 

@@ -4,7 +4,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
-import { useTabStore } from '@/data/tabStore';
+import { useTabStore } from '@/data/stores/tabStore';
 
 const tabStore = useTabStore()
 

@@ -21,11 +21,11 @@ import {
     ActionResult, ImagePropertyValue, Instance, InstancePropertyValue,
     PropertyMode, PropertyType, PropertyValue as PropertyValueModel, RecoOptions,
 } from '@/data/models'
-import { useActionStore } from '@/data/actionStore'
-import { useDataStore } from '@/data/dataStore'
-import { useColumnStore } from '@/data/columnStore'
+import { useActionStore } from '@/data/stores/actionStore'
+import { useDataStore } from '@/data/stores/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
 import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils'
-import { apiGetUIData, apiSetUIData } from '@/data/apiProjectRoutes'
+import { apiGetUIData, apiSetUIData } from '@/data/api/projectApi'
 
 const data = useDataStore()
 const actions = useActionStore()

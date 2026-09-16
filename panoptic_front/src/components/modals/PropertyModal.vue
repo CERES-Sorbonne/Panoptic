@@ -3,12 +3,12 @@
 import { ModalId, Property } from '@/data/models';
 import { ref, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
-import { useProjectStore } from '@/data/projectStore';
-import { useDataStore } from '@/data/dataStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import PropertyModeDropdown from '../dropdowns/PropertyModeDropdown.vue';
 import Modal2 from './Modal2.vue';
-import { useTabStore } from '@/data/tabStore';
-import { useModalStore } from '@/data/modalStore';
+import { useTabStore } from '@/data/stores/tabStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const project = useProjectStore()
 const data = useDataStore()

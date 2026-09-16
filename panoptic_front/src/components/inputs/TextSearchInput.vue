@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ref, watch, computed, onMounted } from 'vue'
 import SelectDropdown from '../dropdowns/SelectDropdown.vue';
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import InputOptions from '../actions/InputOptions.vue';
 import { SelectOption, TextQuery } from '@/data/models';
 import LoadWheel from '../loading/LoadWheel.vue';

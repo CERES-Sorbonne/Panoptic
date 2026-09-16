@@ -9,8 +9,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagListScroller from './TagListScroller.vue';
-import { deletedID, Property, Tag, PropertyType, TagIndex } from '@/data/models';
-import { useDataStore, deletedName } from '@/data/dataStore';
+import { deletedID, deletedName, Property, Tag, PropertyType, TagIndex } from '@/data/models';
+import { useDataStore } from '@/data/stores/dataStore';
 import { objValues } from '@/utils/utils';
 
 const data = useDataStore()

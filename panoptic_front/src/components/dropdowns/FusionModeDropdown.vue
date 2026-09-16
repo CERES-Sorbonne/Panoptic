@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import Dropdown from './Dropdown.vue';
 

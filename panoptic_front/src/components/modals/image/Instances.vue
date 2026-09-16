@@ -2,11 +2,11 @@
 import GridScroller from '@/components/scrollers/grid/GridScroller.vue';
 import InstanceData from '@/components/data/InstanceData.vue';
 import { GroupManager } from '@/core/GroupManager';
-import { useDataStore } from '@/data/dataStore';
-import { useColumnStore } from '@/data/columnStore';
-import { InstanceEntry } from '@/data/instanceStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useColumnStore } from '@/data/stores/columnStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { PropertyID, PropertyMode } from '@/data/models';
-import { useTabStore } from '@/data/tabStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import { computed, onMounted, watch } from 'vue';
 
 const data = useDataStore()

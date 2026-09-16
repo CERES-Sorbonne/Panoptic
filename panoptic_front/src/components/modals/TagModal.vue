@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 import { deletedID, buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
-import { wouldCreateTagCycle } from '@/data/storeutils';
+import { useDataStore } from '@/data/stores/dataStore';
+import { wouldCreateTagCycle } from '@/data/lib/tree';
 import { deepCopy, isTag } from '@/utils/utils';
-import { useColumnStore } from '@/data/columnStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useColumnStore } from '@/data/stores/columnStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TagColumn from '@/components/tags/TagColumn.vue';
 import TagTree from '@/components/tags/TagTree.vue';
 import Modal2 from './Modal2.vue';
 import TagImagesPreview from '../images/TagImagesPreview.vue';
-import { useModalStore } from '@/data/modalStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()

@@ -3,8 +3,8 @@ import { computed, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
 import { deletedID, PropertyType, PropertyGroupId } from '@/data/models'
 import TextInput from './TextInput.vue'
-import { useDataStore } from '@/data/dataStore'
-import { useUiStore } from '@/data/uiStore'
+import { useDataStore } from '@/data/stores/dataStore'
+import { useUiStore } from '@/data/stores/uiStore'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

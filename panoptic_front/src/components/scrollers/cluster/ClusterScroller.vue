@@ -3,11 +3,12 @@ import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } f
 import ClusterLineVue from './ClusterLine.vue';
 import { Group } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
-import { keyState } from '@/data/keyState';
-import { Property, ClusterLine, ModalId, GroupViewMode, mosaicSlotCount } from '@/data/models';
+import { keyState } from '@/data/composables/keyState';
+import { Property, ModalId } from '@/data/models';
+import { ClusterLine, GroupViewMode, mosaicSlotCount } from '@/components/scrollers/types';
 import { RecycleScroller } from 'vue-virtual-scroller';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useColumnStore } from '@/data/columnStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
 
 const panoptic = usePanopticStore()

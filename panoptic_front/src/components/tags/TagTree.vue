@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import TagBadge from "@/components/tagtree/TagBadge.vue";
-import { useDataStore } from "@/data/dataStore";
+import { useDataStore } from "@/data/stores/dataStore";
 import { deletedID, Property, Tag } from "@/data/models";
-import { useProjectStore } from "@/data/projectStore";
+import { useProjectStore } from "@/data/stores/projectStore";
 import { sum } from "@/utils/utils";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { keyState } from "@/data/keyState";
-import { wouldCreateTagCycle } from "@/data/storeutils";
+import { keyState } from "@/data/composables/keyState";
+import { wouldCreateTagCycle } from "@/data/lib/tree";
 
 
 interface Line {

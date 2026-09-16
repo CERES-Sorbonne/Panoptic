@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { isReadonly, Property, PropertyMode, PropertyType } from '@/data/models';
-import { InstanceEntry } from '@/data/instanceStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import GridPropInput from '../scrollers/grid/GridPropInput.vue';
 import { nextTick, ref, shallowRef } from 'vue';
 

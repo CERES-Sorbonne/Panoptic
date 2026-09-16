@@ -4,13 +4,13 @@ import { ModalId } from '../../data/models';
 import { ref, computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../folder_tree/FolderList2.vue';
-import { useProjectStore } from '@/data/projectStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import TabContainer from '../TabContainer.vue';
-import { useTabStore } from '@/data/tabStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import DraggablePropertyList from './DraggablePropertyList.vue';
 
 const BASE_WIDTH = 200

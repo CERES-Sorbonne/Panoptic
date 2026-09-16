@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ParamDescription } from '@/data/models';
 import { computed, onMounted, ref } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';

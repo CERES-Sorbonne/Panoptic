@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
-import { useCurrentTab } from '@/data/useCurrentTab'
+import { useCurrentTab } from '@/data/composables/useCurrentTab'
 import { ViewType } from '@/data/models'
 
 const props = defineProps<{

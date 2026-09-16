@@ -11,10 +11,11 @@ import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
 import { Group, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
-import { ClusterOptions, GroupViewMode, Instance, Property } from '@/data/models'
+import { ClusterOptions, Instance, Property } from '@/data/models'
+import { GroupViewMode } from '@/components/scrollers/types'
 import { isTag } from '@/utils/utils'
-import { useColumnStore } from '@/data/columnStore'
-import { useDataStore } from '@/data/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { useDataStore } from '@/data/stores/dataStore'
 
 const col = useColumnStore()
 const data = useDataStore()

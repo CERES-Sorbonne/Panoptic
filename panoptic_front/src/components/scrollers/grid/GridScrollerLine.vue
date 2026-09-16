@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Ref, computed, nextTick, onMounted, ref, watch } from 'vue';
-import { PileRowLine, type GroupLine, type Property, type RowLine, type ScrollerLine } from '@/data/models'
+import { type Property } from '@/data/models'
+import { PileRowLine, type GroupLine, type RowLine, type ScrollerLine } from '@/components/scrollers/types'
 
 import GroupLineVue from './GroupLine.vue';
 import RowLineVue from './RowLine.vue';
 import { SelectedImages } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { TabManager } from '@/core/TabManager';
-import { useColumnStore } from '@/data/columnStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 
 
 const props = defineProps<{

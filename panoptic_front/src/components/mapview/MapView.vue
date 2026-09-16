@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, watch, computed } from 'vue'
 import { Colors, greyColor, Instance, MapOptions, PointData } from '@/data/models'
-import { useDataStore } from '@/data/dataStore'
-import { useMediaStore } from '@/data/mediaStore'
-import { useColumnStore } from '@/data/columnStore'
+import { useDataStore } from '@/data/stores/dataStore'
+import { useMediaStore } from '@/data/stores/mediaStore'
+import { useColumnStore } from '@/data/stores/columnStore'
 import { generateColors, isTag } from '@/utils/utils'
 import { Group } from '@/core/group/types'
 import type { GroupInspector } from '@/core/group/inspector'

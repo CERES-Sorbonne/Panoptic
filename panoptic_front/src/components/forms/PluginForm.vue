@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ModalId, PluginAddPayload, PluginType } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { computed, nextTick, ref } from 'vue';
 
 const panoptic = usePanopticStore()

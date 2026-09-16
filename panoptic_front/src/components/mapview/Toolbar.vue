@@ -4,7 +4,7 @@ import PointMapSelection from './PointMapSelection.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import RangeInput from '../inputs/RangeInput.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
-import { useMediaStore } from '@/data/mediaStore'
+import { useMediaStore } from '@/data/stores/mediaStore'
 
 const media = useMediaStore()
 

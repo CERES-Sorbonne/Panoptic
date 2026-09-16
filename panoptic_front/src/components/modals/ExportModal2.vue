@@ -5,11 +5,11 @@ import { useI18n } from 'vue-i18n';
 import { ModalId, PropertyGroupId } from '@/data/models';
 import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { useDataStore } from '@/data/dataStore';
-import { useTabStore } from '@/data/tabStore';
-import { useColumnStore } from '@/data/columnStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useTabStore } from '@/data/stores/tabStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import Modal2 from './Modal2.vue';
-import { apiExportProperties } from '@/data/apiProjectRoutes';
+import { apiExportProperties } from '@/data/api/projectApi';
 
 const data = useDataStore()
 const tabStore = useTabStore()

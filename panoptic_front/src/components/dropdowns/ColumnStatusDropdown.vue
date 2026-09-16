@@ -4,9 +4,9 @@
 // property with its load state and marks the ones the current tab needs.
 import { computed, ref } from 'vue'
 import Dropdown from './Dropdown.vue'
-import { useDataStore } from '@/data/dataStore'
-import { useColumnStore } from '@/data/columnStore'
-import { useInstanceStore } from '@/data/instanceStore'
+import { useDataStore } from '@/data/stores/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { useInstanceStore } from '@/data/stores/instanceStore'
 import { TabManager } from '@/core/TabManager'
 import { useI18n } from 'vue-i18n'
 

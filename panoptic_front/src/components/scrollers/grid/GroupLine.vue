@@ -2,10 +2,10 @@
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
 import { SelectedImages } from '@/core/GroupManager';
-import { GroupLine } from '@/data/models';
+import { GroupLine } from '@/components/scrollers/types';
 import { getGroupParents } from '@/utils/utils';
 import { Ref, computed } from 'vue';
-import { useColumnStore } from '@/data/columnStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 
 
 

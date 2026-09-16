@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Colors, greyColor, Tag } from '@/data/models';
 import { computed } from 'vue';
 import WithToolTip from '../tooltips/withToolTip.vue';

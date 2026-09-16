@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { usePanopticStore } from '@/data/panopticStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
 
 const DEFAULT_USER_ID = 'default'
 

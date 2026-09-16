@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { DbCommitInfo } from '@/data/models'
-import { apiGetCommits, apiSetCommitActive, apiCompact } from '@/data/apiProjectRoutes'
+import { apiGetCommits, apiSetCommitActive, apiCompact } from '@/data/api/projectApi'
 import SectionDivider from '../utils/SectionDivider.vue'
 
 const commits = ref<DbCommitInfo[]>([])

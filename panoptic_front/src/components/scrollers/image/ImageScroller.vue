@@ -13,8 +13,8 @@ import ImageCell from './ImageCell.vue';
 import { RecycleScroller } from 'vue-virtual-scroller';
 import draggableComponent from 'vuedraggable';
 import { Property, PropertyMode, ModalId, Instance } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useColumnStore } from '@/data/columnStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
 
 const panoptic = usePanopticStore()

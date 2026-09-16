@@ -3,7 +3,7 @@
 import { ref, watch, onMounted } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { ParamDescription, VectorType } from '@/data/models';
 import VectorTypeDropdown from '../dropdowns/VectorTypeDropdown.vue';
 

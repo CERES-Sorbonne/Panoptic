@@ -10,7 +10,7 @@
  * are the only navigation state that must outlive an individual iterator, so they
  * live here — not on the ephemeral, read-only GroupIterator.
  */
-import { useColumnStore } from "@/data/columnStore";
+import { useColumnStore } from "@/data/stores/columnStore";
 import { Group } from "./types";
 import { GroupIterator, ImageIterator } from "./GroupIterator";
 import { GroupResult } from "./GroupResult";

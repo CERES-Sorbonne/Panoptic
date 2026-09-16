@@ -9,7 +9,7 @@ import FilterForm from '@/components/forms/FilterForm.vue'
 import GroupForm from '@/components/forms/GroupForm.vue'
 import SortForm from '@/components/forms/SortForm.vue'
 import ImageInstanceDropdown from '@/components/layoutpanels/ImageInstanceDropdown.vue'
-import { useCurrentTab } from '@/data/useCurrentTab'
+import { useCurrentTab } from '@/data/composables/useCurrentTab'
 
 const props = defineProps<{ viewIndex: number }>()
 

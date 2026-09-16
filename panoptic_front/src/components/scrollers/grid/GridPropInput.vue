@@ -9,9 +9,9 @@ import TextInput from '@/components/property_inputs/TextInput.vue';
 import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
 import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Property, PropertyType } from '@/data/models';
-import { InstanceEntry } from '@/data/instanceStore';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { isTag } from '@/utils/utils';
 import { computed, ref } from 'vue';
 

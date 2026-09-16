@@ -7,7 +7,7 @@
  * (keeps the import graph a DAG). GroupManager exposes thin facade methods that delegate
  * here, so external callers keep using `manager.addCustomGroups(...)` etc.
  */
-import { useColumnStore } from "@/data/columnStore";
+import { useColumnStore } from "@/data/stores/columnStore";
 import { getTmpId } from "@/utils/utils";
 import { GroupOpsHost, Group, GroupType } from "./types";
 import { buildGroup } from "./builders";

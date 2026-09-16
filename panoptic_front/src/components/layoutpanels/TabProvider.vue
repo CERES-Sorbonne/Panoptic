@@ -11,7 +11,7 @@
  * deeper descendants can also read it with `useCurrentTab()`.
  */
 import { computed } from 'vue'
-import { useTabStore } from '@/data/tabStore'
+import { useTabStore } from '@/data/stores/tabStore'
 
 const tabStore = useTabStore()
 const tab = computed(() => tabStore.activeManager)

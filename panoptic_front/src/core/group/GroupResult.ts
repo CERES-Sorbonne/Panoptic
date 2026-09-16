@@ -10,7 +10,7 @@
  */
 import { Ref, ref } from "vue";
 import { EventEmitter } from "@/utils/utils";
-import { useColumnStore } from "@/data/columnStore";
+import { useColumnStore } from "@/data/stores/columnStore";
 import { PileData, pileIndexOfSlot } from "../sha1Piles";
 import { Group, GroupIndex, GroupTree, IteratorHost } from "./types";
 import { GroupValueIndex } from "./valueIndex";

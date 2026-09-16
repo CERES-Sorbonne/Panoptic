@@ -7,7 +7,7 @@ import { Property } from '@/data/models';
 import { Group} from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { getGroupParents } from '@/utils/utils';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { TabManager } from '@/core/TabManager';
 
 const project = useProjectStore()

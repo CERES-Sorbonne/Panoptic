@@ -2,8 +2,8 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import SelectDropdown from '../dropdowns/SelectDropdown.vue';
 import { SelectOption } from '@/data/models';
-import { keyState } from '@/data/keyState';
-import { useMediaStore } from '@/data/mediaStore';
+import { keyState } from '@/data/composables/keyState';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import { objValues } from '@/utils/utils';
 
 const media = useMediaStore()

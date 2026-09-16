@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ScrollerLine, Property, ImageLine } from '@/data/models';
+import { Property } from '@/data/models';
+import { ScrollerLine, ImageLine } from '@/components/scrollers/types';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
 import { ComputedRef, Ref, computed, inject, onMounted } from 'vue';
-import { useColumnStore } from '@/data/columnStore'; // <-- Import columnStore
+import { useColumnStore } from '@/data/stores/columnStore'; // <-- Import columnStore
 
 const props = defineProps<{
     imageSize: number,

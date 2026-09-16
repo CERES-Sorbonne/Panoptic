@@ -8,8 +8,8 @@ import { Property } from '@/data/models'
 import Zoomable from '@/components/Zoomable.vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from '@/components/scrollers/tree/TreePropertyInput.vue'
-import { emptyInstanceEntry, useInstanceStore } from '@/data/instanceStore'
-import { useDataStore } from '@/data/dataStore'
+import { emptyInstanceEntry, useInstanceStore } from '@/data/stores/instanceStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { Instance } from '@/data/models'
 
 const data = useDataStore()

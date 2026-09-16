@@ -3,8 +3,8 @@ import { Instance, Tag } from '@/data/models';
 import { computed, getCurrentInstance, onUnmounted, watch } from 'vue'
 import ImagePreview from '../preview/ImagePreview.vue';
 import EditableTag from '../tags/EditableTag.vue';
-import { useInstanceStore } from '@/data/instanceStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 
 const instanceStore = useInstanceStore()
 const panoptic = usePanopticStore()

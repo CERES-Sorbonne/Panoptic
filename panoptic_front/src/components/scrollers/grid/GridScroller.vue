@@ -2,15 +2,16 @@
 // import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import { Group} from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
-import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId, PropertyMode } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { Property, ModalId, PropertyMode } from '@/data/models';
+import { GroupLine, RowLine, PileRowLine, ScrollerLine } from '@/components/scrollers/types';
+import { useProjectStore } from '@/data/stores/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
 import {RecycleScroller} from 'vue-virtual-scroller';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useColumnStore } from '@/data/columnStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import { TabManager } from '@/core/TabManager';
 import InstanceData from '@/components/data/InstanceData.vue';
 

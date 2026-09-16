@@ -13,7 +13,7 @@ import MapView from '@/components/mapview/MapView.vue'
 import RecommendView from '@/components/layoutpanels/RecommendView.vue'
 import GroupView from '@/components/layoutpanels/GroupView.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { useCurrentTab } from '@/data/useCurrentTab'
+import { useCurrentTab } from '@/data/composables/useCurrentTab'
 
 const props = defineProps<{
     viewIndex: number

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
 import { Property } from '@/data/models';
-import { useColumnStore } from '@/data/columnStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import { onMounted, watch, ref, nextTick } from 'vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 

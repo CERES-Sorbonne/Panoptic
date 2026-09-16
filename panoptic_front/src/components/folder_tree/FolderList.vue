@@ -3,9 +3,9 @@ import { FilterManager } from '@/core/FilterManager'
 import { Folder } from '@/data/models'
 import { getFolderChildren, getFolderAndParents } from '@/utils/utils'
 import { computed } from 'vue'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { TabManager } from '@/core/TabManager'
-import { useUiStore } from '@/data/uiStore'
+import { useUiStore } from '@/data/stores/uiStore'
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue'
 
 const data = useDataStore()

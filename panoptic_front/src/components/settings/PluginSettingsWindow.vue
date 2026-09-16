@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import PageWindow from '../utils/PageWindow.vue';
 import { PluginDescription } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import PluginSettings from './PluginSettings.vue';
 
 const props = defineProps<{}>()

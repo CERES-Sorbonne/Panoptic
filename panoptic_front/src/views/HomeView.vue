@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { computed, nextTick, ref, watch } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';

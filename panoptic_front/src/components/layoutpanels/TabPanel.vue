@@ -3,7 +3,7 @@
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import TabButton from '@/components/mainview/TabButton.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
-import { useTabStore } from '@/data/tabStore'
+import { useTabStore } from '@/data/stores/tabStore'
 import { useI18n } from 'vue-i18n'
 
 const tabStore = useTabStore()

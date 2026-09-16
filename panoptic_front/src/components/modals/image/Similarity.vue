@@ -8,17 +8,17 @@
 // version/emit contract to be observed by hand.)
 import { ActionResult, Instance, ScoreInterval } from '@/data/models';
 import { SelectedImages } from '@/core/GroupManager';
-import { useColumnStore } from '@/data/columnStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import { computed, markRaw, nextTick, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import ImageScroller from '@/components/scrollers/image/ImageScroller.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { useActionStore } from '@/data/actionStore';
-import { useDataStore } from '@/data/dataStore';
+import { useActionStore } from '@/data/stores/actionStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import Slider from '@vueform/slider'
-import { useProjectStore } from '@/data/projectStore';
-import { useTabStore } from '@/data/tabStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import RangeInput from '@/components/inputs/RangeInput.vue';
 import ActionButton2 from '@/components/actions/ActionButton2.vue';
 const actions = useActionStore()

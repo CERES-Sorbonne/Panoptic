@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import FilterPanel from '@/components/layoutpanels/FilterPanel.vue'
-import { useCurrentTab } from '@/data/useCurrentTab'
+import { useCurrentTab } from '@/data/composables/useCurrentTab'
 
 const tab = useCurrentTab()
 const splitView = computed(() => tab.value?.state.splitView ?? false)

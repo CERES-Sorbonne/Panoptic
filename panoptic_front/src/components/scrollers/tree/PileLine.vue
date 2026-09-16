@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ScrollerPileLine, Property, Sha1Scores } from '@/data/models';
+import { Property, Sha1Scores } from '@/data/models';
+import { ScrollerPileLine } from '@/components/scrollers/types';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
-import { useColumnStore } from '@/data/columnStore';
+import { useColumnStore } from '@/data/stores/columnStore';
 import { ComputedRef, Ref, computed, inject } from 'vue';
 
 const col = useColumnStore()

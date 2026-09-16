@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Tag } from '@/data/models';
 import { deepCopy, sum } from '@/utils/utils';
 import { ref, nextTick } from 'vue'
