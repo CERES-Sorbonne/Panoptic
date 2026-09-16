@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 // A single white "island" card: rounded, bordered, soft-shadowed surface with
 // an optional header and a body. Pure layout — slots only.
 interface Props {
@@ -7,19 +9,23 @@ interface Props {
     grow?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
     grow: false
 })
+
+// Fixed size is optional: without `width` / `height` the island takes the size
+// its parent gives it.
+const sizeStyle = computed(() => ({
+    width: props.width ? props.width + 'px' : undefined,
+    height: props.height ? props.height + 'px' : undefined
+}))
 </script>
 
 <template>
     <div
         class="island"
         :class="{ grow }"
-        :style="{
-            width: width ? width + 'px' : undefined,
-            height: height ? height + 'px' : undefined
-        }"
+        :style="sizeStyle"
     >
         <div v-if="$slots.header" class="island-header">
             <slot name="header"></slot>

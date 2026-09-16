@@ -30,10 +30,10 @@ Paths are relative to `panoptic_front/`.
 - [x] `src/views/TestView.vue` · 351 L. Dev page for the point/camera experiments behind the map view (`/#/test-points`).
 
 ## Files: layout primitives
-- [ ] `src/layouts/AppShellLayout.vue` · 83 L. The pure shell frame (PyCharm "island" style): a `#toolbar` and an `#activity` slot plus the content.
-- [ ] `src/layouts/SidebarLayout.vue` · 151 L. Sidebar plus main content, with a resize gutter.
-- [ ] `src/layouts/SplitLayout.vue` · 293 L. Two-pane split where the primary pane grows and the secondary keeps its size. Also used by `GroupView.vue`.
-- [ ] `src/layouts/IslandPanel.vue` · 69 L. A rounded, bordered, shadowed "island" card. Used by the filter, folder, property and reco panels and 2 others.
+- [x] `src/layouts/AppShellLayout.vue` · 83 L. The pure shell frame (PyCharm "island" style): a `#toolbar` and an `#activity` slot plus the content.
+- [x] `src/layouts/SidebarLayout.vue` · 151 L. Sidebar plus main content, with a resize gutter.
+- [x] `src/layouts/SplitLayout.vue` · 293 L. Two-pane split where the primary pane grows and the secondary keeps its size. Also used by `GroupView.vue`.
+- [x] `src/layouts/IslandPanel.vue` · 69 L. A rounded, bordered, shadowed "island" card. Used by the filter, folder, property and reco panels and 2 others.
 
 ## Files: top bar, activity bar & tabs
 - [ ] `src/components/layoutpanels/TopBarPanel.vue` · 269 L. The top toolbar:

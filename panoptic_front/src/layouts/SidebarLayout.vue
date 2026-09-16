@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, watch } from 'vue'
 
-// Sidebar + main content separated by a gutter. The gutter doubles as a
-// horizontal resize zone when `resizable` is set, and the sidebar can be
-// collapsed away entirely. Pure layout — slots + layout props only.
+// Sidebar + main content, separated by a thin vertical bar.
+// If `resizable` is set, you can drag the bar to change the sidebar width.
+// The sidebar can also be hidden.
 interface Props {
     sidebarWidth?: number
     gap?: number
@@ -31,7 +31,7 @@ const isResizing = ref(false)
 let startX = 0
 let startWidth = 0
 
-// Watch for prop changes and update internal width
+// Follow the prop when the parent changes it, but not while dragging
 watch(() => props.sidebarWidth, (newWidth) => {
     if (!isResizing.value) {
         width.value = clamp(newWidth)
@@ -71,7 +71,7 @@ onBeforeUnmount(stopResize)
                 <slot name="sidebar"></slot>
             </div>
             <div
-                class="gutter"
+                class="vertical-bar"
                 :class="{ resizable, active: isResizing }"
                 :style="{ width: gap + 'px' }"
                 @pointerdown="resizable && startResize($event)"
@@ -110,17 +110,17 @@ onBeforeUnmount(stopResize)
     min-height: 0;
 }
 
-.gutter {
+.vertical-bar {
     position: relative;
     flex-shrink: 0;
 }
 
-.gutter.resizable {
+.vertical-bar.resizable {
     cursor: col-resize;
 }
 
-/* Widen the pointer hit area beyond the visible gutter */
-.gutter.resizable::before {
+/* Invisible extra space around the vertical bar, so it is easier to grab */
+.vertical-bar.resizable::before {
     content: '';
     position: absolute;
     top: 0;
@@ -129,8 +129,8 @@ onBeforeUnmount(stopResize)
     right: -3px;
 }
 
-/* Highlight line shown on hover / while dragging */
-.gutter.resizable::after {
+/* Colored line on the vertical bar, shown on hover and while dragging */
+.vertical-bar.resizable::after {
     content: '';
     position: absolute;
     top: 0;
@@ -143,8 +143,8 @@ onBeforeUnmount(stopResize)
     transition: background-color var(--transition-fast);
 }
 
-.gutter.resizable:hover::after,
-.gutter.resizable.active::after {
+.vertical-bar.resizable:hover::after,
+.vertical-bar.resizable.active::after {
     background-color: var(--primary);
 }
 </style>

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-// Pure IDE shell frame (PyCharm "island" style): a top toolbar and a left
-// activity bar that live on the tinted canvas, an inset work area where
-// islands float, and a flush status bar. Content-blind — slots only.
+// App main Layout. Mostly inspired by pycharm / modern vscode. "island" layout.
 interface Props {
     gap?: number
     activityWidth?: number

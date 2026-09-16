@@ -56,28 +56,28 @@ watch(() => props.secondaryRatio, (newRatio) => {
 })
 
 const isColumn = computed(() => props.direction === 'column')
-const useRatio = computed(() => (props.secondaryRatio !== undefined || props.secondaryRatio === 0))
+const useRatio = computed(() => props.secondaryRatio !== undefined)
 // The divider only exists between two visible panes: with a single pane it would
 // just be dead margin on the trailing edge (the pane should fill the whole area).
 const showHandle = computed(() => !props.hidePrimary && !props.hideSecondary)
 const canDrag = computed(() => props.resizable && !props.hidePrimary && !props.hideSecondary)
 
-const secondaryStyle = computed(() => {
-    if (isColumn.value && useRatio.value) {
-        return {} // height set via inline style on the element itself
-    }
-    if (useRatio.value) {
-        return {} // width set via inline style on the element itself
-    }
-    if (isColumn.value) {
-        return { height: size.value + 'px' }
-    }
-    return { width: size.value + 'px' }
-})
+// The gap is drawn by the handle itself, so the flex gap is only needed when
+// there is no handle (single pane).
+const rootStyle = computed(() => ({ gap: showHandle.value ? '0' : props.gap + 'px' }))
 
 const handleStyle = computed(() =>
     isColumn.value ? { height: props.gap + 'px' } : { width: props.gap + 'px' }
 )
+
+// Size of the secondary pane, along the split axis: either a ratio of the
+// container or a fixed pixel size. When the primary pane is hidden the
+// secondary one grows instead (see the `grow` class), so it needs no size.
+const secondaryStyle = computed(() => {
+    if (props.hidePrimary) return undefined
+    const value = useRatio.value ? ratio.value * 100 + '%' : size.value + 'px'
+    return isColumn.value ? { height: value } : { width: value }
+})
 
 function startResize(e: PointerEvent) {
     isResizing.value = true
@@ -125,7 +125,12 @@ onBeforeUnmount(stopResize)
 </script>
 
 <template>
-    <div ref="root" class="split" :class="['split-' + direction, { resizing: isResizing }]" :style="{ gap: showHandle ? '0' : gap + 'px' }">
+    <div
+        ref="root"
+        class="split"
+        :class="['split-' + direction, { resizing: isResizing }]"
+        :style="rootStyle"
+    >
         <div v-if="!hidePrimary" class="split-primary">
             <slot name="primary"></slot>
         </div>
@@ -146,7 +151,7 @@ onBeforeUnmount(stopResize)
             v-if="!hideSecondary"
             class="split-secondary"
             :class="{ grow: hidePrimary }"
-            :style="hidePrimary ? undefined : { ...secondaryStyle, ...(useRatio ? (isColumn ? { height: ratio * 100 + '%' } : { width: ratio * 100 + '%' }) : {}) }"
+            :style="secondaryStyle"
         >
             <slot name="secondary"></slot>
         </div>
@@ -188,14 +193,6 @@ onBeforeUnmount(stopResize)
     overflow: hidden;
 }
 
-.split-secondary.split-row-ratio {
-    flex-shrink: 0;
-}
-
-.split-secondary.split-column-ratio {
-    flex-basis: auto;
-}
-
 .split-secondary.grow {
     flex: 1;
     min-width: 0;
@@ -214,13 +211,13 @@ onBeforeUnmount(stopResize)
     position: relative;
     flex-shrink: 0;
     /* Stay exactly `gap` wide — never let the floating widget's min-content
-       (default min-width:auto on flex items) stretch the gutter. */
+       (default min-width:auto on flex items) stretch the handle. */
     min-width: 0;
     min-height: 0;
 }
 
 /* Optional widget (e.g. a link toggle) floating centered on the divider.
-   Overflows the thin handle so the gutter itself can stay tiny. */
+   Overflows the thin handle so the bar itself can stay tiny. */
 .split-handle-widget {
     position: absolute;
     top: 50%;
@@ -237,7 +234,7 @@ onBeforeUnmount(stopResize)
     cursor: col-resize;
 }
 
-/* Widen the pointer/hover hit area beyond the visible gutter */
+/* Invisible extra space around the bar, so it is easier to grab */
 .split.split-column > .split-handle.draggable::before {
     content: '';
     position: absolute;
