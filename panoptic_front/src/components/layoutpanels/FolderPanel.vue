@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Folders tool-window root node — inserted into the sidebar split's #primary.
 import IslandPanel from '@/layouts/IslandPanel.vue'
-import FolderList from '@/components/FolderTree/FolderList.vue'
+import FolderList from '@/components/folder_tree/FolderList.vue'
 import FileSourceOptionDropdown from '@/components/dropdowns/FileSourceOptionDropdown.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { computed } from 'vue'

@@ -3,7 +3,7 @@
 import { ModalId } from '../../data/models';
 import { ref, computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue';
-import FolderList2 from '../FolderTree/FolderList2.vue';
+import FolderList2 from '../folder_tree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { goNext } from '@/utils/utils';
