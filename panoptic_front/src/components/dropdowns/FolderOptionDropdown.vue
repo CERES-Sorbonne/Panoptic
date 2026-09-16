@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Folder } from '@/data/models';
 import Dropdown from './Dropdown.vue';
-import { i18n } from '@/main';
+import { i18n } from '@/locales/i18n';
 import { useDataStore } from '@/data/dataStore';
 
 const data = useDataStore()

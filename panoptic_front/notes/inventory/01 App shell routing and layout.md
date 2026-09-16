@@ -17,7 +17,7 @@ Paths are relative to `panoptic_front/`.
 - [ ] The whole shell got its layout in June 2026. The old shell (`ProjectView`, `PanopticView`, `Menu`, `TabNav`, `mainview/MainView`) is dead ([[99 Unused files]]).
 
 ## Files: boot & routing
-- [ ] `index.html`. Vite HTML entry: `#app`, `/favicon.ico`.
+- [x] `index.html`. Vite HTML entry: `#app`, `/favicon.ico`.
 - [ ] `src/main.js` · 39 L. Creates the app. It loads Pinia, `vue-virtual-scroller`, the router, i18n and `vue3-tour`, plus the global CSS (Inter, Bootstrap, bootstrap-icons, `@vueform/toggle`, `vue3-tour`). It also re-exports `i18n`.
 - [ ] `src/App.vue` · 167 L. The root component:
   - `RouterView`
