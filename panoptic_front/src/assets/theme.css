@@ -173,7 +173,7 @@ body {
   color: var(--text-color);
   background-color: var(--bg-primary);
   /* !important: theme.css is injected before bootstrap.min.css (App.vue is
-     imported ahead of it in main.js), so Bootstrap's `body` rule would
+     imported ahead of it in main.ts), so Bootstrap's `body` rule would
      otherwise win the specificity tie. */
   font-family: var(--font-family) !important;
   text-rendering: optimizeLegibility;
