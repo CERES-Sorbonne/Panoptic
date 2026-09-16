@@ -24,7 +24,7 @@ Paths are relative to `panoptic_front/`.
   - the global keyboard handling (Ctrl/Cmd+Z undo/redo, which it doesn't take over inside text fields)
   - the global modals
   - imports `assets/theme.css`
-- [ ] `src/router/index.js` · 30 L. Hash history. Routes: `/` HomeView, `/view` MainView, plus the dev routes `/test` and `/test-points`. `panopticStore.ts` and `views/MainView.vue` also import it.
+- [x] `src/router/index.js` · 30 L. Hash history. Routes: `/` HomeView, `/view` MainView, plus the dev routes `/test` and `/test-points`. `panopticStore.ts` and `views/MainView.vue` also import it.
 - [ ] `src/views/MainView.vue` · 169 L. The project page (route `/view`). It builds `AppShellLayout` with `TopBarPanel` (toolbar), `LeftBarPanel` (activity bar), `SidebarLayout` / `SplitLayout` holding `FolderPanel`, `PropertyPanel`, `FilterIsland` and `ViewPanel`, and `TabProvider`. The islands stay hidden until `uiStore` has loaded.
 - [ ] `src/views/SandboxView.vue` · 63 L. Dev scratch page for plain HTML/CSS experiments (`/#/test`).
 - [ ] `src/views/TestView.vue` · 351 L. Dev page for the point/camera experiments behind the map view (`/#/test-points`).

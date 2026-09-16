@@ -8,7 +8,6 @@ import TopBarPanel from '@/components/layoutpanels/TopBarPanel.vue'
 import LeftBarPanel from '@/components/layoutpanels/LeftBarPanel.vue'
 import FolderPanel from '@/components/layoutpanels/FolderPanel.vue'
 import PropertyPanel from '@/components/layoutpanels/PropertyPanel.vue'
-import TabPanel from '@/components/layoutpanels/TabPanel.vue'
 import FilterIsland from '@/components/layoutpanels/FilterIsland.vue'
 import ViewPanel from '@/components/layoutpanels/ViewPanel.vue'
 import TabProvider from '@/components/layoutpanels/TabProvider.vue'
@@ -51,19 +50,18 @@ onMounted(async () => {
 </script>
 
 <template>
-    <!-- Always show outer shell, but hide islands until uiStore loads -->
     <AppShellLayout :gap="6" :activity-width="32" :toolbar-height="32" :status-height="0">
-        <!-- Top toolbar (on canvas) -->
+        <!-- Top toolbar -->
         <template #toolbar>
             <TopBarPanel />
         </template>
 
-        <!-- Left activity bar (on canvas) -->
+        <!-- Left activity bar -->
         <template #activity>
             <LeftBarPanel />
         </template>
 
-        <!-- Islands work area - only show when uiStore has loaded -->
+        <!-- Work area -->
         <template v-if="uiStore.loaded && tabStore.loaded">
         <SidebarLayout
             :sidebar-width="uiStore.resizeStates.leftSidebarWidth"
@@ -74,8 +72,7 @@ onMounted(async () => {
             :max-width="500"
             :collapsed="leftCollapsed"
         >
-            <!-- Left side: Folders (top) over Properties (bottom). Either pane
-                 can be hidden, and the divider between them is draggable. -->
+            <!-- Folders over properties, resizable divider -->
             <template #sidebar>
                 <SplitLayout
                     direction="column"
@@ -97,18 +94,13 @@ onMounted(async () => {
                 </SplitLayout>
             </template>
 
-            <!-- Center: a tab/filter island, then 1 or 2 separate view islands -->
+            <!-- Center: filter bar above the views -->
             <template #main>
                 <div class="center-stack">
-                    <!-- Tab bar island (shared, never split) -->
-                    
-
-                    <!-- Filter island: one row normally, two side-by-side when split -->
+                    <!-- Filter bar -->
                     <FilterIsland />
 
-                    <!-- 1 or 2 view islands, each its own card with a gap between.
-                         Split state (shown/ratio) lives on the tab (Pillar F/Q13);
-                         TabProvider remounts the panes on tab switch (Pillar D). -->
+                    <!-- One or two views, side by side when split -->
                     <TabProvider v-slot="{ tab }">
                         <SplitLayout
                             class="view-split"
@@ -150,7 +142,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* Center column: tab/filter island stacked over the view island(s) */
+/* Center column: filter bar above the views */
 .center-stack {
     display: flex;
     flex-direction: column;
@@ -160,7 +152,7 @@ onMounted(async () => {
     gap: var(--island-gap);
 }
 
-/* View split fills the full width of the center column. */
+/* View split fills the center column */
 .view-split {
     width: 100%;
 }
