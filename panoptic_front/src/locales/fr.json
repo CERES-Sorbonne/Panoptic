@@ -593,6 +593,22 @@
                 "Reconciling removed files": "Vérification des fichiers supprimés",
                 "Importing files": "Import des fichiers"
             }
+        },
+        "property_status": {
+            "title": "Chargement des propriétés",
+            "base_label": "Images",
+            "loading": "Chargement : {name}",
+            "images_loaded": "Images chargées",
+            "properties_total": "Propriétés",
+            "images_in_view": "Images affichées",
+            "properties_in_use": "Propriétés utilisées",
+            "legend_in_use": "utilisée",
+            "status": {
+                "loading": "en cours",
+                "empty": "non chargée",
+                "loaded": "chargée"
+            },
+            "no_properties": "Aucune propriété pour le moment."
         }
     },
     "btn": {

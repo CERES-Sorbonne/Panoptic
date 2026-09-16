@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
- * TabProvider (Pillar D)
+ * Gives its children the active tab manager.
  *
- * Renders its slot only once the store is loaded and a manager exists, and keys
- * the subtree by the active tab id so switching tabs fully remounts descendants.
- * This replaces the old `show=false -> nextTick -> reload` remount hack in
- * TabContainer and eliminates stale-capture / null-window errors on tab switch.
+ * The slot is rendered only when the store is loaded and a manager exists, so
+ * children never have to handle a missing tab. The subtree is keyed by the
+ * active tab id: switching tabs remounts everything inside, which avoids
+ * children keeping values from the previous tab.
  *
- * The active manager is exposed both via the scoped slot (`#default="{ tab }"`)
- * and, for deeper descendants, through `useCurrentTab()`.
+ * The manager is available through the scoped slot (`#default="{ tab }"`), and
+ * deeper descendants can also read it with `useCurrentTab()`.
  */
 import { computed } from 'vue'
 import { useTabStore } from '@/data/tabStore'

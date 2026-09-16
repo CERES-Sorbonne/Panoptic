@@ -1,58 +1,41 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+// Toolbar button that shows which property values are loaded in the browser.
+// The button shows short counts and a progress bar. The panel lists every
+// property with its load state and marks the ones the current tab needs.
+import { computed, ref } from 'vue'
+import Dropdown from './Dropdown.vue'
 import { useDataStore } from '@/data/dataStore'
 import { useColumnStore } from '@/data/columnStore'
 import { useInstanceStore } from '@/data/instanceStore'
 import { TabManager } from '@/core/TabManager'
-
-const vClickOutside = {
-    mounted(el: HTMLElement & { _coHandler?: (e: MouseEvent) => void }, binding: { value: () => void }) {
-        el._coHandler = (e: MouseEvent) => { if (!el.contains(e.target as Node)) binding.value() }
-        document.addEventListener('click', el._coHandler)
-    },
-    unmounted(el: HTMLElement & { _coHandler?: (e: MouseEvent) => void }) {
-        if (el._coHandler) document.removeEventListener('click', el._coHandler)
-    },
-}
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{ tab: TabManager }>()
+const { t: $t } = useI18n()
 
 const dataStore     = useDataStore()
 const columnStore   = useColumnStore()
 const instanceStore = useInstanceStore()
+// Keeps the button highlighted while the panel is open.
 const open = ref(false)
-const triggerEl = ref<HTMLElement>()
-// The panel is position:fixed (to escape the toolbar's overflow:hidden), so its
-// coordinates are derived from the trigger button each time it opens.
-const panelStyle = ref<Record<string, string>>({})
-
-function toggle() {
-    open.value = !open.value
-    if (open.value) nextTick(positionPanel)
-}
-
-function positionPanel() {
-    const r = triggerEl.value?.getBoundingClientRect()
-    if (!r) return
-    panelStyle.value = { top: `${r.bottom + 4}px`, left: `${r.left}px` }
-}
 
 const instanceCount = computed(() => columnStore.instanceCount)
 
-// ── Live load progress (merged from ColumnLoadProgress) ──────────────────
+// ── Load progress ────────────────────────────────────────────────────────
 const systemIds = computed(() => {
     const s = columnStore.systemProps
     return new Set([s.INSTANCE_ID, s.SHA1, s.FILE_ID])
 })
 
-// Base (id/sha1/file) loading from init()
+// Progress of the first load: id, sha1 and file of every image.
 const basePct = computed(() => {
     const p = columnStore.baseProgress
     if (!p.loading || !p.max) return null
     return Math.min(100, Math.round((p.counter / p.max) * 100))
 })
 
-// Other columns loading via requireFullColumn(), one at a time
+// Other properties being loaded. The store loads them one at a time,
+// so the first one in the list is the one loading now.
 const otherLoadingColumns = computed(() =>
     Object.entries(columnStore.fullColumnStatus)
         .filter(([idStr, s]) => s === 'loading' && !systemIds.value.has(Number(idStr)))
@@ -73,20 +56,19 @@ const otherPct = computed(() => {
 })
 
 const isLoading = computed(() => columnStore.baseProgress.loading || !!otherCurrent.value)
-// Progress shown on the trigger bar: the base load takes priority, else the current column.
+// Progress on the button: the first load if it is running, else the current property.
 const primaryPct = computed(() => columnStore.baseProgress.loading ? basePct.value : otherPct.value)
 
-// Columns currently required by the tab: visible properties + active filter/sort/group.
+// Properties the tab needs now: the ones shown under the images, and the ones
+// used by the active filter, sort and grouping.
 const requestedIds = computed(() => {
     const ids = new Set<number>()
     const col = props.tab.collection
 
-    // Properties rendered under each image in this tab
     for (const [idStr, visible] of Object.entries(props.tab.state.visibleProperties ?? {})) {
         if (visible) ids.add(Number(idStr))
     }
 
-    // Properties needed for filter / sort / group computation
     for (const id of col.filterManager.getRequiredColumns()) ids.add(id)
     for (const id of col.sortManager.getRequiredColumns())   ids.add(id)
     for (const id of col.getRequiredColumns())  ids.add(id)
@@ -106,7 +88,7 @@ const columns = computed(() =>
             }
         })
         .sort((a, b) => {
-            // requested first, then by status (loading → empty → loaded), then name
+            // Needed properties first, then by state (loading, empty, loaded), then by name
             if (a.requested !== b.requested) return a.requested ? -1 : 1
             const order = { loading: 0, empty: 1, loaded: 2 }
             const diff = order[a.status] - order[b.status]
@@ -122,103 +104,99 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 </script>
 
 <template>
-    <div class="col-status-root me-1" v-click-outside="() => open = false">
-        <!-- Trigger button -->
-        <button ref="triggerEl" class="col-status-btn" :class="{ active: open, loading: isLoading }" @click="toggle" title="Column status">
-            <i class="bi bi-database-fill-gear" />
-            <span class="col-status-summary">
-                <span class="instance-count">{{ instanceCount.toLocaleString() }}</span>
-                <span class="separator">|</span>
-                <span class="dot dot-loaded" />{{ loadedCount }}
-                <span v-if="loadingCount" class="dot dot-loading ms-1" />
-                <span v-if="loadingCount">{{ loadingCount }}</span>
-                <span v-if="emptyCount" class="dot dot-empty ms-1" />
-                <span v-if="emptyCount">{{ emptyCount }}</span>
-            </span>
-            <!-- Live load progress on the right -->
-            <span v-if="isLoading" class="trigger-progress">
-                <span class="separator">|</span>
-                <span class="trigger-progress-track">
-                    <span class="trigger-progress-fill" :style="{ width: (primaryPct ?? 0) + '%' }" />
+    <Dropdown class="me-1" :offset="4" placement="bottom-start" @show="open = true" @hide="open = false">
+        <template #button>
+            <button class="col-status-btn" :class="{ active: open, loading: isLoading }" :title="$t('dropdown.property_status.title')">
+                <i class="bi bi-database-fill-gear" />
+                <span class="col-status-summary">
+                    <span class="instance-count">{{ instanceCount.toLocaleString() }}</span>
+                    <span class="separator">|</span>
+                    <span class="dot dot-loaded" />{{ loadedCount }}
+                    <span v-if="loadingCount" class="dot dot-loading ms-1" />
+                    <span v-if="loadingCount">{{ loadingCount }}</span>
+                    <span v-if="emptyCount" class="dot dot-empty ms-1" />
+                    <span v-if="emptyCount">{{ emptyCount }}</span>
                 </span>
-                <span v-if="primaryPct !== null" class="trigger-progress-pct">{{ primaryPct }}%</span>
-            </span>
-        </button>
+                <!-- Load progress, only while something is loading -->
+                <span v-if="isLoading" class="trigger-progress">
+                    <span class="separator">|</span>
+                    <span class="trigger-progress-track">
+                        <span class="trigger-progress-fill" :style="{ width: (primaryPct ?? 0) + '%' }" />
+                    </span>
+                    <span v-if="primaryPct !== null" class="trigger-progress-pct">{{ primaryPct }}%</span>
+                </span>
+            </button>
+        </template>
 
-        <!-- Panel -->
-        <div v-if="open" class="col-status-panel shadow-sm" :style="panelStyle">
-            <!-- Loading now (merged from ColumnLoadProgress) -->
-            <div v-if="isLoading" class="loading-section">
-                <div v-if="columnStore.baseProgress.loading" class="load-row" title="Loading: id, sha1, file">
-                    <span class="load-name">id, sha1, file</span>
-                    <div class="load-track">
-                        <div class="load-fill" :style="{ width: (basePct ?? 0) + '%' }" />
+        <template #popup>
+            <div class="col-status-panel">
+                <!-- What is loading now -->
+                <div v-if="isLoading" class="loading-section">
+                    <div v-if="columnStore.baseProgress.loading" class="load-row" :title="$t('dropdown.property_status.loading', { name: $t('dropdown.property_status.base_label') })">
+                        <span class="load-name">{{ $t('dropdown.property_status.base_label') }}</span>
+                        <div class="load-track">
+                            <div class="load-fill" :style="{ width: (basePct ?? 0) + '%' }" />
+                        </div>
+                        <span v-if="basePct !== null" class="load-pct">{{ basePct }}%</span>
                     </div>
-                    <span v-if="basePct !== null" class="load-pct">{{ basePct }}%</span>
-                </div>
-                <div v-if="otherCurrent" class="load-row" :title="`Loading: ${otherCurrent.name}`">
-                    <span class="load-name">{{ otherCurrent.name }}</span>
-                    <span v-if="otherRemaining > 1" class="load-queue">+{{ otherRemaining - 1 }}</span>
-                    <div class="load-track">
-                        <div class="load-fill" :style="{ width: (otherPct ?? 0) + '%' }" />
+                    <div v-if="otherCurrent" class="load-row" :title="$t('dropdown.property_status.loading', { name: otherCurrent.name })">
+                        <span class="load-name">{{ otherCurrent.name }}</span>
+                        <span v-if="otherRemaining > 1" class="load-queue">+{{ otherRemaining - 1 }}</span>
+                        <div class="load-track">
+                            <div class="load-fill" :style="{ width: (otherPct ?? 0) + '%' }" />
+                        </div>
+                        <span v-if="otherPct !== null" class="load-pct">{{ otherPct }}%</span>
                     </div>
-                    <span v-if="otherPct !== null" class="load-pct">{{ otherPct }}%</span>
                 </div>
-            </div>
 
-            <!-- Header stats -->
-            <div class="col-status-header">
-                <div class="stat-row">
-                    <i class="bi bi-images me-1 text-secondary" />
-                    <span class="text-secondary">Instances loaded</span>
-                    <span class="stat-val">{{ instanceCount.toLocaleString() }}</span>
+                <!-- Counts and legend -->
+                <div class="col-status-header">
+                    <div class="stat-row">
+                        <i class="bi bi-images me-1 text-secondary" />
+                        <span class="text-secondary">{{ $t('dropdown.property_status.images_loaded') }}</span>
+                        <span class="stat-val">{{ instanceCount.toLocaleString() }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <i class="bi bi-columns me-1 text-secondary" />
+                        <span class="text-secondary">{{ $t('dropdown.property_status.properties_total') }}</span>
+                        <span class="stat-val">{{ columns.length }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <i class="bi bi-eye me-1 text-secondary" />
+                        <span class="text-secondary">{{ $t('dropdown.property_status.images_in_view') }}</span>
+                        <span class="stat-val">{{ trackedInstances.toLocaleString() }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <i class="bi bi-arrow-repeat me-1 text-secondary" />
+                        <span class="text-secondary">{{ $t('dropdown.property_status.properties_in_use') }}</span>
+                        <span class="stat-val">{{ requestedCount }}</span>
+                    </div>
+                    <div class="legend-row">
+                        <span class="legend-item"><span class="dot dot-requested" />{{ $t('dropdown.property_status.legend_in_use') }}</span>
+                        <span class="legend-item"><span class="dot dot-loading" />{{ $t('dropdown.property_status.status.loading') }}</span>
+                        <span class="legend-item"><span class="dot dot-empty" />{{ $t('dropdown.property_status.status.empty') }}</span>
+                        <span class="legend-item"><span class="dot dot-loaded" />{{ $t('dropdown.property_status.status.loaded') }}</span>
+                    </div>
                 </div>
-                <div class="stat-row">
-                    <i class="bi bi-columns me-1 text-secondary" />
-                    <span class="text-secondary">Columns tracked</span>
-                    <span class="stat-val">{{ columns.length }}</span>
-                </div>
-                <div class="stat-row">
-                    <i class="bi bi-eye me-1 text-secondary" />
-                    <span class="text-secondary">Instances in view</span>
-                    <span class="stat-val">{{ trackedInstances.toLocaleString() }}</span>
-                </div>
-                <div class="stat-row">
-                    <i class="bi bi-arrow-repeat me-1 text-secondary" />
-                    <span class="text-secondary">Columns in use</span>
-                    <span class="stat-val">{{ requestedCount }}</span>
-                </div>
-                <div class="legend-row">
-                    <span class="legend-item"><span class="dot dot-requested" />in use</span>
-                    <span class="legend-item"><span class="dot dot-loading" />loading</span>
-                    <span class="legend-item"><span class="dot dot-empty" />empty</span>
-                    <span class="legend-item"><span class="dot dot-loaded" />loaded</span>
-                </div>
-            </div>
 
-            <!-- Column list -->
-            <div class="col-list">
-                <div v-if="columns.length === 0" class="col-empty-msg text-secondary">
-                    No columns registered yet.
-                </div>
-                <div v-for="col in columns" :key="col.id" class="col-row" :class="{ 'col-row-active': col.requested }">
-                    <span v-if="col.requested" class="dot dot-requested flex-shrink-0" />
-                    <span v-else class="dot-spacer" />
-                    <span class="col-name">{{ col.name }}</span>
-                    <span class="col-badge" :class="`badge-${col.status}`">{{ col.status }}</span>
+                <!-- Property list -->
+                <div class="col-list">
+                    <div v-if="columns.length === 0" class="col-empty-msg text-secondary">
+                        {{ $t('dropdown.property_status.no_properties') }}
+                    </div>
+                    <div v-for="col in columns" :key="col.id" class="col-row" :class="{ 'col-row-active': col.requested }">
+                        <span v-if="col.requested" class="dot dot-requested flex-shrink-0" />
+                        <span v-else class="dot-spacer" />
+                        <span class="col-name">{{ col.name }}</span>
+                        <span class="col-badge" :class="`badge-${col.status}`">{{ $t(`dropdown.property_status.status.${col.status}`) }}</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </template>
+    </Dropdown>
 </template>
 
 <style scoped>
-.col-status-root {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
 /* ── Trigger ─────────────────────────────────────────────────────────── */
 .col-status-btn {
     position: relative;
@@ -240,7 +218,7 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
     background: rgba(137, 176, 205, 0.25);
 }
 
-/* Inline live-load indicator on the right of the trigger */
+/* Progress bar inside the button */
 .trigger-progress {
     display: inline-flex;
     align-items: center;
@@ -291,27 +269,22 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 
 /* ── Panel ───────────────────────────────────────────────────────────── */
 .col-status-panel {
-    position: fixed;
-    z-index: 999;
     width: 250px;
     max-height: 400px;
     display: flex;
     flex-direction: column;
     background: var(--bg-primary, #fff);
     color: var(--text-primary, #333);
-    border: 1px solid var(--border-color, #dee2e6);
-    border-radius: 6px;
-    overflow: hidden;
     font-size: 12px;
 }
 
-/* The panel renders in a context whose inherited color may be light; anchor the
-   muted-label colour explicitly rather than relying on Bootstrap utilities. */
+/* The panel can inherit a light text color from the toolbar.
+   Set the grey label color here so labels stay readable. */
 .col-status-panel .text-secondary {
     color: var(--text-secondary, #666) !important;
 }
 
-/* ── Loading now (merged from ColumnLoadProgress) ────────────────────── */
+/* ── Loading now ─────────────────────────────────────────────────────── */
 .loading-section {
     padding: 8px 10px;
     border-bottom: 1px solid var(--border-color, #dee2e6);
@@ -398,7 +371,7 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
     font-size: 11px;
 }
 
-/* ── Column list ─────────────────────────────────────────────────────── */
+/* ── Property list ───────────────────────────────────────────────────── */
 .col-list {
     overflow-y: auto;
     flex: 1;

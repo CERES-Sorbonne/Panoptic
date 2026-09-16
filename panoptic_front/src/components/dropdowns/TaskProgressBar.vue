@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Toolbar button that shows the progress of the running backend task.
+// Clicking it opens a list of running, pending and finished tasks.
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/data/projectStore'
@@ -29,9 +31,9 @@ function taskPct(t: TaskState) {
     return Math.min(100, Math.round((t.done / t.total) * 100))
 }
 
-// The backend sends raw class names / English steps: map the known ones to
-// user friendly labels, and fall back to the raw value for anything unknown
-// (plugin tasks we don't ship translations for).
+// The backend sends task keys and step names in English. Show the translated
+// label when one exists. Otherwise show the raw value (for example, plugin
+// tasks have no translation).
 function taskLabel(t: TaskState) {
     const key = `dropdown.tasks.names.${t.key}`
     return te(key) ? $t(key) : t.name
@@ -42,7 +44,7 @@ function stepLabel(step: string) {
     return te(key) ? $t(key) : step
 }
 
-// The free-form progress message the backend reports (step + detail).
+// Progress text from the backend: the current step, then the detail if there is one.
 function taskMessage(t: TaskState) {
     if (!t.step) return ''
     const step = stepLabel(t.step)
@@ -75,7 +77,7 @@ function formatEta(seconds: number) {
                 <span v-if="activePrimary" class="task-progress-name">{{ taskLabel(activePrimary) }}</span>
                 <span v-else class="task-progress-name">{{ $t('dropdown.tasks.title') }}</span>
                 <span v-if="remainingCount > 0" class="task-progress-queue">+{{ remainingCount }}</span>
-                <div class="task-progress-track">
+                <div v-if="activePrimary" class="task-progress-track">
                     <div class="task-progress-fill" :style="{ width: primaryPct + '%' }" />
                 </div>
                 <span v-if="activePrimary" class="task-progress-pct">{{ primaryPct }}%</span>
@@ -184,7 +186,7 @@ function formatEta(seconds: number) {
     text-align: right;
 }
 
-/* Dropdown panel */
+/* Popup with the task list */
 .task-dropdown {
     padding: 6px;
     min-width: 220px;

@@ -577,6 +577,22 @@
                 "Reconciling removed files": "Checking for deleted files",
                 "Importing files": "Importing files"
             }
+        },
+        "property_status": {
+            "title": "Property loading",
+            "base_label": "Images",
+            "loading": "Loading: {name}",
+            "images_loaded": "Images loaded",
+            "properties_total": "Properties",
+            "images_in_view": "Images displayed",
+            "properties_in_use": "Properties in use",
+            "legend_in_use": "in use",
+            "status": {
+                "loading": "loading",
+                "empty": "not loaded",
+                "loaded": "loaded"
+            },
+            "no_properties": "No properties yet."
         }
     },
     "btn": {

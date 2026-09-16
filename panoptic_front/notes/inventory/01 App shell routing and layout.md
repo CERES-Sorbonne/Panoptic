@@ -36,17 +36,17 @@ Paths are relative to `panoptic_front/`.
 - [x] `src/layouts/IslandPanel.vue` · 69 L. A rounded, bordered, shadowed "island" card. Used by the filter, folder, property and reco panels and 2 others.
 
 ## Files: top bar, activity bar & tabs
-- [ ] `src/components/layoutpanels/TopBarPanel.vue` · 269 L. The top toolbar:
+- [x] `src/components/layoutpanels/TopBarPanel.vue` · 269 L. The top toolbar:
   - left: project title and actions
   - right: user, notifications, language
   - also hosts `TabPanel`, `HistoryDropdown`, `TaskProgressBar`, `ColumnStatusDropdown` and `SelectionStamp`
 
   Last changed 2026-09-11.
-- [ ] `src/components/layoutpanels/LeftBarPanel.vue` · 122 L. Left activity bar that toggles the Folder and Properties tool windows (`uiStore`).
-- [ ] `src/components/layoutpanels/TabPanel.vue` · 239 L. Tab bar island: the open tabs (`TabButton`), a tab-picker dropdown, and the add-tab button.
-- [ ] `src/components/layoutpanels/TabProvider.vue` · 31 L. Provides the current tab to its descendants ("Pillar D", see `data/useCurrentTab.ts`).
-- [ ] `src/components/mainview/TabButton.vue` · 172 L. One tab: rename, close, and scrolling itself into view when it becomes active. It's the only live file left in `mainview/`.
-- [ ] `src/components/TabContainer.vue` · 32 L. Small tab wrapper (it uses `TabManager` and `tabStore`). Used by `PropertyPanel.vue`.
-- [ ] `src/components/dropdowns/HistoryDropdown.vue` · 210 L. Undo history in two modes: `own` (the store's own commit stacks, which Ctrl+Z acts on) and `all` (every commit, fetched from the backend). Heavily changed on 2026-09-11.
-- [ ] `src/components/dropdowns/TaskProgressBar.vue` · 290 L. Backend task progress. It maps raw task class names and English step names to translated labels.
-- [ ] `src/components/dropdowns/ColumnStatusDropdown.vue` · 465 L. Load status per property column (loading / empty / loaded counts). The panel is `position:fixed` so it escapes the toolbar's `overflow:hidden`.
+- [x] `src/components/layoutpanels/LeftBarPanel.vue` · 122 L. Left activity bar that toggles the Folder and Properties tool windows (`uiStore`).
+- [x] `src/components/layoutpanels/TabPanel.vue` · 239 L. Tab bar island: the open tabs (`TabButton`), a tab-picker dropdown, and the add-tab button.
+- [x] `src/components/layoutpanels/TabProvider.vue` · 31 L. Provides the current tab to its descendants ("Pillar D", see `data/useCurrentTab.ts`).
+- [x] `src/components/mainview/TabButton.vue` · 172 L. One tab: rename, close, and scrolling itself into view when it becomes active. It's the only live file left in `mainview/`.
+- [x] `src/components/TabContainer.vue` · 32 L. Small tab wrapper (it uses `TabManager` and `tabStore`). Used by `PropertyPanel.vue`.
+- [x] `src/components/dropdowns/HistoryDropdown.vue` · 210 L. Undo history in two modes: `own` (the store's own commit stacks, which Ctrl+Z acts on) and `all` (every commit, fetched from the backend). Heavily changed on 2026-09-11.
+- [x] `src/components/dropdowns/TaskProgressBar.vue` · 290 L. Backend task progress. It maps raw task class names and English step names to translated labels.
+- [x] `src/components/dropdowns/ColumnStatusDropdown.vue` · 465 L. Load status per property column (loading / empty / loaded counts). The panel is `position:fixed` so it escapes the toolbar's `overflow:hidden`.

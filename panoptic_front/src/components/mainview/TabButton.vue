@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// One tab in the tab bar. Click selects the tab, double click on the active
+// tab renames it, and the x button deletes it.
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
@@ -18,8 +20,8 @@ const props = defineProps<{
 
 const tabId = computed(() => props.tab.state.id)
 
-// Bring the tab into view whenever it becomes the active tab — covers selection
-// from the picker dropdown, a click, or restore on load.
+// When this tab becomes active, scroll the tab bar so the tab is visible.
+// This works for every way a tab gets selected (click, dropdown, page load).
 watch(() => tabStore.mainTab === tabId.value, (isActive) => {
     if (!isActive) return
     nextTick(() => rootElem.value?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' }))
@@ -38,8 +40,8 @@ function doubleClick() {
 function setEditTab() {
     isEdit.value = true
     newTabName.value = props.tab.state.name
-    // Select the whole name so typing replaces it, and so the highlight confirms
-    // the field is live alongside the pill's input chrome.
+    // Wait for the input to render, then select the whole name.
+    // Typing then replaces the name, and the highlight shows the field is editable.
     nextTick(() => {
         inputElem.value?.focus()
         inputElem.value?.select()
@@ -52,8 +54,8 @@ function cancelEdit() {
 }
 
 function endEdit() {
-    // Escape already closed the editor (and restored the name) — a trailing
-    // blur must not re-commit it.
+    // Escape closes the editor first, then the input loses focus and calls this
+    // again. Stop here so a cancelled edit does not call renameTab.
     if (!isEdit.value) return
     if (newTabName.value.trim()) {
         props.tab.renameTab(newTabName.value)
@@ -95,10 +97,9 @@ onMounted(() => {
         </template>
         <template v-else>
             <div class="tab-button editing" :class="(tabId == tabStore.mainTab ? ' active' : '')">
-                <!-- The sizer is an invisible copy of the text that gives the wrapper its
-                     width; the input is stretched over it. Same font as the sizer (both
-                     inherit from .tab-button), so the field grows exactly with the name
-                     and the caret sits where the label was. -->
+                <!-- The sizer is a hidden copy of the text. It sets the width of the
+                     wrapper, and the input is placed on top of it. Both use the font of
+                     .tab-button, so the input grows with the name and the text does not move. -->
                 <span class="tab-name-edit">
                     <span class="tab-name-sizer">{{ newTabName }}</span>
                     <input ref="inputElem" class="tab-name-input" type="text" v-model="newTabName"
@@ -114,16 +115,16 @@ onMounted(() => {
     background-color: var(--primary-light);
 }
 
-/* Rename field: the pill itself supplies the input chrome (see .tab-button.editing
-   in TabPanel.vue), so the input stretches over the label with no box of its own. */
+/* Rename field. The tab button draws the border and background of the field
+   (see .tab-button.editing in TabPanel.vue), so the input has no box of its own. */
 .tab-name-edit {
     position: relative;
     display: inline-block;
     min-width: 1ch;
 }
 
-/* Invisible but laid out — it is what sizes the wrapper to the text. `pre`
-   keeps trailing spaces so the width doesn't jump while typing them. */
+/* Not visible, but it still takes space, so it gives the wrapper its width.
+   `pre` keeps spaces at the end, so the width grows when the user types a space. */
 .tab-name-sizer {
     visibility: hidden;
     white-space: pre;
@@ -139,7 +140,7 @@ onMounted(() => {
     outline: none;
     background: transparent;
     box-shadow: none;
-    /* Match the label exactly: same font/size/weight/colour as .tab-button. */
+    /* Same font and colour as the tab label. */
     font: inherit;
     letter-spacing: inherit;
     color: inherit;
