@@ -36,16 +36,16 @@ const tabStore = useTabStore()
 const leftCollapsed = computed(() => !uiStore.panelStates.leftPanelOpen && uiStore.panelStates.activeBottomPanel === null)
 
 onMounted(async () => {
-    console.log('[MainView] Mounted, checking if project is loaded')
+    console.log('[ProjectView] Mounted, checking if project is loaded')
     if (!panoptic.isProjectLoaded) {
-        console.log('[MainView] Project not loaded, redirecting to home')
+        console.log('[ProjectView] Project not loaded, redirecting to home')
         router.push('/')
         return
     }
 
-    console.log('[MainView] Initializing project store and uiStore')
+    console.log('[ProjectView] Initializing project store and uiStore')
     await project.init()
-    console.log('[MainView] Stores initialized, uiStore.loaded:', uiStore.loaded)
+    console.log('[ProjectView] Stores initialized, uiStore.loaded:', uiStore.loaded)
 })
 </script>
 
@@ -65,7 +65,7 @@ onMounted(async () => {
         <template v-if="uiStore.loaded && tabStore.loaded">
         <SidebarLayout
             :sidebar-width="uiStore.resizeStates.leftSidebarWidth"
-            @update:sidebar-width="(w) => { console.log('[MainView] Sidebar resized to:', w); uiStore.resizeStates.leftSidebarWidth = w }"
+            @update:sidebar-width="(w) => { console.log('[ProjectView] Sidebar resized to:', w); uiStore.resizeStates.leftSidebarWidth = w }"
             :gap="6"
             resizable
             :min-width="180"
@@ -77,7 +77,7 @@ onMounted(async () => {
                 <SplitLayout
                     direction="column"
                     :secondary-ratio="uiStore.resizeStates.foldersHeight"
-                    @update:secondary-ratio="(r) => { console.log('[MainView] Folders resized to:', r); uiStore.resizeStates.foldersHeight = r }"
+                    @update:secondary-ratio="(r) => { console.log('[ProjectView] Folders resized to:', r); uiStore.resizeStates.foldersHeight = r }"
                     :gap="6"
                     resizable
                     :min-primary="100"
