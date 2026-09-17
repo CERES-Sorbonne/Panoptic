@@ -13,7 +13,7 @@ Checked against branch `rework-front` @ `20baa607` on 2026-09-16, after the `src
 ## Layout
 `src/data` has 5 folders and 33 files:
 - `models/` holds types only.
-- `lib/` holds helpers (only `builders.ts` is not pure).
+- `lib/` holds pure helpers.
 - `api/` holds the HTTP clients.
 - `stores/` holds the Pinia stores.
 - `composables/` holds two small composables.
@@ -22,17 +22,15 @@ Importer counts below only include files that are actually used. Dead files are 
 
 ### How the folders depend on each other (runtime imports, checked with esbuild)
 - **`models/` is clean.** Bundling it pulls in only its own 12 files. `models/tab.ts` imports `FilterState` / `GroupState` / `SortState` from `@/core/*`, but these are type-only imports, so they are erased at build time.
-- **`lib/columns.ts` and `lib/tree.ts` are clean.** They import only `models/`.
-- **`lib/builders.ts` is not pure.** It imports `create{Filter,Sort,Group,Collection}State` from `@/core/*`, `reactive` from vue and `t` from `@/locales/i18n`. At runtime that pulls in 53 modules, including every store.
+- **`lib/` is clean.** `columns.ts`, `tree.ts` and `builders.ts` import only `models/`. The tab/view/collection factories that need `@/core`, vue and i18n live in `core/tabBuilders.ts`.
 - **`api/` reaches into `stores/`.** Both clients call `usePanopticStore()`:
   - in their interceptors, for the connection id, the project id and error notifications;
   - in `projectApi`'s four NDJSON stream helpers, for the project id.
-- **One runtime import cycle of 25 modules** (loop 1 is the tightest):
-  - Loop 1: `lib/builders` → `core/FilterManager` → `lib/builders` (via `propertyDefault`).
-  - Loop 2: `lib/builders` → `core/*Manager` → `stores/{data,column}Store`, and `stores/tabStore` → `core/TabManager` → `lib/builders`.
-  - Loop 3: `utils/utils.ts` → `stores/{data,column,project}Store` → `utils/utils.ts`.
-
-  It works today because every access inside the cycle happens inside a function, never at module top level.
+- **One runtime import cycle of 25 modules, between stores and managers only.** `lib/` and `utils/utils.ts` are no longer part of it.
+  - `core/*Manager` → `stores/{data,column}Store` → `stores/tabStore` → `core/TabManager` → `core/*Manager`.
+  - The cycle comes from the design: managers import stores directly. Removing it would mean passing the stores into the managers, which fits the planned GroupManager/CollectionManager split.
+  - It works today because every access inside the cycle happens inside a function, never at module top level. Keep it that way.
+  - Store-dependent helpers that used to be in `utils/utils.ts` now live in `utils/folders.ts` (`getFolderAndParents`, `getFolderChildren`) and `core/group/convertGroupResult.ts` (`convertClusterGroupResult`, `convertSearchGroupResult`, `sortGroupByScore`).
 
 ## Zone-level checks
 - [ ] ⚠ **`src/data/lib/columns.ts` is not in git.** The root `/.gitignore` line 56 has a Python-template rule `lib/`, and it ignores this file. HEAD's `stores/columnStore.ts` imports `../lib/columns`, so **a fresh clone of `20baa607` does not build**. `builders.ts` and `tree.ts` are only tracked because they were renamed from tracked files. Fix: anchor the rule (`/lib/`, or `panoptic_back/**/lib/`), or add `!panoptic_front/src/data/lib/`, then `git add` the file. No other file under `panoptic_front/src` is ignored.
@@ -75,7 +73,7 @@ Importer counts below only include files that are actually used. Dead files are 
 - [ ] **`textSearchStore` does nothing.** Its `setLoading` is never called, so `isLoading` stays `false`, and the spinner in `TextSearchInput.vue` never shows. Either wire it up or delete the store. Also, the store id is `'search'` and the hook is `useSearchStore`, neither of which matches the file name.
 - [ ] **Typo:** `IngoredPluginPayload` in `models/plugin.ts`.
 - [ ] **Dead files still import the removed `@/data/store`:** `properties/Property.vue`, `tagtree/TagTree.vue`, `tagtree/TagNode.vue` and `folder_tree/TagNode.vue`. They would fail to build if anything imported them again. Delete them together with the rest of [[99 Unused files]]. That note still spells the folder `FolderTree/`, but it is now `folder_tree/`.
-- [ ] **Off-zone, noticed on the way:** `utils/utils.ts` has `import { Exception } from "sass"` (see [[15 Shared UI primitives styling and i18n]]).
+- [x] **Off-zone, noticed on the way:** `utils/utils.ts` had `import { Exception } from "sass"` (removed) (see [[15 Shared UI primitives styling and i18n]]).
 
 ## Files
 ### `models/` (types, enums, constants; all created 2026-09-16 by splitting the old `models.ts`)
@@ -136,11 +134,11 @@ Importer counts below only include files that are actually used. Dead files are 
   - Also contains the dead code and orphan routes listed in the checks.
 
 ### `lib/` (helpers)
-- [ ] `src/data/lib/builders.ts` · 119 L · 6. Not pure: it depends on `@/core`, vue and i18n. Contains:
-  - factories for the default collection config, view state, tab state and the map/reco/cluster/graph options;
+- [ ] `src/data/lib/builders.ts` · 72 L · 7. Pure (imports only `models/`). Contains:
+  - factories for the default map/reco/cluster/graph options;
   - `propertyDefault`, `defaultPropertyOption`, `buildPropertyGroupOrder`, `objValues`.
 
-  `createRecoOptions` is only used inside this file.
+  The collection config, view state and tab state factories moved to `core/tabBuilders.ts` (used by `TabManager` and `tabStore`).
 - [ ] `src/data/lib/columns.ts` · 75 L · 1. ⚠ Not tracked by git (see checks). `ColumnData`, `TagSparse` / `TagCSR`, `propertyKind`, `makeColumn`, `growColumn`, `buildCSR`.
 - [ ] `src/data/lib/tree.ts` · 105 L · 3. `buildFolderNodes` (fills in the folder objects it is given), `buildTagTree` (drops parent edges that would create a cycle, and records them in `ignoredParents`), `wouldCreateTagCycle` (used by `TagModal` and `TagTree`).
 
