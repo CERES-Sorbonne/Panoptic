@@ -1,13 +1,8 @@
-import { buildGroup, ClusterParam, Group, GroupType } from "@/core/GroupManager"
-import { TabManager } from "@/core/TabManager"
-import { useDataStore } from "@/data/stores/dataStore"
-import { InstanceEntry } from "@/data/stores/instanceStore"
+import type { Group } from "@/core/group/types"
+import type { InstanceEntry } from "@/data/stores/instanceStore"
 import { deletedID, PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
-import { useProjectStore } from "@/data/stores/projectStore"
-import { useColumnStore } from "@/data/stores/columnStore"
 import { Ref, computed, inject, ref, watch } from "vue"
 import chroma from 'chroma-js';
-import { Exception } from "sass"
 
 let _tmpIdCounter = -10000
 export function getTmpId() { return _tmpIdCounter-- }
@@ -21,28 +16,6 @@ export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
 
-export function getFolderAndParents(folder: Folder) {
-    const data = useDataStore()
-    const res = []
-    let current = folder
-    while (current) {
-        res.push(current.id)
-        current = data.folders[current.parent]
-    }
-    return res
-}
-
-export function getFolderChildren(folderId: number) {
-    const data = useDataStore()
-    let res: Folder[] = []
-    const recursive = (fId: number) => {
-        const children = data.folders[fId].children
-        res.push(...children)
-        children.forEach(c => recursive(c.id))
-    }
-    recursive(folderId)
-    return res
-}
 
 export function computedPropValue(property: Ref<Property>, image: Ref<InstanceEntry>) {
     const propValue = computed(() => {
@@ -341,85 +314,6 @@ export function allChildrenSha1Groups(group: Group) {
         return true
     }
     return group.children.every(recursive)
-}
-
-function _idsToSlots(ids: number[]): number[] {
-    const col = useColumnStore()
-    const slots: number[] = []
-    for (const id of ids) {
-        const s = col.slotMap.get(id)
-        if (s !== undefined) slots.push(s)
-    }
-    return slots
-}
-
-export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext, funcInfo?: { function: string, inputs: ClusterParam[] }) {
-    console.log(funcInfo)
-    const col = useColumnStore()
-    const sha1Index: { [sha1: string]: number[] } = {}
-    for (const id of ctx.instanceIds) {
-        const slot = col.slotMap.get(id)
-        if (slot === undefined) continue
-        const sha1 = col.sha1s()[slot]
-        if (!sha1) continue
-        if (!sha1Index[sha1]) sha1Index[sha1] = []
-        sha1Index[sha1].push(id)
-    }
-
-    return groups.map((group) => {
-        const ids: number[] = []
-        if (group.ids) {
-            ids.push(...group.ids)
-        } else {
-            group.sha1s.forEach(sha1 => sha1Index[sha1]?.forEach(id => ids.push(id)))
-        }
-        const res = buildGroup(getTmpId(), _idsToSlots(ids), GroupType.Cluster)
-        res.meta.score = Math.round(group.score?.value ?? undefined)
-        if (funcInfo) {
-            res.meta.clusterFunction = funcInfo.function
-            res.meta.clusterInputs = funcInfo.inputs
-        }
-        res.name = group.name
-        res.isSha1Group = group.ids ? false : true
-        res.score = group.score
-        res.scores = convertScoreListToGroupScoreList(group, sha1Index)
-        return res
-    })
-}
-
-export function convertSearchGroupResult(groups: GroupResult[]) {
-    const col = useColumnStore()
-
-    return groups.map((group) => {
-        const sha1Index: Sha1ToInstances = {}
-        const ids: number[] = []
-        if (group.ids) {
-            ids.push(...group.ids)
-        } else {
-            for (const sha1 of (group.sha1s ?? [])) {
-                const instanceIds = col.getInstancesBySha1(sha1)
-                sha1Index[sha1] = instanceIds
-                ids.push(...instanceIds)
-            }
-        }
-        const res = buildGroup(0, _idsToSlots(ids), GroupType.Cluster)
-        res.meta.score = Math.round(group.score?.value)
-        res.name = group.name
-        res.isSha1Group = !group.ids
-        res.score = group.score
-        res.scores = convertScoreListToGroupScoreList(group, sha1Index)
-        return res
-    })
-}
-
-export function sortGroupByScore(group: Group) {
-    const col = useColumnStore()
-    const ids = col.instanceIds()
-    const dir = group.scores.maxIsBest ? -1 : 1
-    group.slots.sort((s1, s2) => {
-        return (group.scores.valueIndex[ids[s1]] - group.scores.valueIndex[ids[s2]]) * dir
-    })
-    return group
 }
 
 export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: Sha1ToInstances) {

@@ -206,3 +206,6 @@ mini/
 
 /panoptic_back/clusters/
 
+
+# Python-template lib/ rule above must not swallow frontend source
+!panoptic_front/src/data/lib/

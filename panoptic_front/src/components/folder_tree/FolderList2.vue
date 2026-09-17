@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FilterManager } from '@/core/FilterManager';
 import { Folder } from '@/data/models';
-import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
+import { getFolderChildren, getFolderAndParents } from '@/utils/folders';
 import { computed, ref } from 'vue';
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue';
 import { useDataStore } from '@/data/stores/dataStore';

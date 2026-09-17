@@ -24,7 +24,7 @@ import {
 import { useActionStore } from '@/data/stores/actionStore'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useColumnStore } from '@/data/stores/columnStore'
-import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils'
+import { convertSearchGroupResult, sortGroupByScore } from '@/core/group/convertGroupResult'
 import { apiGetUIData, apiSetUIData } from '@/data/api/projectApi'
 
 const data = useDataStore()

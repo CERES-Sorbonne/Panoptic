@@ -5,7 +5,8 @@ import { computed, reactive, ref, watch } from "vue";
 import { objValues } from "../lib/builders";
 import { useDataStore } from "./dataStore";
 import { useMediaStore } from "./mediaStore";
-import { convertClusterGroupResult, fileToBase64, sourceFromFunction } from "@/utils/utils";
+import { fileToBase64, sourceFromFunction } from "@/utils/utils";
+import { convertClusterGroupResult } from "@/core/group/convertGroupResult";
 // Type-only: ClusterManager imports this store, so a value import would close an import cycle.
 import type { ClusterParam, Group } from "@/core/GroupManager";
 import { apiGetActions, apiGetAllUIData, apiSetUIDataBulk } from "../api/projectApi";

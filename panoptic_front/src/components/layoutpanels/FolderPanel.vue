@@ -10,7 +10,7 @@ import { useDataStore } from '@/data/stores/dataStore'
 import { useTabStore } from '@/data/stores/tabStore'
 import { usePanopticStore } from '@/data/stores/panopticStore'
 import { ModalId, SourceNode } from '@/data/models'
-import { getFolderChildren } from '@/utils/utils'
+import { getFolderChildren } from '@/utils/folders'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
