@@ -32,6 +32,8 @@ const props = defineProps<{
 const remoteHover = computed(() => hover.activeProperty === props.property.id)
 
 const valuesOpen = ref(false)
+// dropdown open: keeps the row's action icons mounted after the mouse leaves the row
+const menuOpen = ref(false)
 const editName = ref(false)
 const localName = ref('')
 const nameInput = ref<HTMLInputElement>()
@@ -47,6 +49,10 @@ const filterId = computed(() => {
 })
 const filterManager = () => props.tab.collection.filterManager
 const sha1Mode = computed(() => props.tab.getSha1Mode())
+
+// Icons that stay visible without hover. They overlay the name, so the name reserves
+// just enough room for them (19px per icon) and keeps the rest of the row.
+const pinnedCount = computed(() => [isInFilter.value, isInSort.value, isInGroups.value, valuesOpen.value].filter(v => v).length)
 
 function toggleVisible() {
     if (editName.value) return
@@ -129,14 +135,16 @@ watch(() => props.property, () => {
 
 <template>
     <div>
-        <div class="prop-row" :class="{ selected: propertyVisible, hovered: remoteHover }" @click="toggleVisible">
+        <div class="prop-row" :class="{ selected: propertyVisible, hovered: remoteHover, 'menu-open': menuOpen }"
+            @click="toggleVisible">
             <span class="prop-caret"><i class="bi bi-dot" /></span>
             <PropertyIcon :type="props.property.type" class="prop-icon" />
 
             <template v-if="props.open">
                 <input v-if="editName" ref="nameInput" type="text" class="prop-input" v-model="localName"
                     @click.stop @keyup.enter="renameProperty" @keyup.esc="cancelRename" @blur="renameProperty" />
-                <span v-else class="prop-name">{{ props.property.name }}</span>
+                <span v-else class="prop-name" :style="{ paddingRight: (pinnedCount * 19) + 'px' }">{{
+                    props.property.name }}</span>
 
                 <span v-if="props.property.mode == PropertyMode.id" class="prop-indicator">
                     <wTT :click="false" message="main.nav.properties.linked_property_tooltip">
@@ -170,7 +178,7 @@ watch(() => props.property, () => {
                     <span class="prop-act" :class="{ active: isInGroups }" @click="setGroup">
                         <wTT :click="false" message="main.menu.groupby"><i class="bi bi-collection"></i></wTT>
                     </span>
-                    <Dropdown @click.prevent.stop="">
+                    <Dropdown @click.prevent.stop="" @show="menuOpen = true" @hide="menuOpen = false">
                         <template #button><span class="prop-act"><i class="bi bi-three-dots"></i></span></template>
                         <template #popup="{ hide }">
                             <div class="p-1">
@@ -195,6 +203,7 @@ watch(() => props.property, () => {
 
 <style scoped>
 .prop-row {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -204,7 +213,8 @@ watch(() => props.property, () => {
     cursor: pointer;
 }
 
-.prop-row:hover {
+.prop-row:hover,
+.prop-row.menu-open {
     background-color: var(--hover-bg);
 }
 
@@ -214,7 +224,8 @@ watch(() => props.property, () => {
 
 /* A visible row already carries the blue fill, so the plain hover-bg never shows.
    Lighten the fill instead, keeping the hover feedback in the same colour family. */
-.prop-row.selected:hover {
+.prop-row.selected:hover,
+.prop-row.selected.menu-open {
     background-color: rgba(38, 117, 191, 0.10);
 }
 
@@ -290,12 +301,18 @@ watch(() => props.property, () => {
     flex-shrink: 0;
 }
 
+/* Lifted out of the flow so the name always gets the full row width: the icons are drawn on
+   top of its end on hover, over the row's own background, instead of shortening it by default. */
 .prop-actions {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: var(--spacing-sm);
     display: flex;
     align-items: center;
     gap: 1px;
-    margin-left: auto;
     flex-shrink: 0;
+    background-color: inherit;
 }
 
 .prop-act {
@@ -309,13 +326,14 @@ watch(() => props.property, () => {
     color: var(--text-tertiary);
     flex-shrink: 0;
     cursor: pointer;
-    opacity: 0;
+    display: none;
 }
 
 /* Reveal action icons on row hover; keep active (filter/sort/group) ones pinned. */
 .prop-row:hover .prop-act,
+.prop-row.menu-open .prop-act,
 .prop-act.active {
-    opacity: 1;
+    display: inline-flex;
 }
 
 .prop-act.active {
