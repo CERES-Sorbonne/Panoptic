@@ -22,13 +22,16 @@ function onChange() {
 </script>
 
 <template>
-    <draggable-component :list="userGroups" @change="onChange" :item-key="e => e.groupId">
-        <template #item="{ element }">
-            <div class="mb-1">
-                <PropertyGroup :tab="props.tab" :node="element" :menu-open="true" />
-            </div>
-        </template>
-    </draggable-component>
-    <PropertyGroup v-if="defaultGroup" class="mb-1" :tab="props.tab" :node="defaultGroup" :menu-open="true" />
-    <PropertyGroup v-if="metadataGroup" class="mb-1" :tab="props.tab" :node="metadataGroup" :menu-open="true" />
+    <!-- propertyTree is only valid once the data store finished init -->
+    <template v-if="data.isLoaded">
+        <draggable-component :list="userGroups" @change="onChange" :item-key="e => e.groupId">
+            <template #item="{ element }">
+                <div class="mb-1">
+                    <PropertyGroup :tab="props.tab" :node="element" :menu-open="true" />
+                </div>
+            </template>
+        </draggable-component>
+        <PropertyGroup v-if="defaultGroup" class="mb-1" :tab="props.tab" :node="defaultGroup" :menu-open="true" />
+        <PropertyGroup v-if="metadataGroup" class="mb-1" :tab="props.tab" :node="metadataGroup" :menu-open="true" />
+    </template>
 </template>

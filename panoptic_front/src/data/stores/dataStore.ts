@@ -442,6 +442,7 @@ export const useDataStore = defineStore('dataStore', () => {
         folders.value        = {}
         fileSources.value    = {}
         propertyGroups.value = {}
+        propertyTree.value   = []
         propertyOrder.value  = buildPropertyGroupOrder()
         history.value        = { undo: [], redo: [] }
 

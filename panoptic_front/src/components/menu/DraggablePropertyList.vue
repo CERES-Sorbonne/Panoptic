@@ -22,7 +22,8 @@ function onChange(e) {
 </script>
 
 <template>
-    <draggable-component class="property-list" :list="data.propertyTree" @change="onChange" :item-key="e => e.groupId">
+    <!-- propertyTree is only valid once the data store finished init -->
+    <draggable-component v-if="data.isLoaded" class="property-list" :list="data.propertyTree" @change="onChange" :item-key="e => e.groupId">
         <template #item="{ element }">
             <div v-if="element.groupId >= 0">
                 <PropertyGroup :tab="props.tab" :node="element" :menu-open="props.menuOpen"></PropertyGroup>
