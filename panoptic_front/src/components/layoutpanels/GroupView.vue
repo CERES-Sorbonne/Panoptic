@@ -9,6 +9,7 @@ import ClusterScroller from '@/components/scrollers/cluster/ClusterScroller.vue'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
 import { Group, GroupType } from '@/core/GroupManager'
+import { groupSlots } from '@/core/group/groupOps'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
 import { ClusterOptions, Instance, Property } from '@/data/models'
@@ -185,13 +186,15 @@ function onClearClusters(groupId: number) {
 // call ClusterManager.drain to pull the same images out of the cluster/empty bucket — O(delta), no
 // regroup, so only the acted-on pile moves and unworked piles stay put.
 
-// Instance descriptors (id + sha1) for a cluster's slots, read from the OWNING collection tree.
+// Instance descriptors (id + sha1) for a card's images, read from the OWNING collection tree.
+// A card that has been sub-clustered carries no slots of its own, so its leaves are walked:
+// assigning it is a statement about everything it shows.
 function clusterInstances(groupId: number) {
     const g = props.collection.result?.index?.[groupId]
     if (!g) return [] as Instance[]
     const ids = col.instanceIds()
     const sha1s = col.sha1s()
-    return (g.slots ?? []).map(slot => ({ id: ids[slot], sha1: sha1s[slot] } as any as Instance))
+    return groupSlots(g).map(slot => ({ id: ids[slot], sha1: sha1s[slot] } as any as Instance))
 }
 
 // From the per-card typed property input (ClusterPropertyInput): the value is already typed
@@ -256,7 +259,7 @@ function instancesForGroup(gid: number): Instance[] {
     if (!g) return []
     const ids = col.instanceIds()
     const sha1s = col.sha1s()
-    return (g.slots ?? []).map(slot => ({
+    return groupSlots(g).map(slot => ({
         id: ids[slot],
         imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot],
     }))

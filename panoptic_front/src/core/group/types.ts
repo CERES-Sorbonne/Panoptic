@@ -7,6 +7,7 @@ import { DateUnit, GroupScoreList, PropertyValue, Score } from "@/data/models";
 import { SortOption } from "../SortManager";
 import { PileData } from "../sha1Piles";
 import { GroupValueIndex } from "./valueIndex";
+import type { ClusterOverlay } from "./ClusterOverlay";
 
 export enum GroupType {
     All = 'all',
@@ -66,6 +67,12 @@ export interface GroupMetaData {
     score?: number
     clusterFunction?: string
     clusterInputs?: ClusterParam[]
+    // Images this pile owns that the current build cannot show — filtered out, or gone from
+    // the bucket because their value changed. Written by ClusterOverlay.resync.
+    maskedCount?: number
+    // Images the pile shows, its sub-piles included. A pile that has been split carries no
+    // slots of its own, so a card reads its count here. Written by ClusterOverlay.resync.
+    visibleCount?: number
 }
 
 export interface GroupIndex { [key: string]: Group }
@@ -130,8 +137,8 @@ export interface ClusterOpsHost {
     openGroup(groupId: number, emit?: boolean): void
 }
 
-// What group/groupOps.ts needs: the tree primitives + the custom-group registry.
+// What group/groupOps.ts needs: the tree primitives + the authored cluster membership.
 // Satisfied by ClusterManager.
 export interface GroupOpsHost extends ClusterOpsHost {
-    customGroups: { [parentGroupId: number]: Group[] }
+    overlay: ClusterOverlay
 }

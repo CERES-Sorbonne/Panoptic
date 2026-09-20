@@ -13,6 +13,11 @@ export const useColumnStore = defineStore('columnStore', () => {
 
     const slotMap = markRaw(new Map<number, number>())
     let slotCount = 0
+    // Slot generation. A slot number denotes the same instance for as long as this counter is
+    // unchanged: the store only ever appends, and deletion is a mask. clear() re-mints the
+    // numbering, so anything holding a slot-indexed map (the cluster overlay) compares this
+    // and drops rather than silently renaming its members.
+    let slotEpoch = 0
     let deletedMask = new Uint8Array(0)
     // Selection is keyed by namespace. 'global' is always present and behaves
     // exactly as the old single mask; custom namespaces (e.g. the reco panels)
@@ -589,6 +594,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     function clear() {
         slotMap.clear()
         slotCount = 0
+        slotEpoch++
         deletedMask = new Uint8Array(0)
         selectionMasks.clear()
         selectionMasks.set('global', new Uint8Array(0))
@@ -617,6 +623,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         isReady, instanceCount,
         slotMap,
         slotCount() { return slotCount },
+        slotEpoch() { return slotEpoch },
         deletedMask() { return deletedMask },
         selectionMask() { return selectionMasks.get('global')! },
         instanceIds() { return instanceIds },

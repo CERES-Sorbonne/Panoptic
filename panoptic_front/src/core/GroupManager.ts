@@ -35,6 +35,7 @@ import { GroupNavigator } from "./group/GroupNavigator";
 import { ClusterManager, ClusterRequest } from "./group/ClusterManager";
 import { refreshSubGroupType } from "./group/groupOps";
 import type { GroupInspector } from "./group/inspector";
+import { grpLog, grpDebugOn, grpSetFocus, few } from '@/utils/debugGroup';
 
 // ── Barrel re-exports — keep `@/core/GroupManager` as the public entry point ─
 export { GroupType, GroupSortType } from "./group/types";
@@ -142,8 +143,6 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         this.result.index = {}
         this.result.imageToGroups = new Map()
         this.result.pileIndex = new Map()
-        const lastCustom = this.clusters.customGroups ?? {}
-        this.clusters.customGroups = {}
         this._leafGroups = []
         this.regsiterGroup(this.result.root)
 
@@ -166,8 +165,10 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
             }
         }
 
-        // Re-graft the previous custom/cluster groups (fixed-point replay now owned by ClusterManager).
-        this.clusters.reapplyAfter(lastCustom)
+        // Refill the piles from the authored map. The rebuild never touched it, so a pile comes
+        // back with the images it owns that this tree holds.
+        grpLog('6e \u00b7 full rebuild \u2192 cluster.resyncAll')
+        this.clusters.resyncAll()
 
         this.applySha1Piles()
 
@@ -187,7 +188,10 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         this.result.buildOrdinalRanges()
     }
 
-    private addUpdatedToGroups(slots: Int32Array) {
+    // `joined` collects every group the slots were added to. A clustered bucket is not a leaf
+    // (its children are the piles), so it never registers in imageToGroups and the caller has
+    // no other way to learn that an image came back to it.
+    private addUpdatedToGroups(slots: Int32Array, joined?: Set<number>) {
         if (!this.result.root) {
             this.group(slots)
             return
@@ -209,19 +213,20 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 tagParentsByProp[propId] = map
             }
             for (let i = 0; i < slots.length; i++) {
-                this.addInstanceToGroups(slots[i], data.properties, data.tags, tagParentsByProp)
+                this.addInstanceToGroups(slots[i], data.properties, data.tags, tagParentsByProp, joined)
             }
         } else {
             for (let i = 0; i < slots.length; i++) {
                 this.result.root.slots.push(slots[i])
             }
             this.result.root.dirty = true
+            joined?.add(this.result.root.id as number)
         }
         // Slot re-sort, imageToGroups maintenance, and setOrder are done by the caller
         // (updateSelection) over the dirty subset only — no full O(n) sweep here.
     }
 
-    addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex, tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } }) {
+    addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex, tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } }, joined?: Set<number>) {
         const col = useColumnStore()
         // The running set of value-keys for this slot, one per level descended so far. (There
         // used to be a parallel `keys` accumulator collecting every level's keys; nothing read
@@ -260,6 +265,22 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 values = Array.from(withParents)
             }
 
+            // An empty tag list means "no value", so it belongs in the empty bucket — the same
+            // key the full build uses for it (computePropertySubGroup). Without this the slot
+            // produces no key at all and joins no group.
+            if (isTag(property.type) && values.length === 0) {
+                grpLog('6b \u00b7 empty tag list \u2192 empty bucket', { slot, propId, value })
+                values = [undefined]
+            }
+
+            if (values.length === 0) {
+                grpLog('6 \u00b7 NO KEY for slot \u2014 it will join no group', {
+                    slot, propId, type: property.type, value,
+                    isArray: Array.isArray(value),
+                    length: Array.isArray(value) ? (value as any[]).length : undefined,
+                })
+            }
+
             if (previousKeys.length == 0) {
                 previousKeys = values.map(v => [v])
             } else {
@@ -295,6 +316,7 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 const group = this.result.index[groupId]
                 group.slots.push(slot)
                 group.dirty = true
+                joined?.add(groupId)
             }
         }
     }
@@ -430,6 +452,32 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
 
     updateSelection(updated: Set<number>, removed: Set<number>) {
         const col = useColumnStore()
+
+        // ── grouping diagnostics ─────────────────────────────────────────────
+        if (grpDebugOn()) {
+            const props = useDataStore().properties
+            grpLog('4 \u00b7 group.updateSelection in', {
+                updated: updated.size, removed: removed.size, groupBy: [...this.state.groupBy],
+                probe: few(updated, 5).map(id => {
+                    const slot = col.slotMap.get(id)
+                    return {
+                        id, slot,
+                        groupsBefore: [...(this.result.imageToGroups.get(id) ?? [])],
+                        values: this.state.groupBy.map(propId => {
+                            const raw = slot !== undefined ? col.readSlot(propId, slot) : undefined
+                            const parsed = valueParser[props[propId]?.type]?.(raw)
+                            return {
+                                propId, type: props[propId]?.type, raw,
+                                rawIsArray: Array.isArray(raw),
+                                rawLength: Array.isArray(raw) ? raw.length : undefined,
+                                parsed,
+                                emptyArray: Array.isArray(parsed) && parsed.length === 0,
+                            }
+                        }),
+                    }
+                }),
+            })
+        }
         // Pile overlay is recomputed at the end from the updated leaves; clear it up front
         // so the dirty-leaf logic below sees plain leaves (children.length === 0).
         this.result.pileIndex = new Map()
@@ -460,6 +508,13 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         }
         dirtyGroupIds.add(0)
 
+        grpLog('5 \u00b7 dirty groups', few(dirtyGroupIds, 30).map(gid => {
+            const g = this.result.index[gid]
+            return g
+                ? { id: gid, type: g.type, value: g.meta?.propertyValues?.[0]?.value, slots: g.slots.length }
+                : { id: gid, missingFromIndex: true }
+        }))
+
         const ids = col.instanceIds()
         for (const groupId of dirtyGroupIds) {
             const group = this.result.index[groupId]
@@ -483,16 +538,25 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
             const s = col.slotMap.get(id)
             if (s !== undefined) updatedSlots.push(s)
         }
-        this.addUpdatedToGroups(new Int32Array(updatedSlots))
+        const joinedGroupIds = new Set<number>()
+        this.addUpdatedToGroups(new Int32Array(updatedSlots), joinedGroupIds)
 
         for (const group of objValues(this.result.index)) {
             // NEVER unregister the root (id 0): result.root keeps pointing at it, so dropping
             // it from the index left hasResult() true while every iterator resolved to
             // undefined, and no later updateSelection could repopulate it.
+            // Cluster groups are skipped: their slots are refilled by the resync below, so an
+            // empty one here is only a pile waiting for its bucket, not a group to drop.
+            if (group.type == GroupType.Cluster) continue
             if (group.id !== 0 && group.slots.length == 0) delete this.result.index[group.id]
             const oldLen = group.children.length
-            group.children = group.children.filter(g => g.slots.length > 0)
-            if (group.children.length < oldLen) group.dirty = true
+            group.children = group.children.filter(g => g.type == GroupType.Cluster || g.slots.length > 0)
+            if (group.children.length < oldLen) {
+                // GroupIterator addresses siblings by parentIdx, so the positions have to follow
+                // the array whenever a child is dropped.
+                for (let i = 0; i < group.children.length; i++) group.children[i].parentIdx = i
+                group.dirty = true
+            }
         }
 
         // Incrementally maintain imageToGroups instead of rebuilding the whole map (O(n)).
@@ -532,10 +596,23 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
             group.dirty = false
         }
 
-        // Reconcile the cluster overlay against the refreshed property tree: images that left a
-        // sub-clustered group are pulled from their cluster, and images newly in the group join
-        // its "New" leftover pile. Done before ordering so the display reflects final membership.
-        const clusterChanged = this.clusters.reconcile()
+        // Refill the piles of every bucket this edit touched. `dirtyGroupIds` holds the groups
+        // the changed instances were in; their current groups are added too, because a value
+        // write can move an instance INTO a bucket as well as out of one — and with a
+        // multi-value tag grouping it can move in several at once. Done before ordering so the
+        // display reflects final membership.
+        for (const id of updated) {
+            this.result.imageToGroups.get(id)?.forEach(g => dirtyGroupIds.add(g))
+        }
+        // imageToGroups only names leaves, and a clustered bucket is not one: its children are
+        // the piles. An image coming back to such a bucket (a cleared value, an undo) would
+        // therefore never mark it dirty — the slot landed in bucket.slots, raising its count,
+        // while the piles were left untouched and the image was drawn nowhere. The groups the
+        // slots actually joined close that gap.
+        for (const gid of joinedGroupIds) dirtyGroupIds.add(gid)
+        // The instances this update is about, so the overlay can report where they landed.
+        grpSetFocus(updated)
+        const clusterChanged = this.clusters.resyncDirty(dirtyGroupIds)
 
         setOrder(this.result.root)
         this.applySha1Piles()
@@ -551,6 +628,22 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                     break
                 }
             }
+        }
+        if (grpDebugOn()) {
+            grpLog('7 \u00b7 group.updateSelection out', {
+                structureChanged, emitted: structureChanged,
+                probe: few(updated, 5).map(id => {
+                    const slot = col.slotMap.get(id)
+                    const stillHolding = few(dirtyGroupIds, 60)
+                        .filter(gid => slot !== undefined && this.result.index[gid]?.slots.includes(slot))
+                    return {
+                        id, slot,
+                        groupsBefore: oldGroupIds.get(id) ?? [],
+                        groupsAfter: [...(this.result.imageToGroups.get(id) ?? [])],
+                        groupsStillHoldingTheSlot: stillHolding,
+                    }
+                }),
+            })
         }
         if (structureChanged) this.emitResult()
         return this.result

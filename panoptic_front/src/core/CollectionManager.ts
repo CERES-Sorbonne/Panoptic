@@ -13,6 +13,7 @@ import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/stores/dataStore";
 import { useColumnStore } from "@/data/stores/columnStore";
 import { Reactive, reactive, watch, WatchStopHandle } from "vue";
+import { grpLog, few } from '@/utils/debugGroup';
 
 export interface RunCollectionState {
     isDirty: boolean
@@ -185,6 +186,10 @@ export class CollectionManager implements GroupInspector {
 
     async setDirty(instanceIds?: Set<number>) {
         this.runState.isDirty = true
+        grpLog('2 \u00b7 collection.setDirty', {
+            count: instanceIds?.size ?? 'all', instances: few(instanceIds),
+            active: this.runState.active, autoReload: this.state.autoReload,
+        })
         if (!this.runState.active) return
 
         // Narrow to the selection on a copy: the payload is shared with every other
@@ -200,10 +205,15 @@ export class CollectionManager implements GroupInspector {
         if (this.state.autoReload) {
             if (dirty) {
                 const filterUpdate = await this.filterManager.updateSelection(dirty)
+                grpLog('3 \u00b7 filter.updateSelection', {
+                    updated: few(filterUpdate.updated), updatedCount: filterUpdate.updated.size,
+                    removed: few(filterUpdate.removed), removedCount: filterUpdate.removed.size,
+                })
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 if (this.groupManager.result.root) {
                     this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 } else {
+                    grpLog('3b \u00b7 no tree yet \u2014 full group()')
                     await this.groupManager.group(this.sortManager.result.slots, true)
                 }
                 this.runState.isDirty = false

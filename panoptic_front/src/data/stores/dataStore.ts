@@ -24,6 +24,7 @@ import { usePanopticStore } from './panopticStore'
 import { SERVER_PREFIX } from '../api/panopticApi'
 import { useColumnStore } from './columnStore'
 import { useInstanceStore } from './instanceStore'
+import { grpLog, few } from '@/utils/debugGroup';
 
 export interface ChangePayload {
     propIds:     number[]
@@ -180,6 +181,7 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(propertyGroups)
 
         if (dirtyInstances.size > 0 || dirtyPropIds.size > 0) {
+            grpLog('1 · dataStore emits dirty', { count: dirtyInstances.size, instances: few(dirtyInstances), props: few(dirtyPropIds) })
             // Emit a Set (the contract every listener is typed against) built as a COPY:
             // dirtyInstances is cleared right after, and listeners may hold on to / narrow
             // the payload, so they must never share this store's own set.
@@ -786,6 +788,7 @@ export const useDataStore = defineStore('dataStore', () => {
     // to apply here beyond refreshing the history stacks.
     async function undo() {
         if (!history.value.undo.length) return
+        grpLog('0 \u00b7 undo requested', { undoLeft: history.value.undo.length, redoLeft: history.value.redo.length })
         await apiUndo()
         await getHistory()
         onUndo.value++
@@ -793,6 +796,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function redo() {
         if (!history.value.redo.length) return
+        grpLog('0 \u00b7 redo requested', { undoLeft: history.value.undo.length, redoLeft: history.value.redo.length })
         await apiRedo()
         await getHistory()
         onUndo.value++

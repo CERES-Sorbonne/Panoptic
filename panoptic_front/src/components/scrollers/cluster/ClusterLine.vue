@@ -156,6 +156,12 @@ function cluster(groupId: number, req: ClusterRequest) {
     props.manager.cluster(groupId, req)
 }
 
+// The images a card shows. A pile that has been sub-clustered holds none itself — its images
+// live in its sub-piles — so the cluster overlay records the count it should display.
+function imageCount(group: Group) {
+    return group.meta?.visibleCount ?? group.slots.length
+}
+
 // Reactive via the namespace's selection tick, read inside isGroupSelected.
 function isSelected(group: Group) {
     return props.manager.isGroupSelected(group)
@@ -319,7 +325,10 @@ function groupScore(group: Group): number | null {
                      Images, then the sub-group count on a card that holds a (closed) subtree. -->
                 <div class="cc-counts">
                     <span class="cc-chip">
-                        <i class="bi bi-images me-1" />{{ entry.group.slots.length }}
+                        <i class="bi bi-images me-1" />{{ imageCount(entry.group) }}<span
+                            v-if="entry.group.meta?.maskedCount" class="cc-masked"
+                            :title="`${entry.group.meta.maskedCount} more in this pile, hidden by the filter`"
+                        >+{{ entry.group.meta.maskedCount }}</span>
                     </span>
                     <span v-if="isCollapsed(entry.group)" class="cc-chip">
                         <i class="bi bi-intersect me-1" />{{ entry.group.children.length }}
@@ -647,5 +656,12 @@ function groupScore(group: Group): number | null {
     font-size: 10px;
     color: #fff;
     white-space: nowrap;
+}
+
+/* What the pile owns but the filter is hiding: present, so a masked remainder never reads as
+   a finished pile, but quiet enough not to compete with the visible count. */
+.cc-masked {
+    margin-left: 3px;
+    opacity: 0.7;
 }
 </style>
