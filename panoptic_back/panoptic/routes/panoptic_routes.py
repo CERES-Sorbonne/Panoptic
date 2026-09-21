@@ -246,7 +246,7 @@ def get_image_file(file_path: str):
 # ---------------------------------------------------------------------------
 
 def _images_in_folder(folder_path: str) -> list[str]:
-    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')
+    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tif', '*.tiff')
     files = []
     for t in types:
         files.extend(glob.glob(os.path.join(folder_path, t)))
