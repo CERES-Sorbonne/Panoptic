@@ -126,12 +126,12 @@ async function downloadPackagesInfos() {
 
 // Le scan des anciens projets arrive de façon asynchrone: on attend son résultat
 // avant de décider quelle intro afficher, sinon FirstModal gagne la course.
+// La modale de conversion ne s'ouvre jamais seule, uniquement via la bannière.
 watch(() => [panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjects.value], () => {
     if (!panoptic.projectsLoaded || !panoptic.legacyScanLoaded) return
     if (hasLegacyProjects.value) {
-        if (panoptic.introShown && panoptic.openModalId !== ModalId.FIRSTMODAL) return
+        if (panoptic.openModalId === ModalId.FIRSTMODAL) panoptic.hideModal(ModalId.FIRSTMODAL)
         panoptic.introShown = true
-        panoptic.showModal(ModalId.LEGACY)
         return
     }
     if (panoptic.introShown) return
@@ -217,7 +217,7 @@ function openLegacyModal(legacyPath?: string) {
                     </div>
                 </div>
             </div>
-            <div class="flex-grow-1">
+            <div class="flex-grow-1 d-flex flex-column overflow-hidden">
                 <div v-if="hasLegacyProjects" class="legacy-banner" @click="openLegacyModal()">
                     <i class="bi bi-box-arrow-in-down me-1"></i>
                     <b>{{ $t('main.home.legacy.banner', { count: panoptic.legacyProjects.length }) }}</b>
@@ -268,11 +268,9 @@ function openLegacyModal(legacyPath?: string) {
                             </div>
                         </div>
                     </div>
-
-                    <div class="user-section">
-                        <UserSelector />
-                    </div>
-
+                </div>
+                <div class="user-section">
+                    <UserSelector />
                 </div>
             </div>
         </div>
@@ -316,7 +314,8 @@ function openLegacyModal(legacyPath?: string) {
 
 
 .main-menu {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     /* background-color: white; */
     text-align: center;
     padding: 15px;
@@ -355,6 +354,13 @@ function openLegacyModal(legacyPath?: string) {
     padding: 4px;
     font-size: 15px;
     color: rgb(50, 50, 50);
+}
+
+.user-section {
+    flex-shrink: 0;
+    width: 500px;
+    margin: 0 auto;
+    border-top: 1px solid var(--border-color);
 }
 
 .legacy-banner {
@@ -401,14 +407,5 @@ function openLegacyModal(legacyPath?: string) {
     color: white;
     border-radius: 8px;
     padding: 2px 8px;
-}
-
-.user-section {
-    width: 500px;
-    margin: auto;
-    padding-top: 16px;
-    padding-bottom: 16px;
-    border-top: 1px solid var(--border-color);
-    margin-top: 16px;
 }
 </style>

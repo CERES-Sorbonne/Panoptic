@@ -27,6 +27,16 @@
                 "import_details": "Choisissez un dossier Panoptic existant.",
                 "import_button": "Importer"
             },
+            "user": {
+                "title": "Utilisateur",
+                "default": "Par défaut",
+                "new": "Nouvel utilisateur",
+                "name_placeholder": "Nom",
+                "create": "Créer",
+                "cancel": "Annuler",
+                "delete": "Supprimer",
+                "name_taken": "Ce nom est déjà utilisé"
+            },
             "version_tooltip": "Afficher les informations de debug panoptic",
             "convert": {
                 "outdated": "Créé avec une ancienne version de Panoptic",
