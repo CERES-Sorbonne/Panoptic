@@ -56,6 +56,10 @@ export interface ClusterNode {
 
 export class ClusterContainer {
     parentId: number
+    // The bucket's grouping key path, read when the container opens. Group ids are the
+    // valueIndex's, so this is what lets the container follow a grouping level appended below
+    // its bucket (descend) even while the bucket is not in the tree.
+    key: any[]
     // slot → node index. 0 means owned by no pile, which routes to the container's leftover.
     owner: Uint32Array
     // slot → the node it was drained from, 0 for none. A drain (the image was given the value
@@ -68,8 +72,9 @@ export class ClusterContainer {
     // Slot generation this map was written against (columnStore re-mints slots on reset).
     epoch: number
 
-    constructor(parentId: number, epoch: number) {
+    constructor(parentId: number, epoch: number, key: any[] = []) {
         this.parentId = parentId
+        this.key = key
         this.owner = new Uint32Array(0)
         this.drained = new Uint32Array(0)
         this.table = [null]
@@ -114,7 +119,7 @@ export class ClusterOverlay {
         let c = this.byGroup.get(parentId)
         if (c && c.epoch !== epoch) { this.dropContainer(parentId); c = undefined }
         if (!c) {
-            c = new ClusterContainer(parentId, epoch)
+            c = new ClusterContainer(parentId, epoch, [...(this.host.result.index[parentId]?.key ?? [])])
             this.byGroup.set(parentId, c)
         }
         return c
@@ -278,6 +283,39 @@ export class ClusterOverlay {
         for (const parentId of Array.from(this.byGroup.keys())) this.dropContainer(parentId)
         this.byGroup.clear()
         this.nodeIndex.clear()
+    }
+
+    // `levels` grouping levels were appended below this container's bucket, so the undecided
+    // images it clusters now live in the bucket's "no value" descendant: re-key the container
+    // there. The "no value" key is undefined for every type that has one (valueParser).
+    // Called on the rebuilt tree, before the resync that grafts the piles. Nodes keep their
+    // Group objects, so every pile keeps its id, its open state and its place in nodeIndex.
+    // The bucket's images that are not in the new child already have a value on the new
+    // property, so they leave the piles the way a drain does: released, and remembered, so an
+    // image whose value is cleared later returns to its pile. Images the build does not show
+    // (filtered out) are in neither group and keep their owner, as masked members.
+    descend(c: ClusterContainer, levels: number) {
+        if (c.epoch !== useColumnStore().slotEpoch()) { this.dropContainer(c.parentId); return }
+        const key = c.key.concat(new Array(levels).fill(undefined))
+        const toId = this.host.result.valueIndex.get(key)
+        const index = this.host.result.index
+        const from = index[c.parentId]
+        const to = index[toId]
+        if (!to) {
+            // The bucket is shown but has no "no value" child: every image has a value on the
+            // new level, so nothing is left undecided and the piles have nothing to hold.
+            if (from) { this.dropContainer(c.parentId); return }
+            // The bucket is filtered away: follow the level anyway and wait for the child
+            // there, as any container whose bucket is not in the tree does.
+        } else if (from) {
+            const stays = new Set(to.slots)
+            this.release(c, from.slots.filter(s => !stays.has(s)))
+        }
+        this.byGroup.delete(c.parentId)
+        if (this.byGroup.has(toId)) this.dropContainer(toId)
+        c.parentId = toId
+        c.key = key
+        this.byGroup.set(toId, c)
     }
 
     // ── Resync: the only reader of the tree ──────────────────────────────────

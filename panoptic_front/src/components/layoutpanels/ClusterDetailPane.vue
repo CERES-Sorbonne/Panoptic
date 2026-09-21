@@ -5,6 +5,7 @@
 // `dragGroup` so images can be dragged between the two clusters.
 import ImageScroller from '@/components/scrollers/image/ImageScroller.vue'
 import ClusterPropertyInput from '@/components/scrollers/cluster/ClusterPropertyInput.vue'
+import ClusterAssignTarget from '@/components/scrollers/cluster/ClusterAssignTarget.vue'
 import { computed } from 'vue'
 import { Instance, Property } from '@/data/models'
 
@@ -21,7 +22,8 @@ const props = defineProps<{
     // Which touching corners round: single pane, or the top / bottom of a stack.
     position: 'solo' | 'top' | 'bottom'
     // The leaf grouping property (the assignment target), and this group's value on it — same
-    // pair the cluster cards show. Absent when the view has no grouping: then no input is shown.
+    // pair the cluster cards show. Absent when the view has no grouping: the header then offers
+    // to choose one, as the cards do.
     targetProperty?: Property
     targetValue?: any
 }>()
@@ -30,6 +32,9 @@ defineEmits<{
     close: []
     // The typed value picked in the header input, to assign to the whole inspected group.
     'assign-value': [value: any]
+    // "Assign to…" with no target yet: an existing property, or a new one to create.
+    'choose-target': [propertyId: number]
+    'create-target': []
     'instance-added': [payload: { instance: Instance, index: number }]
     'instance-removed': [payload: { instance: Instance }]
 }>()
@@ -63,6 +68,12 @@ const BODY_PADDING = 4
                     :width="halfWidth"
                     :max-width="halfWidth"
                     @update:model-value="v => $emit('assign-value', v)"
+                />
+            </div>
+            <div v-else class="detail-input" @click.stop>
+                <ClusterAssignTarget
+                    @choose="pid => $emit('choose-target', pid)"
+                    @create="$emit('create-target')"
                 />
             </div>
         </div>

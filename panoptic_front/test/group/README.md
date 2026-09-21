@@ -70,6 +70,7 @@ invariant report, so every cluster test carries the I1–I5 checks for free.
 | **C4** `isCurrent` is false once a group has children | `specs/c_simFindings.ts` | `C4: ...` |
 | **D1** an unregistered tag id is not a value | `specs/d1_tagRegistry.ts` | `D1: ...` |
 | **D2** a tag deletion the view survives | `specs/d2_tagDeletion.ts` | `D2: ...` |
+| **E1** appending a level moves the clusters down | `specs/e1_appendLevel.ts` | `E1: ...` |
 | DEV invariants I1–I5 | `specs/invariants.ts` + `harness/hooks.ts` | `invariants: ...` |
 | the simulation, smoke-sized | `specs/sim_smoke.ts` | `sim: 3 runs x 50 ops ...` |
 
@@ -131,7 +132,8 @@ simulation checks the overlay's structural rules instead.
 ## What it drives
 
 `setValues` (all six property kinds, unset included) · `addArrivals` (the A12 path) ·
-`delInstances` · `groupAdd` / `groupDel` / `groupReorder` (0 to 3 levels) · `groupOption`
+`delInstances` · `groupAdd` / `groupAppend` / `groupDel` / `groupReorder` (0 to 3 levels;
+`groupAppend` goes through `setGroupOption` alone, so the clusters move down instead of clearing) · `groupOption`
 (`stepSize`, `stepUnit`, direction, `GroupSortType`) · `filterChange` · `sortChange` ·
 `sha1Toggle` · `clusterLeaf` (directly, through a real `cluster()` action run, or as the empty
 bucket) · `clusterStartAsync` / `clusterFinishAsync` (a clustering left in flight while the tree

@@ -27,6 +27,7 @@ import './specs/b6b7_keysAndPruning'
 import './specs/c_simFindings'
 import './specs/d1_tagRegistry'
 import './specs/d2_tagDeletion'
+import './specs/e1_appendLevel'
 
 import './specs/invariants'
 import './specs/sim_smoke'

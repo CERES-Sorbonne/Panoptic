@@ -26,9 +26,16 @@ grouping by `C`.
 
 Consequences, by construction:
 
-- **The view always has at least one grouping property.** The leaf grouping level
-  is the target; with no grouping there is no target. Picking a target at the root
-  is therefore the act of *grouping by it* (which materialises the buckets below).
+- **The target can be chosen late.** The leaf grouping level is the target; with no
+  grouping there is no target *yet*. The view still works without one: the collection
+  is one card (the root), which can be clustered, and its piles opened and dragged
+  between (membership only — there is no value to write). Picking the target — from
+  a card's **"Assign to…"** row or the inspector header, an existing property or a
+  new one — is the act of *grouping by it*, which materialises the buckets below.
+  **Adding a leaf level moves the clusters down instead of clearing them**: each
+  clustered bucket's piles follow its undecided images into the new level's `empty`
+  child, with the same pile ids (see *Grouping change* below). So a user can cluster
+  first — the best way to see what the clusters are — and name the property after.
 - **Every group is real.** A leaf group is either a **value-group** of the target
   (homogeneous, reproducible from data, persistable) or the **`empty` bucket**
   (the undecided images — those with no target value yet).
@@ -116,13 +123,26 @@ portraits (`ShotType`).
 - Re-clustering *within a pass* (the `empty` bucket) is always available and
   re-splits only the undecided images.
 
+### Scenario 1b — Cluster first, choose the property after (G1)
+
+No grouping at all. You don't know yet what the piles are about.
+
+- **Cluster the root card.** Open piles in the two inspectors, drag images between
+  them to fix the membership (no value is written: there is no target).
+- On a pile's **"Assign to…"** row, pick a property — or **New property…** (the
+  app's property modal, tag by default). The view groups by it; the piles move into
+  its `empty` bucket with the same ids, minus the images that already had a value
+  (those go to their value-groups). The row turns into that property's input.
+- **Assign each pile** as in Scenario 1.
+
 ### Scenario 4 — A second, finer property under the first (G1)
 
 Grouped by `Animal`; now you want a `Breed` under `cat`.
 
 - Use **nested grouping**: `Animal → Breed`. The leaf — hence the target — is now
   `Breed`. Inside `Animal = cat` you get the existing breeds plus a `Breed`-`empty`
-  bucket.
+  bucket. Piles already made in `Animal = cat` (or in `Animal`'s `empty`) move down
+  into that bucket's `Breed`-`empty` child instead of being lost.
 - Cluster that `empty`, assign per pile. The `Animal` value above is untouched —
   you are only ever writing the leaf. Hierarchies are expressed as nested grouping,
   not as a target detached from the grouping.
@@ -230,7 +250,8 @@ minimal — `empty`-bucket maintenance only, never re-clustering:
 | **Assign (target value change)** | the assigned images leave `empty` for their value-group (queue-drain); the drained slots drop out of their cluster. O(delta) via `drain` |
 | **Value change on the target from elsewhere** | **Not built yet** as a dedicated mechanism — there is no `reconcile`. What exists is `ClusterOverlay.resyncDirty(dirtyGroupIds)`, called from `updateSelection`: it refills the piles of the buckets the edit touched, gated on the dirty group ids rather than on the target property. An image that gains a value leaves the bucket and so leaves its pile (with a `drained` record, so an undo returns it to that pile); one that loses it comes back and routes to the leftover unless a drain record says otherwise. Cost is O(\|bucket\|) per touched bucket, not O(\|updated\|) |
 | **Explicit cluster edit** (cluster / drag / merge / delete inside `empty`) | the only thing that *structurally* mutates the cluster set |
-| **Grouping change** (add/remove/reorder group-by, i.e. change the target) | **rebuild** — a new leaf target means new value-groups and a fresh `empty` to cluster |
+| **Grouping change: a leaf level appended** (i.e. choose or refine the target) | **rebuild**, and the clusters **move down**: `setGroupOption` records a pending level (`ClusterManager.deferDescent`) instead of calling `clusters.clear()`; the rebuild's `resyncAll` re-keys each container to its bucket's `[...key, undefined]` child (`ClusterOverlay.descend`) before refilling. Pile ids are unchanged; images of the bucket that already have a value on the new level are released (drain records kept, so clearing the value brings them back); filtered-out members stay owned (masked). A bucket with no `empty` child left drops its container. A cluster run on the old bucket that returns afterwards fails with `not-a-leaf` |
+| **Grouping change: a level removed or reordered** | **rebuild** — the images are regrouped, so `clusters.clear()` drops every container |
 
 **Reset button.** *(Not built yet.)* Intended: always available to rebuild from the
 current tree (clean slate) — re-derive the value-groups and re-cluster (or clear) the
@@ -322,7 +343,7 @@ includes them again. The queue-drain is a separate, **reversible** mechanism:
 | Drag image → value-group | write value; tree re-routes it on reflow | O(delta) |
 | Drag image → `empty` cluster | clear value (if any) + move membership | O(delta) |
 | Filter / Sort | mask / re-`setOrder` over the tree | no cluster recompute |
-| Grouping change | rebuild + `resyncAll` (one refill pass per container) | new target. Adding or removing a group-by level calls `clusters.clear()`, so the containers go with it |
+| Grouping change | rebuild + `resyncAll` (one refill pass per container) | new target. Appending a level moves each container down one level first (one pass over its old bucket's slots to release the valued ones); removing or reordering a level calls `clusters.clear()`, so the containers go with it |
 
 There is **no per-cluster homogeneity/badge scan** — the paradigm removed `mixed`,
 so a value-group simply displays its value and a cluster displays its count. That
@@ -350,7 +371,10 @@ separate clone and no `rootedAt()`.
 ## Resolved
 
 - **Target vs. grouping** → unified: the target *is* the leaf grouping property;
-  assigning is grouping. One selector. The view requires ≥1 grouping property.
+  assigning is grouping. One selector. The view no longer requires a grouping
+  property: with none, the root is the one card, and the target is chosen late
+  ("Assign to…" → group by it). Appending a leaf level moves the clusters into the
+  new `empty` child instead of clearing them, so nothing clustered is lost by it.
 - **`mixed` groups** → eliminated by construction. A group is a value-group or the
   `empty` (undecided) bucket. No homogeneity scan, no split-by-value, no
   informed-override machinery.

@@ -152,7 +152,8 @@
         "group": {
             "title": "Groups",
             "empty": "No images to display.",
-            "no_grouping": "Group by at least one property.",
+            "assign_to": "Assign to…",
+            "new_property": "New property…",
             "no_lines": "No groups to display",
             "images": "images",
             "groups": "groups",

@@ -67,7 +67,8 @@ export class ClusterManager implements GroupOpsHost {
     overlay: ClusterOverlay
 
     // The current empty bucket being clustered (the leaf target's undecided pile). Owned here so
-    // the view no longer scans the index for it. Set when clustering; cleared on a groupBy change.
+    // the view no longer scans the index for it. Set when clustering; follows its piles when a
+    // level is appended below it, cleared when the grouping is otherwise changed.
     emptyBucketId: number | null = null
 
     // groupId → its clustering run. Reactive so a button can render its own spinner from state it
@@ -79,6 +80,10 @@ export class ClusterManager implements GroupOpsHost {
     onCluster = new EventEmitter()
 
     private nextToken = 1
+
+    // Grouping levels appended since the last rebuild (deferDescent): how far down every
+    // container moves when the rebuild lands. 0 when there is nothing to follow.
+    private pendingLevels = 0
 
     constructor(private host: ClusterOpsHost) {
         this.overlay = new ClusterOverlay(host)
@@ -124,8 +129,16 @@ export class ClusterManager implements GroupOpsHost {
             if (this.runs[targetGroupId]?.token !== token) return
             // The tree may have been rebuilt while we waited, so re-read the target rather than
             // trusting the Group captured above; if it is gone, the result is stale — drop it.
-            if (!this.host.result?.index?.[targetGroupId]) {
+            const current = this.host.result?.index?.[targetGroupId]
+            if (!current) {
                 this.failRun(targetGroupId, token, req.funcId, 'group-gone')
+                return
+            }
+            // A grouping level appended while we waited divides the group now (its piles, if it
+            // had any, moved down to its "no value" child): the result was computed for a leaf
+            // that no longer is one, so grafting it would open a container that can never show.
+            if (current.children.some(c => c.type !== GroupType.Cluster)) {
+                this.failRun(targetGroupId, token, req.funcId, 'not-a-leaf')
                 return
             }
             if (!groups?.length) {
@@ -231,8 +244,39 @@ export class ClusterManager implements GroupOpsHost {
     // untouched by the rebuild, so a pile comes back with the images it owns that the new
     // tree holds — including the ones a lifted filter just brought back.
     resyncAll() {
+        this.applyDescents()
         this.pruneRuns()
         this.overlay.resyncAll()
+    }
+
+    // A grouping level is being appended: every bucket that holds clusters is about to become
+    // the parent of that level, and its undecided images — the ones the piles are about — will
+    // sit in its "no value" child. The piles follow them there on the next rebuild instead of
+    // being cleared, so a user can cluster first and choose the property afterwards. Only an
+    // append can be followed: the new level is the leaf, so each old bucket maps to exactly one
+    // child. Removing or reordering levels regroups the images and still goes through clear().
+    // Counted rather than applied: the child only exists once the rebuild has run, and two
+    // appends before it move the containers two levels down.
+    deferDescent() {
+        this.pendingLevels++
+    }
+
+    // Consume the pending levels on the freshly built tree, before the resync grafts anything.
+    // Every container moves, including one opened after the append (the debounce leaves a window
+    // for that) and one whose bucket is filtered away: each knows its bucket's key. A run in
+    // flight on an old bucket is left alone — cluster() rejects its result on return because the
+    // bucket is no longer a leaf — and a run on a pile is unaffected, since the pile keeps its id.
+    private applyDescents() {
+        const levels = this.pendingLevels
+        this.pendingLevels = 0
+        if (!levels) return
+        for (const c of Array.from(this.overlay.byGroup.values())) {
+            const from = c.parentId
+            this.overlay.descend(c, levels)
+            if (this.emptyBucketId === from) {
+                this.emptyBucketId = this.overlay.container(c.parentId) === c ? c.parentId : null
+            }
+        }
     }
 
     // Refill the piles of the buckets an edit touched. A value write can move an instance in
@@ -244,6 +288,7 @@ export class ClusterManager implements GroupOpsHost {
 
     clear() {
         this.overlay.clear()
+        this.pendingLevels = 0
         this.emptyBucketId = null
         // In-flight runs target group ids that no longer mean anything; bumping the token makes
         // their results stale (the token check in cluster() drops them).

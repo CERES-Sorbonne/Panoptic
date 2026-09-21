@@ -4,7 +4,7 @@
 // when a tree grouping is active, or cluster cards once clustered — fed the collection's own
 // groupManager directly (no clone / no rootedAt). A right-side inspector can open up to two
 // groups for drag-between editing.
-import { onMounted, onUnmounted, computed, watch, ref } from 'vue'
+import { onMounted, onUnmounted, computed, watch, ref, nextTick } from 'vue'
 import ClusterScroller from '@/components/scrollers/cluster/ClusterScroller.vue'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
@@ -13,14 +13,16 @@ import { groupSlots } from '@/core/group/groupOps'
 import { isNoValue } from '@/core/group/valueParser'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
-import { ClusterOptions, Instance, Property } from '@/data/models'
+import { ClusterOptions, Instance, ModalId, Property, PropertyType } from '@/data/models'
 import { GroupViewMode } from '@/components/scrollers/types'
 import { isTag } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { useDataStore } from '@/data/stores/dataStore'
+import { useModalStore } from '@/data/stores/modalStore'
 
 const col = useColumnStore()
 const data = useDataStore()
+const modals = useModalStore()
 
 const props = defineProps<{
     tab: TabManager
@@ -77,8 +79,9 @@ const counts = computed(() => {
 
 // ---- Assignment target = the leaf grouping property (cluster_view_goals.md) -----------------
 // The paradigm: assigning IS grouping. The target is ALWAYS the deepest (leaf) group-by property;
-// there is no separate free-floating axis. The view requires ≥1 grouping property; with none there
-// is no target.
+// there is no separate free-floating axis. With no grouping there is no target yet: the view shows
+// the collection as one card that can be clustered and inspected, and the target is chosen at the
+// first assignment (chooseTarget).
 const targetPropertyId = computed<number | null>(() => {
     const gb = targetPropertyIds.value
     return gb.length ? gb[gb.length - 1] : null
@@ -233,11 +236,31 @@ const hasImages = computed(() => {
     props.collection.version.value // reactive dep
     return (props.collection.result?.root?.slots?.length ?? 0) > 0
 })
-// The view requires ≥1 grouping property: the leaf grouping IS the assignment target. With no
-// grouping there is no target, so we prompt to pick one instead of showing the flat collection.
-// Keyed on the rendered tree (targetPropertyIds), not on groupState, so the prompt stays up
-// until the groups actually exist instead of flashing the ungrouped root for one frame.
-const hasGrouping = computed(() => targetPropertyIds.value.length > 0)
+
+// ---- Choosing the target late -----------------------------------------------------------------
+// With no grouping the root is the one card: it can be clustered, its piles opened and dragged
+// between (membership only — there is no value to write). The target is picked from a card's
+// "Assign to…" row: the property is appended as the grouping, and the engine moves the piles into
+// its "no value" group with the same ids instead of clearing them (ClusterManager.deferDescent),
+// so the card the user acted on is still there, now showing the property's input to fill.
+async function chooseTarget(groupId: number, propertyId: number) {
+    if (targetPropertyIds.value.includes(propertyId)) return
+    props.collection.setGroupOption(propertyId)
+    // The groupBy watcher arms the rebuild; let it run, then wait for the rebuild itself, so the
+    // rows switch to the new input in one step and the pile can be pointed at where it landed.
+    await nextTick()
+    await props.collection.settle()
+    if (props.collection.result?.index?.[groupId]) setHighlight([groupId])
+}
+
+// "New property…" in the same row: the app's property modal, tag by default (the natural type
+// for labelling piles), then the same flow with the property it created.
+function createTarget(groupId: number) {
+    modals.openModal(ModalId.PROPERTY, {
+        type: PropertyType.tag,
+        onCreated: (prop: Property) => chooseTarget(groupId, prop.id),
+    })
+}
 
 // ---- Detail inspector (right side) -------------------------------------------
 // Up to two clusters can be inspected at once, stacked vertically. A plain click
@@ -497,11 +520,7 @@ onUnmounted(() => {
                             <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
                         </div>
                     </div>
-                    <div v-if="!hasGrouping" class="cluster-empty">
-                        <span class="text-secondary">{{ $t('main.group.no_grouping') }}</span>
-                    </div>
                     <ClusterScroller
-                        v-else
                         input-key="cluster-view"
                         :manager="viewManager"
                         :image-size="props.imageSize"
@@ -519,6 +538,8 @@ onUnmounted(() => {
                         @close-group="onCloseGroup"
                         @clear-clusters="onClearClusters"
                         @assign-cluster-value="assignClusterValue"
+                        @choose-target="chooseTarget"
+                        @create-target="createTarget"
                     />
                 </div>
             </template>
@@ -540,6 +561,8 @@ onUnmounted(() => {
                     :target-value="detailPanes[0].targetValue"
                     @close="closeDetail(0)"
                     @assign-value="v => assignClusterValue(detailPanes[0].id, v)"
+                    @choose-target="pid => chooseTarget(detailPanes[0].id, pid)"
+                    @create-target="createTarget(detailPanes[0].id)"
                     @instance-added="p => onPaneAdd(0, p)"
                     @instance-removed="p => onPaneRemove(0, p)"
                 />
@@ -568,6 +591,8 @@ onUnmounted(() => {
                             :target-value="detailPanes[0].targetValue"
                             @close="closeDetail(0)"
                             @assign-value="v => assignClusterValue(detailPanes[0].id, v)"
+                            @choose-target="pid => chooseTarget(detailPanes[0].id, pid)"
+                            @create-target="createTarget(detailPanes[0].id)"
                             @instance-added="p => onPaneAdd(0, p)"
                             @instance-removed="p => onPaneRemove(0, p)"
                         />
@@ -587,6 +612,8 @@ onUnmounted(() => {
                             :target-value="detailPanes[1].targetValue"
                             @close="closeDetail(1)"
                             @assign-value="v => assignClusterValue(detailPanes[1].id, v)"
+                            @choose-target="pid => chooseTarget(detailPanes[1].id, pid)"
+                            @create-target="createTarget(detailPanes[1].id)"
                             @instance-added="p => onPaneAdd(1, p)"
                             @instance-removed="p => onPaneRemove(1, p)"
                         />

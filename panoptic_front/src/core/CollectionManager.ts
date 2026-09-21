@@ -52,6 +52,10 @@ export class CollectionManager implements GroupInspector {
     private reloadTimer: ReturnType<typeof setTimeout> | null = null
     // In-flight data-driven reflow (see updateInstances / settle).
     private pending: Promise<void> | null = null
+    // A state-driven reload that is armed (debounced) or running, so settle() can wait for it
+    // too, and the resolver that releases its waiters. Null when none is scheduled.
+    private reloadDone: Promise<void> | null = null
+    private releaseReload: (() => void) | null = null
 
     // Lifecycle: stop handles for the config watches + the bound data listener,
     // so a collection can be torn down when its last view stops referencing it
@@ -283,13 +287,28 @@ export class CollectionManager implements GroupInspector {
         this.runState.isDirty = true
         if (!this.runState.active || !this.state.autoReload) return
         this.pendingKind = maxReloadKind(this.pendingKind, kind)
+        if (!this.reloadDone) this.reloadDone = new Promise(resolve => { this.releaseReload = resolve })
         if (this.reloadTimer) clearTimeout(this.reloadTimer)
-        this.reloadTimer = setTimeout(() => {
+        this.reloadTimer = setTimeout(async () => {
             const kind = this.pendingKind
             this.pendingKind = null
             this.reloadTimer = null
-            if (kind) this.runReload(kind)
+            try {
+                if (kind) await this.runReload(kind)
+            } catch (e) {
+                console.error('[collection] reload failed', e)
+            }
+            // A request that arrived while this one ran has armed the timer again: its run is
+            // the one the waiters are waiting for.
+            if (!this.reloadTimer) this.finishReload()
         }, RELOAD_DEBOUNCE_MS)
+    }
+
+    private finishReload() {
+        const release = this.releaseReload
+        this.reloadDone = null
+        this.releaseReload = null
+        release?.()
     }
 
     private async runReload(kind: ReloadKind) {
@@ -324,10 +343,17 @@ export class CollectionManager implements GroupInspector {
         this.pending = this.setDirty(instanceIds).catch(e => { console.error('[collection] update failed', e) })
     }
 
-    // Resolve once no data-driven reflow is in flight. Chains rather than snapshots, so a
-    // reflow started while awaiting an earlier one is covered too.
+    // Resolve once no reflow is in flight: neither a data-driven one nor a state-driven reload
+    // (a grouping change, say) that is debounced or running. Chains rather than snapshots, so a
+    // reflow started while awaiting an earlier one is covered too. A state change is picked up
+    // by a watcher, so a caller that has just made one lets it run (nextTick) before settling.
     async settle(): Promise<void> {
-        while (this.pending) {
+        for (;;) {
+            if (this.reloadDone) {
+                await this.reloadDone
+                continue
+            }
+            if (!this.pending) return
             const p = this.pending
             await p
             if (this.pending === p) this.pending = null
@@ -342,6 +368,7 @@ export class CollectionManager implements GroupInspector {
             clearTimeout(this.reloadTimer)
             this.reloadTimer = null
             this.pendingKind = null
+            this.finishReload()
         }
     }
 
@@ -354,6 +381,7 @@ export class CollectionManager implements GroupInspector {
         useDataStore().onChange.removeListener(this.boundUpdateInstances)
         if (this.reloadTimer) { clearTimeout(this.reloadTimer); this.reloadTimer = null }
         this.pendingKind = null
+        this.finishReload()
         this.runState.active = false
         // Bump the token so any run still awaiting a column load bails instead of writing
         // results into a collection nobody references anymore.

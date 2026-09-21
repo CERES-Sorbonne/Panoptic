@@ -740,7 +740,9 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         if (option) Object.assign(this.state.options[propertyId], option)
         if (!this.state.groupBy.includes(propertyId)) {
             this.state.groupBy.push(propertyId)
-            this.clusters.clear()
+            // Appended, so it is the new leaf: the clusters move down into each bucket's "no
+            // value" child on the rebuild instead of being cleared (cluster_view_goals.md).
+            this.clusters.deferDescent()
         }
         this.onStateChange.emit()
     }

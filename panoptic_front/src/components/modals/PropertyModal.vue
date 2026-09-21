@@ -19,6 +19,9 @@ const newProperty = reactive({}) as Property
 const message = ref('')
 
 const group = ref(undefined)
+// Called with the new property once it exists, for a caller that opened the modal to use it
+// right away (the group view's "Assign to… → New property").
+let onCreated: ((prop: Property) => void) | undefined
 
 async function saveProperty(hide) {
     console.log('halloo')
@@ -38,6 +41,7 @@ async function saveProperty(hide) {
 
     const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode, group.value ?? null)
     tabStore.getMainTab().setVisibleProperty(prop.id, true)
+    onCreated?.(prop)
 
     // if (group.value != undefined && group.value >= 0) {
     //     console.log(prop)
@@ -51,6 +55,10 @@ function onShow(data) {
     if(data?.mode) {
         newProperty.mode = data.mode
     }
+    if(data?.type) {
+        newProperty.type = data.type
+    }
+    onCreated = data?.onCreated
     if(data?.group) {
         group.value = data.group
     } else {

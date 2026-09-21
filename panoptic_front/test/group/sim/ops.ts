@@ -169,6 +169,30 @@ export const OPS: Op[] = [
         },
     },
     {
+        // Append a leaf level straight through setGroupOption, as the group view's "Assign to…"
+        // does: the clusters move down into each bucket's "no value" child instead of being
+        // cleared (groupAdd goes through setGroupBy, which removes every level first).
+        name: 'groupAppend', weight: 3,
+        plan(w, rng) {
+            if (w.model.groupBy.length >= MAX_LEVELS) return null
+            return { op: 'groupAppend', pick: rng.int(ALL_PROPS.length), stepSize: rng.between(1, 3), stepUnit: rng.pick(UNITS) }
+        },
+        async apply(w, plan) {
+            const used = new Set(w.model.groupBy.map(l => l.propId))
+            const free = ALL_PROPS.filter(id => !used.has(id))
+            if (!free.length || w.model.groupBy.length >= MAX_LEVELS) return
+            const level: GroupLevel = { propId: free[at(plan.pick, free.length)], stepSize: plan.stepSize, stepUnit: plan.stepUnit }
+            w.model.groupBy.push({ ...level })
+            w.gm.setGroupOption(level.propId, {
+                direction: SortDirection.Ascending,
+                type: GroupSortType.Property,
+                stepSize: level.stepSize,
+                stepUnit: level.stepUnit,
+            })
+            await w.regroup()
+        },
+    },
+    {
         name: 'groupDel', weight: 3,
         plan(w, rng) {
             if (!w.model.groupBy.length) return null

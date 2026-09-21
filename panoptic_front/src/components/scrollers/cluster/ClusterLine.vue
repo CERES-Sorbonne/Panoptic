@@ -10,6 +10,7 @@ import { useDataStore } from '@/data/stores/dataStore'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import ClusterPropertyInput from './ClusterPropertyInput.vue'
+import ClusterAssignTarget from './ClusterAssignTarget.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils'
@@ -90,7 +91,7 @@ function mosaicTiles(group: Group, width: number) {
     }
 }
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value', 'choose-target', 'create-target'])
 
 const hoveredCard = ref<number | null>(null)
 
@@ -362,6 +363,14 @@ function groupScore(group: Group): number | null {
                     :model-value="inheritedValue(entry.group, prop.id)"
                     :instance-id="getInstanceId(entry.slot)"
                     @update:model-value="v => $emit('assign-cluster-value', entry.group.id, v, prop.id)"
+                />
+            </div>
+            <!-- No grouping, so no target yet: the row the card reserves anyway offers to choose
+                 one. Choosing it groups by that property, and the input above replaces this. -->
+            <div v-if="!targetProperties.length" class="cc-input-row" @click.stop>
+                <ClusterAssignTarget
+                    @choose="pid => $emit('choose-target', entry.group.id, pid)"
+                    @create="$emit('create-target', entry.group.id)"
                 />
             </div>
         </div>

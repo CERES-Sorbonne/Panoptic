@@ -37,7 +37,7 @@ const props = defineProps<{
     viewMode?: GroupViewMode
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
+const emit = defineEmits(['reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value', 'choose-target', 'create-target'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.manager?.selectionNamespace ?? 'global'))
@@ -341,6 +341,8 @@ watch(() => props.manager.version.value, triggerUpdate)
                         @close-group="id => emit('close-group', id)"
                         @clear-clusters="id => emit('clear-clusters', id)"
                         @assign-cluster-value="(id, val, propId) => emit('assign-cluster-value', id, val, propId)"
+                        @choose-target="(id, propId) => emit('choose-target', id, propId)"
+                        @create-target="id => emit('create-target', id)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />
                 </div>
