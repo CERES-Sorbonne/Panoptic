@@ -16,6 +16,7 @@ import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import WithToolTip from '../../tooltips/withToolTip.vue'
 import { apiAllocateTags } from '@/data/api/projectApi'
+import { clusterErrorText } from '@/core/group/ClusterManager'
 
 const data = useDataStore()
 const columnStore = useColumnStore() // <-- Initialized column store
@@ -96,6 +97,12 @@ const isClusterGroup = computed(() => (version.value, props.item.data.subGroupTy
 function cluster(req: ClusterRequest) {
     props.manager.cluster(props.item.data.id, req)
 }
+
+// A run that failed stops the spinner and leaves nothing on screen, so the button says why.
+const clusterFailed = computed(() => {
+    const error = props.manager.clusterError(props.item.data.id)
+    return error ? `Clustering failed: ${clusterErrorText(error)}` : undefined
+})
 
 function clear() {
     props.manager.delCustomGroups(props.item.data.id, true)
@@ -330,7 +337,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                     </WithToolTip>
                 </div>
 
-                <div class="ms-1" v-if="!hasSubgroups">
+                <div class="ms-1" v-if="!hasSubgroups" :title="clusterFailed">
                     <ActionButton action="group" :defer="true" :busy="props.manager.isClustering(props.item.data.id)"
                         @submit="cluster" />
                 </div>

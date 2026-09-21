@@ -73,3 +73,30 @@ export function buildCSR(sparse: TagSparse, count: number): TagCSR {
     }
     return { offsets, values }
 }
+
+/**
+ * Drop deleted tag ids out of one tag column, in place. Returns the slots whose value changed.
+ *
+ * A tag delete is soft — the tag object is tombstoned so anything still holding its id can
+ * resolve a label — but the loaded column keeps the id, and a column that names a tag which no
+ * longer exists is wrong data: the tree keeps a group for it until something recomputes, and
+ * the group has no label to draw. Scrubbing here is what makes the stored value honest and
+ * gives the recompute the exact set of instances to run on.
+ *
+ * A slot left with no tags becomes null, the same "no value" a slot that never had one holds.
+ */
+export function stripTagIds(sparse: TagSparse, count: number, drop: Set<number>): number[] {
+    if (!drop.size) return []
+    const changed: number[] = []
+    for (let s = 0; s < count; s++) {
+        const tags = sparse[s]
+        if (!tags?.length) continue
+        let hit = false
+        for (let i = 0; i < tags.length; i++) if (drop.has(tags[i])) { hit = true; break }
+        if (!hit) continue
+        const next = tags.filter(t => !drop.has(t))
+        sparse[s] = next.length ? next : null
+        changed.push(s)
+    }
+    return changed
+}

@@ -26,6 +26,16 @@ import { groupSlots, refreshSubGroupType } from "./groupOps";
 import { ClusterOpsHost, Group, GroupType } from "./types";
 import { grpLog, grpDebugOn, grpFocus, few } from "@/utils/debugGroup";
 
+// Drop one membership from the reverse index, and the map entry with it when it was the last
+// one: an instance in no group leaves no empty Set behind. Readers treat an absent entry and an
+// empty one alike ("not in the tree"), so the empty ones were pure growth.
+function dropFromIndex(i2g: Map<number, Set<number>>, id: number, groupId: number) {
+    const set = i2g.get(id)
+    if (!set) return
+    set.delete(groupId)
+    if (set.size == 0) i2g.delete(id)
+}
+
 // One pile in a container. `up` is the node it was split out of, 0 at the top of the container.
 // A dead node is never drawn and never rewritten out of the owner array: its images resolve to
 // the nearest live ancestor, which is what makes "delete a pile" and "drop a sub-clustering"
@@ -190,6 +200,11 @@ export class ClusterOverlay {
             if (!node || node.dead) return
             for (const k of kids[i]) walk(k)
             node.dead = true
+            // A dead pile stops being addressable: nodeOf / targetOf must not hand it back, or
+            // an op would own images to a node whose images route to somebody else. The entry
+            // goes here rather than in detachNode, which also serves nodes that are merely
+            // waiting for their bucket and have to stay resolvable.
+            this.nodeIndex.delete(node.group.id)
             this.detachNode(c, node)
         }
         walk(idx)
@@ -210,6 +225,13 @@ export class ClusterOverlay {
         return c.table[idx]?.leftover === true
     }
 
+    // A node still in the table and not killed. Ops that resolve a group id to a node check
+    // this before writing to it: a dead node accepts ownership but never shows it.
+    isLive(c: ClusterContainer, idx: number): boolean {
+        const node = c.table[idx]
+        return !!node && !node.dead
+    }
+
     // Forget a bucket's overlay entirely, leaving it an ordinary leaf. The piles are unhooked
     // from the tree as well as from the table: a card left behind would be an orphan, drawn but
     // no longer registered.
@@ -226,10 +248,30 @@ export class ClusterOverlay {
         this.byGroup.delete(parentId)
 
         const parent = this.host.result.index[parentId]
-        if (!parent || !parent.children.length) return
-        parent.children = parent.children.filter(child => !mine.has(child.id))
-        for (let i = 0; i < parent.children.length; i++) parent.children[i].parentIdx = i
-        refreshSubGroupType(parent)
+        if (!parent) return
+        if (parent.children.length) {
+            parent.children = parent.children.filter(child => !mine.has(child.id))
+            for (let i = 0; i < parent.children.length; i++) parent.children[i].parentIdx = i
+            refreshSubGroupType(parent)
+        }
+        this.addLeafIndex(parent)
+    }
+
+    // The bucket displays its own images again: resync drops its imageToGroups entries at the
+    // one point where it stops being a leaf (its piles are grafted), so they have to come back
+    // at the one point where it becomes one again. Without this an un-clustered bucket was in
+    // the tree while its images named no group at all — and an instance that names no group
+    // reads as new to the tree, so the next update appended it to the root a second time.
+    private addLeafIndex(group: Group) {
+        if (group.children.length) return
+        const ids = useColumnStore().instanceIds()
+        const i2g = this.host.result.imageToGroups
+        for (const s of group.slots) {
+            const id = ids[s]
+            let set = i2g.get(id)
+            if (!set) { set = new Set<number>(); i2g.set(id, set) }
+            set.add(group.id as number)
+        }
     }
 
     clear() {
@@ -300,7 +342,9 @@ export class ClusterOverlay {
         // grouping — a level was added below it, and its children are that level, not ours.
         // The container waits: its piles are unregistered, the map is untouched, and they come
         // back when the bucket does.
-        const foreign = parent?.children.some(child => !this.nodeIndex.has(child.id))
+        // Asked of the table, not of nodeIndex: a killed node is out of the index but is still
+        // a child until the attach below rewrites the list.
+        const foreign = parent ? this.hasForeignChildren(c, parent) : false
         if (!parent || foreign) {
             let detached = false
             for (const idx of live) {
@@ -313,10 +357,15 @@ export class ClusterOverlay {
             this.dropContainer(c.parentId)
             if (parent.children.length) {
                 this.host.removeChildren(parent)
+                this.addLeafIndex(parent)
                 return true
             }
             return false
         }
+
+        // What the container looked like before the pass, so the pass can report whether it
+        // actually changed anything. Taken before the slots are cleared below.
+        const before = this.fingerprint(c, parent)
 
         const col = useColumnStore()
         const ids = col.instanceIds()
@@ -326,7 +375,7 @@ export class ClusterOverlay {
         // exactly what the piles contain now.
         for (const node of c.table) {
             if (!node) continue
-            for (const s of node.group.slots) i2g.get(ids[s])?.delete(node.group.id)
+            for (const s of node.group.slots) dropFromIndex(i2g, ids[s], node.group.id)
             node.group.slots.length = 0
         }
 
@@ -347,9 +396,58 @@ export class ClusterOverlay {
         }
 
         this.attach(c, parent, route)
+        // imageToGroups names the leaves an instance is drawn in, and the bucket is not one once
+        // its piles are grafted. Every path that fills the map writes the bucket while it is a
+        // leaf — the rebuild's sweep, the incremental update's, the leaf it was before a
+        // structural op clustered it — so the entries are dropped here, at the one point where it
+        // stops being one. Piles that end up holding nothing leave the bucket a leaf, and then
+        // its entries are the right ones.
+        if (parent.children.length) {
+            for (const s of parent.slots) dropFromIndex(i2g, ids[s], parent.id)
+        }
         if (grpDebugOn()) this.logResync(c, parent, route)
         if (import.meta.env.DEV) this.checkInvariants(c, parent)
-        return true
+        // A pass that produced the same picture is not a change: reporting one here would make
+        // every write to any property rebuild both scrollers for the whole dataset, however far
+        // the write is from this bucket's piles (cluster_view_goals.md G4).
+        return this.fingerprint(c, parent) !== before
+    }
+
+    // Everything a pass can alter about what is drawn, folded into one number: for every node
+    // of the table — live, dead or detached — its group's slots in order, its wiring (attached
+    // to the tree or not, its position under its parent, how many children it has) and the two
+    // counts a card reads. The bucket's own child count goes in too, so a pile appearing or
+    // disappearing is caught even when no slot moved. Everything else a pass writes is derived
+    // from these: imageToGroups follows the slots, pileIndex and result.index follow the
+    // attachment, and the owner/drained arrays only ever show up as a slot landing elsewhere or
+    // as a different masked count. Two accumulators mixed with different constants make an
+    // accidental match between two genuinely different pictures vanishingly unlikely. The cost
+    // is one walk over the piles' slots, which together are the bucket's slots once — the same
+    // budget as the pass itself, with nothing allocated per slot.
+    private fingerprint(c: ClusterContainer, parent: Group): number {
+        const index = this.host.result.index
+        let h1 = 0x811c9dc5
+        let h2 = 0x9e3779b9
+        const mix = (v: number) => {
+            const x = (v + 1) | 0
+            h1 = Math.imul(h1 ^ x, 16777619) >>> 0
+            h2 = (Math.imul(h2 + x, 2654435761) ^ (h2 >>> 15)) >>> 0
+        }
+        mix(c.table.length)
+        mix(parent.children.length)
+        for (const node of c.table) {
+            if (!node) { mix(-1); continue }
+            const g = node.group
+            mix(g.slots.length)
+            for (const s of g.slots) mix(s)
+            mix(g.children.length)
+            mix(g.parentIdx ?? -1)
+            mix(g.depth)
+            mix(index[g.id] === g ? 1 : 0)
+            mix(g.meta.visibleCount ?? -1)
+            mix(g.meta.maskedCount ?? -1)
+        }
+        return (h1 ^ Math.imul(h2, 31)) >>> 0
     }
 
     // Where the update's instances ended up in this bucket's piles. The authored map is what
@@ -484,7 +582,9 @@ export class ClusterOverlay {
 
     addLeftover(c: ClusterContainer, up: number): number {
         const group = buildGroup(getTmpId(), [], GroupType.Cluster)
-        group.name = 'New'
+        // Named for what it holds: the images of this level that no pile covers. Group names are
+        // raw strings everywhere in the tree (never run through vue-i18n), so this is a literal.
+        group.name = 'No cluster'
         group.isLeftover = true
         return this.addNode(c, group, up, true)
     }
@@ -549,6 +649,17 @@ export class ClusterOverlay {
 
     // ── Table helpers ────────────────────────────────────────────────────────
 
+    // Does the bucket hold children this container did not put there? True when a grouping
+    // level was added below it: its children are that level's groups, not our piles. Read from
+    // the table so the container's own dead nodes — still listed as children until the pass
+    // rewrites the list — do not look foreign.
+    private hasForeignChildren(c: ClusterContainer, parent: Group): boolean {
+        if (!parent.children.length) return false
+        const mine = new Set<number>()
+        for (const node of c.table) if (node) mine.add(node.group.id)
+        return parent.children.some(child => !mine.has(child.id))
+    }
+
     private liveNodes(c: ClusterContainer): number[] {
         const res: number[] = []
         for (let i = 1; i < c.table.length; i++) if (c.table[i] && !c.table[i]!.dead) res.push(i)
@@ -584,7 +695,7 @@ export class ClusterOverlay {
     private detachNode(c: ClusterContainer, node: ClusterNode) {
         const result = this.host.result
         const ids = useColumnStore().instanceIds()
-        for (const s of node.group.slots) result.imageToGroups.get(ids[s])?.delete(node.group.id)
+        for (const s of node.group.slots) dropFromIndex(result.imageToGroups, ids[s], node.group.id)
         node.group.slots.length = 0
         node.group.children = []
         node.group.meta.maskedCount = undefined
@@ -610,5 +721,18 @@ export class ClusterOverlay {
     // The visible images of a node, including those of its sub-piles.
     visibleSlots(group: Group): number[] {
         return groupSlots(group)
+    }
+
+    // Every group a resync of this container can have rewritten: the bucket itself — it gains
+    // or loses its piles, so its leaf status changes — plus every node group in the table, live,
+    // dead or detached. Callers use it to scope per-leaf work (the sha1 pile overlay) without
+    // re-deriving which leaves moved; including the dead and detached ones is what makes the
+    // scoped pass drop their stale entries instead of leaving them behind.
+    containerGroups(c: ClusterContainer): Group[] {
+        const res: Group[] = []
+        const parent = this.host.result.index[c.parentId]
+        if (parent) res.push(parent)
+        for (const node of c.table) if (node) res.push(node.group)
+        return res
     }
 }

@@ -13,6 +13,7 @@ import { Colors, DateUnit, Property, PropertyType, Tag } from '@/data/models'
 // The leaf types module, not the GroupManager barrel: the model only needs the tree's shape.
 import { GroupType, type Group } from '@/core/group/types'
 import type { GroupInspector } from '@/core/group/inspector'
+import { isNoValue } from '@/core/group/valueParser'
 import { isTag, pad } from '@/utils/utils'
 import { CHART_PALETTE, OTHER_COLOR } from './chartPalette'
 
@@ -129,7 +130,7 @@ export function buildChartModel(
         if (group.type !== GroupType.Property) continue          // clusters/custom groups aren't values
         const propValue = group.meta.propertyValues?.[0]
         const raw = propValue?.value
-        const missing = raw === undefined || raw === null
+        const missing = isNoValue(raw)
 
         let x: number | string
         if (xKind === 'time') {
@@ -186,7 +187,7 @@ export function buildChartModel(
                 if (child.type !== GroupType.Property) continue
                 const propValue = child.meta.propertyValues?.[0]
                 const raw = propValue?.value
-                const missing = raw === undefined || raw === null
+                const missing = isNoValue(raw)
                 const key = missing ? '__novalue__' : String(raw)
 
                 let draft = drafts.get(key)

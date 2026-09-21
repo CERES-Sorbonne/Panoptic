@@ -34,6 +34,7 @@ import { GroupResult } from "./group/GroupResult";
 import { GroupNavigator } from "./group/GroupNavigator";
 import { ClusterManager, ClusterRequest } from "./group/ClusterManager";
 import { refreshSubGroupType } from "./group/groupOps";
+import { orderSlots, SlotPositions } from "./group/slotOrder";
 import type { GroupInspector } from "./group/inspector";
 import { grpLog, grpDebugOn, grpSetFocus, few } from '@/utils/debugGroup';
 
@@ -154,6 +155,8 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         this._rebuildingTree = false
 
         // Single imageToGroups sweep using tracked leaf groups (avoids Object.values allocation).
+        // These are the leaves of the PROPERTY tree; a bucket that turns out to be clustered
+        // stops being a leaf in the resync below, which drops the entries written here for it.
         const ids = useColumnStore().instanceIds()
         const leafGroups = this.state.groupBy.length > 0 ? this._leafGroups : [this.result.root]
         for (const g of leafGroups) {
@@ -188,10 +191,14 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         this.result.buildOrdinalRanges()
     }
 
-    // `joined` collects every group the slots were added to. A clustered bucket is not a leaf
-    // (its children are the piles), so it never registers in imageToGroups and the caller has
-    // no other way to learn that an image came back to it.
-    private addUpdatedToGroups(slots: Int32Array, joined?: Set<number>) {
+    // `joined` collects every group the slots were added to. An image coming back to a clustered
+    // bucket is named by no old membership — imageToGroups holds the leaves, and the bucket's
+    // leaves are its piles — so this is the caller's only way to learn that the bucket changed.
+    // `appendedFrom` records, per group, how long its slot array was before this call appended
+    // to it — the boundary the incremental re-order merges at (see orderSlots).
+    // `newToTree` names the slots that were in no group at all before this update: with grouping
+    // active they are the only ones the root is missing (see the append below).
+    private addUpdatedToGroups(slots: Int32Array, joined?: Set<number>, appendedFrom?: Map<number, number>, newToTree?: Set<number>) {
         if (!this.result.root) {
             this.group(slots)
             return
@@ -213,9 +220,39 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 tagParentsByProp[propId] = map
             }
             for (let i = 0; i < slots.length; i++) {
-                this.addInstanceToGroups(slots[i], data.properties, data.tags, tagParentsByProp, joined)
+                this.addInstanceToGroups(slots[i], data.properties, data.tags, tagParentsByProp, joined, appendedFrom)
+            }
+            // addInstanceToGroups only reaches value-key groups (valueIndex never mints 0), so the
+            // root gains nothing there. It keeps the slots it already holds — updateSelection
+            // exempts the grouped root from the updated-slot filter — so the only ones missing
+            // from it are the arrivals that were in no group before: a newly imported instance, or
+            // one a lifted filter brought back. Without this they sit in their leaves while root
+            // understates the collection, and the next update() — which re-groups from root.slots
+            // — drops them for good.
+            if (newToTree?.size) {
+                const root = this.result.root
+                let appended = false
+                for (let i = 0; i < slots.length; i++) {
+                    if (!newToTree.has(slots[i])) continue
+                    if (!appended) {
+                        appended = true
+                        // Same merge boundary the value groups record, so orderSlots merges the
+                        // arrivals in instead of mis-reading the root as unordered.
+                        if (appendedFrom && !appendedFrom.has(root.id as number)) {
+                            appendedFrom.set(root.id as number, root.slots.length)
+                        }
+                    }
+                    root.slots.push(slots[i])
+                }
+                if (appended) {
+                    root.dirty = true
+                    joined?.add(root.id as number)
+                }
             }
         } else {
+            if (slots.length && appendedFrom && !appendedFrom.has(this.result.root.id as number)) {
+                appendedFrom.set(this.result.root.id as number, this.result.root.slots.length)
+            }
             for (let i = 0; i < slots.length; i++) {
                 this.result.root.slots.push(slots[i])
             }
@@ -226,7 +263,7 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         // (updateSelection) over the dirty subset only — no full O(n) sweep here.
     }
 
-    addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex, tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } }, joined?: Set<number>) {
+    addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex, tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } }, joined?: Set<number>, appendedFrom?: Map<number, number>) {
         const col = useColumnStore()
         // The running set of value-keys for this slot, one per level descended so far. (There
         // used to be a parallel `keys` accumulator collecting every level's keys; nothing read
@@ -256,10 +293,16 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
 
             let values = Array.isArray(value) ? value : [value]
             if (isTag(property.type) && values[0] !== undefined) {
+                // Same registry rule as the full build (computePropertySubGroup): an id the
+                // registry does not name is dropped rather than grouped on, and a slot left
+                // with nothing falls through to the empty bucket below. The two paths used to
+                // disagree here — this one kept the id, the full build silently dropped the
+                // whole slot — so an image moved or disappeared on the next regroup.
                 const withParents = new Set<any>()
                 for (const v of values) {
                     if (!v) continue
-                    const parents = tagWithParents[v] ?? [v]
+                    const parents = tagWithParents[v]
+                    if (!parents) continue
                     for (const p of parents) withParents.add(p)
                 }
                 values = Array.from(withParents)
@@ -269,12 +312,15 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
             // key the full build uses for it (computePropertySubGroup). Without this the slot
             // produces no key at all and joins no group.
             if (isTag(property.type) && values.length === 0) {
-                grpLog('6b \u00b7 empty tag list \u2192 empty bucket', { slot, propId, value })
+                // Guarded: this sits in a per-slot loop, so an unguarded call allocates one
+                // object per slot even with logging off.
+                if (grpDebugOn()) grpLog('6b \u00b7 empty tag list \u2192 empty bucket', { slot, propId, value })
                 values = [undefined]
             }
 
             if (values.length === 0) {
-                grpLog('6 \u00b7 NO KEY for slot \u2014 it will join no group', {
+                // Guarded for the same reason as 6b above.
+                if (grpDebugOn()) grpLog('6 \u00b7 NO KEY for slot \u2014 it will join no group', {
                     slot, propId, type: property.type, value,
                     isArray: Array.isArray(value),
                     length: Array.isArray(value) ? (value as any[]).length : undefined,
@@ -295,6 +341,11 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 const groupId = this.result.valueIndex.get(key)
                 if (!this.result.index[groupId]) {
                     const group = buildGroup(groupId, [], GroupType.Property)
+                    // Same key the full build records (computePropertySubGroup). Without it the
+                    // group carried buildGroup's empty default, and removeChildren's
+                    // `if (c.key.length)` then skipped its valueIndex cleanup. Copied because
+                    // `key` stays in `previousKeys` as the prefix later levels extend.
+                    group.key = [...key]
                     let realValue = key[key.length - 1]
                     if (property.type == PropertyType.date && typeof realValue === 'number') {
                         const range = dateBucketRange(realValue, option.stepSize, option.stepUnit)
@@ -314,6 +365,7 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                     }
                 }
                 const group = this.result.index[groupId]
+                if (appendedFrom && !appendedFrom.has(groupId)) appendedFrom.set(groupId, group.slots.length)
                 group.slots.push(slot)
                 group.dirty = true
                 joined?.add(groupId)
@@ -322,21 +374,25 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
     }
 
     sortGroups(emit?: boolean) {
+        if (!this.result.root) return
         for (const group of Object.values(this.result.index) as Group[]) {
             if (group.subGroupType != GroupType.Property) continue
             if (group.children.length == 0) continue
             sortGroup(group, this.state.options[group.children[0].meta.propertyValues[0].propertyId])
         }
+        // Re-ordering children IS a display-order change: `order` is what the iterators compare
+        // to decide which of two groups comes first, and orderedIds / start / end describe the
+        // layout the scrollers draw. Every other path that moves a node does these two; without
+        // them a sort-direction change left both describing the previous arrangement.
+        setOrder(this.result.root)
+        this.buildOrdinalRanges()
         if (emit) this.emitResult()
     }
 
-    // Display position of a slot under the last full sort. Slots that appeared after it
-    // (newly imported instances) have no recorded position: give them one past the end,
-    // ordered by slot index, so they land at the END of their group. Reading the raw array
-    // instead put them at position 0, i.e. ahead of everything, whatever the sort said.
-    private slotPos(slot: number): number {
-        const p = slot <= this._posMaxSlot ? this._posArr[slot] : -1
-        return p >= 0 ? p : this._posCount + slot
+    // Slot→display-position lookup from the last full sort, handed to orderSlots (which also
+    // documents how a slot with no recorded position is placed).
+    private slotPositions(): SlotPositions {
+        return { posArr: this._posArr, maxSlot: this._posMaxSlot, count: this._posCount }
     }
 
     private saveImagesToGroup(group: Group) {
@@ -400,17 +456,6 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
     async emptyRoot(emit?: boolean) {
         this.clear()
         await this.group(new Int32Array(0), emit)
-    }
-
-    async setAsRoot(group: Group, emit?: boolean) {
-        await this.emptyRoot()
-        const copy = { ...group }
-        copy.slots = [...group.slots]
-        delete copy.id
-        Object.assign(this.result.root, copy)
-        this.applySha1Piles()
-        this.buildOrdinalRanges()
-        if (emit) this.emitResult()
     }
 
     verifyState(properties: PropertyIndex) {
@@ -489,8 +534,15 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         }
 
         const dirtyGroupIds = new Set<number>()
+        // A removal only changes what is drawn if the instance was actually in the tree.
+        // FilterManager rejects every dirty instance that fails the filter, including ones
+        // that were already filtered out, and dropping those changes nothing.
+        let removedFromTree = false
         for (const instanceId of removed) {
-            this.result.imageToGroups.get(instanceId)?.forEach(g => dirtyGroupIds.add(g))
+            const groups = this.result.imageToGroups.get(instanceId)
+            if (!groups?.size) continue
+            removedFromTree = true
+            groups.forEach(g => dirtyGroupIds.add(g))
         }
         for (const instanceId of updated) {
             this.result.imageToGroups.get(instanceId)?.forEach(g => dirtyGroupIds.add(g))
@@ -508,12 +560,14 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         }
         dirtyGroupIds.add(0)
 
-        grpLog('5 \u00b7 dirty groups', few(dirtyGroupIds, 30).map(gid => {
-            const g = this.result.index[gid]
-            return g
-                ? { id: gid, type: g.type, value: g.meta?.propertyValues?.[0]?.value, slots: g.slots.length }
-                : { id: gid, missingFromIndex: true }
-        }))
+        if (grpDebugOn()) {
+            grpLog('5 \u00b7 dirty groups', few(dirtyGroupIds, 30).map(gid => {
+                const g = this.result.index[gid]
+                return g
+                    ? { id: gid, type: g.type, value: g.meta?.propertyValues?.[0]?.value, slots: g.slots.length }
+                    : { id: gid, missingFromIndex: true }
+            }))
+        }
 
         const ids = col.instanceIds()
         for (const groupId of dirtyGroupIds) {
@@ -522,10 +576,14 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
             if (group.type == GroupType.Cluster) continue
             group.dirty = true
             // Root holds every present slot; when grouping is active it is not a leaf, so
-            // addUpdatedToGroups won't re-add value-updated slots to it. A value change doesn't
-            // remove the image (it just moves between leaves), so root must KEEP updated slots —
-            // only drop removed ones. Otherwise root drains to 0 and the whole tree is deleted.
+            // addUpdatedToGroups only re-adds the slots that are new to the tree. A value change
+            // doesn't remove the image (it just moves between leaves), so root must KEEP updated
+            // slots — only drop removed ones. Otherwise root drains to 0 and the whole tree is
+            // deleted.
             const isGroupedRoot = group.id === 0 && this.state.groupBy.length > 0
+            // With nothing removed the grouped root keeps every slot, so the filter is a copy of
+            // the whole collection — skip it and leave the array alone.
+            if (isGroupedRoot && removed.size == 0) continue
             group.slots = group.slots.filter(s => {
                 const id = ids[s]
                 if (removed.has(id)) return false
@@ -534,12 +592,23 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         }
 
         const updatedSlots: number[] = []
+        // The slots that were in no group before this update. Every instance the tree holds is
+        // in some leaf, so an empty membership means the instance is not in the tree yet: it was
+        // just imported, or a lifted filter brought it back. That is exactly the set the grouped
+        // root is missing, and testing it costs nothing — oldGroupIds was read above for every
+        // updated id (root.slots is the whole collection, so no per-slot scan of it is possible).
+        const newToTree = new Set<number>()
         for (const id of updated) {
             const s = col.slotMap.get(id)
-            if (s !== undefined) updatedSlots.push(s)
+            if (s === undefined) continue
+            updatedSlots.push(s)
+            if (!oldGroupIds.get(id)?.length) newToTree.add(s)
         }
         const joinedGroupIds = new Set<number>()
-        this.addUpdatedToGroups(new Int32Array(updatedSlots), joinedGroupIds)
+        // Where each group's appended slots start, so the re-order below merges instead of
+        // re-sorting. A group missing from the map gained nothing and is still in order.
+        const appendedFrom = new Map<number, number>()
+        this.addUpdatedToGroups(new Int32Array(updatedSlots), joinedGroupIds, appendedFrom, newToTree)
 
         for (const group of objValues(this.result.index)) {
             // NEVER unregister the root (id 0): result.root keeps pointing at it, so dropping
@@ -575,6 +644,7 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         for (const id of removed) dropMembership(id)
         for (const id of updated) dropMembership(id)
 
+        const positions = this.slotPositions()
         for (const group of objValues(this.result.index)) {
             if (!group.dirty) continue
             if (group.subGroupType == GroupType.Property) {
@@ -585,11 +655,18 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 }
             }
             if (group.type != GroupType.Cluster) {
-                group.slots.sort((a, b) => this.slotPos(a) - this.slotPos(b))
+                // The filter above is order preserving and addUpdatedToGroups only appends, so
+                // the slots are an ordered prefix plus a short tail: merge the tail in rather
+                // than re-sorting the array. The grouped root gains nothing here (its updated
+                // slots are kept, not re-added) so it is left untouched.
+                const cut = appendedFrom.get(group.id as number)
+                orderSlots(group.slots, cut === undefined ? group.slots.length : cut, positions)
             }
             // Re-add reverse-index entries for dirty leaves only (property leaves, or root when
             // ungrouped). sha1 sub-groups were removed at the top of updateSelection, so
-            // children.length === 0 reliably identifies a leaf here.
+            // children.length === 0 reliably identifies a leaf here. A clustered bucket has its
+            // piles and is skipped; one whose piles are currently detached is a leaf and is
+            // written, and the resync that grafts them back drops the entries again.
             if (group.children.length == 0 && group.type != GroupType.Cluster) {
                 this.saveImagesToGroup(group)
             }
@@ -604,11 +681,12 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         for (const id of updated) {
             this.result.imageToGroups.get(id)?.forEach(g => dirtyGroupIds.add(g))
         }
-        // imageToGroups only names leaves, and a clustered bucket is not one: its children are
-        // the piles. An image coming back to such a bucket (a cleared value, an undo) would
-        // therefore never mark it dirty — the slot landed in bucket.slots, raising its count,
-        // while the piles were left untouched and the image was drawn nowhere. The groups the
-        // slots actually joined close that gap.
+        // imageToGroups names leaves, and a clustered bucket is not one: its children are the
+        // piles (ClusterOverlay.resync drops the bucket's entries when it grafts them). So an
+        // image coming back to such a bucket — a cleared value, an undo, a bucket returning from
+        // behind a filter — is named by no old membership and would never mark it dirty: the slot
+        // would land in bucket.slots, raising its count, while the piles were left untouched and
+        // the image was drawn nowhere. The groups the slots actually joined close that gap.
         for (const gid of joinedGroupIds) dirtyGroupIds.add(gid)
         // The instances this update is about, so the overlay can report where they landed.
         grpSetFocus(updated)
@@ -618,7 +696,12 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         this.applySha1Piles()
         this.buildOrdinalRanges()
 
-        let structureChanged = removed.size > 1 || clusterChanged
+        // Any instance dropped from the tree counts, however few: `removed` and `updated` are
+        // disjoint (FilterManager splits the re-filtered slots into valid/reject), so the
+        // membership-diff loop below only walks `updated` and can never observe a removal.
+        // The old `removed.size > 1` therefore left a single removed instance unemitted and
+        // the scrollers kept drawing it until an unrelated change bumped the version.
+        let structureChanged = removedFromTree || clusterChanged
         if (!structureChanged) {
             for (const id of updated) {
                 const before = oldGroupIds.get(id) ?? []
@@ -702,6 +785,11 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         return this.clusters.isClustering(groupId)
     }
 
+    // Why the last clustering run on this group failed, for the button that started it.
+    clusterError(groupId: number) {
+        return this.clusters.clusterError(groupId)
+    }
+
     split(groupId: number, groups: Group[], emit = true) {
         this.clusters.split(groupId, groups, emit)
     }
@@ -710,8 +798,8 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         this.clusters.merge(groupIds, emit)
     }
 
-    delete(groupId: number, emit = true) {
-        this.clusters.delete(groupId, emit)
+    deletePile(groupId: number, emit = true) {
+        this.clusters.deletePile(groupId, emit)
     }
 
     setSha1Mode(value: boolean, emit?: boolean) {
@@ -794,13 +882,11 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
 
         // Build tagWithParents once per property (hoisted outside slot loop)
         const tagWithParents: { [id: number]: Set<number> } = {}
-        let hasTagMeta = false
         if (isTagType && property.tags) {
             for (const tag of objValues(property.tags)) {
                 tagWithParents[tag.id] = new Set(tag.allParents)
                 tagWithParents[tag.id].add(tag.id)
             }
-            hasTagMeta = Object.keys(tagWithParents).length > 0
         }
 
         group.subGroupType = GroupType.Property
@@ -830,14 +916,28 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
                 // slot s is being processed, any bucket we push s into has s as its last
                 // element until we move on, so a last-element check collapses the duplicate
                 // parents shared across the slot's tags.
+                let placed = false
                 for (const v of tagIds) {
                     if (!v) continue
-                    const parents = hasTagMeta ? tagWithParents[v] : [v]
+                    // An id the property's tag registry does not name is never a group of its
+                    // own: a tag delete tombstones the tag while the session's column still
+                    // holds the id, and a bucket keyed on it is a group for a tag that no longer
+                    // exists — it has no label to draw and sortGroupByProperty threw on it,
+                    // passing the raw id to the tag sort parser.
+                    const parents = tagWithParents[v]
                     if (!parents) continue
                     for (const p of parents) {
                         let arr = buckets.get(p); if (!arr) { arr = []; buckets.set(p, arr) }
                         if (arr.length === 0 || arr[arr.length - 1] !== s) arr.push(s)
+                        placed = true
                     }
+                }
+                // Every id on the slot was unregistered, so it has no value to group by and
+                // belongs in the empty bucket — where a slot with no tags at all goes. Skipping
+                // the ids alone left the slot in NO bucket: it vanished from the tree on the
+                // next full regroup while the incremental path still showed it.
+                if (!placed) {
+                    let arr = buckets.get(undefined); if (!arr) { arr = []; buckets.set(undefined, arr) }; arr.push(s)
                 }
             } else {
                 // Direct buffer read avoids readSlot switch dispatch; cached parser handles type normalization.
@@ -883,7 +983,14 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
     private removeImageToGroups(group: Group) {
         const ids = useColumnStore().instanceIds()
         for (const s of group.slots) {
-            this.result.imageToGroups.get(ids[s])?.delete(group.id)
+            const id = ids[s]
+            const set = this.result.imageToGroups.get(id)
+            if (!set) continue
+            set.delete(group.id)
+            // An instance in no group leaves no entry behind: readers treat an absent entry
+            // and an empty Set alike ("not in the tree"), and keeping the empty one grew the
+            // map by one dead entry per instance that ever left the tree.
+            if (set.size == 0) this.result.imageToGroups.delete(id)
         }
     }
 

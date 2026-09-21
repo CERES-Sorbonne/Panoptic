@@ -30,8 +30,11 @@ export function sortGroupByProperty(group: Group, direction: number, properties:
             const type = isTag(prop.type) ? PropertyType.tag : prop.type
             let value = propValue.value
             if (isTag(type) && value != undefined) {
+                // A bucket keyed on a tag the registry does not name should not exist (see
+                // computePropertySubGroup), but it must not take the sort down if one does:
+                // the tag parser lowercases its argument, and the raw id is a number.
                 const tagObj = prop.tags?.[value]
-                value = tagObj ? tagObj.value : value
+                value = tagObj ? tagObj.value : String(value)
             }
             value = sortParser[type](value, folders)
             values.push(value)

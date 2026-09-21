@@ -30,7 +30,7 @@ import { useColumnStore } from "@/data/stores/columnStore";
 import { useActionStore } from "@/data/stores/actionStore";
 import { ActionContext, ParamDescription } from "@/data/models";
 import { reactive } from "vue";
-import { grpLog } from "@/utils/debugGroup";
+import { grpLog, grpDebugOn } from "@/utils/debugGroup";
 
 // What a caller has to provide to cluster a group: the function to run and its parameters.
 // NOT the images — the target group defines the set, and the manager resolves it (below).
@@ -48,6 +48,17 @@ export interface ClusterRun {
     funcId: string
     running: boolean
     error?: string
+}
+
+// The failure codes cluster() records, in words a card can show. Anything else is already the
+// thrown error's own message.
+export function clusterErrorText(code: string): string {
+    switch (code) {
+        case 'not-a-leaf': return 'this group is already divided by a property'
+        case 'group-gone': return 'the group was gone when the result came back'
+        case 'no-groups': return 'the function returned no groups'
+        default: return code
+    }
 }
 
 export class ClusterManager implements GroupOpsHost {
@@ -83,13 +94,18 @@ export class ClusterManager implements GroupOpsHost {
         const target = this.host.result?.index?.[targetGroupId]
         if (!target) return
 
+        // A new run supersedes whatever the last one left here: the previous attempt's error
+        // stops being current the moment another starts, which is also what keeps a failed run
+        // from outliving the group it names.
+        delete this.runs[targetGroupId]
+
         const token = this.nextToken++
 
         // Clustering divides a leaf of the GROUPING: an existing cluster level below the target
         // is replaced, but a group already divided by a property cannot be clustered. Fail here
         // rather than after a pointless round trip to the backend.
         if ((target.children ?? []).some(c => c.type !== GroupType.Cluster)) {
-            this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: 'not-a-leaf' }
+            this.failRun(targetGroupId, token, req.funcId, 'not-a-leaf')
             return
         }
 
@@ -109,11 +125,11 @@ export class ClusterManager implements GroupOpsHost {
             // The tree may have been rebuilt while we waited, so re-read the target rather than
             // trusting the Group captured above; if it is gone, the result is stale — drop it.
             if (!this.host.result?.index?.[targetGroupId]) {
-                this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: 'group-gone' }
+                this.failRun(targetGroupId, token, req.funcId, 'group-gone')
                 return
             }
             if (!groups?.length) {
-                this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: 'no-groups' }
+                this.failRun(targetGroupId, token, req.funcId, 'no-groups')
                 return
             }
 
@@ -123,12 +139,38 @@ export class ClusterManager implements GroupOpsHost {
         } catch (e) {
             console.error(e)
             if (this.runs[targetGroupId]?.token === token) {
-                this.runs[targetGroupId] = { token, funcId: req.funcId, running: false, error: String(e) }
+                this.failRun(targetGroupId, token, req.funcId, String(e))
             }
         }
     }
 
+    // Record why a run stopped, and say so: the entry is what a button reads back
+    // (clusterError), the log is what is left when nobody is looking at that group.
+    private failRun(targetGroupId: number, token: number, funcId: string, error: string) {
+        this.runs[targetGroupId] = { token, funcId, running: false, error }
+        console.warn(`cluster: ${funcId} on group ${targetGroupId} failed \u2014 ${clusterErrorText(error)}`)
+    }
+
     isClustering(groupId: number) { return this.runs[groupId]?.running === true }
+
+    // Why the last run on this group failed, for the button that started it. Undefined while a
+    // run is in flight and once one has succeeded.
+    clusterError(groupId: number): string | undefined {
+        const run = this.runs[groupId]
+        return run && !run.running ? run.error : undefined
+    }
+
+    // A finished-with-error entry only means something while its group is on screen. Dropping
+    // the ones whose group left the tree bounds the map to the groups that exist: group ids are
+    // re-minted on a rebuild, so a kept entry could otherwise resurface on an unrelated group.
+    // In-flight runs stay — their token still has to be there when the backend answers.
+    private pruneRuns() {
+        for (const key of Object.keys(this.runs)) {
+            const id = Number(key)
+            if (this.runs[id].running) continue
+            if (!this.host.result?.index?.[id]) delete this.runs[id]
+        }
+    }
 
     // Graft a run's groups under their target — the single grafting policy, previously duplicated
     // in each view's `addClusters` handler.
@@ -181,14 +223,15 @@ export class ClusterManager implements GroupOpsHost {
     }
 
     // Delete one pile; everything it owns joins its level's leftover.
-    delete(groupId: number, emit = true) {
-        groupOps.deleteGroup(this, groupId, emit)
+    deletePile(groupId: number, emit = true) {
+        groupOps.deletePile(this, groupId, emit)
     }
 
     // Refill every pile after the property tree has been rebuilt from zero. The map is
     // untouched by the rebuild, so a pile comes back with the images it owns that the new
     // tree holds — including the ones a lifted filter just brought back.
     resyncAll() {
+        this.pruneRuns()
         this.overlay.resyncAll()
     }
 
@@ -238,19 +281,22 @@ export class ClusterManager implements GroupOpsHost {
         }
         if (!slots.length) return
 
-        grpLog('5b \u00b7 cluster.drain \u2192 release', {
-            fromGroupId: groupId, bucketId: target.c.parentId,
-            instances: instanceIds.slice(0, 20), slots: slots.slice(0, 20),
-            ownerBefore: slots.slice(0, 20).map(s => {
-                const idx = s < target.c.owner.length ? target.c.owner[s] : 0
-                const node = target.c.table[idx]
-                return { slot: s, nodeIdx: idx, pile: node?.group.name, leftover: node?.leftover }
-            }),
-        })
+        if (grpDebugOn()) {
+            grpLog('5b \u00b7 cluster.drain \u2192 release', {
+                fromGroupId: groupId, bucketId: target.c.parentId,
+                instances: instanceIds.slice(0, 20), slots: slots.slice(0, 20),
+                ownerBefore: slots.slice(0, 20).map(s => {
+                    const idx = s < target.c.owner.length ? target.c.owner[s] : 0
+                    const node = target.c.table[idx]
+                    return { slot: s, nodeIdx: idx, pile: node?.group.name, leftover: node?.leftover }
+                }),
+            })
+        }
         this.overlay.release(target.c, slots)
         this.overlay.resync(target.c)
 
-        this.host.applySha1Piles()
+        // Only this bucket's piles were refilled, so only its groups can have a stale pile.
+        this.host.applySha1Piles(this.overlay.containerGroups(target.c))
         setOrder(this.host.result.root)
         this.host.buildOrdinalRanges()
         if (emit) this.host.emitResult()

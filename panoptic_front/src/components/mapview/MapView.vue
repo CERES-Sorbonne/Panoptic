@@ -6,6 +6,7 @@ import { useMediaStore } from '@/data/stores/mediaStore'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { generateColors, isTag } from '@/utils/utils'
 import { Group } from '@/core/group/types'
+import { isNoValue } from '@/core/group/valueParser'
 import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
@@ -146,7 +147,7 @@ function leafColor(group: Group, fallback: string) {
     if (!value) return fallback
     const property = data.properties[value.propertyId]
     if (!property || !isTag(property.type)) return fallback
-    if (value.value === undefined) return greyColor.color
+    if (isNoValue(value.value)) return greyColor.color
     return Colors[data.tags[value.value]?.color]?.color ?? fallback
 }
 
@@ -156,7 +157,7 @@ function leafName(group: Group, index: number) {
     if (!value) return `Group ${index + 1}`
     const property = data.properties[value.propertyId]
     if (!property) return `Group ${index + 1}`
-    if (isTag(property.type)) return value.value !== undefined ? (data.tags[value.value]?.value ?? 'undefined') : 'undefined'
+    if (isTag(property.type)) return !isNoValue(value.value) ? (data.tags[value.value]?.value ?? 'undefined') : 'undefined'
     return `${property.name}: ${value.value}`
 }
 

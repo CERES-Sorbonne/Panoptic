@@ -1,12 +1,18 @@
 /**
- * Temporary grouping diagnostics, for tracing a value edit from the data delta through to the
- * group tree. On by default; turn it off in the console with `window.__grpDebug = false`.
+ * Grouping diagnostics, for tracing a value edit from the data delta through to the group tree.
  *
- * Remove once the tag-removal regrouping issue is settled.
+ * Off in a production build, on in a dev build. Either way `window.__grpDebug` wins: set it to
+ * `true` in the console to turn the diagnostics on, or `false` to turn them off.
+ *
+ * The logs are costly to build, so a call whose argument walks slots or builds arrays belongs
+ * inside an `if (grpDebugOn())` block — `grpLog` returns early, but its argument is evaluated
+ * before the call.
  */
 
 export function grpDebugOn(): boolean {
-    return (window as any).__grpDebug !== false
+    const flag = (window as any).__grpDebug
+    if (typeof flag === 'boolean') return flag
+    return import.meta.env.DEV
 }
 
 export function grpLog(tag: string, data?: any) {

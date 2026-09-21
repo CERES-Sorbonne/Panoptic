@@ -176,6 +176,9 @@ function showModal() {
         const rowItem = props.item as RowLine
         iterator = props.manager.getImageIterator(rowItem.groupId, rowItem.index)
     }
+    // A recycled line can outlive its group; an invalid iterator has no slot, and the modal
+    // would open on nothing.
+    if (!iterator?.isValid) return
     panoptic.showModal(ModalId.IMAGE, iterator)
 }
 

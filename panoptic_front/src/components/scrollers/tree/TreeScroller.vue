@@ -392,8 +392,10 @@ function updateImageSelection(data: { id: number, value: boolean }, item: ImageL
 }
 
 function toggleGroupSelect(groupId: number) {
+    // isValid, not truthiness: getGroupIterator always returns an object, so a stale line
+    // pointing at a group a rebuild removed would pass `if (iterator)` and then throw.
     const iterator = props.manager.getGroupIterator(groupId)
-    if (iterator) props.manager.toggleGroupIterator(iterator, keyState.shift)
+    if (iterator.isValid) props.manager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 let _triggerHandle: ReturnType<typeof setTimeout> | undefined

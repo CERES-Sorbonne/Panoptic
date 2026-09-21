@@ -253,15 +253,14 @@ function closeGroup(groupId: number) {
 }
 
 function selectImage(groupId: number, imageIndex: number) {
-    // console.log(groupId, imageIndex)
+    // Recycled lines can outlive the group they point at; an invalid iterator has no slots.
     const iterator = props.manager.getImageIterator(groupId, imageIndex)
-    props.manager.toggleImageIterator(iterator, keyState.shift)
-    // props..toggleImageIterator(iterator, keyState.shift)
+    if (iterator.isValid) props.manager.toggleImageIterator(iterator, keyState.shift)
 }
 
 function selectGroup(groupId: number) {
     const iterator = props.manager.getGroupIterator(groupId)
-    props.manager.toggleGroupIterator(iterator, keyState.shift)
+    if (iterator.isValid) props.manager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 function clear() {
@@ -290,7 +289,14 @@ function measureScrollbar() {
 }
 
 onMounted(() => {
-    props.manager.clearCustomGroups(true)
+    // Build the first window here, like the other scrollers do (TreeScroller, ImageScroller).
+    // This used to be `manager.clearCustomGroups(true)`: the emit was what triggered the first
+    // compute, and dropping the clusters was how the grid avoided rendering nodes its old row
+    // model could not express. Both reasons are gone — `computeLines` walks the tree by
+    // children/slots and does not look at GroupType, so cluster nodes render as ordinary group
+    // rows. A view must not wipe collection state (the authored ClusterOverlay map) shared with
+    // the other pane just to draw itself.
+    computeLines()
     const el = scroller.value?.$el as HTMLElement | undefined
     el?.addEventListener('scroll', onScroll, { passive: true })
     if (el) {

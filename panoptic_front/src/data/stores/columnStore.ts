@@ -3,7 +3,7 @@ import { computed, markRaw, nextTick, reactive, ref } from 'vue'
 import { LoadResult, PropertyType } from '../models'
 import { apiStreamColumn, apiStreamInstanceBase, projectApi } from '../api/projectApi'
 import { EventEmitter } from '@/utils/utils'
-import { ColumnData, buildCSR, growColumn, makeColumn, propertyKind } from '../lib/columns'
+import { ColumnData, buildCSR, growColumn, makeColumn, propertyKind, stripTagIds } from '../lib/columns'
 
 export const useColumnStore = defineStore('columnStore', () => {
 
@@ -383,6 +383,29 @@ export const useColumnStore = defineStore('columnStore', () => {
         return _tagInvertedPromise[propId]
     }
 
+    /**
+     * Scrub deleted tag ids out of every loaded tag column. Returns the instance ids whose value
+     * changed, which is the dirty set the collections recompute from — see the `emptyTags`
+     * branch of dataStore.applyCommit for why a delete has to reach the columns at all.
+     */
+    function removeTagIds(tagIds: number[]): number[] {
+        if (!tagIds?.length) return []
+        const drop = new Set(tagIds)
+        const touched: number[] = []
+        for (const propIdStr of Object.keys(columnData)) {
+            const col = columnData[Number(propIdStr)]
+            if (col?.kind !== 'tag') continue
+            const slots = stripTagIds(col.sparse, slotCount, drop)
+            if (!slots.length) continue
+            // The CSR mirrors sparse, and the inverted index is keyed by tag id: both describe
+            // the column as it was before the scrub.
+            col.csr = undefined
+            for (const s of slots) touched.push(instanceIds[s])
+        }
+        for (const id of drop) delete tagInverted[id]
+        return touched
+    }
+
     function getFullyLoadedPropIds(): number[] {
         return Object.keys(fullColumnStatus).map(Number).filter(id => fullColumnStatus[id] === 'loaded')
     }
@@ -640,7 +663,7 @@ export const useColumnStore = defineStore('columnStore', () => {
 
         init, getRawBuffer, readSlot, writeSlot, isFetched, ensureColumn,
         addInstances, markSlotDeleted, clearCell, registerProperty,
-        requireFullColumn, requireTagInverted, getFullyLoadedPropIds,
+        requireFullColumn, requireTagInverted, getFullyLoadedPropIds, removeTagIds,
         isSelected, isSelectedId, select, deselect, selectIds, deselectIds,
         clearSelection, getSelectedIds, selectedCount,
         ensureNamespace, disposeNamespace, selectionTick,

@@ -5,6 +5,7 @@
  */
 import { PileData } from "../sha1Piles";
 import { Group, IteratorHost } from "./types";
+import { groupSlots } from "./groupSlots";
 
 export interface GroupIteratorOptions {
     ignoreClosed?: boolean
@@ -44,8 +45,11 @@ export class GroupIterator {
     // gone, any "next" we could offer would assert an adjacency that never existed and read to
     // the user as "these were side by side". Failing is the honest answer.
     get isCurrent(): boolean {
-        if (this.hostRev === this.manager.rev) return true
+        // isValid first: an iterator that never resolved describes no position at all, so it
+        // must answer false whatever the revision. The rev fast path only short-circuits
+        // iterators that DID resolve and were already verified at this revision.
         if (!this.isValid) return false
+        if (this.hostRev === this.manager.rev) return true
         if (this.manager.index[this.groupId] !== this.group) return false
         this.hostRev = this.manager.rev     // re-stamp so repeat checks are a single compare
         return true
@@ -66,6 +70,7 @@ export class GroupIterator {
     }
 
     nextGroup(): GroupIterator {
+        if (!this.isValid) return undefined
         let current = this.group
         // Descend into an open group's children — or any group's, when the walk is told to
         // ignore the open/closed state (prevGroup has always honoured that flag; forward
@@ -84,6 +89,7 @@ export class GroupIterator {
     }
 
     prevGroup(): GroupIterator {
+        if (!this.isValid) return undefined
         const current = this.group
         const prevSibling = current.parent?.children[current.parentIdx - 1]
         if (prevSibling) {
@@ -109,7 +115,11 @@ export class GroupIterator {
     // The three primitives below are the only things that differ between a group
     // walk and an image walk; ImageIterator overrides them so collectRange is shared.
     protected isBefore(it: GroupIterator): boolean { return this.isGroupBefore(it) }
-    protected rangeSlots(): number[] { return this.group.slots }
+    // groupSlots, not group.slots: a sub-clustered pile carries no slots of its own, so a closed
+    // one sitting inside a shift-select range used to contribute nothing. An OPEN one is also
+    // descended into by the walk, which repeats its leaves' slots here — harmless, the store
+    // writes each slot's mask entry idempotently.
+    protected rangeSlots(): number[] { return groupSlots(this.group) }
     protected advance(): GroupIterator { return this.nextGroup() }
 
     // Collect every slot from `this` to `other` inclusive, in display order, regardless
@@ -120,6 +130,9 @@ export class GroupIterator {
         const selected: number[] = []
         let it: GroupIterator = start
         while (it) {
+            // A hop that resolved to nothing ends the range: there is no position there to
+            // collect, and rangeSlots on an unresolved handle has nothing to read.
+            if (!it.isValid) break
             if (end.isBefore(it)) break
             for (const s of it.rangeSlots()) selected.push(s)
             it = it.advance()
@@ -182,9 +195,15 @@ export class ImageIterator extends GroupIterator {
     // construction, points at an image that has left. The whole `slots` array is compared, so a
     // sha1 pile whose membership changed also counts as "not the same image".
     override get isCurrent(): boolean {
-        if (this.hostRev === this.manager.rev) return true
+        // isValid before the rev fast path: an invalid ImageIterator has no `slots`/`slot`
+        // assigned, so it never describes an image position.
         if (!this.isValid) return false
+        if (this.hostRev === this.manager.rev) return true
         if (this.manager.index[this.groupId] !== this.group) return false
+        // A group that has gained children stopped displaying images itself — its leaves do.
+        // The node is the same object and keeps its slots (a clustered bucket does), so the
+        // identity check above still passes while this position no longer exists anywhere.
+        if (this.group.children.length) return false
         // Bounds first: getSlots() past the end would read undefined and compare as garbage.
         if (this.imageIdx >= this.positionCount(this.group)) return false
         const now = this.getSlots()
@@ -194,7 +213,11 @@ export class ImageIterator extends GroupIterator {
         return true
     }
 
+    // An image iterator at the start of `it`'s group, or undefined when there is no image
+    // there. An unresolved source has no `group` to read, so it is a dead end too rather than
+    // a throw — the same answer the invalid-result tail below gives.
     static fromGroupIterator(it: GroupIterator, options?: GroupIteratorOptions) {
+        if (!it?.isValid) return undefined
         const imageIt = new ImageIterator(it['manager'], it.group.id, 0, options)
         if (!imageIt.isValid) return undefined
         return imageIt
@@ -212,6 +235,10 @@ export class ImageIterator extends GroupIterator {
     nextGroup(): ImageIterator {
         let next = super.nextGroup()
         while (next) {
+            // A hop out of a node the current tree no longer holds: the base walk read the
+            // captured (stale) parent chain, so the id it produced resolves to nothing. Same
+            // answer as every other traversal off the tree — a dead end, not a throw.
+            if (!next.isValid) return undefined
             const group = next.group
             const shouldIterate = (!group.view.closed || this.options.ignoreClosed)
                 && !this.shouldSkipGroup(group)
@@ -227,6 +254,7 @@ export class ImageIterator extends GroupIterator {
     prevGroup(): ImageIterator {
         let prev = super.prevGroup()
         while (prev) {
+            if (!prev.isValid) return undefined
             const group = prev.group
             const shouldIterate = (!group.view.closed || this.options.ignoreClosed)
                 && !this.shouldSkipGroup(group)
@@ -239,6 +267,10 @@ export class ImageIterator extends GroupIterator {
     }
 
     nextImages(): ImageIterator {
+        // Same contract as nextGroup/prevGroup: an iterator that never resolved describes no
+        // position, so there is nothing after it. Without this the walk below reads
+        // positionCount(undefined) and throws.
+        if (!this.isValid) return undefined
         let current: ImageIterator = this
         let nextIdx = current.imageIdx + 1
         while (current) {
@@ -252,6 +284,7 @@ export class ImageIterator extends GroupIterator {
     }
 
     prevImages(): ImageIterator {
+        if (!this.isValid) return undefined
         // No clone: the walk only ever READS current and reassigns it, so cloning just added
         // an allocation per step to a loop that runs once per image.
         let current: ImageIterator = this

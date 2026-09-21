@@ -26,11 +26,23 @@ export class GroupValueIndex {
     }
 
     delete(valueKey: any[]) {
+        // Remember the node each step came from, so the empty ones can be dropped on the way
+        // back up: removing only the `null` leaf left the whole chain of Maps minted for this
+        // key alive, one node per distinct value ever seen.
+        const path: { map: Map<any, any>, value: any }[] = []
         let idx = this.index
         for (const value of valueKey) {
             if (!idx.has(value)) return
+            path.push({ map: idx, value })
             idx = idx.get(value)
         }
         idx.delete(null)
+        // Stop at the first node that still holds something — a sibling key sharing this
+        // prefix, or a deeper key below it — so pruning one key never touches another.
+        for (let i = path.length - 1; i >= 0; i--) {
+            const { map, value } = path[i]
+            if (map.get(value).size > 0) break
+            map.delete(value)
+        }
     }
 }

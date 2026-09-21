@@ -24,7 +24,7 @@ import { usePanopticStore } from './panopticStore'
 import { SERVER_PREFIX } from '../api/panopticApi'
 import { useColumnStore } from './columnStore'
 import { useInstanceStore } from './instanceStore'
-import { grpLog, few } from '@/utils/debugGroup';
+import { grpLog, grpDebugOn, few } from '@/utils/debugGroup';
 
 export interface ChangePayload {
     propIds:     number[]
@@ -44,6 +44,9 @@ export const useDataStore = defineStore('dataStore', () => {
     const propertyOrder  = shallowRef<PropertyGroupOrder>(buildPropertyGroupOrder())
     const propertyTree   = ref<PropertyGroupNode[]>([])
     const history        = ref<CommitHistory>({ undo: [], redo: [] })
+    // Several edits in a row each refresh the history. Only the newest answer counts:
+    // an older one landing last would put the stacks back to before the last commit.
+    let historyRequest   = 0
     const baseImgUrl     = shallowRef('')
     const baseUrl        = shallowRef('')
 
@@ -181,7 +184,8 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(propertyGroups)
 
         if (dirtyInstances.size > 0 || dirtyPropIds.size > 0) {
-            grpLog('1 · dataStore emits dirty', { count: dirtyInstances.size, instances: few(dirtyInstances), props: few(dirtyPropIds) })
+            // grpLog early-returns, but its arguments are still evaluated — and few() allocates.
+            if (grpDebugOn()) grpLog('1 · dataStore emits dirty', { count: dirtyInstances.size, instances: few(dirtyInstances), props: few(dirtyPropIds) })
             // Emit a Set (the contract every listener is typed against) built as a COPY:
             // dirtyInstances is cleared right after, and listeners may hold on to / narrow
             // the payload, so they must never share this store's own set.
@@ -213,6 +217,19 @@ export const useDataStore = defineStore('dataStore', () => {
                 tags.value[id].value = deletedName
             }
             _rebuildTagTrees(touched)
+            // The delete is SOFT on purpose: the tag object stays under its id in
+            // property.tags, so anything still holding that id — a group minted before this
+            // commit, a badge mid-render — resolves to a label instead of to undefined. That
+            // is what keeps the frames between here and the recompute from throwing.
+            //
+            // But the loaded columns still name the tag, and a value naming a tag that no
+            // longer exists is wrong data: the tree keeps a group for it, drawn with a
+            // tombstone label, until something recomputes — and nothing did, because a tag
+            // delta carries no value chunk (the junction rows do not change), so the dirty set
+            // came back empty. Scrub the columns and mark those instances, and the collections
+            // retire the group on the very next update.
+            for (const id of columnStore.removeTagIds(commit.emptyTags)) dirtyInstances.add(id)
+            for (const propId of touched) dirtyPropIds.add(propId)
         }
         if (commit.emptyInstances) {
             for (const id of commit.emptyInstances) {
@@ -445,6 +462,7 @@ export const useDataStore = defineStore('dataStore', () => {
         propertyTree.value   = []
         propertyOrder.value  = buildPropertyGroupOrder()
         history.value        = { undo: [], redo: [] }
+        historyRequest++     // drop an in-flight history answer from the closed project
 
         onChange.clear()
         dirtyInstances.clear()
@@ -528,6 +546,10 @@ export const useDataStore = defineStore('dataStore', () => {
             // Instance (structural) deletes are not delta-synced → full reload.
             if (delRes?.reload) location.reload()
         }
+        // The write created a commit server-side. Nothing pushes the new stacks back
+        // (neither the response nor the db_update delta carries them), so refresh them
+        // here or undo stays disabled until the next reload.
+        if (hasUpsert || hasDelete) await getHistory()
         return res
     }
 
@@ -573,6 +595,7 @@ export const useDataStore = defineStore('dataStore', () => {
         const commit = await apiMergeTags(tagIds)
         applyCommit(commit)
         applyValuesToColumnStore(commit.instanceValues, commit.imageValues)
+        await getHistory()
     }
 
     async function addProperty(name: string, type: PropertyType, mode: PropertyMode, group?: number): Promise<Property> {
@@ -804,7 +827,10 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function getHistory() {
-        history.value = await apiGetHistory()
+        const request = ++historyRequest
+        const res = await apiGetHistory()
+        if (request !== historyRequest) return
+        history.value = res
     }
 
     async function deleteEmptyClones() {

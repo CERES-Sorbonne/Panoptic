@@ -10,7 +10,12 @@ The split itself held up. What did not was its *adoption*: the facade was half-w
 extracted mechanism was inert, and the incremental (`updateSelection`) path had drifted out
 of agreement with the full-rebuild (`group()`) path in several places.
 
-Everything below is a fix already applied. Open decisions are collected at the end.
+Everything below is a fix already applied. **Historical record:** the cluster half was
+rebuilt again after this audit, so the paragraphs that name `ClusterManager.reconcile`,
+`reapplyAfter`, `attachCustomGroups` or a `customGroups` registry describe code that no
+longer exists — they are annotated where that matters. `collection_inspection_mission.md`
+§*What the cluster half actually is now* has the current structure. The *"Left open"* list
+at the end is superseded by **Open work** in `README.md`.
 
 ---
 
@@ -38,16 +43,18 @@ never had the changed slot removed — while `addInstanceToGroups` re-added it a
 level. An image whose first-level value changed stayed counted in its old first-level group,
 and repeated edits piled duplicates into `slots`.
 
-That array is not internal bookkeeping: counts, `collectSlots`, the cluster cards'
-representative image and the map view all read it.
+That array is not internal bookkeeping: counts, `groupSlots` (called `collectSlots` at the
+time), the cluster cards' representative image and the map view all read it.
 
 **Fix.** After collecting the dirty leaves, `updateSelection` walks `.parent` up from each and
 marks the whole chain. Single-level and ungrouped collections are unaffected (their leaves'
 only ancestor is the root, which was already dirty).
 
-A welcome side effect: the empty bucket of a clustered view is now reliably dirty, so
-`ClusterManager.reconcile` sees an accurate `parent.slots` and the queue-drain reflow of
-`cluster_view_goals.md` D5 behaves as documented.
+A welcome side effect: the empty bucket of a clustered view is now reliably dirty, so the
+pile refill sees an accurate `parent.slots` and the queue-drain reflow of
+`cluster_view_goals.md` D5 behaves as documented. *(That refill was
+`ClusterManager.reconcile` when this was written; it is `ClusterOverlay.resyncDirty` now,
+gated on the same dirty group ids — the reasoning is unchanged.)*
 
 ## 3. `updateSelection` could unregister the root
 
@@ -140,18 +147,23 @@ sort ordered, in arrival order.
   deeper subtree stayed in `result.index` as unreachable orphans — still walked by every
   `objValues(index)` sweep and still resolvable by `getGroupIterator(id)`. It now detaches the
   whole subtree (index, `valueIndex`, `pileIndex`, `imageToGroups`).
-- **`reapplyAfter` could destroy a property level.** It replays clusters through
+- **`reapplyAfter` could destroy a property level.** It replayed clusters through
   `setChildGroup`, which *replaces* the parent's children — so re-grafting onto a group that
-  had since gained property sub-groups would delete that level. Now leaf-only. (Nested replay
-  is unaffected: a cluster's own children are grafted while it is still a leaf.) This was
+  had since gained property sub-groups would delete that level. Made leaf-only. This was
   previously masked only by `setGroupOption`/`delGroupOption` calling `clusters.clear()`.
+  *(Obsolete: there is no replay. The same hazard is now handled by
+  `ClusterOverlay.resync`, which detects `hasForeignChildren` — a bucket whose children are
+  a property level rather than this container's piles — and leaves the tree alone, parking
+  the container until the bucket is a leaf again.)*
 - **Two disagreeing `subGroupType` rules.** `setChildGroup`/`addChildGroup` took
   `children[0].type`; `groupOps.refreshSubGroupType` required all children to agree. A mixed
   level could therefore be labelled `Property`, and `sortGroups` would then dereference
   `meta.propertyValues[0].propertyId` on a Cluster child. Both paths now use
   `refreshSubGroupType` (exported for the purpose).
 - **`delCustomGroups` dereferenced a possibly-absent group**; the registry can outlive the
-  tree node. It now drops the record and returns.
+  tree node. It now drops the record and returns. *(Still true in spirit: a
+  `ClusterContainer` outlives its bucket, and `delCustomGroups` resolves the container and
+  returns when there is none.)*
 - **`deactivate()` left a debounced reload armed**, so a timer set while visible still fired
   after the tab was hidden. Activation goes through a new `CollectionManager.setActive()`
   that cancels it.
@@ -173,16 +185,38 @@ materialises on read via `ensureOrderedIds()` (also exposed on `IteratorHost`, s
 
 ### `applySha1Piles` can be scoped
 
-It rebuilt the pile overlay for the entire tree on every edit. It now takes an optional
-`only?: Iterable<Group>`; `moveImagesToGroup` and `drain` pass the two leaves they actually
-touched. Detached or no-longer-leaf groups have their entry dropped, so scoping stays
-self-healing. With sha1Mode off it no longer reallocates the map for nothing.
+It rebuilt the pile overlay for the entire tree on every edit. It takes an optional
+`only?: Iterable<Group>` — but when this was written both `moveImagesToGroup` and `drain`
+called it with **nothing**, so the claim that they "pass the two leaves they actually
+touched" was false. It is real now, and the unit is not two leaves.
+
+The scope is **`ClusterOverlay.containerGroups(c)`**: for each container the edit resynced,
+the bucket itself plus **every group in its node table** — live, dead and detached. That is
+the right set because a `resync` refills *all* of the container's piles from the authored
+map, not just the two the caller named; and including the dead and detached nodes is what
+makes the scoped pass *drop* their stale `pileIndex` entries instead of leaving them behind.
+
+Every structural op passes it: `addCustomGroups`, `delCustomGroups`, `merge`, `deleteGroup`
+and `ClusterManager.drain` pass `containerGroups(c)` for the container they touched;
+`moveImagesToGroup` passes the union over both containers plus the named `from`/`to` groups
+(either may be an ordinary group rather than a pile). `clearCustomGroups` deliberately
+passes **nothing** — it drops every container, so a full rebuild of the overlay is the
+correct scope.
+
+Detached or no-longer-leaf groups have their entry dropped, so scoping stays self-healing.
+With sha1Mode off it no longer reallocates the map for nothing.
+
+**Still unscoped:** `updateSelection` calls `applySha1Piles()` with no argument, so the
+incremental path still sweeps the whole tree once per update (see `README.md` §Open work).
 
 ### Other
 
 - `reapplyAfter` used to pay a full `applySha1Piles` + `setOrder` **per re-grafted bucket**,
-  immediately before `group()` did all of it once. New `groupOps.attachCustomGroups` attaches
-  without finalising; `addCustomGroups` is now that plus the finalisation.
+  immediately before `group()` did all of it once. A new attach-without-finalising helper
+  split the two. *(The shape survives the rebuild under different names: `groupOps` has one
+  `finalise(host, emit, touched)` — `applySha1Piles` + `setOrder` + `buildOrdinalRanges` +
+  the optional emit — and `applyClusterGroups` does the attach without it, with
+  `addCustomGroups` being that plus `finalise`. `attachCustomGroups` itself is gone.)*
 - `CollectionManager.update()` writes slots straight into a pre-allocated `Int32Array`
   instead of a boxed `number[]` plus copy (it hands `FilterManager` an exactly-sized array,
   since `lastSlots` is retained).
@@ -233,7 +267,12 @@ Still typed against `GroupManager`: `GroupForm` (`ContentFilter`, `FilterPanel`)
 
 ---
 
-## Left open — these need a decision
+## Left open — these need a decision (superseded)
+
+> **Superseded.** Kept as the record of what this audit left behind. The current list is
+> **Open work** in `README.md`. Item by item: iterator invalidation was **deleted**, not
+> wired; all four "dead API" entries are **gone** from the group system; the other three
+> are still open and restated in the README.
 
 - **Iterator invalidation is inert.** `GroupIterator` only registers itself when
   `options.register` is true, and nothing ever passes it — so `invalidateIterators()`, called
@@ -252,3 +291,11 @@ Still typed against `GroupManager`: `GroupForm` (`ContentFilter`, `FilterPanel`)
 - **Whole-dataset line construction**: `TreeScroller` builds an `ImageIterator` per image and
   `GridScroller` a line object per image, for the entire collection, on every version bump.
   Both are virtualised only *after* that. See `tree_scroller_computelines_optimization.md`.
+
+---
+
+Also worth knowing, found after this audit and not fixed here: `orderSlots` still walks the
+whole of a dirty group's slot array to *check* that it is ordered even when nothing was
+appended, which for the root is the whole collection once per update. And
+`ImageIterator.fromGroupIterator` reads `it.group.id` before constructing, so an invalid
+source iterator throws instead of returning `undefined`. Both are in `README.md` §Open work.

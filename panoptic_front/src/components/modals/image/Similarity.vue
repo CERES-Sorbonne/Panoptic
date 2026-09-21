@@ -4,8 +4,8 @@
 // This is a flat, pre-ordered, throwaway list — no grouping, no sorting state, no clustering.
 // So it holds no GroupManager: the state is a plain instance array plus a per-slot score map,
 // rendered by the groupless ImageScroller. (It used to build a one-root GroupManager tree and
-// push it in with setAsRoot, which meant every read of that non-reactive tree needed the
-// version/emit contract to be observed by hand.)
+// push it in as that manager's root, which meant every read of that non-reactive tree needed
+// the version/emit contract to be observed by hand.)
 import { ActionResult, Instance, ScoreInterval } from '@/data/models';
 import { SelectedImages } from '@/core/GroupManager';
 import { useColumnStore } from '@/data/stores/columnStore';

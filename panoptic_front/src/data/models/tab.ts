@@ -24,9 +24,11 @@ export interface ScoreInterval {
 export type ViewType = 'tree' | 'grid' | 'graph' | 'map' | 'reco' | 'group' | 'cluster'
 
 /**
- * Per-view display state (Pillar F). A tab holds a fixed pair of views; the
- * collection pipeline (filter/sort/group) is shared at the tab level, while
- * each view owns only its display options.
+ * Per-view display state (Pillar F). A tab holds a fixed pair of views and a list of
+ * CollectionConfigs; each view names the one it renders through `collectionId` (M4 —
+ * multiple collections per tab). Two views may name the same config, and then share one
+ * filter/sort/group pipeline; otherwise each has its own. Everything else here is display
+ * options the view owns alone.
  */
 export interface ViewState {
     type: ViewType

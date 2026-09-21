@@ -4,6 +4,7 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import { ClusterLine, GroupViewMode, MOSAIC_GRID, mosaicSlotCount } from '@/components/scrollers/types'
 import { ClusterRequest, Group, GroupType } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
+import { isNoValue } from '@/core/group/valueParser'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { useDataStore } from '@/data/stores/dataStore'
 import CenteredImage from '@/components/images/CenteredImage.vue'
@@ -12,6 +13,7 @@ import ClusterPropertyInput from './ClusterPropertyInput.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils'
+import { clusterErrorText } from '@/core/group/ClusterManager'
 
 // Height reserved below each card's image for the typed property-input row. Must match the
 // per-line `size` reserved in ClusterScroller.computeLines.
@@ -118,10 +120,17 @@ function clusterName(group: Group) {
     return group.name ?? ('Cluster ' + group.parentIdx)
 }
 
-// A cluster card: a real Cluster group — a sub-cluster of the parent, or the "New" leftover pile
-// of images not covered by any cluster. Property value-groups carry their value in the input row.
+// A cluster card: a real Cluster group — a sub-cluster of the parent, or the "No cluster"
+// leftover pile of images no pile of its level covers. Property value-groups carry their value
+// in the input row.
 function isClusterCard(group: Group) {
     return group.type === GroupType.Cluster
+}
+
+// The leftover pile is not an authored cluster: nobody made it, it is what its level did not
+// name. Its title is muted so it reads as the remainder rather than as one more pile.
+function isLeftoverCard(group: Group) {
+    return group.isLeftover === true
 }
 
 // This card stands in for a whole closed subtree: opening it swaps the card for its children.
@@ -156,6 +165,12 @@ function cluster(groupId: number, req: ClusterRequest) {
     props.manager.cluster(groupId, req)
 }
 
+// A run that failed stops the spinner and leaves nothing on screen, so the card says why.
+function clusterFailed(groupId: number) {
+    const error = props.manager.clusterError(groupId)
+    return error ? `Clustering failed: ${clusterErrorText(error)}` : undefined
+}
+
 // The images a card shows. A pile that has been sub-clustered holds none itself — its images
 // live in its sub-piles — so the cluster overlay records the count it should display.
 function imageCount(group: Group) {
@@ -182,8 +197,7 @@ function inheritedValue(group: Group, tpid: number): any {
             const pv = g.meta?.propertyValues?.[0]
             if (pv && pv.propertyId === tpid) {
                 // NaN is how a numeric "no value" group keys itself — undecided, like null/''.
-                if (pv.value === null || pv.value === undefined || pv.value === ''
-                    || (typeof pv.value === 'number' && isNaN(pv.value))) return undefined
+                if (isNoValue(pv.value)) return undefined
                 // Tag properties store an id array; a value-group's key value is a single tag id.
                 return isTag(data.properties?.[tpid]?.type) ? [pv.value] : pv.value
             }
@@ -290,16 +304,18 @@ function groupScore(group: Group): number | null {
                         class="cc-select"
                         :light-mode="true"
                     />
-                    <!-- Title only for clusters (incl. the "New" leftover pile of images not covered
-                         by any cluster). Property value-groups — including the null-value "no value"
+                    <!-- Title only for clusters (incl. the "No cluster" leftover pile of images no
+                         pile covers). Property value-groups — including the null-value "no value"
                          group — are real groups that carry their value in the input row, so no title. -->
-                    <span v-if="isClusterCard(entry.group)" class="cc-name">{{ clusterName(entry.group) }}</span>
+                    <span v-if="isClusterCard(entry.group)" class="cc-name"
+                        :class="{ 'cc-name-leftover': isLeftoverCard(entry.group) }">{{ clusterName(entry.group) }}</span>
                     <ClusterBadge v-if="groupScore(entry.group) != null" class="cc-score"
                         :value="groupScore(entry.group)" />
                 </div>
 
                 <!-- Hover action pill, centered over the image: subdivide · inspect · clear. -->
-                <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop>
+                <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop
+                    :title="clusterFailed(entry.group.id)">
                     <ActionButton2 action="group" :no-border="true" :defer="true"
                         :busy="props.manager.isClustering(entry.group.id)"
                         @submit="req => cluster(entry.group.id, req)">
@@ -627,6 +643,14 @@ function groupScore(group: Group): number | null {
     font-size: 11px;
     color: #fff;
     cursor: text;
+}
+
+/* The leftover pile: same title slot, de-emphasised, so it reads as the remainder of its level
+   rather than as one more authored pile. */
+.cc-name-leftover {
+    font-weight: 400;
+    font-style: italic;
+    opacity: 0.75;
 }
 
 /* Score badge, top-right on the title line — same color code as the tree view's ClusterBadge. */

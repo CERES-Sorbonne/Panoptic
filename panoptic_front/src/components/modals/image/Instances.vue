@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 // Own GroupManager — not shared with Similarity to avoid async race conditions
-// when both views write to the same manager (sha1Mode, setAsRoot, group).
+// when both views write to the same manager (sha1Mode, group).
 const manager = new GroupManager()
 
 const properties = computed(() => {

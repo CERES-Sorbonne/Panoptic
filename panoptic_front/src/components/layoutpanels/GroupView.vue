@@ -10,6 +10,7 @@ import SplitLayout from '@/layouts/SplitLayout.vue'
 import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
 import { Group, GroupType } from '@/core/GroupManager'
 import { groupSlots } from '@/core/group/groupOps'
+import { isNoValue } from '@/core/group/valueParser'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
 import { ClusterOptions, Instance, Property } from '@/data/models'
@@ -111,7 +112,9 @@ const targetPropertyIds = computed<number[]>(() => {
 function isEmptyBucketGroup(g: Group): boolean {
     if (g.type !== GroupType.Property) return false
     const pv = g.meta?.propertyValues?.[0]
-    return !!pv && (pv.value === null || pv.value === undefined || pv.value === '')
+    // isNoValue also covers NaN, the key a numeric "no value" group used to get: the parsers now
+    // key it as undefined, but a tree built before that can still hold one.
+    return !!pv && isNoValue(pv.value)
 }
 
 // ---- Clustering ------------------------------------------------------------------------------
@@ -359,8 +362,7 @@ function inheritedValue(g?: Group): any {
             const pv = cur.meta?.propertyValues?.[0]
             if (pv && pv.propertyId === tpid) {
                 // NaN is how a numeric "no value" group keys itself — undecided, like null/''.
-                if (pv.value === null || pv.value === undefined || pv.value === ''
-                    || (typeof pv.value === 'number' && isNaN(pv.value))) return undefined
+                if (isNoValue(pv.value)) return undefined
                 return isTag(data.properties?.[tpid]?.type) ? [pv.value] : pv.value
             }
         }

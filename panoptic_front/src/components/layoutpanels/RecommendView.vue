@@ -15,6 +15,7 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import RecoPanel from '@/components/layoutpanels/RecoPanel.vue'
 import GroupSelect from '@/components/layoutpanels/GroupSelect.vue'
 import { Group, GroupType } from '@/core/GroupManager'
+import { isNoValue } from '@/core/group/valueParser'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
 import {
@@ -47,7 +48,7 @@ const emit = defineEmits(['close'])
 function isEligible(g: Group): boolean {
     const hasImages = g.slots.length > 0
     const hasSubgroups = g.children.length > 0
-    const someValue = (g.meta.propertyValues ?? []).some(v => v.value != undefined)
+    const someValue = (g.meta.propertyValues ?? []).some(v => !isNoValue(v.value))
     return hasImages && !hasSubgroups && g.type != GroupType.Cluster && someValue
 }
 

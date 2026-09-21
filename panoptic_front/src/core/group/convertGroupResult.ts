@@ -15,7 +15,6 @@ function _idsToSlots(ids: number[]): number[] {
 }
 
 export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext, funcInfo?: { function: string, inputs: ClusterParam[] }) {
-    console.log(funcInfo)
     const col = useColumnStore()
     const sha1Index: { [sha1: string]: number[] } = {}
     for (const id of ctx.instanceIds) {

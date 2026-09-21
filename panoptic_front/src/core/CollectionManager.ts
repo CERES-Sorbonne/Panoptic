@@ -13,7 +13,7 @@ import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/stores/dataStore";
 import { useColumnStore } from "@/data/stores/columnStore";
 import { Reactive, reactive, watch, WatchStopHandle } from "vue";
-import { grpLog, few } from '@/utils/debugGroup';
+import { grpLog, grpDebugOn, few } from '@/utils/debugGroup';
 
 export interface RunCollectionState {
     isDirty: boolean
@@ -170,11 +170,12 @@ export class CollectionManager implements GroupInspector {
     // the run, so the result lands even if the button that started it is long unmounted.
     cluster(targetGroupId: number, req: ClusterRequest) { return this.groupManager.cluster(targetGroupId, req) }
     isClustering(groupId: number) { return this.groupManager.isClustering(groupId) }
+    clusterError(groupId: number) { return this.groupManager.clusterError(groupId) }
     get onCluster() { return this.groupManager.clusters.onCluster }
 
     split(groupId: number, groups: Group[], emit = true) { return this.groupManager.split(groupId, groups, emit) }
     merge(groupIds: number[], emit = true) { return this.groupManager.merge(groupIds, emit) }
-    delete(groupId: number, emit = true) { return this.groupManager.delete(groupId, emit) }
+    deletePile(groupId: number, emit = true) { return this.groupManager.deletePile(groupId, emit) }
     // Cluster the empty bucket (adds a real leftover group) / drain an assigned pile — O(delta).
     clusterEmptyBucket(bucketId: number, groups: Group[], emit = true) { return this.groupManager.clusters.clusterEmptyBucket(bucketId, groups, emit) }
     drainCluster(groupId: number, instanceIds: number[], emit = true) { return this.groupManager.clusters.drain(groupId, instanceIds, emit) }
@@ -186,15 +187,21 @@ export class CollectionManager implements GroupInspector {
 
     async setDirty(instanceIds?: Set<number>) {
         this.runState.isDirty = true
-        grpLog('2 \u00b7 collection.setDirty', {
-            count: instanceIds?.size ?? 'all', instances: few(instanceIds),
-            active: this.runState.active, autoReload: this.state.autoReload,
-        })
+        if (grpDebugOn()) {
+            grpLog('2 \u00b7 collection.setDirty', {
+                count: instanceIds?.size ?? 'all', instances: few(instanceIds),
+                active: this.runState.active, autoReload: this.state.autoReload,
+            })
+        }
         if (!this.runState.active) return
 
         // Narrow to the selection on a copy: the payload is shared with every other
         // collection listening to the same data change, so it must never be mutated here.
         let dirty = instanceIds
+        // Narrowing to the selection is one-way ON PURPOSE: a deselected image keeps its place
+        // instead of being filtered out mid-edit. This mode is the selection modal's, where the
+        // point is fine control over what is selected without the view moving under the cursor.
+        // The full path (update(), below) does filter it out, which is the intended catch-up.
         if (dirty && this.state.filterBySelection) {
             const col = useColumnStore()
             const kept = new Set<number>()
@@ -205,10 +212,12 @@ export class CollectionManager implements GroupInspector {
         if (this.state.autoReload) {
             if (dirty) {
                 const filterUpdate = await this.filterManager.updateSelection(dirty)
-                grpLog('3 \u00b7 filter.updateSelection', {
-                    updated: few(filterUpdate.updated), updatedCount: filterUpdate.updated.size,
-                    removed: few(filterUpdate.removed), removedCount: filterUpdate.removed.size,
-                })
+                if (grpDebugOn()) {
+                    grpLog('3 \u00b7 filter.updateSelection', {
+                        updated: few(filterUpdate.updated), updatedCount: filterUpdate.updated.size,
+                        removed: few(filterUpdate.removed), removedCount: filterUpdate.removed.size,
+                    })
+                }
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 if (this.groupManager.result.root) {
                     this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
