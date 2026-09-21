@@ -28,6 +28,13 @@
                 "import_button": "Import"
             },
             "version_tooltip": "Display debug info of panoptic",
+            "convert": {
+                "outdated": "Created with an older version of Panoptic",
+                "incompatible": "Cannot be opened by this version of Panoptic",
+                "missing": "Project folder not found",
+                "running": "Converting…",
+                "confirm": "Convert \"{name}\" to the current format?\n\nA backup of the old data is kept in the project folder. The undo history is not kept."
+            },
             "legacy": {
                 "banner": "Projects from an older version were found",
                 "banner_button": "Convert"

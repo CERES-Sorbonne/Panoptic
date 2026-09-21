@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import FileResponse, Response
 
+from panoptic.core.project.conversion import STATUS_OK, check_project
 from panoptic.routes.deps import get_panoptic, get_server, set_dependencies   # re-export
 
 panoptic_router = APIRouter()
@@ -155,7 +156,21 @@ async def import_project_route(req: ProjectImportRequest, request: Request):
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
-    await get_server()._load_project(key.id, connection_id)
+    # an outdated project stays registered and is offered for conversion on the home page
+    if check_project(key.path).status == STATUS_OK:
+        await get_server()._load_project(key.id, connection_id)
+    else:
+        await get_server()._emit_update_projects()
+    return _json(get_panoptic().get_projects_state())
+
+
+@panoptic_router.post('/convert_project')
+async def convert_project_route(req: ProjectLoadRequest):
+    try:
+        await anyio.to_thread.run_sync(lambda: get_panoptic().convert_project(req.id))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    await get_server()._emit_update_projects()
     return _json(get_panoptic().get_projects_state())
 
 

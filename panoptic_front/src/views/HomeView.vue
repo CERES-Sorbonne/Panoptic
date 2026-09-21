@@ -3,6 +3,7 @@ import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
@@ -18,6 +19,7 @@ import NotifModal from '@/components/modals/NotifModal.vue';
 import LegacyImportModal from '@/components/modals/LegacyImportModal.vue';
 
 const panoptic = usePanopticStore()
+const { t } = useI18n()
 
 const menuMode = ref(0) // 0 options 1 create
 const showPluginForm = ref(false)
@@ -26,6 +28,15 @@ const show = ref(true)
 const langs = ['fr', 'en']
 
 const hasProjects = computed(() => panoptic.projects.length > 0)
+// Seuls les projets compatibles s'ouvrent. Les autres sont listés grisés en dessous,
+// avec un bouton de conversion quand c'est possible.
+const sortedProjects = computed(() => [
+    ...panoptic.projects.filter(p => isCompatible(p)),
+    ...panoptic.projects.filter(p => !isCompatible(p)),
+])
+// Projets 0.x trouvés par le scan: grisés eux aussi, convertis via LegacyImportModal
+const legacyProjects = computed(() => panoptic.hasLegacyProjects ? panoptic.legacyProjects : [])
+const showProjectMenu = computed(() => hasProjects.value || legacyProjects.value.length > 0)
 
 // Cas classique de mise à jour: aucun projet récent mais plusieurs anciens.
 // La proposition de migration passe donc avant FirstModal et le tutoriel.
@@ -44,6 +55,20 @@ const usePlugins = computed(() => {
     })
     return res
 })
+
+function isCompatible(project: ProjectRef) {
+    return !project.status || project.status == 'ok'
+}
+
+function openProject(project: ProjectRef) {
+    if (!isCompatible(project)) return
+    panoptic.loadProject(project.id)
+}
+
+async function convertProject(project: ProjectRef) {
+    if (!window.confirm(t('main.home.convert.confirm', { name: project.name }))) return
+    await panoptic.convertProject(project.id)
+}
 
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
@@ -116,8 +141,8 @@ watch(() => [panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjec
     }
 }, { immediate: true })
 
-function openLegacyModal() {
-    panoptic.showModal(ModalId.LEGACY)
+function openLegacyModal(legacyPath?: string) {
+    panoptic.showModal(ModalId.LEGACY, legacyPath ? { legacyPath } : undefined)
 }
 
 </script>
@@ -133,12 +158,25 @@ function openLegacyModal() {
         <NotifModal />
 
         <div class="window2 d-flex ">
-            <div v-if="hasProjects" class="project-menu">
-                <div v-for="project in panoptic.projects" class="d-flex">
-                    <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.id)">
+            <div v-if="showProjectMenu" class="project-menu">
+                <div v-for="project in sortedProjects" :key="project.id" class="d-flex"
+                    :class="{ 'old-project': !isCompatible(project) }">
+                    <div class="project flex-grow-1 overflow-hidden" @click="openProject(project)"
+                        :title="project.problem ?? ''">
                         <h5 class="m-0">{{ project.name }}</h5>
                         <div class="m-0 p-0 text-wrap text-break dimmed-2" style="font-size: 13px;">{{
                             correctHyphen(project.path) }}</div>
+                        <template v-if="!isCompatible(project)">
+                            <div style="font-size: 12px;">{{ $t('main.home.convert.' + project.status) }}</div>
+                            <span v-if="project.status == 'outdated'" class="legacy-banner-btn legacy-convert"
+                                :class="{ converting: panoptic.convertingProjects.includes(project.id) }"
+                                @click.stop="convertProject(project)">
+                                <template v-if="panoptic.convertingProjects.includes(project.id)">
+                                    <i class="bi bi-hourglass-split me-1"></i>{{ $t('main.home.convert.running') }}
+                                </template>
+                                <template v-else>{{ $t('main.home.legacy.banner_button') }}</template>
+                            </span>
+                        </template>
                     </div>
                     <div class="project-option flex-shrink-0">
                         <Dropdown>
@@ -165,9 +203,22 @@ function openLegacyModal() {
 
                     </div>
                 </div>
+                <div v-for="project in legacyProjects" :key="project.legacyPath" class="d-flex legacy-project">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <h5 class="m-0">{{ project.name }}</h5>
+                        <div class="m-0 p-0 text-wrap text-break" style="font-size: 13px;">{{
+                            correctHyphen(project.legacyPath) }}</div>
+                        <div style="font-size: 12px;">{{ $t('main.home.convert.outdated') }}</div>
+                    </div>
+                    <div class="flex-shrink-0 align-self-center">
+                        <span class="legacy-banner-btn legacy-convert" @click="openLegacyModal(project.legacyPath)">
+                            {{ $t('main.home.legacy.banner_button') }}
+                        </span>
+                    </div>
+                </div>
             </div>
             <div class="flex-grow-1">
-                <div v-if="hasLegacyProjects" class="legacy-banner" @click="openLegacyModal">
+                <div v-if="hasLegacyProjects" class="legacy-banner" @click="openLegacyModal()">
                     <i class="bi bi-box-arrow-in-down me-1"></i>
                     <b>{{ $t('main.home.legacy.banner', { count: panoptic.legacyProjects.length }) }}</b>
                     <span class="legacy-banner-btn ms-2">{{ $t('main.home.legacy.banner_button') }}</span>
@@ -313,6 +364,36 @@ function openLegacyModal() {
     text-align: left;
     cursor: pointer;
     color: rgb(45, 45, 45);
+}
+
+.old-project .project {
+    cursor: default;
+    color: rgb(150, 150, 150);
+}
+
+.old-project .project:hover {
+    background-color: transparent;
+}
+
+.old-project .legacy-convert {
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.legacy-convert.converting {
+    background-color: rgb(200, 200, 200);
+    cursor: default;
+}
+
+.legacy-project {
+    padding: 10px;
+    margin-right: 15px;
+    color: rgb(150, 150, 150);
+}
+
+.legacy-convert {
+    cursor: pointer;
+    white-space: nowrap;
 }
 
 .legacy-banner-btn {

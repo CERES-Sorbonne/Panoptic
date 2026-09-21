@@ -22,7 +22,12 @@ const errorMessage = ref('')
 const showWarnings = ref(false)
 
 const scan = computed(() => panoptic.legacyScan)
-const projects = computed(() => panoptic.legacyProjects)
+// ouvert depuis le bouton d'un projet de la liste: on n'affiche que celui-là
+const focusPath = computed<string | undefined>(() => modalStore.getData(ModalId.LEGACY)?.legacyPath)
+const projects = computed(() => {
+    if (!focusPath.value) return panoptic.legacyProjects
+    return panoptic.legacyProjects.filter(p => p.legacyPath == focusPath.value)
+})
 const run = computed(() => panoptic.legacyMigration)
 const isRunning = computed(() => panoptic.isMigrationRunning)
 const isDone = computed(() => run.value?.status == 'done')
@@ -83,7 +88,7 @@ async function migrate(project: LegacyProject) {
 
 async function dismiss(project?: LegacyProject) {
     await panoptic.dismissLegacy(project?.legacyPath)
-    if (!panoptic.legacyProjects.length) hide()
+    if (!projects.value.length) hide()
 }
 
 function openReport() {

@@ -28,6 +28,13 @@
                 "import_button": "Importer"
             },
             "version_tooltip": "Afficher les informations de debug panoptic",
+            "convert": {
+                "outdated": "Créé avec une ancienne version de Panoptic",
+                "incompatible": "Ne peut pas être ouvert par cette version de Panoptic",
+                "missing": "Dossier du projet introuvable",
+                "running": "Conversion…",
+                "confirm": "Convertir « {name} » au format actuel ?\n\nUne sauvegarde des anciennes données est conservée dans le dossier du projet. L'historique d'annulation n'est pas conservé."
+            },
             "legacy": {
                 "banner": "Des projets d'une ancienne version ont été trouvés",
                 "banner_button": "Convertir"

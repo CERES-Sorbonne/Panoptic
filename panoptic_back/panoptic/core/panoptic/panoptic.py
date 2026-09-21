@@ -13,6 +13,7 @@ from panoptic.core.plugin.plugin_installer import (
     SOURCE_GIT, SOURCE_PATH, SOURCE_PIP, PluginInstaller,
 )
 from panoptic.core.panoptic.legacy_migration import LegacyMigrationService
+from panoptic.core.project.conversion import STATUS_OK, check_project, convert_project
 from panoptic.core.project.project import Project
 
 
@@ -28,6 +29,7 @@ class Panoptic:
         self._loaded_projects: dict[str, Project] = {}
         self._sessions:        dict[str, str]       = {}  # token → user_id
         self._lock = threading.Lock()
+        self._converting: set[str] = set()  # project ids with a conversion running
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -65,16 +67,20 @@ class Panoptic:
     def get_projects_state(self) -> list[ProjectState]:
         with self._lock:
             loaded = set(self._loaded_projects.keys())
-        return [
-            ProjectState(
+        states = []
+        for k in self.db.get_projects():
+            # a loaded project was checked when it was opened
+            compat = check_project(k.path) if k.id not in loaded else None
+            states.append(ProjectState(
                 id=k.id,
                 path=k.path,
                 name=k.name,
                 excluded_plugins=k.excluded_plugins,
                 loaded=k.id in loaded,
-            )
-            for k in self.db.get_projects()
-        ]
+                status=compat.status if compat else STATUS_OK,
+                problem=compat.reason if compat else None,
+            ))
+        return states
 
     # ------------------------------------------------------------------
     # Project management
@@ -116,6 +122,14 @@ class Panoptic:
         if not key:
             raise ValueError(f"Project {id_!r} is not registered")
 
+        # Opening an old-layout data DB would crash or silently drop data on the first edit
+        with self._lock:
+            if id_ in self._converting:
+                raise ValueError(f"Project {key.name!r} is being converted")
+        compat = check_project(key.path)
+        if compat.status != STATUS_OK:
+            raise ValueError(f"Project {key.name!r} cannot be opened ({compat.status}): {compat.reason}")
+
         # Integrity check — detect copied/moved project folders
         with ProjectDB(Path(key.path) / 'project.db') as db:
             actual_id = db.config.id
@@ -133,6 +147,23 @@ class Panoptic:
         with self._lock:
             self._loaded_projects[id_] = project
         return project
+
+    def convert_project(self, id_: str) -> Path:
+        """Rebuild an outdated project's data DB in place. Returns the backup path."""
+        key = next((k for k in self.db.get_projects() if k.id == id_), None)
+        if not key:
+            raise ValueError(f"Project {id_!r} is not registered")
+        with self._lock:
+            if id_ in self._loaded_projects:
+                raise ValueError(f"Project {key.name!r} is open")
+            if id_ in self._converting:
+                raise ValueError(f"Project {key.name!r} is already being converted")
+            self._converting.add(id_)
+        try:
+            return convert_project(key.path)
+        finally:
+            with self._lock:
+                self._converting.discard(id_)
 
     def close_project(self, id_: str):
         with self._lock:

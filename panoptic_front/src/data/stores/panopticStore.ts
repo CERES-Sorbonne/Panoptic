@@ -8,6 +8,7 @@ import {
     apiCreateUser,
     apiDelPlugin,
     apiDeleteProject,
+    apiConvertProject,
     apiDeleteUser,
     apiDisconnectUser,
     apiGetPlugins,
@@ -235,6 +236,20 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         await apiCreateProject(projectPath, name)
     }
 
+    // ids des projets en cours de conversion vers le format actuel
+    const convertingProjects = ref<(string | number)[]>([])
+
+    async function convertProject(projectId: string | number) {
+        if (convertingProjects.value.includes(projectId)) return
+        convertingProjects.value = [...convertingProjects.value, projectId]
+        try {
+            await apiConvertProject(projectId)
+            await fetchProjects()
+        } finally {
+            convertingProjects.value = convertingProjects.value.filter(id => id !== projectId)
+        }
+    }
+
     async function importProject(path: string) {
         await apiImportProject(path)
     }
@@ -339,6 +354,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateProject,
+        convertingProjects, convertProject,
         fetchProjects, fetchPlugins, fetchUsers, createUser, deleteUser, connectUser, disconnectUser, tryReconnectUser,
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,

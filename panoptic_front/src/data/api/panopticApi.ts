@@ -103,6 +103,10 @@ export async function apiCloseProject(projectId: string | number) {
     await panopticApi.post('/close', { id: projectId })
 }
 
+export async function apiConvertProject(projectId: string | number) {
+    await panopticApi.post('/convert_project', { id: projectId })
+}
+
 export async function apiDeleteProject(projectId: string | number, deleteFiles: boolean) {
     await panopticApi.post('/delete_project', { id: projectId, delete_files: deleteFiles })
 }

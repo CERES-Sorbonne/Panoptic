@@ -148,6 +148,9 @@ export interface ProjectId {
 export interface ProjectRef extends ProjectId {
     loaded: boolean
     excludedPlugins: string[]
+    // 'outdated': written by an older version, can be converted. 'incompatible' / 'missing': cannot be opened
+    status: 'ok' | 'outdated' | 'incompatible' | 'missing'
+    problem?: string
 }
 
 export interface User {
