@@ -8,7 +8,7 @@ The one invariant everything here exists to hold:
 differ, so these tests assert that no code path can register an id that is not
 read back out of a real `project.db`.
 
-Run:  python3 -m unittest migrator.tests.test_registry
+Run:  python3 -m unittest panoptic.migration.tests.test_registry
       python3 migrator/tests/test_registry.py --table
 """
 

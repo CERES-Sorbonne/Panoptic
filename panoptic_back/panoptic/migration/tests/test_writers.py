@@ -1,6 +1,6 @@
 """End-to-end writer tests: every fixture, migrated, then asserted (task 3.3).
 
-    python3 -m unittest migrator.tests.test_writers      # assert
+    python3 -m unittest panoptic.migration.tests.test_writers      # assert
     python3 migrator/tests/test_writers.py --table       # look at it
 
 Each of the 11 fixtures is migrated into a temporary folder and then checked
@@ -298,12 +298,13 @@ class DataDbTests(unittest.TestCase):
 
 
 class MediaDbTests(unittest.TestCase):
-    def test_vectors_are_dropped_by_sign_off(self):
+    def test_vectors_are_dropped_before_v7_and_kept_for_v7(self):
         for shape in SHAPES:
             f = _CACHE[shape]
             with self.subTest(shape=shape):
-                self.assertEqual(f.media_counts["vectors"], 0)
-                self.assertEqual(f.media_counts["vector_types"], 0)
+                kept = shape.startswith("v7")
+                self.assertEqual(f.media_counts["vectors"], 12 if kept else 0)
+                self.assertEqual(f.media_counts["vector_types"], 1 if kept else 0)
 
     def test_thumbnail_sizes_come_from_the_legacy_project_kv(self):
         f = _CACHE["v7c"]
@@ -332,6 +333,8 @@ class MediaDbTests(unittest.TestCase):
     def test_every_run_reports_how_many_vectors_it_dropped(self):
         """MISSION 3.5: the user must be told to recompute them."""
         for shape in SHAPES:
+            if shape.startswith("v7"):
+                continue            # kept, see the next test
             f = _CACHE[shape]
             with self.subTest(shape=shape):
                 n = f.ir.dropped.vectors
@@ -341,6 +344,18 @@ class MediaDbTests(unittest.TestCase):
                         if "vector(s)" in w and "recompute" in w]
                 self.assertEqual(len(line), 1, f.report.warnings)
                 self.assertIn("%d vector(s)" % n, line[0])
+
+    def test_every_v7_run_reports_the_vectors_it_carried(self):
+        for shape in ("v7a", "v7b", "v7c"):
+            f = _CACHE[shape]
+            with self.subTest(shape=shape):
+                self.assertEqual(f.report.counts["dropped"]["vectors"], 0)
+                lines = [w for w in f.report.warnings if "vector(s)" in w]
+                self.assertEqual(len(lines), 1, f.report.warnings)
+                self.assertIn("carried over: 12 legacy vector(s) in 1 vector "
+                              "type(s)", lines[0])
+                self.assertFalse(any("recompute them" in w
+                                     for w in f.report.warnings))
 
     def test_the_vector_line_is_emitted_even_with_nothing_to_drop(self):
         # otherwise a silent report is ambiguous: no vectors, or not looked for?

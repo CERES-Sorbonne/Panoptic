@@ -4,7 +4,7 @@
 Two ways to run it, both from the repo root:
 
     python3 migrator/tests/test_readers.py --table     # printed summary per shape
-    python3 -m unittest migrator.tests.test_readers    # asserted
+    python3 -m unittest panoptic.migration.tests.test_readers    # asserted
 
 The table is the human-readable artefact task 3.2 owes; the unittest is what
 keeps it honest afterwards.
@@ -255,7 +255,17 @@ class ReadAllFixtures(unittest.TestCase):
             ir = self.irs[name]
             with self.subTest(shape=name):
                 self.assertEqual(ir.dropped.tabs, 2, "2 saved tabs per fixture")
-                self.assertEqual(ir.dropped.vectors, 12, "12 vectors per fixture")
+                if name.startswith("v7"):
+                    # v7 vectors are KEPT (user decision): counted as carried
+                    self.assertTrue(ir.dropped.vectors_kept)
+                    self.assertEqual(ir.dropped.vectors, 0)
+                    self.assertEqual(ir.dropped.kept_vectors, 12)
+                else:
+                    self.assertFalse(ir.dropped.vectors_kept)
+                    self.assertEqual(ir.dropped.vectors, 12,
+                                     "12 vectors per fixture")
+                    self.assertIsNone(ir.vector_source)
+                    self.assertEqual(ir.vector_types, [])
                 self.assertEqual(ir.dropped.ahash, 12)
                 self.assertEqual(ir.dropped.raw_images, 0)
         # v1 is the only shape with `action_params` (L8): dumped, not binned.

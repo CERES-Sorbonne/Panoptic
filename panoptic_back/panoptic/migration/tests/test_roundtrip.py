@@ -1,6 +1,6 @@
 """Round-trip invariants: every fixture, before vs after (task 4.1).
 
-    python3 -m unittest migrator.tests.test_roundtrip     # assert
+    python3 -m unittest panoptic.migration.tests.test_roundtrip     # assert
     python3 migrator/tests/test_roundtrip.py --table      # look at it
 
 `test_writers` already checks the *output* against the migrator's own IR and
@@ -22,7 +22,8 @@ by id, so that a mis-keyed row cannot hide behind a matching id.  Legacy
 `InstanceIdPreservationTests` below pins that.
 
 Dropped by design (CLAUDE.md sign-off) and therefore never asserted as
-preserved: vectors, tabs / ui_data, raw_images, ahash.
+preserved: pre-v7 vectors, tabs / ui_data, raw_images, ahash. (v7 vectors
+ARE kept -- `test_vectors.py` pins their byte-identical round trip.)
 """
 
 from __future__ import annotations
@@ -683,23 +684,27 @@ class WholeFolderTests(RoundTripCase):
                 self.assertFalse(os.path.exists(p.src + "-shm"))
 
     def test_dropped_by_design_is_dropped_not_half_migrated(self):
-        """vectors, tabs/ui_data, raw_images, ahash -- CLAUDE.md sign-off."""
+        """pre-v7 vectors, tabs/ui_data, raw_images, ahash -- CLAUDE.md sign-off."""
         for shape, p in self.pairs():
             with self.subTest(shape=shape):
                 media = ro(os.path.join(p.dir, "media.db"))
                 project = ro(os.path.join(p.dir, "project.db"))
                 try:
-                    self.assertEqual(media.execute(
-                        "SELECT COUNT(*) FROM vectors").fetchone()[0], 0)
-                    self.assertEqual(media.execute(
-                        "SELECT COUNT(*) FROM vector_types").fetchone()[0], 0)
+                    if not shape.startswith("v7"):   # v7 keeps its vectors
+                        self.assertEqual(media.execute(
+                            "SELECT COUNT(*) FROM vectors").fetchone()[0], 0)
+                        self.assertEqual(media.execute(
+                            "SELECT COUNT(*) FROM vector_types").fetchone()[0], 0)
                     self.assertEqual(project.execute(
                         "SELECT COUNT(*) FROM tab_data").fetchone()[0], 0)
                 finally:
                     media.close()
                     project.close()
                 # and the user is told, per run, what went missing
-                self.assertGreater(p.ir.dropped.vectors, 0)
+                if shape.startswith("v7"):
+                    self.assertTrue(p.ir.dropped.vectors_kept)
+                else:
+                    self.assertGreater(p.ir.dropped.vectors, 0)
 
 
 class TheComparisonActuallyFiresTests(unittest.TestCase):

@@ -1,8 +1,16 @@
 """media.db -- thumbnails, atlas and maps. No journal, no sequence, no undo.
 
-Vectors are **dropped** by signed-off decision (CLAUDE.md): `vector_types` and
-`vectors` are written empty and the new Panoptic recomputes them. The count of
-what was discarded is already in `ir.dropped` and reaches the run report.
+Vectors (MAPPING 7.1/7.2, user decision 2026-09-19): **kept for v7 sources**,
+dropped for everything older. When `ir.vector_source` is set, `vector_types` is
+a column copy (NULL source -> 'unknown', NULL params -> {} -- already done by the
+reader) with `params` serialised exactly as the target's `EntitySchema` does
+(`json.dumps(dict)`), and `vectors` is a **byte copy** streamed from the
+read-only source: the legacy blob is raw float32 `tobytes()`, which is what the
+target's `np.frombuffer(float32)` reads. Validation per row (skipped and
+reported, never written): the type must exist, `data` must be a non-empty BLOB
+that is a whole number of float32s and has its type's expected length, and the
+sha1 must belong to a migrated instance. Otherwise both tables are left empty
+and the new Panoptic recomputes them; the drop count is in `ir.dropped`.
 
 The one real transform here is the thumbnail **pivot** (MAPPING 7.3): legacy
 stores three fixed blob columns per sha1, the target one row per (type, sha1)
@@ -25,7 +33,11 @@ import json
 import os
 import shutil
 
+from ..readers.base import iter_legacy_vectors
 from ..schema import create_db
+
+#: rows per `executemany` when streaming vectors
+VECTOR_BATCH = 1000
 
 #: legacy thumbnail column -> the `project` kv keys that describe it
 THUMBNAIL_SIZES = (("small",  "image_small_size",  "save_image_small"),
@@ -44,6 +56,7 @@ class MediaDbWriter:
         self.stats = {}
         self.skipped = {}
         self.image_type_ids = {}
+        self.vector_skips = 0
 
     def _skip(self, reason, n=1):
         self.skipped[reason] = self.skipped.get(reason, 0) + n
@@ -55,13 +68,64 @@ class MediaDbWriter:
             self.write_images()
             self.write_atlas()
             self.write_maps()
+            self.write_vector_types()
+            self.write_vectors()
             self.conn.commit()
         finally:
             self.conn.close()
             self.conn = None
-        self.stats["vector_types"] = 0
-        self.stats["vectors"] = 0
         return self.stats
+
+    # -- vectors (v7 only) ---------------------------------------------
+    def write_vector_types(self):
+        n = 0
+        if self.ir.vector_source is not None:
+            for vt in self.ir.vector_types:
+                # the target's EntitySchema encodes a `dict` field with a plain
+                # `json.dumps(value)` (entity_schema.py `_to_row`); match it
+                self.conn.execute(
+                    "INSERT INTO vector_types (id, source, params) VALUES (?,?,?)",
+                    (vt.id, vt.source, json.dumps(vt.params)))
+                n += 1
+        self.stats["vector_types"] = n
+
+    def write_vectors(self):
+        """Stream-copy the legacy vectors, validating each row (MAPPING 7.2)."""
+        self.vector_skips = 0
+        src = self.ir.vector_source
+        if src is None:
+            self.stats["vectors"] = 0
+            return
+        types = {vt.id for vt in self.ir.vector_types}
+        sha1s = {i.sha1 for i in self.ir.instances}
+        lengths = src.lengths
+        batch, n = [], 0
+        sql = "INSERT INTO vectors (type_id, sha1, data) VALUES (?,?,?)"
+        for type_id, sha1, data in iter_legacy_vectors(src.path):
+            reason = None
+            if type_id not in types:
+                reason = "vector whose type_id is not a vector_type"
+            elif not isinstance(data, bytes) or not data:
+                reason = "vector whose data is NULL, empty or not a BLOB"
+            elif len(data) % 4:
+                reason = "vector whose byte length is not a multiple of 4"
+            elif len(data) != lengths.get(type_id):
+                reason = "vector whose length differs from its type's"
+            elif not sha1 or sha1 not in sha1s:
+                reason = "vector for a sha1 with no migrated instance"
+            if reason:
+                self._skip(reason)
+                self.vector_skips += 1
+                continue
+            batch.append((type_id, sha1, data))
+            if len(batch) >= VECTOR_BATCH:
+                self.conn.executemany(sql, batch)
+                n += len(batch)
+                batch = []
+        if batch:
+            self.conn.executemany(sql, batch)
+            n += len(batch)
+        self.stats["vectors"] = n
 
     # -- thumbnails ----------------------------------------------------
     def _wanted_types(self):

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Folders tool-window root node — inserted into the sidebar split's #primary.
 import IslandPanel from '@/layouts/IslandPanel.vue'
-import FolderList from '@/components/folder_tree/FolderList.vue'
+import FolderRow from '@/components/folder_tree/FolderRow.vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
 import FileSourceOptionDropdown from '@/components/dropdowns/FileSourceOptionDropdown.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { computed } from 'vue'
@@ -9,7 +10,7 @@ import { useUiStore } from '@/data/stores/uiStore'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useTabStore } from '@/data/stores/tabStore'
 import { usePanopticStore } from '@/data/stores/panopticStore'
-import { ModalId, SourceNode } from '@/data/models'
+import { Folder, ModalId, SourceNode } from '@/data/models'
 import { getFolderChildren } from '@/utils/folders'
 import { useI18n } from 'vue-i18n'
 
@@ -42,6 +43,44 @@ function isIiif(node: SourceNode) {
     return data.fileSources[node.id]?.dtype === 'iiif'
 }
 
+// The whole tree (source headers, expanded folders, trailing "add source" row) is flattened
+// into one list of fixed-height rows so RecycleScroller only mounts what is in view: every
+// folder row carries a dropdown, and mounting thousands of them made the panel slow to open.
+// Keep ROW_HEIGHT in sync with .tree-node / .source-header / .add-source heights.
+const ROW_HEIGHT = 24
+
+type Row =
+    | { key: string, kind: 'source', node: SourceNode }
+    | { key: string, kind: 'folder', folder: Folder, depth: number }
+    | { key: string, kind: 'empty' }
+    | { key: string, kind: 'add' }
+
+const filterManager = computed(() => tabStore.getMainTab()?.collection.filterManager)
+const mainTab = computed(() => tabStore.getMainTab())
+const selectedFolders = computed(() => new Set(filterManager.value?.state.folders ?? []))
+
+function pushFolders(rows: Row[], folders: Folder[], depth: number) {
+    const expansions = uiStore.panelStates.folderExpansions
+    for (const f of folders) {
+        rows.push({ key: 'f-' + f.id, kind: 'folder', folder: f, depth })
+        const children = data.folders[f.id]?.children
+        if (children?.length && expansions[f.id]) pushFolders(rows, children, depth + 1)
+    }
+}
+
+const rows = computed(() => {
+    const res: Row[] = []
+    for (const group of sourceGroups.value) {
+        res.push({ key: 'src-' + group.id, kind: 'source', node: group })
+        if (!isSourceExpanded(group.id)) continue
+        if (group.children.length > 0) pushFolders(res, group.children as Folder[], 0)
+        else res.push({ key: 'empty-' + group.id, kind: 'empty' })
+    }
+    pushFolders(res, looseFolders.value, 0)
+    res.push({ key: 'add', kind: 'add' })
+    return res
+})
+
 function isSourceExpanded(sourceId: number): boolean {
     return !!uiStore.panelStates.sourceExpansions[sourceId]
 }
@@ -69,9 +108,7 @@ function getSourceFolderIds(group: SourceNode): number[] {
 }
 
 function sourceSelected(group: SourceNode): boolean {
-    const filterManager = tabStore.getMainTab()?.collection.filterManager
-    if (!filterManager) return false
-    const selected = new Set(filterManager.state.folders)
+    const selected = selectedFolders.value
     return getSourceFolderIds(group).some(id => selected.has(id))
 }
 
@@ -114,37 +151,30 @@ function toggleSourceSelect(group: SourceNode) {
                 </div>
             </div>
         </template>
-        <div class="tw-body">
-            <!-- One group per file source, root folders nested inside -->
-            <div v-for="group in sourceGroups" :key="'src-' + group.id" class="source-group">
-                <div class="source-header" :class="{ selected: sourceSelected(group) }" @click="handleSourceClick(group, $event)" style="cursor: pointer;">
-                    <span class="source-chevron" @click.capture.stop="toggleSourceExpansion(group.id)">
-                        <i :class="isSourceExpanded(group.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;" />
+        <RecycleScroller class="tw-body" :items="rows" key-field="key" :item-size="ROW_HEIGHT" :buffer="ROW_HEIGHT * 10">
+            <template v-slot="{ item }">
+                <div v-if="item.kind === 'source'" class="source-header" :class="{ selected: sourceSelected(item.node) }"
+                    @click="handleSourceClick(item.node, $event)" style="cursor: pointer;">
+                    <span class="source-chevron" @click.capture.stop="toggleSourceExpansion(item.node.id)">
+                        <i :class="isSourceExpanded(item.node.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;" />
                     </span>
-                    <img v-if="isIiif(group)" src="/icons/iiif.svg" class="source-logo" alt="IIIF" />
+                    <img v-if="isIiif(item.node)" src="/icons/iiif.svg" class="source-logo" alt="IIIF" />
                     <i v-else class="bi bi-hdd source-icon" />
-                    <span class="source-name">{{ sourceName(group) }}</span>
+                    <span class="source-name">{{ sourceName(item.node) }}</span>
                     <span class="source-option">
-                        <FileSourceOptionDropdown :source="data.fileSources[group.id]" />
+                        <FileSourceOptionDropdown :source="data.fileSources[item.node.id]" />
                     </span>
                 </div>
-                <template v-if="isSourceExpanded(group.id)">
-                    <FolderList v-if="group.children.length > 0" :folders="group.children"
-                        :filter-manager="tabStore.getMainTab()?.collection.filterManager" :tab="tabStore.getMainTab()" />
-                    <div v-else class="source-empty">No folders</div>
-                </template>
-            </div>
-
-            <!-- Folders not attached to any file source -->
-            <FolderList v-if="looseFolders.length > 0" :folders="looseFolders"
-                :filter-manager="tabStore.getMainTab()?.collection.filterManager" :tab="tabStore.getMainTab()" />
-
-            <!-- Same action as the header + button, spelled out -->
-            <div class="add-source" @click="promptFolder()">
-                <i class="bi bi-plus" />
-                <span>{{ $t('modals.filesource.add_source') }}</span>
-            </div>
-        </div>
+                <FolderRow v-else-if="item.kind === 'folder'" :folder="item.folder" :depth="item.depth"
+                    :selected="selectedFolders.has(item.folder.id)" :filter-manager="filterManager" :tab="mainTab" />
+                <div v-else-if="item.kind === 'empty'" class="source-empty">No folders</div>
+                <!-- Same action as the header + button, spelled out -->
+                <div v-else class="add-source" @click="promptFolder()">
+                    <i class="bi bi-plus" />
+                    <span>{{ $t('modals.filesource.add_source') }}</span>
+                </div>
+            </template>
+        </RecycleScroller>
     </IslandPanel>
 </template>
 
@@ -195,16 +225,11 @@ function toggleSourceSelect(group: SourceNode) {
     padding: var(--spacing-xs) var(--spacing-sm);
 }
 
-/* File-source group: a labelled header with its root folders nested below */
-.source-group {
-    margin-bottom: var(--spacing-xs);
-}
-
 .source-header {
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 22px;
+    height: 24px;
     padding: 0 2px;
 }
 
@@ -263,8 +288,8 @@ function toggleSourceSelect(group: SourceNode) {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 2px;
-    margin-top: var(--spacing-xs);
+    height: 24px;
+    padding: 0 2px;
     font-size: var(--font-size-xs);
     color: var(--text-tertiary);
     cursor: pointer;
@@ -277,7 +302,9 @@ function toggleSourceSelect(group: SourceNode) {
 }
 
 .source-empty {
-    padding: 2px 0 4px 20px;
+    height: 24px;
+    line-height: 24px;
+    padding-left: 20px;
     font-size: var(--font-size-xs);
     color: var(--text-tertiary);
 }

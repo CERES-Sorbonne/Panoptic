@@ -14,7 +14,7 @@ things a *reader* can see (`analysis/SCHEMA_MATRIX.md`, "Shape-to-shape delta"):
 
 Everything else the upstream chain does is either a no-op for a reader (v3
 rebuilds the table with identical columns, v6 adds indexes) or actively harmful
-(v7 drops the vectors table). See `migrator/legacy/__init__.py`.
+(v7_sql drops the vectors table -- which is why v1-v6 vectors are not kept). See `migrator/legacy/__init__.py`.
 
 So one reader covers v1 through v6, and a second covers the three v7 variants;
 they differ only in which optional tables are present, which is why `V7Reader`
@@ -100,10 +100,15 @@ class ModernReader(Reader):
 class V7Reader(ModernReader):
     """v7a, v7b, v7c -- the shape everything else is normalised *to*.
 
-    Structurally identical to v6 as far as the IR is concerned. The three v7
-    deltas are all in tables the IR either drops (`vectors` re-keyed on
-    `vector_type`, `raw_images`) or reads generically (`_project` for v7b,
-    `maps`/`atlas` for v7c).
+    Structurally identical to v6 for the logged entities. The three v7 deltas
+    are `vectors` re-keyed on `vector_type` -- which this reader *keeps* (user
+    decision 2026-09-19: v7 vectors carry their model in `vector_type.params`,
+    so a byte copy is lossless) --, `raw_images` (dropped, L6), and tables read
+    generically (`_project` for v7b, `maps`/`atlas` for v7c).
     """
 
     shapes = ("v7a", "v7b", "v7c")
+
+    def read_vectors(self):
+        if self.keep_vectors and self.has("vector_type") and self.has("vectors"):
+            self.read_v7_vectors()

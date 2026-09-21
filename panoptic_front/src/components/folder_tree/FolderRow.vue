@@ -1,8 +1,9 @@
 <script setup lang="ts">
+// One row of the folder tree. The tree itself is flattened and virtualized by FolderPanel,
+// so this renders a single folder at the given depth and never recurses.
 import { FilterManager } from '@/core/FilterManager'
 import { Folder } from '@/data/models'
 import { getFolderChildren, getFolderAndParents } from '@/utils/folders'
-import { computed } from 'vue'
 import { useDataStore } from '@/data/stores/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { useUiStore } from '@/data/stores/uiStore'
@@ -11,36 +12,15 @@ import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue'
 const data = useDataStore()
 const uiStore = useUiStore()
 const props = defineProps<{
-    folders: Folder[]
+    folder: Folder
+    depth: number
+    selected: boolean
     filterManager?: FilterManager
     tab?: TabManager
-    depth?: number
 }>()
 
-const folderDepth = props.depth ?? 0
-const visibleFolders = uiStore.panelStates.folderExpansions
-
-const isSelected = computed(() => {
-    if (!props.filterManager) return {} as Record<number, boolean>
-    const res = {} as Record<number, boolean>
-    const folderSet = new Set(props.filterManager.state.folders)
-    props.folders.forEach(f => {
-        if (folderSet.has(f.id)) res[f.id] = true
-    })
-    return res
-})
-
-const folderClass = computed(() => {
-    const res: Record<number, string> = {}
-    props.folders.forEach(f => {
-        const classes: string[] = []
-        if (isSelected.value[f.id]) classes.push('selected')
-        res[f.id] = classes.join(' ')
-    })
-    return res
-})
-
 function toggleVisible(folderId: number) {
+    const visibleFolders = uiStore.panelStates.folderExpansions
     if (visibleFolders[folderId]) {
         delete visibleFolders[folderId]
     } else {
@@ -68,12 +48,8 @@ function toggleSelect(folderId: number) {
     props.tab.setSelectedFolder(new Set(selected))
 }
 
-function getChildren(folderId: number): Folder[] {
-    return data.folders[folderId]?.children ?? []
-}
-
 function isExpanded(folderId: number): boolean {
-    return !!visibleFolders[folderId]
+    return !!uiStore.panelStates.folderExpansions[folderId]
 }
 
 function hasChildren(folderId: number): boolean {
@@ -84,49 +60,33 @@ function getCount(folderId: number): number {
     return data.folders[folderId]?.count ?? 0
 }
 
-function handleToggle(folder: Folder, e: MouseEvent) {
+function handleToggle(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('.folder-option')) return
-    toggleSelect(folder.id)
+    toggleSelect(props.folder.id)
 }
 
-function handleExpand(folder: Folder, e: MouseEvent) {
+function handleExpand(e: MouseEvent) {
     e.stopPropagation()
-    toggleVisible(folder.id)
+    toggleVisible(props.folder.id)
 }
-
 </script>
 
 <template>
-    <div>
-        <div v-for="folder in folders" :key="folder.id">
-        <div
-            class="tree-node"
-            :class="folderClass[folder.id]"
-            :style="{ paddingLeft: 8 + folderDepth * 14 + 'px' }"
-            @click="handleToggle(folder, $event)"
-        >
-            <span
-                class="tree-caret"
-                @click.capture="handleExpand(folder, $event)"
-            >
-                <i v-if="hasChildren(folder.id)" :class="isExpanded(folder.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;"></i>
-                <span v-else class="tree-caret-spacer">&nbsp;</span>
-            </span>
-            <span class="tree-label">{{ folder.name }}</span>
-            <span v-if="getCount(folder.id) > 0" class="tree-count">{{ getCount(folder.id) }}</span>
-            <span class="folder-option">
-                <FolderOptionDropdown :folder="folder" />
-            </span>
-        </div>
-        <template v-if="hasChildren(folder.id) && isExpanded(folder.id)">
-            <FolderList
-                :folders="getChildren(folder.id)"
-                :filter-manager="props.filterManager"
-                :tab="props.tab"
-                :depth="folderDepth + 1"
-            />
-        </template>
-    </div>
+    <div
+        class="tree-node"
+        :class="{ selected }"
+        :style="{ paddingLeft: 8 + depth * 14 + 'px' }"
+        @click="handleToggle($event)"
+    >
+        <span class="tree-caret" @click.capture="handleExpand($event)">
+            <i v-if="hasChildren(folder.id)" :class="isExpanded(folder.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;"></i>
+            <span v-else class="tree-caret-spacer">&nbsp;</span>
+        </span>
+        <span class="tree-label">{{ folder.name }}</span>
+        <span v-if="getCount(folder.id) > 0" class="tree-count">{{ getCount(folder.id) }}</span>
+        <span class="folder-option">
+            <FolderOptionDropdown :folder="folder" />
+        </span>
     </div>
 </template>
 
@@ -139,6 +99,7 @@ function handleExpand(folder: Folder, e: MouseEvent) {
     padding: 0 var(--spacing-sm);
     cursor: pointer;
     white-space: nowrap;
+    position: relative;
 }
 
 .tree-node:hover {
@@ -183,12 +144,23 @@ function handleExpand(folder: Folder, e: MouseEvent) {
     margin-left: auto;
 }
 
+.tree-label {
+    min-width: 0;
+}
+
+/* Overlays the end of the row (over the name / count) on hover */
 .folder-option {
-    opacity: 0;
-    padding-left: 0px;
+    display: none;
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    z-index: 1;
 }
 
 .tree-node:hover .folder-option {
-    opacity: 1;
+    display: inline-flex;
 }
 </style>

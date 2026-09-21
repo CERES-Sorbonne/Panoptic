@@ -127,6 +127,14 @@ def build_parser():
     p.add_argument("--panoptic-db", metavar="PATH",
                    help="the panoptic home DB to register into; implies "
                         "--register. Created if it does not exist.")
+    p.add_argument("--drop-vectors", action="store_true",
+                   help="do not carry similarity vectors over. Default: v7 "
+                        "projects (panoptic 0.6.4+) keep theirs as a byte "
+                        "copy -- they record their model, so conversion is "
+                        "lossless and far cheaper than recomputing; older "
+                        "projects always drop them and the new Panoptic "
+                        "recomputes. Use this for a corrupt vector store or "
+                        "to force a recompute with the current model.")
     p.add_argument("--report", metavar="PATH",
                    help="write the run report to PATH (.json; the .md lands "
                         "beside it). Default: a timestamped pair in %s"
@@ -506,7 +514,7 @@ def main_project(argv):
             out("running (this can take a while on a large project; peak "
                 "memory is ~1.2 KB per instance):")
             run_pipeline(detection, source_db, target_dir, report,
-                         home_db=home_db)
+                         home_db=home_db, keep_vectors=not args.drop_vectors)
             report.status = "ok"
             out("")
             for line in report.warnings[seen:]:

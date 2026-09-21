@@ -13,7 +13,7 @@ __version__ = "0.1.0"
 MIGRATOR_UPSTREAM = {
     "path": "/Users/david/migration-panpoic/migrator",
     "commit": None,          # upstream is not a git repository
-    "synced_at": "2026-09-08",
+    "synced_at": "2026-09-21",
 }
 
 SHAPES = ("P0", "P1", "v1", "v2", "v3_v4", "v5", "v6", "v7a", "v7b", "v7c")

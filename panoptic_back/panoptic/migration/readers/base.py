@@ -14,7 +14,8 @@ import os
 
 from ..detect import open_readonly
 from ..ir import (AtlasSheet, Dropped, Folder, Instance, MapRow, ProjectIR,
-                  Property, PropertyGroup, Tag, Thumbnail, Value)
+                  Property, PropertyGroup, Tag, Thumbnail, Value, VectorSource,
+                  VectorType)
 from ..legacy import V4_STRING_TO_TEXT
 
 #: P0/P1 serve images over HTTP and store the served URL, not the path
@@ -134,8 +135,11 @@ class Reader:
     shapes = ()
 
     def __init__(self, db_path, shape, variant="", project_dir=None,
-                 with_blobs=True, stat_files=True):
+                 with_blobs=True, stat_files=True, keep_vectors=True):
         self.db_path = db_path
+        #: only honoured by `V7Reader`; every older shape drops its vectors
+        #: whatever this says (user decision: v7 kept, v1-v6/P0/P1 dropped)
+        self.keep_vectors = keep_vectors
         self.shape = shape
         self.variant = variant or shape
         self.project_dir = project_dir or os.path.dirname(os.path.abspath(db_path))
@@ -176,6 +180,7 @@ class Reader:
             }
             self.read_entities()
             self.read_media()
+            self.read_vectors()
             self.read_params()
             self.record_drops()
         finally:
@@ -209,7 +214,7 @@ class Reader:
             self.ir.property_groups.append(PropertyGroup(id=r["id"], name=r["name"]))
 
     def read_media(self):
-        """Thumbnail cache (v3+), atlas and maps (v7c). Vectors are DROPPED."""
+        """Thumbnail cache (v3+), atlas and maps (v7c). Vectors: `read_vectors`."""
         if self.has("images") and "small" in self._columns("images"):
             cols = self._columns("images")
             sel = ", ".join(c for c in ("sha1", "small", "medium", "large") if c in cols)
@@ -236,6 +241,62 @@ class Reader:
                 self.ir.maps.append(MapRow(
                     id=r["id"], source=r["source"], name=r["name"], key=r["key"],
                     count=r["count"], data=r["data"]))
+
+    def read_vectors(self):
+        """Dropped for every shape but v7 -- see `V7Reader.read_vectors`."""
+
+    def read_v7_vectors(self):
+        """v7 `vector_type` rows + the expected blob length per type (MAPPING 7).
+
+        Only the *metadata* is read here. The payloads stay in the source and
+        are streamed by the media writer (`iter_legacy_vectors`), so memory does
+        not grow with the vector store.
+
+        Expected length per type: the most common `LENGTH(data)` among blobs
+        that are a whole number of float32s (ties -> the shorter). All vectors
+        of one model share a dimension; a row that does not is a truncated or
+        foreign write, and the writer skips it (MAPPING 7.2).
+        """
+        for r in self.rows("SELECT id, source, params FROM vector_type ORDER BY id"):
+            source = r["source"]
+            if source is None or str(source).strip() == "":
+                self.warn("vector_type %d has no source: stored as 'unknown' "
+                          "-- no plugin will claim it" % r["id"])
+                source = "unknown"
+            raw = r["params"]
+            params = json_loads(raw, None)
+            if raw is None or raw == "":
+                params = {}
+            elif not isinstance(params, dict):
+                self.warn("vector_type %d params are not a JSON object (%r): "
+                          "stored as {}" % (r["id"], raw))
+                params = {}
+            if "model" not in params:
+                self.warn("vector_type %d (source %r) has no 'model' param: "
+                          "PanopticML cannot recompute or text-search it"
+                          % (r["id"], source))
+            self.ir.vector_types.append(
+                VectorType(id=r["id"], source=str(source), params=params))
+
+        vs = VectorSource(path=os.path.abspath(self.db_path))
+        vs.rows = self.count("vectors")
+        tally = {}
+        for r in self.rows(
+                "SELECT type_id, LENGTH(data) AS n, COUNT(*) AS c FROM vectors "
+                "WHERE typeof(data) = 'blob' GROUP BY type_id, n"):
+            if r["n"] and r["n"] % 4 == 0:
+                tally.setdefault(r["type_id"], []).append((-r["c"], r["n"]))
+        for type_id, options in sorted(tally.items(), key=lambda kv: str(kv[0])):
+            options.sort()
+            vs.lengths[type_id] = options[0][1]
+            if len(options) > 1:
+                self.warn("vector type %s has vectors of %d different lengths; "
+                          "keeping the %d-byte ones (%d float32), the other %d "
+                          "row(s) will be skipped"
+                          % (type_id, len(options), options[0][1],
+                             options[0][1] // 4,
+                             sum(-c for c, _ in options[1:])))
+        self.ir.vector_source = vs
 
     def read_params(self):
         """`project` kv + plugin params. Both are shape-conditional."""
@@ -280,9 +341,14 @@ class Reader:
                 if r["key"] == "tabs":
                     tabs = json_loads(r["value"], [])
                     d.tabs += len(tabs) if isinstance(tabs, list) else 0
-        # vectors (signed off: recompute in the new Panoptic)
-        d.vectors += self.count("vectors")
-        d.vector_types += self.count("vector_type")
+        # vectors: carried over for v7 (read_v7_vectors), dropped otherwise
+        if self.ir.vector_source is not None:
+            d.vectors_kept = True
+            d.kept_vectors = self.ir.vector_source.rows
+            d.kept_vector_types = len(self.ir.vector_types)
+        else:
+            d.vectors += self.count("vectors")
+            d.vector_types += self.count("vector_type")
         # raw_images (L6)
         if self.has("raw_images"):
             d.raw_images = self.count("raw_images")
@@ -427,3 +493,20 @@ class Reader:
 
         # ahash is dropped everywhere (L1); count it so the report says so.
         ir.dropped.ahash = getattr(self, "ahash_count", 0)
+
+
+def iter_legacy_vectors(db_path):
+    """Stream `(type_id, sha1, data)` from a v7 legacy DB, read-only.
+
+    Ordered by the legacy primary key (served by its autoindex, no sort), so the
+    output is deterministic and a re-run is byte-identical. The cursor is
+    consumed lazily: sqlite hands rows over one at a time.
+    """
+    conn = open_readonly(db_path)
+    conn.row_factory = None
+    try:
+        for row in conn.execute("SELECT type_id, sha1, data FROM vectors "
+                                "ORDER BY type_id, sha1"):
+            yield row
+    finally:
+        conn.close()

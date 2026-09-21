@@ -19,6 +19,7 @@ carries the exact command that finishes the job.
 from __future__ import annotations
 
 import os
+import sqlite3
 from collections import namedtuple
 
 from .home import default_home_db
@@ -43,7 +44,8 @@ PIPELINE = (
           "write data.db (folders, files, instances, properties, tags, values,"
           " and the genesis journal)", "3.3"),
     Stage("write-media-db",
-          "write media.db (thumbnails, image_atlas, maps)", "3.3/3.5"),
+          "write media.db (thumbnails, image_atlas, maps; vectors for v7)",
+          "3.3/3.5"),
     Stage("write-project-db",
           "write project.db (id_registry, project_config, user_defaults)", "3.3"),
     Stage("check",
@@ -58,19 +60,26 @@ PIPELINE = (
 #: report states how much of each was thrown away rather than only that it was.
 DROPPED = (
     "tabs and all UI layout data (L3)",
-    "vectors (recompute them in the new Panoptic)",
+    "vectors of pre-v7 projects (v1-v6, 0.0.x, 0.2.x): recompute them in the "
+    "new Panoptic. v7 (0.6.4+) vectors are carried over unless --drop-vectors",
     "raw_images original-file blobs (L6)",
 )
 
 
-def run_pipeline(detection, source_db, target_dir, report, home_db=None):
+def run_pipeline(detection, source_db, target_dir, report, home_db=None,
+                 keep_vectors=True):
+    """`keep_vectors=False` is `--drop-vectors`: v7 vectors are dropped too.
+
+    The default (keep) only affects v7a/v7b/v7c; older shapes always drop.
+    """
     for warning in check_upstream():
         report.warn(warning)
 
     source_dir = os.path.dirname(os.path.abspath(source_db))
 
     # -- 3.2 ---------------------------------------------------------------
-    ir = read_source(detection, source_db, project_dir=source_dir)
+    ir = read_source(detection, source_db, project_dir=source_dir,
+                     keep_vectors=keep_vectors)
     report.step("read-legacy", ir.summary())
     report.counts.update(ir.counts())
     report.counts["dropped"] = ir.dropped.to_json()
@@ -80,6 +89,8 @@ def run_pipeline(detection, source_db, target_dir, report, home_db=None):
     for w in ir.warnings:
         report.warn(w)
     for w in _mini_folder_warning(source_dir):
+        report.warn(w)
+    for w in _vector_source_notes(ir):
         report.warn(w)
 
     os.makedirs(target_dir, exist_ok=True)
@@ -112,7 +123,11 @@ def run_pipeline(detection, source_db, target_dir, report, home_db=None):
         report.warn(note)
 
     # -- 3.3: post-conditions ---------------------------------------------
-    checks = PostConditions(project_path, data_path, media_path).assert_ok()
+    expected = {"vector_types": len(ir.vector_types) if ir.vector_source else 0,
+                "vectors": ((ir.vector_source.rows - media_writer.vector_skips)
+                            if ir.vector_source else 0)}
+    checks = PostConditions(project_path, data_path, media_path,
+                            expected=expected).assert_ok()
     report.step("check", "%d post-conditions passed" % len(checks))
     report.counts["post_conditions"] = len(checks)
 
@@ -121,7 +136,60 @@ def run_pipeline(detection, source_db, target_dir, report, home_db=None):
 
     # -- 3.4 ---------------------------------------------------------------
     register_project(target_dir, project_writer.project_id, home_db, report)
+    if home_db:
+        for w in _vector_plugin_check(ir, home_db):
+            report.warn(w)
     return ir
+
+
+def vector_sources(ir):
+    """Distinct `vector_types.source` values this run carries over."""
+    if ir.vector_source is None:
+        return []
+    return sorted({vt.source for vt in ir.vector_types})
+
+
+def _vector_source_notes(ir):
+    """Say which plugin name the kept vectors are bound to.
+
+    Both eras bind a vector type to its plugin by *name*: legacy wrote
+    `source = plugin.name` (the legacy registry's `plugins.name`), and
+    rework-front's `APlugin.start()` loads `get_vector_types(source=self.name)`
+    where `self.name` is the new registry's `plugins.id`. `migrate-home`
+    carries the name verbatim, so they match -- unless the user registers the
+    plugin afresh under another name, in which case PanopticML finds no type,
+    creates a new default one and recomputes. The migrator does not rename
+    `source` (it cannot know the future registry name); it says so instead.
+    """
+    names = vector_sources(ir)
+    if not names:
+        return []
+    return ["kept vectors belong to plugin name(s) %s: the plugin must be "
+            "registered in the new Panoptic under exactly that name (as "
+            "`migrate-home` does) or it will not see them and will recompute"
+            % ", ".join(repr(n) for n in names)]
+
+
+def _vector_plugin_check(ir, home_db):
+    names = vector_sources(ir)
+    if not names:
+        return []
+    try:
+        conn = sqlite3.connect("file:%s?mode=ro" % os.path.abspath(
+            os.path.expanduser(home_db)), uri=True)
+        try:
+            registered = {r[0] for r in conn.execute("SELECT id FROM plugins")}
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return []
+    missing = [n for n in names if n not in registered]
+    if not missing:
+        return []
+    return ["no plugin named %s is registered in %s (registered: %s): its "
+            "migrated vectors stay unused until a plugin with that exact name "
+            "is added" % (", ".join(repr(n) for n in missing), home_db,
+                          ", ".join(sorted(registered)) or "none")]
 
 
 def register_project(target_dir, project_id, home_db, report):

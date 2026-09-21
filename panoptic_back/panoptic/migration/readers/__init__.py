@@ -26,10 +26,10 @@ sequence of `ALTER TABLE`s replayed against a copy of the source. Three reasons:
    `DROP TABLE IF EXISTS vectors;` followed by a `CREATE` of the empty
    re-keyed table -- the v6->v7 migration deletes every vector rather than
    converting it (MAPPING U1). Replaying the chain on a v1-v6 project would
-   silently destroy the vector store on the way to "v7". (Vectors are dropped
-   by user sign-off now, so this no longer *costs* us anything -- but it is
-   exactly the kind of surprise that argues against replaying migrations you
-   did not write.)
+   silently destroy the vector store on the way to "v7". (v1-v6 vectors are
+   dropped by user decision anyway, and v7 vectors are read straight from the
+   source -- but it is exactly the kind of surprise that argues against
+   replaying migrations you did not write.)
 
 3. **The rest of the chain is a no-op for a reader.** `v3_sql` rebuilds
    `instances` with identical columns to add a foreign key (and leaves an
@@ -61,19 +61,19 @@ Each of these would otherwise reach the writers as corrupt-looking data:
 * Tag values exploded one row per tag id, routed on **dtype first**, never
   left as a JSON list in the generic value tables.
 
-Dropped by user sign-off (CLAUDE.md): tabs and all UI data, vectors,
-`raw_images`. Their *counts* are recorded in `ProjectIR.dropped` so every run
+Dropped by user sign-off (CLAUDE.md): tabs and all UI data, `raw_images`, and
+vectors of every shape **older than v7** (v7a/v7b/v7c vectors are kept). Their *counts* are recorded in `ProjectIR.dropped` so every run
 report states the loss; their payloads never enter the IR.
 """
 
 from __future__ import annotations
 
 from ..errors import UnknownShape
-from .base import Reader
+from .base import Reader, iter_legacy_vectors
 from .modern import ModernReader, V7Reader
 from .prehistoric import P0Reader, P1Reader
 
-__all__ = ["READERS", "reader_for", "read_source",
+__all__ = ["READERS", "reader_for", "read_source", "iter_legacy_vectors",
            "P0Reader", "P1Reader", "ModernReader", "V7Reader"]
 
 #: shape -> reader class. Every branch `detect.sniff()` can return is here.
@@ -92,7 +92,7 @@ def reader_for(shape):
 
 
 def read_source(detection, db_path, project_dir=None, with_blobs=True,
-                stat_files=True):
+                stat_files=True, keep_vectors=True):
     """Read a legacy project DB into a `ProjectIR`. Never writes to it.
 
     `detection` is what `migrator.detect.detect_db` returned. `with_blobs=False`
@@ -102,4 +102,4 @@ def read_source(detection, db_path, project_dir=None, with_blobs=True,
     cls = reader_for(detection.shape)
     return cls(db_path, detection.shape, detection.variant,
                project_dir=project_dir, with_blobs=with_blobs,
-               stat_files=stat_files).read()
+               stat_files=stat_files, keep_vectors=keep_vectors).read()

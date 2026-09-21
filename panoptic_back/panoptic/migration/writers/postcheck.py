@@ -27,9 +27,12 @@ class PostConditionError(AssertionError):
 
 
 class PostConditions:
-    def __init__(self, project_path, data_path, media_path):
+    def __init__(self, project_path, data_path, media_path, expected=None):
         self.paths = {"project": project_path, "data": data_path,
                       "media": media_path}
+        #: optional independent expectations from the run, e.g.
+        #: {"vector_types": n, "vectors": legacy rows - reported skips}
+        self.expected = dict(expected or {})
         self.checks = []
         self.failures = []
 
@@ -49,6 +52,7 @@ class PostConditions:
             self.check_sequence(conns["data"])
             self.check_properties(conns["data"])
             self.check_references(conns)
+            self.check_vectors(conns)
         finally:
             for conn in conns.values():
                 conn.close()
@@ -291,3 +295,50 @@ class PostConditions:
             if n:
                 self._fail("%s.type_id" % table, "%d orphan row(s)" % n)
         self._ok("media type ids", "images/vectors reference a declared type")
+
+    # -- vectors (v7 kept, everything else dropped) ----------------------
+    def check_vectors(self, conns):
+        data, media = conns["data"], conns["media"]
+        for key in ("vector_types", "vectors"):
+            if key not in self.expected:
+                continue
+            got = media.execute("SELECT COUNT(*) FROM %s" % key).fetchone()[0]
+            want = self.expected[key]
+            if got != want:
+                self._fail("%s count" % key,
+                           "%d row(s) written, expected %d" % (got, want))
+            else:
+                self._ok("%s count" % key, "%d row(s)" % got)
+
+        bad_types = 0
+        for vid, source, params in media.execute(
+                "SELECT id, source, params FROM vector_types"):
+            try:
+                ok = isinstance(json.loads(params), dict) and bool(source)
+            except (TypeError, ValueError):
+                ok = False
+            bad_types += not ok
+        if bad_types:
+            self._fail("vector_types rows", "%d row(s) with an empty source or "
+                       "params that are not a JSON object" % bad_types)
+
+        # every vector is a float32 blob of its type's single length
+        rows = media.execute(
+            "SELECT type_id, COUNT(DISTINCT LENGTH(data)), "
+            "SUM(typeof(data) != 'blob' OR LENGTH(data) = 0 "
+            "    OR LENGTH(data) % 4 != 0) FROM vectors GROUP BY type_id").fetchall()
+        mixed = [t for t, n, _ in rows if n != 1]
+        bad = sum(b or 0 for _, _, b in rows)
+        if mixed or bad:
+            self._fail("vectors.data", "%d type(s) with mixed lengths, %d "
+                       "non-float32 blob(s)" % (len(mixed), bad))
+        else:
+            self._ok("vectors.data", "float32 blobs, one length per type")
+
+        sha1s = {r[0] for r in data.execute("SELECT DISTINCT sha1 FROM instances")}
+        orphan = sum(1 for (h,) in media.execute("SELECT DISTINCT sha1 FROM vectors")
+                     if h not in sha1s)
+        if orphan:
+            self._fail("vectors.sha1", "%d sha1(s) with no instance" % orphan)
+        else:
+            self._ok("vectors.sha1", "every vector belongs to an instance")

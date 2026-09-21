@@ -24,9 +24,17 @@ conversion. The IR is therefore "v7c with every known quirk already fixed":
 
 What is deliberately absent
 ---------------------------
-Per the signed-off decisions in CLAUDE.md, the IR carries **no** tabs/UI blobs,
-**no** vectors and **no** `raw_images` payloads. It carries their *counts* in
-`Dropped`, so every run report can state exactly what was discarded.
+Per the signed-off decisions in CLAUDE.md, the IR carries **no** tabs/UI blobs
+and **no** `raw_images` payloads. It carries their *counts* in `Dropped`, so
+every run report can state exactly what was discarded.
+
+Vectors are the one conditional case (user decision, 2026-09-19): they are
+**kept for the v7 shapes only** (v7a/v7b/v7c, whose `vector_type` rows record
+the producing model) and dropped for everything older. Even when kept, the IR
+does not hold the vector *payloads*: it holds the `vector_type` rows, the
+expected byte length per type, and the path of the legacy DB, and the media
+writer streams the rows straight from the (read-only) source. A project with
+millions of 2 KB vectors must not be materialised in memory.
 """
 
 from __future__ import annotations
@@ -136,6 +144,35 @@ class AtlasSheet:
 
 
 @dataclass
+class VectorType:
+    """One legacy v7 `vector_type` row, already normalised for the target.
+
+    `source` is the plugin name the vectors belong to (NULL -> 'unknown');
+    `params` is the decoded dict (NULL / junk -> {}), which the target stores as
+    `json.dumps(params)` in a `JSON NOT NULL` column.
+    """
+
+    id: int
+    source: str
+    params: Dict[str, Any]
+
+
+@dataclass
+class VectorSource:
+    """Where the kept vectors are streamed from (MAPPING 7.2).
+
+    `path` is the legacy project DB, opened read-only again by the writer.
+    `rows` is the legacy `vectors` row count; `lengths` the expected `data`
+    byte length per type id (the modal length, see `readers.base`). Rows that
+    disagree are skipped and reported by the writer, never written.
+    """
+
+    path: str
+    rows: int = 0
+    lengths: Dict[int, int] = field(default_factory=dict)
+
+
+@dataclass
 class MapRow:
     id: int
     source: Optional[str]
@@ -155,8 +192,14 @@ class Dropped:
 
     tabs: int = 0                    # L3
     ui_data_keys: List[str] = field(default_factory=list)   # L3
-    vectors: int = 0                 # signed off: recompute in the new Panoptic
+    #: v1-v6/P0/P1 (and v7 under --drop-vectors): recompute in the new Panoptic.
+    #: Always 0 when the vectors were carried over -- see `vectors_kept`.
+    vectors: int = 0
     vector_types: int = 0
+    #: True when this run carried the v7 vectors over instead of dropping them
+    vectors_kept: bool = False
+    kept_vectors: int = 0            # legacy rows offered to the writer
+    kept_vector_types: int = 0
     raw_images: int = 0              # L6
     raw_image_bytes: int = 0
     ahash: int = 0                   # L1
@@ -171,14 +214,21 @@ class Dropped:
     def summary_lines(self):
         """One line per thing this run threw away, with its real count.
 
-        Every run must state the vector loss out loud (MISSION 3.5): the new
-        Panoptic recomputes them, but only if the user knows to ask for it. The
-        vector line is emitted even when the count is 0, so its absence is never
-        mistaken for "the migrator forgot to look".
+        Every run must state what happened to the vectors out loud (MISSION
+        3.5): dropped (v1-v6/P0/P1, the new Panoptic recomputes them, but only if
+        the user knows to ask) or carried over (v7). Exactly one vector line is
+        emitted, even when the count is 0, so its absence is never mistaken for
+        "the migrator forgot to look".
         """
-        lines = ["dropped by design: %d vector(s) in %d vector type(s) -- "
-                 "recompute them in the new Panoptic"
-                 % (self.vectors, self.vector_types)]
+        if self.vectors_kept:
+            lines = ["carried over: %d legacy vector(s) in %d vector type(s) "
+                     "(v7 byte copy; any row failing validation is listed "
+                     "separately as skipped)"
+                     % (self.kept_vectors, self.kept_vector_types)]
+        else:
+            lines = ["dropped by design: %d vector(s) in %d vector type(s) -- "
+                     "recompute them in the new Panoptic"
+                     % (self.vectors, self.vector_types)]
         if self.default_vector:
             lines.append("dropped by design: default_vector=%r (L9: no target "
                          "concept)" % (self.default_vector,))
@@ -234,6 +284,12 @@ class ProjectIR:
     atlas: List[AtlasSheet] = field(default_factory=list)
     maps: List[MapRow] = field(default_factory=list)
 
+    #: v7 only (empty otherwise): the kept `vector_type` rows, and where the
+    #: vector payloads are streamed from. `vector_source` is None whenever the
+    #: vectors are dropped.
+    vector_types: List[VectorType] = field(default_factory=list)
+    vector_source: Optional[VectorSource] = None
+
     dropped: Dropped = field(default_factory=Dropped)
     warnings: List[str] = field(default_factory=list)
 
@@ -257,6 +313,7 @@ class ProjectIR:
             "tags": _max(self.tags),
             "image_atlas": _max(self.atlas),
             "maps": _max(self.maps),
+            "vector_types": _max(self.vector_types),
         }
 
     def counts(self):
@@ -273,6 +330,8 @@ class ProjectIR:
             "thumbnails": len(self.thumbnails),
             "atlas": len(self.atlas),
             "maps": len(self.maps),
+            "vector_types": len(self.vector_types),
+            "vectors": self.vector_source.rows if self.vector_source else 0,
             "project_params": len(self.project_params),
             "plugin_params": len(self.plugin_params),
         }
