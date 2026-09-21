@@ -87,10 +87,32 @@ undo works by construction.
 - A user action = one `commit_id` (a bundle of cell-ops) with `author = that user`.
 - **Undo** = pick the greatest still-enabled `commit_id` **for that author**, set
   `enabled = 0`, and re-resolve only the cells that commit wrote.
-- **Redo** = the symmetric re-enable.
+- **Redo** = the symmetric re-enable, oldest disabled commit first.
 - Each user effectively has their **own undo stack** (their commits ordered by time), but
   undo is *selective*: disabling user A's commit 5 is valid even though users B/C made
   commits 6, 7, 8 afterward — because state doesn't depend on order.
+
+### The redo stack ends where a new edit starts  (`commits.redoable`)
+
+Order-independence makes *any* disabled commit re-enableable, but redo must not offer one the
+author has already written past. Classic undo/redo drops the redone future on a new edit, and
+so does this: writing a commit clears `redoable` on that author's disabled commits, and redo
+only ever considers `active = 0 AND redoable = 1`.
+
+Without it: remove a tag (c1), ctrl+Z, remove it again by hand (c2 — legitimate, the cell was
+alive again), ctrl+shift+Z re-enables c1. Two enabled DELETE ops now sit on the same cell, so
+disabling either one leaves the other in charge and **undo does nothing on screen**. Undoing a
+commit is only meaningful while it is the op deciding its cells.
+
+Scoped per author, so nobody's redo stack dies from someone else's edit. Disabling a commit —
+by undo or straight from the commit timeline — puts it back on its author's redo stack.
+
+### Every commit must be worth undoing
+
+The same rule from the write side: a payload that asserts the state the DB already holds
+(same scalar value, a tag removed twice, a delete of an already dead entity) produces no ops,
+so `apply_commit` writes **no commit row** and returns `None`. A commit that resolves to the
+state it found is an entry the user can only undo into nothing.
 
 ### What actually changes on an undo of commit X
 Only the cells X touched, and among those only the ones where X's op was the current winner.

@@ -107,5 +107,21 @@ tables_config['entity_log'] = ENTITY_LOG_SCHEMA
 tables_config['sequence'] = sequence_table
 
 
-# No migrations: the data DB is created fresh at the current schema version.
-datastore_desc = DbDescription(version=1, tables=tables_config, migrations={})
+def _v1_add_commit_redoable(db) -> None:
+    """v1 -> v2: `commits.redoable` (the redo-stack bit, see Commit.redoable).
+
+    Migrations run before the missing tables are created, so a brand-new DB has no `commits`
+    table yet and gets the column from the struct instead. Existing commits start redoable.
+    """
+    if not db._table_exists(COMMITS_SCHEMA.table):
+        return
+    columns = {r[1] for r in db.conn.execute(f"PRAGMA table_info({COMMITS_SCHEMA.table})")}
+    if 'redoable' in columns:
+        return
+    with db.transaction() as tx:
+        tx.execute(f"ALTER TABLE {COMMITS_SCHEMA.table} ADD COLUMN redoable INTEGER")
+        tx.execute(f"UPDATE {COMMITS_SCHEMA.table} SET redoable = 1")
+
+
+datastore_desc = DbDescription(version=2, tables=tables_config,
+                               migrations={1: _v1_add_commit_redoable})

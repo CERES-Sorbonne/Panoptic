@@ -253,6 +253,11 @@ class Project:
         with self._data_reader() as r:
             return r.get_commit_stats(commit_ids)
 
+    def get_undo_redo(self, author: str = None,
+                      all_authors: bool = False) -> tuple[List[Commit], List[Commit]]:
+        with self._data_reader() as r:
+            return r.get_undo_redo(author=author, all_authors=all_authors)
+
     def get_file_sources(self, **filters) -> List[FileSource]:
         with self._data_reader() as r:
             return r.get_file_sources(**filters)
@@ -314,10 +319,11 @@ class Project:
     # ------------------------------------------------------------------
 
     def apply_commit(self, source: str, commit: DataCommit, group_id: int = None,
-                     author: str = None) -> Commit:
+                     author: str = None) -> Commit | None:
         """Unified create/update/delete for the logged (revertable) entities.
 
         ``author`` (optional) tags the commit for per-user, non-sequential selective undo.
+        Returns None when the payload changes nothing (see DataWriter.apply_commit).
         """
         with self._data_writer() as w:
             result = w.apply_commit(source, commit, group_id=group_id, author=author)
@@ -325,14 +331,14 @@ class Project:
         return result
 
     def apply_upsert_commit(self, source: str, commit: UpsertCommit, group_id: int = None,
-                            author: str = None) -> Commit:
+                            author: str = None) -> Commit | None:
         with self._data_writer() as w:
             result = w.apply_upsert_commit(source, commit, group_id=group_id, author=author)
         self._fire_on_commit()
         return result
 
     def apply_delete_commit(self, source: str, commit: DeleteCommit, group_id: int = None,
-                            author: str = None) -> Commit:
+                            author: str = None) -> Commit | None:
         # Compat shim. Structural deletes here do not garbage-collect orphaned media (a
         # leftover blob is only wasted disk); callers that need media GC should use the
         # dedicated delete_instances/delete_folders/delete_file_sources API.
@@ -370,6 +376,22 @@ class Project:
         with self._data_writer() as w:
             w.set_commit_active(commit_id, active)
         self._fire_on_commit()
+
+    def undo(self, author: str = None) -> Commit | None:
+        """Undo ``author``'s most recent commit. Returns it, or None when there is nothing."""
+        with self._data_writer() as w:
+            commit = w.undo(author)
+        if commit is not None:
+            self._fire_on_commit()
+        return commit
+
+    def redo(self, author: str = None) -> Commit | None:
+        """Redo ``author``'s oldest undone commit. Returns it, or None when there is nothing."""
+        with self._data_writer() as w:
+            commit = w.redo(author)
+        if commit is not None:
+            self._fire_on_commit()
+        return commit
 
     def compact(self, horizon_commit_id: int):
         """Fold all commits up to and including ``horizon_commit_id`` into the frozen baseline.

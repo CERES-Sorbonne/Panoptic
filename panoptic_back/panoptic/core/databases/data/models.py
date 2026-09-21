@@ -18,6 +18,11 @@ class Commit(msgspec.Struct, array_like=True):
     # Who authored the commit. Enables per-user, non-sequential selective undo: a user undoes
     # their own most-recent enabled commit regardless of its position in the global log.
     author: Optional[str] = None
+    # Is this commit still on its author's redo stack? Set to 0 when the author writes a new
+    # commit while this one is undone: that new edit ends the undone branch, exactly as in a
+    # classic undo/redo. Without it, redo would re-enable a commit the new edit already
+    # superseded, leaving two enabled ops on one cell and an undo that changes nothing.
+    redoable: Optional[int] = 1
 
 
 class ChangeOp(msgspec.Struct, array_like=True):

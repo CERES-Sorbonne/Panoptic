@@ -48,15 +48,18 @@ class DataWriter(SQLiteWriter):
     # ==================================================================
 
     def apply_commit(self, source: str, data: DataCommit, group_id: int = None,
-                     author: str = None) -> Commit:
+                     author: str = None) -> Commit | None:
         """Unified create/update/delete for the logged (revertable) entities.
 
         Builds the minimal set of :class:`ChangeOp` diffs (expanding tag-valued writes into
         per-tag junction ops and cascading deletes), appends them to ``entity_log``, then
         re-resolves and re-materializes every touched entity.
+
+        Returns ``None`` when the payload changes nothing: a write that asserts the state the
+        DB already holds gets no commit row, or the history would fill with entries whose undo
+        does nothing.
         """
         with self.transaction() as tx:
-            seq = self._exec_get_sequence(tx)
             commit_id = tx.execute(
                 f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}"
             ).fetchone()[0] + 1
@@ -65,18 +68,31 @@ class DataWriter(SQLiteWriter):
                 group_id = commit_id
 
             ops = self._build_ops(tx, data, commit_id)
+            if not ops:
+                return None
+            seq = self._exec_get_sequence(tx)   # only a real commit consumes a sequence
 
             # Insert the (enabled) commit row *before* materializing: resolution only counts ops
             # whose commit is active, so the row must exist for the just-written ops to fold in.
             commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now,
-                            active=1, author=author)
+                            active=1, author=author, redoable=1)
             COMMITS_SCHEMA.upsert(tx, commit)
+            self._discard_redo(tx, author)
 
-            if ops:
-                self._append_ops(tx, ops, seq)
-                touched = {(o.entity_type, o.entity_key) for o in ops}
-                self._materialize_many(tx, touched, seq)
+            self._append_ops(tx, ops, seq)
+            touched = {(o.entity_type, o.entity_key) for o in ops}
+            self._materialize_many(tx, touched, seq)
             return commit
+
+    def _discard_redo(self, tx: Cursor, author: str | None) -> None:
+        """A new edit ends the author's undone branch: their disabled commits leave the redo stack.
+
+        Classic undo/redo semantics. Without this, redo re-enables a commit the new edit has
+        already superseded — two enabled ops on the same cell, and an undo that does nothing.
+        Scoped to one author: stacks are per-user, so nobody's redo dies from someone else's work.
+        """
+        tx.execute(f"UPDATE {COMMITS_SCHEMA.table} SET redoable = 0"
+                   f" WHERE active = 0 AND redoable = 1 AND author IS ?", (author,))
 
     # ------------------------------------------------------------------
     # ChangeOp construction (write path)
@@ -114,7 +130,7 @@ class DataWriter(SQLiteWriter):
                             dtypes, commit_id, add)
         for fv in data.file_values:
             # No file-tag junction table: file values are always stored as scalar cells.
-            add(self._scalar_value_op('file_value', fv.property_id, ('file_id', fv.file_id),
+            add(self._scalar_value_op(tx, 'file_value', fv.property_id, ('file_id', fv.file_id),
                                       fv.value, commit_id))
 
         # Cascade deletes (same commit, so undo restores the whole subtree).
@@ -128,6 +144,10 @@ class DataWriter(SQLiteWriter):
         spec = ENTITY_SPECS[entity_type]
         key = encode_key(tuple(getattr(incoming, f) for f in spec.pk_fields))
         if getattr(incoming, 'operation', None) == OP_DELETE:
+            # Already dead: a second DELETE would resolve to the same state, so it would only
+            # add a commit whose undo does nothing (the older DELETE still holds).
+            if self._alive_row(tx, spec, key) is None:
+                return None
             return ChangeOp(entity_type, key, commit_id, OP_DELETE, None)
         current = self._alive_row(tx, spec, key)
         op = OP_CREATE if current is None else OP_UPDATE
@@ -136,19 +156,25 @@ class DataWriter(SQLiteWriter):
             return None
         return ChangeOp(entity_type, key, commit_id, op, changes)
 
-    def _scalar_value_op(self, entity_type: str, property_id: int, extra: tuple,
-                         value: Any, commit_id: int) -> ChangeOp:
+    def _scalar_value_op(self, tx: Cursor, entity_type: str, property_id: int, extra: tuple,
+                         value: Any, commit_id: int) -> ChangeOp | None:
         spec = ENTITY_SPECS[entity_type]
         pk = tuple(property_id if f == 'property_id' else extra[1] for f in spec.pk_fields)
+        key = encode_key(pk)
+        # Re-asserting the value the cell already holds changes nothing — skip it, or the
+        # history gets an entry whose undo falls back on the identical previous value.
+        current = self._alive_row(tx, spec, key)
+        if current is not None and current.value == value:
+            return None
         # A value set asserts existence: model it as OP_CREATE so the last enabled set wins.
-        return ChangeOp(entity_type, encode_key(pk), commit_id, OP_CREATE, {'value': value})
+        return ChangeOp(entity_type, key, commit_id, OP_CREATE, {'value': value})
 
     def _value_ops(self, tx: Cursor, value_type: str, tag_type: str, extra: tuple,
                    property_id: int, value: Any, dtypes: dict, commit_id: int, add) -> None:
         if dtypes.get(property_id) in _TAG_DTYPES:
             self._tag_junction_ops(tx, tag_type, extra, property_id, value, commit_id, add)
         else:
-            add(self._scalar_value_op(value_type, property_id, extra, value, commit_id))
+            add(self._scalar_value_op(tx, value_type, property_id, extra, value, commit_id))
 
     def _tag_junction_ops(self, tx: Cursor, tag_type: str, extra: tuple, property_id: int,
                           value: Any, commit_id: int, add) -> None:
@@ -382,7 +408,37 @@ class DataWriter(SQLiteWriter):
     # Undo / redo  (non-sequential, any commit, any position)
     # ==================================================================
 
-    def set_commit_active(self, commit_id: int, active: bool):
+    def undo(self, author: str = None) -> Commit | None:
+        """Disable the author's most recent still-enabled commit. Returns it, or None.
+
+        Picking and toggling happen in one transaction, so two undos racing on the same
+        history can never pick the same commit.
+        """
+        with self.transaction() as tx:
+            row = tx.execute(
+                f"SELECT id FROM {COMMITS_SCHEMA.table}"
+                f" WHERE active = 1 AND author IS ? AND id > ?"
+                f" ORDER BY id DESC LIMIT 1", (author, GENESIS_COMMIT_ID)).fetchone()
+            if row is None:
+                return None
+            return self._set_commit_active_tx(tx, row[0], False)
+
+    def redo(self, author: str = None) -> Commit | None:
+        """Re-enable the author's oldest undone commit (LIFO against undo). Returns it, or None.
+
+        Only commits still on the redo stack qualify: one superseded by a later edit of the
+        same author was discarded at write time (see _discard_redo) and stays disabled.
+        """
+        with self.transaction() as tx:
+            row = tx.execute(
+                f"SELECT id FROM {COMMITS_SCHEMA.table}"
+                f" WHERE active = 0 AND redoable = 1 AND author IS ? AND id > ?"
+                f" ORDER BY id ASC LIMIT 1", (author, GENESIS_COMMIT_ID)).fetchone()
+            if row is None:
+                return None
+            return self._set_commit_active_tx(tx, row[0], True)
+
+    def set_commit_active(self, commit_id: int, active: bool) -> Commit | None:
         """Toggle a commit's enabled bit and re-resolve only the entities it touched.
 
         State is a pure function of the enabled set, so this works for any commit at any
@@ -390,25 +446,36 @@ class DataWriter(SQLiteWriter):
         change; everyone else's disjoint work is untouched.
         """
         if commit_id == GENESIS_COMMIT_ID:
-            return  # the folded baseline is never toggled
+            return None  # the folded baseline is never toggled
         with self.transaction() as tx:
-            seq = self._exec_get_sequence(tx)
-            tx.execute(f"UPDATE {COMMITS_SCHEMA.table} SET active = ? WHERE id = ?",
-                       (1 if active else 0, commit_id))
-            touched = self._touched_by_commit(tx, commit_id)
-            self._materialize_many(tx, touched, seq)
-            for et, key in touched:
-                # A tag's existence lives in the `tag` entity, but its assignments live in
-                # separate junction rows under other (still-active) commits. Toggling the tag
-                # doesn't touch those rows, so bump their sequence to re-ship the affected value
-                # cells on the next delta — the reader then rebuilds each list filtered to alive
-                # tags (undo drops the tag, redo restores it). Reversible: no ops are deleted.
-                if et == 'tag':
-                    tag_id = decode_key(key)[0]
-                    tx.execute(f"UPDATE {INSTANCE_TAG_VALUES_SCHEMA.table} SET sequence = ? WHERE tag_id = ?",
-                               (seq, tag_id))
-                    tx.execute(f"UPDATE {SHA1_TAG_VALUES_SCHEMA.table} SET sequence = ? WHERE tag_id = ?",
-                               (seq, tag_id))
+            return self._set_commit_active_tx(tx, commit_id, active)
+
+    def _set_commit_active_tx(self, tx: Cursor, commit_id: int, active: bool) -> Commit | None:
+        rows = COMMITS_SCHEMA.get(tx, id=commit_id)
+        if not rows:
+            return None
+        commit = rows[0]
+        seq = self._exec_get_sequence(tx)
+        # Disabling puts the commit back on its author's redo stack — including one disabled
+        # straight from the commit timeline rather than by an undo.
+        redoable = commit.redoable if active else 1
+        tx.execute(f"UPDATE {COMMITS_SCHEMA.table} SET active = ?, redoable = ? WHERE id = ?",
+                   (1 if active else 0, redoable, commit_id))
+        touched = self._touched_by_commit(tx, commit_id)
+        self._materialize_many(tx, touched, seq)
+        for et, key in touched:
+            # A tag's existence lives in the `tag` entity, but its assignments live in
+            # separate junction rows under other (still-active) commits. Toggling the tag
+            # doesn't touch those rows, so bump their sequence to re-ship the affected value
+            # cells on the next delta — the reader then rebuilds each list filtered to alive
+            # tags (undo drops the tag, redo restores it). Reversible: no ops are deleted.
+            if et == 'tag':
+                tag_id = decode_key(key)[0]
+                tx.execute(f"UPDATE {INSTANCE_TAG_VALUES_SCHEMA.table} SET sequence = ? WHERE tag_id = ?",
+                           (seq, tag_id))
+                tx.execute(f"UPDATE {SHA1_TAG_VALUES_SCHEMA.table} SET sequence = ? WHERE tag_id = ?",
+                           (seq, tag_id))
+        return msgspec.structs.replace(commit, active=1 if active else 0, redoable=redoable)
 
     # ==================================================================
     # Log compaction  (bound resolution cost; drop undo history behind H)

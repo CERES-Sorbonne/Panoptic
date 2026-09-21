@@ -58,6 +58,23 @@ class DataReader(SQLiteReader):
     def get_commit_by_id(self, commit_id: int) -> Commit:
         return COMMITS_SCHEMA.get(self.conn, id=commit_id)[0]
 
+    def get_undo_redo(self, author: str = None,
+                      all_authors: bool = False) -> tuple[List[Commit], List[Commit]]:
+        """The (undo, redo) stacks, ascending by commit id.
+
+        Undo holds the enabled commits, redo the ones still on the redo stack (disabled, not
+        superseded by a later edit — see Commit.redoable). A discarded commit is on neither:
+        it can no longer be reached from either end of the history.
+
+        ``all_authors`` keeps everyone's commits for a project-wide, display-only history;
+        the default keeps ``author``'s alone, which is what undo/redo may actually touch.
+        """
+        commits = sorted(self.get_commits(), key=lambda c: c.id)
+        if not all_authors:
+            commits = [c for c in commits if c.author == author]
+        return ([c for c in commits if c.active],
+                [c for c in commits if not c.active and c.redoable])
+
     def get_commit_stats(self, commit_ids: List[int]) -> dict:
         """Per-commit edit counts for the undo/redo history panel.
 

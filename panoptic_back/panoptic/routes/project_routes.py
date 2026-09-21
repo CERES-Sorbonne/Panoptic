@@ -1190,26 +1190,23 @@ def _commit_info(c) -> dict:
 @project_router.post('/undo')
 def undo_route(project: Project = Depends(_dep), user_id: str = None):
     """Undo the caller's own most recent still-active commit. Commits authored by other users
-    are never touched: selective undo is per-author (see DataWriter.set_commit_active)."""
-    commits = [c for c in project.get_commits() if c.author == user_id]
-    active = [c for c in commits if c.active]
-    if not active:
+    are never touched: selective undo is per-author (see DataWriter.undo)."""
+    commit = project.undo(author=user_id)
+    if commit is None:
         raise HTTPException(400, 'Nothing to undo')
-    last = max(active, key=lambda c: c.id)      # last active = most recent
-    project.set_commit_active(last.id, False)
-    return _json(_commit_info(last))
+    return _json(_commit_info(commit))
 
 
 @project_router.post('/redo')
 def redo_route(project: Project = Depends(_dep), user_id: str = None):
-    """Redo the caller's own oldest undone commit (LIFO against undo). Per-author, as above."""
-    commits = [c for c in project.get_commits() if c.author == user_id]
-    inactive = [c for c in commits if not c.active]
-    if not inactive:
+    """Redo the caller's own oldest undone commit (LIFO against undo). Per-author, as above.
+
+    A commit the caller superseded with a later edit is no longer on the redo stack — that
+    branch ended when they edited again (see DataWriter._discard_redo)."""
+    commit = project.redo(author=user_id)
+    if commit is None:
         raise HTTPException(400, 'Nothing to redo')
-    first = min(inactive, key=lambda c: c.id)   # first deactivated = reactivate in LIFO order
-    project.set_commit_active(first.id, True)
-    return _json(_commit_info(first))
+    return _json(_commit_info(commit))
 
 
 @project_router.get('/history')
@@ -1224,10 +1221,8 @@ def get_history(project: Project = Depends(_dep), user_id: str = None, scope: st
     The frontend history panel renders these lists and undo/redo gate on their length, so this
     must return arrays (not counts) for Ctrl+Z / the HistoryDropdown to work.
     """
-    commits = sorted(project.get_commits(), key=lambda c: c.id)
-    if scope != 'all':
-        commits = [c for c in commits if c.author == user_id]
-    stats = project.get_commit_stats([c.id for c in commits])
+    undo, redo = project.get_undo_redo(author=user_id, all_authors=(scope == 'all'))
+    stats = project.get_commit_stats([c.id for c in undo + redo])
 
     def stat(c):
         s = stats.get(c.id, {'tags': 0, 'values': 0})
@@ -1236,10 +1231,7 @@ def get_history(project: Project = Depends(_dep), user_id: str = None, scope: st
         return {'id': c.id, 'timestamp': c.timestamp, 'author': c.author, 'source': c.source,
                 'own': c.author == user_id, 'tags': s['tags'], 'values': s['values']}
 
-    return _json({
-        'undo': [stat(c) for c in commits if c.active],
-        'redo': [stat(c) for c in commits if not c.active],
-    })
+    return _json({'undo': [stat(c) for c in undo], 'redo': [stat(c) for c in redo]})
 
 
 # ---------------------------------------------------------------------------

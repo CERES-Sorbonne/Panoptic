@@ -137,16 +137,20 @@ class PluginProjectInterface:
         self.apply_upsert_commit(commit)
         return prop
 
-    def apply_commit(self, commit: DataCommit, group_id: int = None) -> Commit:
-        """Unified create/update/delete for the logged (revertable) entities."""
+    def apply_commit(self, commit: DataCommit, group_id: int = None) -> Commit | None:
+        """Unified create/update/delete for the logged (revertable) entities.
+
+        Returns None when the payload asserts the state the DB already holds: nothing changed,
+        so nothing is committed.
+        """
         with self._data_writer() as w:
             return w.apply_commit(self._name, commit, group_id=group_id)
 
-    def apply_upsert_commit(self, commit: UpsertCommit, group_id: int = None) -> Commit:
+    def apply_upsert_commit(self, commit: UpsertCommit, group_id: int = None) -> Commit | None:
         with self._data_writer() as w:
             return w.apply_upsert_commit(self._name, commit, group_id=group_id)
 
-    def apply_delete_commit(self, commit: DeleteCommit, group_id: int = None) -> Commit:
+    def apply_delete_commit(self, commit: DeleteCommit, group_id: int = None) -> Commit | None:
         with self._data_writer() as w:
             return w.apply_delete_commit(self._name, commit, group_id=group_id)
 
