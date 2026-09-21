@@ -1,3 +1,9 @@
+> **Status: implemented — and the "2" is gone.** What this note calls `Project2` shipped as
+> `panoptic/core/project/project.py` (`class Project`, 672 L). There is no `panoptic2/`
+> package and no `project2.py`: the new architecture replaced the old one in place, so read
+> "Project2" as "today's `Project`" and "the current design" as the pre-2026 code.
+> The open questions this note left are answered in `to fix.md`. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # `Project2` architecture — design notes
 
 ---

@@ -56,8 +56,12 @@ function setMode(propId: number, mode: number) {
             <tr v-for="property in properties" class="">
                 <template v-if="property.id >= 0">
                     <td :class="propertyColor[property.id]" class="text-nowrap prop-name">
-                        <PropertyIcon :type="property.type" />
-                        {{ property.name }}
+                        <wTT :message="property.name" class="d-block">
+                            <div class="prop-name-inner">
+                                <PropertyIcon :type="property.type" />
+                                {{ property.name }}
+                            </div>
+                        </wTT>
                     </td>
                     <template v-if="!props.erase.has(property.id)">
                         <td class="w-100 prop-input">
@@ -87,12 +91,17 @@ function setMode(propId: number, mode: number) {
                             <div v-if="property.type == PropertyType.multi_tags && props.values[property.id]"
                                 class="d-flex mode-switch">
                                 <div class="mode-option" :class="{ selected: !props.modes[property.id] }"
-                                    @click="setMode(property.id, 0)">{{ $t('dropdown.stamp.add') }}</div>
+                                    @click="setMode(property.id, 0)">
+                                    <wTT message="dropdown.stamp.add"><i class="bi bi-plus-lg" /></wTT>
+                                </div>
                                 <div class="mode-option" :class="{ selected: props.modes[property.id] == 1 }"
-                                    @click="setMode(property.id, 1)">{{ $t('dropdown.stamp.set') }}</div>
+                                    @click="setMode(property.id, 1)">
+                                    <wTT message="dropdown.stamp.set"><i class="bi bi-arrow-repeat" /></wTT>
+                                </div>
                                 <div class="mode-option" :class="{ selected: props.modes[property.id] == 2 }"
-                                    @click="setMode(property.id, 2)">{{ $t('dropdown.stamp.del')
-                                    }}</div>
+                                    @click="setMode(property.id, 2)">
+                                    <wTT message="dropdown.stamp.del"><i class="bi bi-dash-lg" /></wTT>
+                                </div>
                             </div>
                         </td>
                     </template>
@@ -169,8 +178,30 @@ tr td:last-child {
     padding-top: 6px;
 }
 
+/* Long names are cropped so the form never scrolls horizontally; the full name shows in the tooltip */
+.prop-name-inner {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .prop-input {
     padding-top: 6px;
+    /* width: 100% + max-width: 0 makes the cell take the remaining space without letting its
+       content widen the table */
+    max-width: 0;
+}
+
+/* Tags wrap first; a single tag wider than the cell is cropped (TagBadge shows the full name on hover) */
+.prop-input :deep(.tag-badge) {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.prop-input :deep(.tag-badge .label) {
+    display: inline;
 }
 
 .mode-col {
@@ -206,6 +237,9 @@ tr td:last-child {
 .erase-label {
     text-align: end;
     font-size: 12px;
+    /* match the property name's padding and line box so the label sits on the same line */
+    padding-top: 6px;
+    line-height: 21px;
 }
 
 .action-col {

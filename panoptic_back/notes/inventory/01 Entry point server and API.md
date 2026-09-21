@@ -10,7 +10,7 @@ Back to [[00 Backend inventory]] · Unused files: [[99 Unused files]]
 Paths are relative to `panoptic_back/`.
 
 ## Zone-level checks
-- [ ] Every route in `routes/panoptic_routes.py` and `routes/project_routes.py` still has a caller in `panoptic_front/src/data/apiPanopticRoutes.ts` / `apiProjectRoutes.ts`, or in a plugin.
+- [ ] Every route in `routes/panoptic_routes.py` and `routes/project_routes.py` still has a caller in `panoptic_front/src/data/api/panopticApi.ts` / `api/projectApi.ts`, or in a plugin.
 - [ ] `main.py` → the global `Exception` handler sends the full Python traceback to the client. That's fine locally, but decide whether it should also happen when `PANOPTIC_REMOTE` is set.
 - [ ] CORS is `allow_origins=['*']`. Is that intended for remote mode too?
 - [ ] `main.py` patches `fastapi.encoders` so that `msgspec.Struct` serialises. Re-check this after every FastAPI upgrade.

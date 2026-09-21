@@ -232,7 +232,7 @@ How filtered/sorted/grouped results are computed without ever allocating Instanc
 ```mermaid
 flowchart LR
     subgraph COL["columnStore (raw, non-reactive)"]
-        SLOTS["slotMap + typed arrays<br/>+ deletedMask + selectionMask"]
+        SLOTS["slotMap + typed arrays<br/>+ deletedMask + selectionMasks[ns]"]
         CD["columnData[propId]<br/>numeric / bool / string / tag(CSR)"]
     end
 
@@ -266,8 +266,10 @@ flowchart LR
 - Recompute is triggered by three reactive sources: data changes (`onChange`), config
   changes (deep `watch` on filter/sort/group state → debounced, coalesced to the most
   expensive pending kind), and column-load completion (`isReady`).
-- Selection lives as a slot-indexed `selectionMask` in `columnStore`; a `selectionVersion`
-  ref keeps the 1M-slot mask out of Vue reactivity while still letting templates re-render.
+- Selection lives in `columnStore` as slot-indexed `Uint8Array` masks, one per **namespace**
+  (`selectionMasks`, `'global'` by default), reached through a view's `GroupNavigator`. A
+  per-namespace `selectionVersion` keeps the 1M-slot masks out of Vue reactivity while still
+  letting templates re-render.
 
 ---
 
@@ -337,11 +339,11 @@ flowchart TB
 - REST surface: `routes/panoptic_routes.py`, `routes/project_routes.py`
 - Read/write facade: `core/project/project.py`, `core/databases/data/{data_reader,data_writer}.py`
 - Sequence poll: `core/watcher/db_watcher.py`
-- Ingestion / atlas: `core/task/{import_folder_task,generate_atlas_task,task_manager}.py`
+- Ingestion / atlas: `core/task/{import_source_task,generate_atlas_task,generate_thumbnails_task,task_manager}.py`
 - Plugin sandbox: `core/plugin/plugin_interface.py`
-- Frontend API: `src/data/apiProjectRoutes.ts`
-- Realtime client: `src/data/socketStore.ts`
-- Orchestrator: `src/data/dataStore.ts`
-- Columnar engine: `src/data/columnStore.ts`
+- Frontend API: `src/data/api/projectApi.ts`
+- Realtime client: `src/data/stores/socketStore.ts`
+- Orchestrator: `src/data/stores/dataStore.ts`
+- Columnar engine: `src/data/stores/columnStore.ts`
 - View pipeline: `src/core/{TabManager,CollectionManager,FilterManager,SortManager,GroupManager}.ts`
 ```

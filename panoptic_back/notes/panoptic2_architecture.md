@@ -1,3 +1,7 @@
+> **Status: implemented — and the "2" is gone.** `Panoptic2` shipped as
+> `panoptic/core/panoptic/` (with `panoptic/core/server/panoptic_server.py`); there is no
+> `panoptic2/` package. Read "Panoptic2" as today's `Panoptic`. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # `Panoptic2` class — architecture notes
 
 ---

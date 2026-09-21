@@ -1,3 +1,9 @@
+> **Status 2026-09-21: still accurate in shape, renamed in paths.** The two clients are
+> `src/data/api/panopticApi.ts` and `src/data/api/projectApi.ts` (was `apiPanopticRoutes.ts` /
+> `apiProjectRoutes.ts`, moved by `20baa607`); the Socket.IO client is
+> `src/data/stores/socketStore.ts`. The route list it refers to is
+> `panoptic_back/notes/routes_reference.md`, regenerated 2026-09-21.
+
 # Frontend ↔ Backend Communication
 
 ## Overview
@@ -12,11 +18,11 @@ Two independent channels run in parallel:
 
 ### Two axios instances
 
-**`panopticApi`** (`apiPanopticRoutes.ts`) — panoptic-level operations, no project context needed.
+**`panopticApi`** (`api/panopticApi.ts`) — panoptic-level operations, no project context needed.
 - `baseURL` = `VITE_API_ROUTE`
 - Interceptor: injects `?connection_id=…` from `clientState.connectionId`
 
-**`projectApi`** (`apiProjectRoutes.ts`) — project-level operations.
+**`projectApi`** (`api/projectApi.ts`) — project-level operations.
 - `baseURL` = `VITE_API_ROUTE`
 - Interceptor: prepends `/projects/{connectedProject}` to every URL, plus injects `connection_id`
 - If no project is connected, logs an error and the call goes out malformed (no guard throws)
@@ -32,10 +38,10 @@ The backend speaks snake_case; the frontend speaks camelCase.
 
 | File | axios instance | Scope |
 |------|---------------|-------|
-| `apiPanopticRoutes.ts` | `panopticApi` | projects CRUD, plugins, filesystem, packages |
-| `apiProjectRoutes.ts` | `projectApi` | DB state, commit, images, import/export, actions, vectors, maps, UI data |
+| `api/panopticApi.ts` | `panopticApi` | projects CRUD, plugins, filesystem, packages |
+| `api/projectApi.ts` | `projectApi` | DB state, commit, images, import/export, actions, vectors, maps, UI data |
 
-> **Note**: `apiProjectRoutes.ts` also contains `apiGetPlugins`, `apiAddPlugin`, `apiDelPlugin`, `apiUpdatePlugin` that use raw `axios` (no base URL). These look like copy-paste leftovers from before the split — the real plugin calls are in `apiPanopticRoutes.ts`.
+> **Note**: `api/projectApi.ts` also contains `apiGetPlugins`, `apiAddPlugin`, `apiDelPlugin`, `apiUpdatePlugin` that use raw `axios` (no base URL). These look like copy-paste leftovers from before the split — the real plugin calls are in `api/panopticApi.ts`.
 
 ---
 
@@ -157,6 +163,6 @@ On first connect the server assigns an ID and sends it in `client_state`; subseq
 
 ## Known issues / rough edges
 
-- Plugin calls in `apiProjectRoutes.ts` (`apiGetPlugins`, `apiAddPlugin`, etc.) use raw `axios` with no base URL — they will 404. The real plugin API is in `apiPanopticRoutes.ts` and is what `panopticStore` actually calls.
+- Plugin calls in `api/projectApi.ts` (`apiGetPlugins`, `apiAddPlugin`, etc.) use raw `axios` with no base URL — they will 404. The real plugin API is in `api/panopticApi.ts` and is what `panopticStore` actually calls.
 - `panopticStore.loadProject` / `closeProject` call the API but ignore the returned state; the actual state update comes via the `server_state` and `client_state` socket events that the server emits after the operation.
 - `apiGetPanopticState` still calls `/panoptic_state` (v1 route) — that route no longer exists in v2. The store currently relies entirely on socket push for `serverState`; this function is not called anywhere in the store itself but is exported.

@@ -16,14 +16,16 @@ Back to [[00 Frontend inventory]] · Unused files: [[99 Unused files]]
   - 10 packages are never imported ([[99 Unused files]]).
   - Runtime libraries sit in `devDependencies`: `pinia`, `@vueform/slider`, `@vueform/toggle`, `@anilkumarthakur/vue3-json-viewer`. That works because Vite bundles everything, but it's misleading.
   - `"vite": ">=4.1.5"` is unpinned and resolved to Vite 8.0.13 (rolldown).
-- [ ] `npm run typecheck` (`vue-tsc --noEmit`) passes with exit 0 and no errors, but only for files reachable from the entry. Dead `.vue` files aren't included, so their broken imports stay hidden ([[99 Unused files]]).
+- [ ] `npm run typecheck` (`vue-tsc --noEmit`) passes with exit 0 and no errors, and `npm test` runs 136 group-engine specs under `node --test` (see `test/group/README.md`) — but typecheck only covers files reachable from the entry. Dead `.vue` files aren't included, so their broken imports stay hidden ([[99 Unused files]]).
 - [ ] `sass` is still needed as a build tool because `tutorials/Tutorial.vue` uses `<style lang="scss">`. `sass-loader` isn't needed.
 - [ ] `tsconfig.json`: `strict` is on, but `noImplicitAny` and `strictNullChecks` are off. `"jsx": "react-jsx"` and `outDir` are leftovers (`vue-tsc --noEmit` is the only TS use).
 - [ ] `vite.config.mjs` declares `replaceFiles` and `// assetsInclude`, which are unused.
 - [ ] `.env.production` sets `VITE_API_ROUTE=""`, so production uses the same origin as the backend. `.env.development` points at `http://localhost:8001` and has a commented LAN IP.
 
 ## Files
-- [ ] `package.json`. Scripts (`dev`, `build`, `preview`, `typecheck` = `vue-tsc --noEmit`, `lint`) and dependencies.
+- [ ] `package.json`. Scripts (`dev`, `build`, `preview`, `typecheck` = `vue-tsc --noEmit`,
+  `test` = `node test/group/build.mjs && node --test test/group/.build/suite.mjs`,
+  `test:sim`, `lint`) and dependencies. The two test scripts were added 2026-09-21.
 - [ ] `package-lock.json`
 - [ ] `vite.config.mjs`. Vue plugin, `@` → `src` alias, `outDir` into the backend, `server.fs.allow ['..']`, `__VUE_PROD_HYDRATION_MISMATCH_DETAILS__`.
 - [ ] `tsconfig.json`. `@/*` paths, strictness flags.

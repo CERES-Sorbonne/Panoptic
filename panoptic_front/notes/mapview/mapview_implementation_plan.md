@@ -1,3 +1,6 @@
+> **Status 2026-09-21: P0/P1 landed with `6799e47f`, P2–P5 did not** — `src/core/group/frontier.ts`
+> was never created and `MapMenu.vue` no longer exists. See `README.md` in this folder.
+
 # Implementation plan
 
 Each phase is shippable on its own and leaves the view working. P0–P2 are mechanical and

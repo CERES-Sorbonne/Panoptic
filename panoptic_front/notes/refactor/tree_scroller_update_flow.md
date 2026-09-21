@@ -1,3 +1,8 @@
+> **Status 2026-09-21: still the live description of the scroller's update flow**, with one
+> change — the scrollers take a `GroupInspector` (`src/core/group/inspector.ts`), not a
+> `GroupManager`, and `ViewPanel` passes the collection straight in. The `computeLines` cost
+> this note analyses is still real and is tracked in `README.md` under "Known-open performance".
+
 # TreeScroller: Architecture and Update Flow
 
 **Files covered:**

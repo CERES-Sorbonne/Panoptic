@@ -1,3 +1,18 @@
+> **Status 2026-09-21.** The map view was reworked in `6799e47f` "Map view integration",
+> after these notes were written. What landed:
+> - **P0/P1 — done.** `MapView.vue` takes `collection: GroupInspector` (the same surface as the
+>   scrollers), reads selection through `collection.selectionNamespace` over `columnStore`'s
+>   namespaced masks, gets `imageSize` from `ViewPanel`, and clusters through
+>   `collection.cluster(leaf.id, req)`. The prop is called `collection`, not `manager`.
+>   `MapMenu.vue`, `ImageMap.vue`, `MapRendererView.vue` and `ImagePreview.vue` were folded
+>   into `MapView.vue` (722 L) + `Toolbar.vue` and no longer exist.
+> - **Not built:** `src/core/group/frontier.ts`. P3's "visible frontier" is still one
+>   implementation per view — `GroupView.vue` has its own `walkVisible`, and the map still
+>   colours by root children. P2, P4 and P5 are likewise open.
+>
+> So: read `mapview_current_state.md` as the *pre-integration* snapshot, and the sync model /
+> design / plan as the intent that is still only partly delivered.
+
 # Map view — modernisation
 
 `MapView.vue` predates the split-view / inspection rework (`notes/refactor/`). It still

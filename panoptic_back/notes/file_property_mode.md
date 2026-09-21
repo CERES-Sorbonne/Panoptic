@@ -1,3 +1,10 @@
+> **Status: implemented.** `PropertyMode.file` exists (`panoptic/models/models.py`), with
+> `FileValue` rows in the data DB and `file_id`-keyed values through the writer/reader.
+> Frontend paths predate `20baa607` (`src/data/api/projectApi.ts`, `src/data/models/`,
+> `src/data/stores/dataStore.ts`), and the backend models it names as `panoptic/models/data.py`
+> are now split between `panoptic/models/models.py` and
+> `panoptic/core/databases/data/models.py`. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # File Property Mode
 
 ## What it is
@@ -150,7 +157,7 @@ Add `DeleteCommit` support for file values when needed (can be deferred — writ
 
 ## Frontend changes
 
-### 10. `models.ts`
+### 10. `src/data/models/` (then a single `models.ts`)
 
 ```ts
 export interface FilePropertyValue {
@@ -196,7 +203,7 @@ if (mode == PropertyMode.file) {
 
 **`sendCommit`** — include `fileValues` in the `hasUpsert` check.
 
-### 12. `apiProjectRoutes.ts`
+### 12. `api/projectApi.ts`
 
 `apiCommitUpsert` — add `file_values` to the serialised payload:
 ```ts

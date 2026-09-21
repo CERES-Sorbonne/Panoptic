@@ -1,3 +1,9 @@
+> **Status: implemented.** Rows carry a `sequence`, `DataReader.get_delta(since=…)` returns
+> everything changed after it, and the route is `GET /projects/{id}/delta` (with
+> `GET /init_state` handing the client its starting sequence). See `notes/routes_reference.md`.
+> Frontend paths in this note predate `20baa607`: the API client is `src/data/api/projectApi.ts`
+> and the stores live under `src/data/stores/`. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # Plan: Sequence-based selective UI sync
 
 ## Problem
@@ -224,7 +230,7 @@ def get_delta(since: int, project: Project2 = Depends(_dep)):
 
 For folders: if `raw['folders']` is non-empty, trigger a full `apiGetFolders` reload on the frontend (via a flag in `StreamChunk` or a separate field). Simple for now.
 
-### F1 — `models.ts`: update `LoadState`, `DbCommit`, add `DeltaResult`
+### F1 — `src/data/models/` (then a single `models.ts`): update `LoadState`, `DbCommit`, add `DeltaResult`
 
 ```ts
 // LoadState: add
@@ -262,7 +268,7 @@ function applyDelta(delta: LoadResult) {
 
 Export `lastSequence` and `applyDelta`.
 
-### F3 — `apiProjectRoutes.ts`: add `apiGetDelta`
+### F3 — `api/projectApi.ts`: add `apiGetDelta`
 
 ```ts
 export async function apiGetDelta(since: number): Promise<LoadResult> {

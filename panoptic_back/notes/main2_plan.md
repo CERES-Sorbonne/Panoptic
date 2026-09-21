@@ -1,3 +1,8 @@
+> **Status: historical.** The plan was to add `panoptic2/main.py` beside the old entry point
+> so the new architecture could be wired up incrementally. That is not how it ended: there is
+> one entry point, `panoptic/main.py`, on the new architecture — no `main2.py`, no `panoptic2/`
+> package. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # `main2.py` — start script plan
 
 Goal: a new entry point at `panoptic2/main.py` that starts a FastAPI + Socket.IO server

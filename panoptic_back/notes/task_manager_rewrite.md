@@ -1,3 +1,7 @@
+> **Status: implemented.** `panoptic/core/task/task_manager.py` is the synchronous,
+> thread-based `TaskManager` this note designs (high/normal deques, a `Condition`, per-project
+> scope), with `task.py` and the concrete tasks beside it. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # Task manager rewrite — sync design
 
 ---

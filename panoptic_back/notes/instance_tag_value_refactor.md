@@ -1,3 +1,16 @@
+> **Status 2026-09-21: the entities landed, the mechanism did not — and the checkboxes were
+> never ticked.** `InstanceTagValue` and `Sha1TagValue` exist in
+> `core/databases/data/models.py`, with `INSTANCE_TAG_VALUES_SCHEMA` /
+> `SHA1_TAG_VALUES_SCHEMA` in `create.py`, and tag values are junction rows as this note
+> proposed.
+>
+> Everything this note says about *how* they are versioned is obsolete: the whole
+> per-entity `_log` + `merge_logs` + `OP_DIFF` fold it builds on was replaced in July 2026 by
+> the generic `entity_log` + resolver model (`notes/versioning_architecture.md`). So the
+> `datastore_desc` version is 2, not the 4 planned here, and tag junctions are expanded into
+> `ChangeOp`s by `data_writer.apply_commit` instead. (`merge_logs` / `re_compute` still exist
+> in `entity_schema.py` — they serve the other three DBs, not `data.db`.)
+
 # InstanceTagValue / Sha1TagValue Refactor
 
 ## Goal

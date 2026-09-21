@@ -1,3 +1,6 @@
+> **Status: implemented.** The poll loop lives in `panoptic/core/watcher/db_watcher.py` and
+> drives the Socket.IO `db_update` broadcasts the frontend listens to. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # UI broadcast — poll-based async loop
 
 ---

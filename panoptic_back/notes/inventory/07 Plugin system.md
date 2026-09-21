@@ -29,4 +29,4 @@ Back to [[00 Backend inventory]] · Unused files: [[99 Unused files]]
 - [ ] `panoptic/core/plugin/load_plugin_task.py` · 86 L. `LoadPluginTask`: imports a plugin by module path (`importlib.import_module`) or by file (`spec_from_file_location`) and starts it at project load.
 - [ ] `panoptic/core/plugin/plugin_installer.py` · 127 L. `PluginInstaller`: installs from a git host zip or a local dir, then pip-installs its requirements (uses `requests`).
 - [ ] `panoptic/core/plugin/plugin_watcher.py` · 100 L. `PluginWatcher`: watches plugin sources with `watchfiles`, clears the module cache and reloads.
-- [ ] `panoptic/models/action_models.py` · 130 L. `PropertyId`, `OwnVectorType`, `InputFile`, `ParamDescription`, `FunctionDescription`, `ActionContext`, `ScoreList`, `Score`… Shared with the frontend `actionStore.ts` / `models.ts`.
+- [ ] `panoptic/models/action_models.py` · 130 L. `PropertyId`, `OwnVectorType`, `InputFile`, `ParamDescription`, `FunctionDescription`, `ActionContext`, `ScoreList`, `Score`… Shared with the frontend `data/stores/actionStore.ts` / `data/models/`.

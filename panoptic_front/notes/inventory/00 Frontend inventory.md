@@ -4,26 +4,31 @@ tags: [inventory, frontend]
 # Frontend inventory (`panoptic_front`)
 
 Snapshot of branch `rework-front` @ `72e9faeb`, 2026-09-11.
+**Reviewed 2026-09-21 @ `5a6893b9`**: paths, findings and the zone notes for 01, 03, 13 and 99
+were brought up to date after the September reorganisations (`9d09512f` deleted the old views,
+`3a7388d2` renamed `MainView.vue` → `ProjectView.vue`, `20baa607` split `src/data/` into
+`api/` + `models/` + `stores/` + `lib/` + `composables/`). The file *counts* below were not
+re-derived — only the total was.
 Every file that is **used** is listed in exactly one zone note below, as a checkbox to tick once you've reviewed it by hand. Files that are **not used** are in [[99 Unused files]], each with what it used to do and what replaced it.
 
 ## How "used" was decided
-- **Import graph from `src/main.js`.** It follows static `import`, `export … from`, dynamic `import()` (the router's lazy views), CSS `@import` / `url()`, template `src="…"` assets and the `@/` alias. Commented-out imports are ignored.
-- **Cross-checked against a real `vite build`.** The lazy chunks it produced were `HomeView`, `MainView`, `SandboxView`, `TestView` and `NotifModal`.
+- **Import graph from `src/main.ts`.** It follows static `import`, `export … from`, dynamic `import()` (the router's lazy views), CSS `@import` / `url()`, template `src="…"` assets and the `@/` alias. Commented-out imports are ignored.
+- **Cross-checked against a real `vite build`.** The lazy chunks it produced were `HomeView`, `MainView`, `SandboxView`, `TestView` and `NotifModal`; today's build emits `HomeView`, `ProjectView` and `NotifModal` (the two dev views are gone).
 - **Files outside `src/`** (`public/`, config, scripts) were matched by name against code and config.
-- **Limits.** This is static analysis. A used file can still contain dead code paths, and components are only counted as used if something imports them. There is no global component registration apart from the plugins registered in `main.js`.
+- **Limits.** This is static analysis. A used file can still contain dead code paths, and components are only counted as used if something imports them. There is no global component registration apart from the plugins registered in `main.ts`.
 
 ## Numbers
 | | files |
 |---|---|
-| tracked files in `src/` | 315 |
-| used (reachable from `main.js`) | **258** |
-| not used | **57**, all in [[99 Unused files]] |
+| tracked files in `src/` | 329 (was 315 on 2026-09-11) |
+| used (reachable from `main.ts`) | **258** at the 09-11 snapshot; not recomputed since |
+| not used | **57** then, minus the 7 deleted since — see [[99 Unused files]] |
 | `public/` | 7 (2 used, 5 unused icons) |
 
 ## Zone notes
 | # | Zone | Covers |
 |---|---|---|
-| 1 | [[01 App shell routing and layout]] | `index.html`, `main.js`, `App.vue`, router, views, layouts, top bar and tabs |
+| 1 | [[01 App shell routing and layout]] | `index.html`, `main.ts`, `App.vue`, router, views, layouts, top bar and tabs |
 | 2 | [[02 Stores API and models]] | `src/data/**`: Pinia stores, API clients, models, socket |
 | 3 | [[03 Collection engine (core managers)]] | `src/core/**`: filter, sort, group, cluster, tab and collection managers |
 | 4 | [[04 Main views - grid tree and image scrollers]] | `ViewPanel`, grid, tree and image scrollers, image cells |
@@ -42,21 +47,21 @@ Every file that is **used** is listed in exactly one zone note below, as a check
 | — | [[99 Unused files]] | dead components, scaffold leftovers, stale assets, docs, tooling, npm deps |
 
 ## Most important findings (all verified on 2026-09-11)
-1. ⚠ **The `FolderTree` folder has a case mismatch.** Git tracks `src/components/foldertree/…` (lowercase), while the disk and the import in `FolderPanel.vue` use `FolderTree/`. On a case-sensitive checkout (Linux, Docker, CI) that import fails and the build breaks. See [[13 Folders and file sources]].
+1. ✅ ~~**The `FolderTree` folder has a case mismatch.**~~ Fixed: git and disk both hold `src/components/folder_tree/` now. See [[13 Folders and file sources]].
 2. ⚠ **`npm run lint` is broken.** ESLint 10.4 no longer reads `.eslintrc.cjs` ("couldn't find an eslint.config.(js|mjs|cjs) file").
-3. ⚠ **Circular import.** `FolderOptionDropdown.vue` and `FileSourceOptionDropdown.vue` do `import { i18n } from '@/main'`, which forms a cycle: `main.js` → `App` → … → dropdown → `main.js`. `main.js` itself says to use `@/locales/i18n`.
-4. ⚠ **Global modals are imported in several places**: `App.vue`, `views/MainView.vue`, and some in `views/HomeView.vue`. Check they aren't mounted twice ([[01 App shell routing and layout]]).
-5. **Dead files still being edited:**
-   - `mainview/ContentFilter.vue` (edited today)
-   - `mainview/MainView.vue` (2026-07-29)
+3. ✅ ~~**Circular import** via `import { i18n } from '@/main'`.~~ Fixed: nothing imports `@/main`.
+4. ✅ ~~**Global modals imported in several places.**~~ Fixed: `App.vue` is down to 19 lines and mounts no modal; `views/ProjectView.vue` owns the global modals, `views/HomeView.vue` its own three.
+5. **Dead files still being edited** (as of 09-11):
+   - `mainview/ContentFilter.vue`
+   - `mainview/MainView.vue` — **deleted since** (`9d09512f`)
    - `mainview/TabNav.vue` (2026-08-08, translations)
    - `assets/main.css` (2026-06-08)
 
    All four stopped being used with the June layout rework.
 6. **Feature lost in the rework:** the collection auto-reload toggle. It only existed in the now-unused `toggles/ToggleReload.vue`.
 7. **Duplicate component families**, all of them used: two `PropertyDropdown`, two `TextInput`, two `TagInput`, `Modal` vs `Modal2`, `ActionButton` vs `ActionButton2`. These are consolidation candidates.
-8. The dev routes `/#/test` (Sandbox) and `/#/test-points` (TestView) ship in production.
-9. **Large chunks:** `MainView` ≈ 1.13 MB, `index` ≈ 745 KB, `three` ≈ 525 KB (Vite warns above 500 KB).
+8. ✅ ~~The dev routes `/#/test` and `/#/test-points` ship in production.~~ Fixed: both routes and both views were deleted in `3a7388d2`.
+9. **Large chunks** (build in `panoptic_back/panoptic/html/assets/`, 2026-09-20): `ProjectView` ≈ 1.65 MB, `index` ≈ 745 KB, `index.css` ≈ 355 KB. Vite warns above 500 KB. The chunk grew, and `three` is now inside it.
 10. **10 npm packages are never imported**, and runtime libraries (`pinia`, `@vueform/*`, `vue3-json-viewer`) sit in `devDependencies` ([[16 Tooling config and build]]).
 
 ## Not inventoried

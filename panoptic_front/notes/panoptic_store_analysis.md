@@ -1,6 +1,15 @@
+> **Status 2026-09-21: partly stale.** The store is `src/data/stores/panopticStore.ts` and the
+> state it describes (`failedConnected`, `isUserValid`, the socket-driven init) still exists,
+> but `PanopticView.vue` was deleted in `3a7388d2`: its job is split between `App.vue`
+> (`RouterView` + `panoptic.init()` + `useKeyState()`) and `views/HomeView.vue`
+> (`home/UserSelector.vue`). `isUserValid` is now simply `isConnected`, and nothing outside
+> the store reads `isUserValid`, `failedConnected` or `askUser` any more — the full-page
+> connection banner this note describes has no renderer. Read every "`PanopticView`" below as
+> "the root/App level".
+
 # panopticStore Analysis
 
-File: `src/data/panopticStore.ts`
+File: `src/data/stores/panopticStore.ts`
 
 ## Role
 
@@ -85,7 +94,7 @@ Components that read `panoptic.openModalId` directly are tied to the old system.
 
 `notifs` is an array of `Notif` objects. `notify(notifOrList)` appends them, assigns an auto-incrementing `id` (from a module-level `idCounter`), sets `receivedAt`, and immediately opens the `NOTIF` modal.
 
-The axios error interceptors in both `apiPanopticRoutes.ts` and `apiProjectRoutes.ts` call `panoptic.notify()` on any non-2xx response, so all backend errors automatically surface as notifications.
+The axios error interceptors in both `api/panopticApi.ts` and `api/projectApi.ts` call `panoptic.notify()` on any non-2xx response, so all backend errors automatically surface as notifications.
 
 Issue: `closeProject()` calls `notifs.value = []` (clears all notifications). If a background task fires a notification just before closing, it gets silently dropped.
 

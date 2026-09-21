@@ -1,3 +1,8 @@
+> **Status 2026-09-21: implemented.** The columnar layer is `src/data/stores/columnStore.ts`
+> (typed arrays, slot indices, namespaced selection masks) beside a slimmer
+> `src/data/stores/dataStore.ts`, and the collection engine reads columns, not reactive objects.
+> Kept for the rationale; paths in the body predate the `20baa607` `src/data` split.
+
 # New DataStore Design — Decoupled Reactivity & Columnar Performance Layer
 
 ## Goal
@@ -228,7 +233,7 @@ The trick: the synchronous part of the watch (before the first `await`) initiali
 <!-- src/components/data/InstanceData.vue -->
 <script setup lang="ts">
 import { ref, reactive, watch, onUnmounted } from 'vue'
-import { useColumnStore } from '@/data/columnStore'
+import { useColumnStore } from '@/data/stores/columnStore'
 import type { Instance } from '@/data/models'
 
 const props = defineProps<{

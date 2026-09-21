@@ -33,8 +33,8 @@ Back to [[00 Frontend inventory]] · Unused files: [[99 Unused files]]
 - [ ] `src/assets/theme.css` · 755 L. Global theme tokens and utility classes.
 
 ## Files: i18n
-- [ ] `src/locales/i18n.js` · 16 L. Creates the `vue-i18n` instance and exports `i18n` and `t`, so stores and builders can translate too.
-- [ ] `src/locales/conf.js` · 7 L. Message map (`en`, `fr`).
+- [ ] `src/locales/i18n.ts` · 16 L. Creates the `vue-i18n` instance and exports `i18n` and `t`, so stores and builders can translate too.
+- [ ] `src/locales/conf.ts` · 7 L. Message map (`en`, `fr`).
 - [ ] `src/locales/en.json` · 636 L. Changed on 2026-09-11.
 - [ ] `src/locales/fr.json` · 667 L. Changed on 2026-09-11.
 - [ ] `/scripts/check_locales.py` (repo root) · 74 L. Diffs the en/fr key sets with `deepdiff`.

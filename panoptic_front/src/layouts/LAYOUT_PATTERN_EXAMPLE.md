@@ -5,7 +5,7 @@ This demonstrates the layout + state separation pattern:
 - `SplitLayout` is pure layout (no data logic)
 - `uiStore` manages UI state (panel sizes, visibility)
 - View component connects them together
-- Each reactive state in `uiStore` has its own watcher for persistence
+- One deep watcher in `uiStore` persists all of it (under the single `uiState.layout` key)
 
 `PropertyList` / `PropertyDetail` below are stand-ins for any data-aware feature
 component — they are not real files.

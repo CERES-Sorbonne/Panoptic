@@ -9,6 +9,7 @@ const data = useDataStore()
 const props = defineProps<{
     folder: Folder
 }>()
+const emit = defineEmits(['show', 'hide'])
 
 function reImport() {
     data.reImportFolder(props.folder.id)
@@ -24,8 +25,8 @@ function deleteFolder() {
 </script>
 
 <template>
-    <Dropdown :teleport="true">
-        <template #button><i class="bi bi-three-dots-vertical base-hover"></i></template>
+    <Dropdown :teleport="true" @show="emit('show')" @hide="emit('hide')">
+        <template #button><span class="folder-act"><i class="bi bi-three-dots"></i></span></template>
         <template #popup="{ hide }">
             <div class="project-menu">
                 <div class="menu-item" @click="reImport(); hide()">
@@ -42,6 +43,24 @@ function deleteFolder() {
 </template>
 
 <style scoped>
+/* Same look as the property row action buttons (PropertyOptions .prop-act) */
+.folder-act {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.folder-act:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
 .project-menu {
     padding: 3px;
 }

@@ -46,7 +46,7 @@ And views reach straight into it. Direct `groupManager` references today:
 | File | refs |
 |---|---|
 | `TreeScroller.vue` | 17 |
-| `ClusterView.vue` | 15 |
+| `GroupView.vue` | 15 |
 | `CollectionManager.ts` | 14 |
 | `ClusterScroller.vue` | 10 |
 | `RecommendView.vue`, `ImageModal.vue`, `MapView.vue`, `ContentFilter.vue`, … | 8→1 |
@@ -238,7 +238,7 @@ class CollectionManager {
 result) with no view/collection knowledge: the use-case lives on the owner of the
 result. "Which collection" is answered by *who you call*, not a parameter
 `actionStore` must resolve — which kills the duplicated wiring in `GroupLine.vue`
-and `ClusterView.vue` (each currently calls `addCustomGroups`/`split` on the raw
+and `GroupView.vue` (each currently calls `addCustomGroups`/`split` on the raw
 manager).
 
 Then migrate the ~20 components: `collection.groupManager.result` →
@@ -250,9 +250,13 @@ collection's own tree directly (the clusters are already grafted into it).
 ## Sequence (low-risk, each step shippable)
 
 Status as of this pass — validation harness added first (`vue-tsc`/`typescript`
-devDeps + `npm run typecheck`; baseline **112** pre-existing errors). Each phase
-verified by `typecheck` (no new errors) + `vite build`. **No runtime tests exist**,
-so all phases are behaviour-preserving *by construction*, not runtime-verified.
+devDeps + `npm run typecheck`; baseline **112** pre-existing errors *at the time*, since
+driven to 0). Each phase was verified by `typecheck` (no new errors) + `vite build`; no
+runtime tests existed yet, so the phases are behaviour-preserving *by construction*.
+
+> **Since then (2026-09-21, `fc9ec3a7`):** the group/cluster engine does have runtime tests —
+> `npm test` (136 specs under `node --test`) and `npm run test:sim`. See `test/group/README.md`
+> and the "How this is verified" section of `README.md`.
 
 1. ✅ **Extract GroupResult** — `src/core/group/GroupResult.ts` owns the result
    fields (`index`/`imageToGroups`/`valueIndex`/`orderedIds`/`pileIndex`), the

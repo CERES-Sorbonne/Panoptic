@@ -5,7 +5,7 @@ tags: [inventory, frontend, unused]
 
 Back to [[00 Frontend inventory]]
 
-Every file here is tracked in git but **not reachable from `src/main.js`** (or, outside `src/`, not referenced by anything). Each entry gives:
+Every file here is tracked in git but **not reachable from `src/main.ts`** (or, outside `src/`, not referenced by anything). Each entry gives:
 - **size** and **dates**: `created → last touched`
 - **last reference**: the most recent commit that changed a mention of the file name elsewhere in `src/`, which is usually the commit that removed its last import
 - **what it was**, **what replaced it**, and a suggested **action**
@@ -14,22 +14,30 @@ Every file here is tracked in git but **not reachable from `src/main.js`** (or, 
 
 Paths are relative to `panoptic_front/`.
 
+*Existence re-checked 2026-09-21 against `5a6893b9`; entries struck through have since been deleted.*
+
 ---
 
 ## A. Old project shell, superseded by the June 2026 layout rework
-The cut-over is commit `2a0fbe04` "save wip" (2026-06-06): the router stopped using `ProjectView`, and `views/MainView.vue` now builds the IDE-style shell (`AppShellLayout` + `TopBarPanel` / `LeftBarPanel` / `FolderPanel` / `PropertyPanel` / `FilterIsland` / `ViewPanel`). Everything in this section went dead with it, and can be deleted as a group.
+The cut-over is commit `2a0fbe04` "save wip" (2026-06-06): the router stopped using the old `ProjectView`, and what was then `views/MainView.vue` builds the IDE-style shell (`AppShellLayout` + `TopBarPanel` / `LeftBarPanel` / `FolderPanel` / `PropertyPanel` / `FilterIsland` / `ViewPanel`).
 
-- [ ] `src/views/ProjectView.vue` · 184 L · 2025-08-02 → 2026-06-06 · last reference `2a0fbe04` (2026-06-06).
+> **Update 2026-09-21 — partly actioned.** `9d09512f` deleted the old `views/ProjectView.vue`
+> and `components/mainview/MainView.vue`; `3a7388d2` deleted `views/PanopticView.vue`,
+> `views/SandboxView.vue`, `views/TestView.vue` **and renamed the live `views/MainView.vue`
+> to `views/ProjectView.vue`** — so the name `ProjectView.vue` now belongs to the live shell,
+> not to the dead file this section describes. The rest of the section is still on disk.
+
+- [x] ~~`src/views/ProjectView.vue` · 184 L~~ **Deleted in `9d09512f`.** (The live `views/ProjectView.vue` is the renamed `MainView.vue`, a different file.) · 2025-08-02 → 2026-06-06 · last reference `2a0fbe04` (2026-06-06).
   - **What it was:** the project page: `Menu` (left sidebar) + `TabNav` (top) + `mainview/MainView` + `Tutorial` + the `DataLoad` overlay.
-  - **Replaced by:** `src/views/MainView.vue`.
-- [ ] `src/views/PanopticView.vue` · 68 L · 2023-05-16 → 2026-08-05 · last reference `2a0fbe04`.
+  - **Replaced by:** the live `src/views/ProjectView.vue`.
+- [x] ~~`src/views/PanopticView.vue` · 68 L~~ **Deleted in `3a7388d2`.** · 2023-05-16 → 2026-08-05 · last reference `2a0fbe04`.
   - **What it was:** the old root view: `RouterView` plus every global modal (`PropertyModal`, `FolderSelectionModal`, `ExportModal2`, `ImageModal`, `ImageZoomModal`, `SettingsModal`…) plus `UserSelection` for server mode.
   - **Replaced by:** `App.vue` (global modals) and `home/UserSelector.vue`.
-- [ ] `src/components/mainview/MainView.vue` · 127 L · 2024-11-09 → **2026-07-29** · only importer is `ProjectView`.
+- [x] ~~`src/components/mainview/MainView.vue` · 127 L~~ **Deleted in `9d09512f`.** · 2024-11-09 → **2026-07-29** · only importer is `ProjectView`.
   - **What it was:** the per-tab content area: the `ContentFilter` toolbar plus a Grid/Tree/Graph/Map switch. It also had a side-effect `import '@/data/socketStore'`.
   - **Replaced by:** `layoutpanels/ViewPanel.vue` + `ViewSelectionDropdown.vue`.
   - ⚠ Edited on 2026-07-29 ("Map view integration"), after it went dead. Check that the map wiring done there also exists in `ViewPanel`.
-- [ ] `src/components/mainview/ContentFilter.vue` · 230 L · 2024-11-09 → **2026-09-11** · only importer is the dead `mainview/MainView.vue`.
+- [ ] `src/components/mainview/ContentFilter.vue` · 230 L · 2024-11-09 → **2026-09-11** · its only importer, `mainview/MainView.vue`, has since been deleted.
   - **What it was:** the toolbar above the view: search, view mode, image size (`RangeInput`), filter/group/sort forms, `SelectionStamp`, `ToggleReload`, `ColumnStatusDropdown`.
   - **Replaced by:**
     - `FilterIsland` + `FilterPanel`: search, forms, instance/image mode
@@ -40,10 +48,10 @@ The cut-over is commit `2a0fbe04` "save wip" (2026-06-06): the router stopped us
   - **What it was:** the old top bar: the tab list (`TabButton`), user, notifications, language.
   - **Replaced by:** `TopBarPanel.vue` for the right side (its header comment says "like TabNav.vue") and `TabPanel.vue`, which still uses `TabButton`.
   - ⚠ Translated on 2026-08-08, after it went dead.
-- [ ] `src/components/menu/Menu.vue` · 213 L · 2023-05-16 → 2026-08-05 · only importer is `ProjectView`.
+- [ ] `src/components/menu/Menu.vue` · 213 L · 2023-05-16 → 2026-08-05 · its only importer, the old `ProjectView`, has since been deleted.
   - **What it was:** the old left sidebar: project title and actions, the folder tree (`FolderList2`), `TaskStatus`, `TabContainer`, `DraggablePropertyList`.
   - **Replaced by:** `TopBarPanel` (title and actions; its comment says "like Menu.vue"), `LeftBarPanel`, `FolderPanel`, `PropertyPanel`.
-- [ ] `src/components/FolderTree/FolderList2.vue` · 205 L · git path `foldertree/FolderList2.vue` · only importer is `Menu.vue`.
+- [x] ~~`src/components/FolderTree/FolderList2.vue` · 205 L~~ **Gone** — the case duplicate was resolved; only `folder_tree/` remains, and it is live. · git path `foldertree/FolderList2.vue` · only importer is `Menu.vue`.
   - **What it was:** the folder tree of the old sidebar (folder filter).
   - **Replaced by:** `FolderTree/FolderList.vue` in `FolderPanel`.
 - [ ] `src/components/menu/DraggablePropertyList.vue` · 42 L · 2025-07-18 → 2026-08-05 · only importer is `Menu.vue`.
@@ -52,7 +60,7 @@ The cut-over is commit `2a0fbe04` "save wip" (2026-06-06): the router stopped us
 - [ ] `src/components/menu/TaskStatus.vue` · 28 L · 2024-01-29 → 2026-02-21 · only importer is `Menu.vue`.
   - **What it was:** task name and done/total/failed text.
   - **Replaced by:** `dropdowns/TaskProgressBar.vue` in the top bar.
-- [ ] `src/components/loading/DataLoad.vue` · 117 L · 2025-01-06 → 2026-08-05 · only importer is `ProjectView`.
+- [ ] `src/components/loading/DataLoad.vue` · 117 L · 2025-01-06 → 2026-08-05 · its only importer, the old `ProjectView`, has since been deleted.
   - **What it was:** a centred "loading project data" panel with per-column progress (`columnStore` / `dataStore`, `LoadWheel`, `Percentage`).
   - **Replaced by:** `dropdowns/ColumnStatusDropdown.vue` (loading/empty/loaded counts per column, in the top bar).
 - [ ] `src/components/loading/Percentage.vue` · 23 L · 2025-01-06 · only used by `DataLoad`.
@@ -62,7 +70,7 @@ The cut-over is commit `2a0fbe04` "save wip" (2026-06-06): the router stopped us
   - **What it was:** the auto-reload toggle plus a manual reload button for a dirty collection (`collection.setAutoReload`, `runState.isDirty`, `update()`).
   - **Replaced by:** ⚠ **nothing.** No live component calls `setAutoReload` any more.
   - **Action:** decide whether to drop the feature (and the `autoReload` state in `CollectionManager`) or put the toggle into `FilterPanel`.
-- [ ] `src/components/UserSelection.vue` · 52 L · 2025-08-02 → 2026-08-05 · only importer is `PanopticView`.
+- [ ] `src/components/UserSelection.vue` · 52 L · 2025-08-02 → 2026-08-05 · its only importer, `PanopticView`, has since been deleted.
   - **What it was:** "Server Mode: Select a profile" list.
   - **Replaced by:** `home/UserSelector.vue` (`connectUser` / `disconnectUser`) on `HomeView`.
 - [ ] `src/assets/main.css` · 601 L · 2023-05-16 → **2026-06-08** · its import was dropped in `2a0fbe04`.
@@ -147,9 +155,9 @@ The old global store `src/data/store.ts` was removed during the Pinia rewrite (`
   - **What it was:** two `ImageScroller`s side by side for dragging images between groups.
   - **Replaced by:** `layoutpanels/GroupView.vue` + `ClusterDetailPane.vue`.
 - [ ] `src/components/TabTmp.vue` · 17 L · 2025-01-29 · **never referenced**. A debug placeholder that prints the tab id. **Replaced by:** nothing.
-- [ ] `src/views/TestView-3D.vue` · 266 L · 2025-11-25 · **never routed**.
+- [x] ~~`src/views/TestView-3D.vue`~~ **Deleted.** · 266 L · 2025-11-25 · **never routed**.
   - **What it was:** a three.js 3D point-cloud experiment.
-  - **Replaced by:** the 2D renderer in `mixins/mapview/*` and the `/#/test-points` `TestView.vue`.
+  - **Replaced by:** the 2D renderer in `mixins/mapview/*` (`TestView.vue` itself was deleted in `3a7388d2`).
 - [ ] `src/components/tsne/SpatialView.vue` · **0 L** · 2024-10-25 "making ml plugin a real plugin".
   - **What it was:** the t-SNE view, emptied when that feature moved into the PanopticML plugin.
   - **Replaced by:** `mapview/MapView.vue` (maps computed by plugin actions).
@@ -168,7 +176,7 @@ The old global store `src/data/store.ts` was removed during the Pinia rewrite (`
 - [ ] `src/assets/logo.svg`. Empty (0 bytes), from the template.
 
 ## E. Unused assets
-- [ ] `src/assets/customize.scss` · 15 L. Bootstrap SCSS overrides. The import is commented out in `main.js` (`// import '@/assets/customize.scss'`), and the prebuilt `bootstrap.min.css` is loaded instead. **Replaced by:** `theme.css` overrides.
+- [ ] `src/assets/customize.scss` · 15 L. Bootstrap SCSS overrides. Its commented-out import was removed from `main.ts`, and the prebuilt `bootstrap.min.css` is loaded instead. **Replaced by:** `theme.css` overrides.
 - [ ] `src/assets/images/IIIF-logo-colored-text.svg` · 2026-06-08 "iiif icons and file sources shown in ui". Added with the IIIF UI, but `FolderPanel` uses `/icons/iiif.svg` instead. **Action:** delete, or switch to it.
 - [ ] `public/icons/clustering.svg`
 - [ ] `public/icons/network.svg`

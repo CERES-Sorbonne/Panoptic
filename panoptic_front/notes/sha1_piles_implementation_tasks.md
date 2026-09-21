@@ -1,3 +1,14 @@
+> **Status 2026-09-21: implemented. The checkboxes below were never ticked — ignore them.**
+> Verified against `5a6893b9`: `src/core/sha1Piles.ts` exports `PileData`, `computeSha1Piles`,
+> `pileCount`, `pileSlots` and `pileIndexOfSlot`; `pileIndex` lives on the result
+> (`GroupResult.ts`) and is read by the iterators and all three scrollers;
+> `GroupManager.applySha1Piles(only?)` replaced the old grouping path, and `groupLeafsBySha1`
+> and `removeSha1Groups` are gone (`groupBySha1` survives only as a comment in `sha1Piles.ts`).
+> Two follow-ups from this plan are still open and are tracked in
+> `notes/refactor/README.md` ("Known-open performance"): the incremental `updateSelection` path
+> still calls `applySha1Piles()` unscoped, and `orderSlots` verifies the whole root array.
+> Kept for the reasoning behind the pile model.
+
 # sha1 piles — implementation task list
 
 Ordered, do-one-at-a-time checklist. Background/rationale in

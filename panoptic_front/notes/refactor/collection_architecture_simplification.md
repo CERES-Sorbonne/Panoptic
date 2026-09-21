@@ -1,3 +1,14 @@
+> **Status 2026-09-21: §4 shipped, the layering did not.** A tab holds
+> `collections: CollectionConfig[]` and each view names one through `collectionId`
+> (`data/models/tab.ts`), with `TabManager.collections: Record<collectionId, CollectionManager>`
+> and `collectionForView(i)` — two views can share one pipeline or own separate ones.
+>
+> Not built, and still a proposal: the state/compute/result split, the
+> `createCollection(config)` factory (it is still the `CollectionManager` class), the
+> visibility-driven lifecycle (`syncVisibleCollections` — `buildCollections()` builds every
+> config eagerly), `useCollection(i)`, and the pure kernels (`core/kernels/*`,
+> `state/filterOps.ts`, `tabOps.ts` do not exist). `TabManager` was **kept**, not deleted.
+
 # Collection Architecture Simplification — State / Compute / Result Separation + Multiple Collections per Tab
 
 Related: [[tabstore_manager_reactivity_refactor]], [[new_data_store_design]],

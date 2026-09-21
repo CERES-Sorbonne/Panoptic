@@ -10,7 +10,7 @@ Back to [[00 Frontend inventory]] · Unused files: [[99 Unused files]]
 
 ## Zone-level checks
 - [ ] ⚠ **Two generations of action button, both used:** `ActionButton.vue`, used by `tree/GroupLine` and `VectorSettings`, and `ActionButton2.vue` (hand-off mode: emits `submit` instead of awaiting), used by 7 components. Pick one.
-- [ ] `ParamInputRow.vue` imports `@/data/actionStore.js` with a `.js` extension, unlike every other import.
+- [ ] `ParamInputRow.vue` imports `@/data/stores/actionStore` with a `.js` extension, unlike every other import.
 - [ ] Param types coming from the backend (`action_models.py` → `ParamDescription`) are all handled by `ParamInput` / `ParamInputRow`, including the vector type (`VectorTypeDropdown`).
 - [ ] Plugin install errors (backend `PluginInstaller`, pip failures) are surfaced in `PluginForm`.
 - [ ] Earlier versions of these components are dead: `ActionSelect2`, `ActionSelectButton`, `PluginSettings2`, `GeneralSettings`, `ActionSettings` and `TabMenu` ([[99 Unused files]]).

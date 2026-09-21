@@ -30,7 +30,7 @@ const store = useStore()
 
 ```typescript
 // ✓ Good
-import { useTabStore } from '@/data/tabStore'
+import { useTabStore } from '@/data/stores/tabStore'
 import PropertyModal from '@/components/modals/PropertyModal.vue'
 import { objValues } from '@/utils/utils'
 
@@ -261,7 +261,7 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
 
 ### Files
 - **Components**: PascalCase (e.g., `TabContainer.vue`, `PropertyModal.vue`)
-- **Views**: PascalCase ending with View (e.g., `MainView.vue`, `PanopticView.vue`)
+- **Views**: PascalCase ending with View (e.g., `ProjectView.vue`, `HomeView.vue`)
 - **Stores**: camelCase ending with Store (e.g., `tabStore.ts`, `panopticStore.ts`)
 - **Utilities**: camelCase (e.g., `utils.ts`, `keyState.ts`)
 
@@ -385,7 +385,7 @@ src/
 │
 ├── views/                        # Page composition (connects layout + data)
 │   ├── MainView.vue            # Orchestrates layouts and feature components
-│   └── PanopticView.vue        # Gets data from stores, passes to layouts
+│   └── ProjectView.vue         # Gets data from stores, passes to layouts
 │
 └── components/                   # Feature components (logic + display)
     ├── properties/
@@ -573,7 +573,7 @@ src/
 │
 ├── views/                        # View layer (connects layout + data)
 │   ├── MainView.vue            # Orchestrates layouts + stores
-│   └── PanopticView.vue        # Page composition
+│   └── ProjectView.vue         # Page composition
 │
 └── components/                   # Feature components (data-aware)
     ├── properties/              # Property management
@@ -585,7 +585,7 @@ src/
 ```vue
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useUiStore } from '@/data/uiStore'
+import { useUiStore } from '@/data/stores/uiStore'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import LeftPanel from '@/components/LeftPanel.vue'
 import RightPanel from '@/components/RightPanel.vue'

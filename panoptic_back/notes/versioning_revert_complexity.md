@@ -1,3 +1,6 @@
+> **Status 2026-09-21: still valid.** The cost model holds for the implemented design;
+> `set_commit_active` re-resolves only the cells the commit touched. Read `enabled` as `active`.
+
 # Revert Complexity & Delta-Since-Sequence — Analysis & Target
 
 Companion to `versioning_replay_analysis.md`. Focus: *what does one revert cost as a

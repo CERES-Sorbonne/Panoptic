@@ -1,8 +1,8 @@
 # Collection refactor — everything you need to finish it
 
-The live working set. Everything here is current as of 2026-09-21 (rework-front,
-committed through `03c1e63b`, plus an uncommitted working tree). Notes outside this
-folder are background or history; nothing here depends on reading them.
+The live working set. Everything here is current as of 2026-09-21 (rework-front, committed
+through `5a6893b9`). Notes outside this folder are background or history; nothing here depends
+on reading them.
 
 Where a note describes something that was designed but never built, it says so inline
 with a **Not built yet** marker. The design is kept — it is still the intent — but the
@@ -98,12 +98,8 @@ section so nobody re-opens them.
 
 ### Known-open correctness
 
-- **`ImageIterator.fromGroupIterator` has no guard on its source.** It does
-  `it.group.id` before constructing, so an invalid `GroupIterator` throws
-  (`it.group` is `undefined`) instead of the `undefined` its own `isValid` tail
-  promises. Guard `it.isValid` first.
 - **Cluster error text is not translated.** `clusterErrorText` (`ClusterManager.ts`)
-  returns English literals, and `ClusterLine.clusterFailed` renders
+  returns English literals, and both `ClusterLine.vue` and `GroupLine.vue` render
   `` `Clustering failed: ${…}` `` raw. It is user-visible and bypasses vue-i18n.
   (Group *names* are raw strings by design everywhere in the tree — `"No cluster"`,
   `"Merged"`, `"Cluster N"` — so those are a separate question.)
@@ -126,14 +122,29 @@ section so nobody re-opens them.
   `CollectionManager` only delegate. The *decision* that remains is whether a per-view
   selection object should replace the namespace string — see
   `collection_inspection_mission.md` §Open questions.
+- ~~`ImageIterator.fromGroupIterator` has no guard on its source.~~ **Fixed** in
+  `fc9ec3a7`: it returns `undefined` when `it?.isValid` is false, and again when the
+  constructed `ImageIterator` is invalid.
 - ~~Dead API to prune: `propagateSelect`/`propagateUnselect`, `Group.view.selected`,
   `onlyPropertyGroups`, `CollectionState.instances`.~~ **All four are gone** from the
   group system. (`propagateSelect` still exists in `components/tagtree/TagNode.vue` and
   `components/folder_tree/TagNode.vue`, which are unrelated tag-tree helpers.)
 
-## Not verified at runtime
+## How this is verified
 
-Every phase of this refactor was validated by `npm run typecheck` (`vue-tsc`) and
-`vite build` only. There are no runtime tests. The group view has been exercised by
-hand and works as intended; the rest of the pipeline has not been systematically
-smoke-tested.
+- `npm run typecheck` (`vue-tsc --noEmit`) — the gate. Baseline is **0 errors**.
+- `npm test` — the group/cluster suite: `test/group/build.mjs` bundles the specs with the
+  project's own vite (the Pinia stores aliased to the headless stubs in
+  `test/group/harness/stubs/`, DEV on so `ClusterOverlay.checkInvariants` runs), then
+  `node --test` runs them. **136 tests** cover the value parser, group slots, iterators,
+  dead nodes, new arrivals, cluster runs, sha1 piles, resync, tag deletion and the
+  overlay invariants. Start at `test/group/README.md`.
+- `npm run test:sim` — a seeded random simulation (`test/group/sim/`) that drives the real
+  engine against a model and checks the invariants after every op.
+- Add a spec rather than re-deriving a harness: the phases of this refactor predate the
+  suite and were behaviour-preserving *by construction*, so the tests are what protects
+  them now.
+
+What is still **not** covered: the rest of the pipeline (filter/sort config, the scrollers,
+the views) has no runtime test and has not been systematically smoke-tested. The group view
+has been exercised by hand.

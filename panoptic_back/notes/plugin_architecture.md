@@ -1,3 +1,8 @@
+> **Status: implemented.** The "new" column is the code: plugins receive a
+> `PluginProjectInterface` (`panoptic/core/plugin/plugin_interface.py`), are synchronous, and
+> run work through the project's executor. Note the key-value module is spelled
+> `key_value_shema.py` in the tree (the typo is real). > Reviewed 2026-09-21 against `5a6893b9`.
+
 # Plugin Architecture — current vs new
 
 ---
@@ -283,7 +288,7 @@ In the new architecture:
    
    A: the project class is responsible to trigger thoses events. If instances are added from an outside script the plugins are not expected to react to it. Later we could do a trigger from the dbwatcher but it is not usefull now.
    
-1. **Param storage** — The old code uses a key-value table in the project DB. `ProjectDB` already has a `key_value` mechanism (from `key_value_schema.py`). Reuse that — namespaced by plugin name.
+1. **Param storage** — The old code uses a key-value table in the project DB. `ProjectDB` already has a `key_value` mechanism (from `key_value_shema.py`). Reuse that — namespaced by plugin name.
    
    A: yes. The project db key value storage should be used to store differents plugin params per project
    

@@ -1,3 +1,8 @@
+> **Status 2026-09-21: historical.** The optimisations described here landed (bitmask filter,
+> typed-array columns, slot-based grouping) and the pipeline has since been restructured again —
+> one collection per view, `GroupInspector` for the views, `ClusterOverlay` for clusters. Read
+> `notes/refactor/` for the current shape.
+
 # Filter / Sort / Group Managers — Analysis & 1M-Image Optimization
 
 ## Current Architecture

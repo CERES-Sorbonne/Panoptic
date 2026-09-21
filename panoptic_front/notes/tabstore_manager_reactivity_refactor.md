@@ -1,3 +1,13 @@
+> **Status 2026-09-21.** The autosave design landed: persistence is one debounced deep watch
+> on the active tab in `tabStore` (`armAutosave`), and mutating `TabState` is the save trigger —
+> there is no `saveState()` / `saveManagerStates()` chain. **Q10 is dead** (the note already
+> marks it revoked): a tab now holds `collections: CollectionConfig[]` and each view names one
+> through `collectionId`, so the body's "TabManager still owns one CollectionManager shared by
+> both views" is no longer true. `TabManager` itself was **kept**, holding
+> `collections: Record<collectionId, CollectionManager>`. Paths predate `20baa607`
+> (`data/stores/*`, `data/lib/builders.ts`). See `refactor/README.md` §5 and
+> [[collection_architecture_simplification]] §4.
+
 # TabStore / Manager Reactivity & Autosave — Refactor Plan & Open Questions
 
 Related: [[panoptic_store_analysis]], [[new_data_store_design]], [[group_manager_redesign_plan]],
@@ -85,7 +95,7 @@ manager.setX() → onStateChange.emit()
 ### P1 — Manager-state reactivity depends on how the tab was born. *(the core bug)*
 
 - **New tab**: `buildTabState()` returns `reactive({... createFilterState(), ...})`
-  (`builder.ts:9`), and each `create*State()` is itself `reactive(...)`. The TabManager
+  (`data/lib/builders.ts`, was `builder.ts`), and each `create*State()` is itself `reactive(...)`. The TabManager
   receives the reactive proxy → `manager.state` is reactive.
 - **Loaded tab**: `apiGetAllTabs()` returns **plain JSON**. `importTab()` does
   `tabs[id] = tab` (so `tabs[id]` *reads back* as a deep proxy) **but passes the raw
@@ -119,7 +129,7 @@ The verification corrected the original framing here. There are **two** recomput
   `update(true)` / `sortGroups(true)` by hand — `SortForm` (3×), `GroupForm` (5×),
   `PropertyOptions.vue:84,93`, etc.
 - **Folder/query changes also recompute manually**, because `setFolders`/`setQuery` don't
-  even emit `onStateChange` (P4) → no `setDirty`. Hence `FolderList.vue:71`,
+  even emit `onStateChange` (P4) → no `setDirty`. Hence `folder_tree/FolderList2.vue`,
   `TextSearchInput.vue:76`, `ContentFilter.vue:48,54` call `update(true)` explicitly.
 
 Net: **~16 scattered, hand-placed recompute trigger sites**, an automatic filter path that
@@ -386,7 +396,7 @@ Formalise the existing `TabContainer` remount hack into a real provider:
 
 ### Pillar F — Per-view state inside a single tab (NEW requirement)
 
-**Today** the split is cosmetic: `views/MainView.vue` renders two `<ViewPanel />` in a
+**Today** the split is cosmetic: `views/ProjectView.vue` renders two `<ViewPanel />` in a
 `SplitLayout`, but *both* panes call `getMainTab()` and read the **same**
 `state.display` + `state.imageSize` → identical render. The split flag lives in
 `uiStore.panelStates.viewSplitEnabled`, **not** in the tab.
@@ -429,7 +439,7 @@ watcher).
 **Component impact (extends Pillar D):**
 - `ViewPanel` takes a `viewIndex` prop (primary = 0, secondary = 1) and reads
   `tab.state.views[viewIndex]` instead of the shared `state.display` / `state.imageSize`.
-- `views/MainView.vue` drives `:hide-secondary="!tab.state.splitView"` from the **tab**,
+- `views/ProjectView.vue` drives `:hide-secondary="!tab.state.splitView"` from the **tab**,
   not `uiStore`. `ViewSelectionDropdown` (currently reads `activeTab.display`) sets
   `views[viewIndex].type`.
 - `TabManager` still owns **one** `CollectionManager` shared by both views (Q10). The
@@ -437,7 +447,7 @@ watcher).
   unchanged.
 - Migrate `viewSplitEnabled` **and** `mainSplitRatio` out of `uiStore` into
   `TabState.splitView` / `TabState.splitRatio` — each tab remembers its own split geometry
-  (Q13). `views/MainView.vue` reads `secondary-ratio` / `hide-secondary` from the tab.
+  (Q13). `views/ProjectView.vue` reads `secondary-ratio` / `hide-secondary` from the tab.
 
 This also bumps `TAB_MODEL_VERSION` (old `display`/`imageSize` → `views[]`); per Q9 that
 means warn + reset, so no migrator needed.
@@ -448,7 +458,7 @@ means warn + reset, so no migrator needed.
 - `tab.state.display` — **~12 sites** → `views[i].type`.
 - `*.imageSize` reads — **~35 matches** (includes `mapOptions.imageSize` and unrelated
   `tab.imageSize`); the tab-level ones → `views[i].imageSize`.
-- `views/MainView.vue` + `components/mainview/MainView.vue` + `ViewPanel.vue` all read
+- `views/ProjectView.vue` + `views/ProjectView.vue` + `ViewPanel.vue` all read
   `state.display`/`state.imageSize` today — every pane renderer must thread `viewIndex`.
 
 Practically: introduce `useCurrentView(index)` (built on `useCurrentTab()`) returning the
@@ -549,7 +559,7 @@ Implemented on `rework-front`; `vite build` passes (658 modules, no errors).
 - **C** — Deleted `TabManager.saveState` + the per-emit save chain; autosave is one debounced deep watch on the active tab in `tabStore`, re-armed on `mainTab` change, flushed on switch/delete/clear.
 - **D** — `useCurrentTab()` composable + `TabProvider.vue` (`:key` remount). `ViewPanel`/`ViewSelectionDropdown`/`TabPanel` use the reactive active manager; `getMainTab()` kept (loose type) for imperative callers, null-guarded in `dataStore`.
 - **E** — `managers` moved off module scope into the store; `deleteTab` deletes `tabs[id]`; version mismatch warns + resets (no silent drop). `TAB_MODEL_VERSION` bumped 7→8.
-- **F** — `ViewState {type,imageSize,mapOptions}`; `TabState` gains `views:[ViewState,ViewState]` + `splitView` + `splitRatio`; removed tab-level `display`/`imageSize`/`mapOptions`. Threaded per-view `imageSize` through `GridScroller→TableHeader/GridScrollerLine→RowLine`; `MapView` takes a `mapOptions` prop. Split state moved out of `uiStore` (`viewSplitEnabled`/`mainSplitRatio` removed) onto the tab. Dead `components/mainview/MainView.vue` + `ContentFilter.vue` repointed at `views[0]` to compile.
+- **F** — `ViewState {type,imageSize,mapOptions}`; `TabState` gains `views:[ViewState,ViewState]` + `splitView` + `splitRatio`; removed tab-level `display`/`imageSize`/`mapOptions`. Threaded per-view `imageSize` through `GridScroller→TableHeader/GridScrollerLine→RowLine`; `MapView` takes a `mapOptions` prop. Split state moved out of `uiStore` (`viewSplitEnabled`/`mainSplitRatio` removed) onto the tab. Dead `views/ProjectView.vue` + `ContentFilter.vue` repointed at `views[0]` to compile.
 
 **Not verified at runtime (do before merge):**
 - Build only checks compile/bundle (`strictNullChecks:false`, no `vue-tsc` gate). Template type-narrowing and behaviour are unverified.

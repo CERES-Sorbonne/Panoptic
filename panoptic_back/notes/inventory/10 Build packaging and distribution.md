@@ -36,17 +36,17 @@ Served by `main.py` at `/`. Regenerate these; don't edit them.
 - [ ] `panoptic/html/index.html`
 - [ ] `panoptic/html/favicon.ico`
 - [ ] `panoptic/html/icons/iiif.svg`. The only icon the UI uses (`FolderPanel.vue`).
-- [ ] `panoptic/html/assets/index-BbiRYSws.js` + `index-D7YqdquY.css`. App entry chunk.
-- [ ] `panoptic/html/assets/HomeView-AG-2xMe5.js` + `HomeView-CUqauXq9.css`
-- [ ] `panoptic/html/assets/MainView-DoDfX60V.js` + `MainView-N3KkCJ6B.css`
-- [ ] `panoptic/html/assets/NotifModal-1dTtWhWm.js` + `NotifModal-2JpHHuYm.css`
-- [ ] `panoptic/html/assets/SandboxView-Cn7qmLWM.js` + `SandboxView-0WR5u5lA.css`. Dev route.
-- [ ] `panoptic/html/assets/TestView-DLrRT36h.js` + `TestView--GaB1Qen.css`. Dev route.
-- [ ] `panoptic/html/assets/three.module-Drl2D0eQ.js`. three.js chunk for the map view.
-- [ ] `panoptic/html/assets/_plugin-vue_export-helper-CSBScHBl.js`
-- [ ] `panoptic/html/assets/InterVariable-DiVDrmQJ.woff2` + `InterVariable-Italic-FCBEiFp6.woff2`
-- [ ] `panoptic/html/assets/bootstrap-icons-BeopsB42.woff` + `bootstrap-icons-mSm7cUeB.woff2`
-- [ ] `panoptic/html/assets/duck-S9Uqeb_r.svg`. Easter-egg image (`tutorials/Egg.vue`).
+Asset file names carry a content hash, so they change on every build — listed here without it
+(checked 2026-09-21; the dev-route chunks are gone since `3a7388d2` and `three` is now inside
+the `ProjectView` chunk):
+- [ ] `panoptic/html/assets/index-<hash>.js` + `index-<hash>.css`. App entry chunk (~745 KB JS).
+- [ ] `panoptic/html/assets/HomeView-<hash>.js` + `.css`
+- [ ] `panoptic/html/assets/ProjectView-<hash>.js` + `.css`. The project shell, ~1.65 MB — the
+  chunk Vite warns about. Renamed from `MainView` in `3a7388d2`.
+- [ ] `panoptic/html/assets/NotifModal-<hash>.js` + `.css`
+- [ ] `panoptic/html/assets/InterVariable-<hash>.woff2` + `InterVariable-Italic-<hash>.woff2`
+- [ ] `panoptic/html/assets/bootstrap-icons-<hash>.woff` + `.woff2`
+- [ ] `panoptic/html/assets/duck-<hash>.svg`. Easter-egg image (`tutorials/Egg.vue`).
 
 ## Files: repo root (paths relative to the repo root)
 - [ ] `README.md` / `README-FR.md`. Install docs; they point to `install/start_panoptic_*.sh` and `install/windows/panoptic.exe`.

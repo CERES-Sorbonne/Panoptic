@@ -1,3 +1,9 @@
+> **Status: implemented.** The vendored migrator is `panoptic/migration/` (CLI, detect,
+> pipeline, readers/writers, schema, report) and the routes are `GET /legacy/projects`,
+> `POST /legacy/migrate`, `POST /legacy/dismiss`, `GET /legacy/report/{run_id}`. Frontend paths
+> predate `20baa607` (`src/data/api/panopticApi.ts`, `src/data/stores/panopticStore.ts`), and
+> `migrate.py` / `scripts/ui_acceptance.py` were never added under those names. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # Plan — integrate `migration-panpoic` into Panoptic
 
 Goal: on launch, Panoptic detects projects registered by any old (0.x) Panoptic and offers,
@@ -130,7 +136,7 @@ In `PanopticServer`:
 
 ## 5. Frontend (phase C)
 
-- `data/apiPanopticRoutes.ts`: `apiGetLegacyProjects`, `apiMigrateLegacyProject`,
+- `data/api/panopticApi.ts`: `apiGetLegacyProjects`, `apiMigrateLegacyProject`,
   `apiDismissLegacy`, `apiGetLegacyReport`.
 - `data/panopticStore.ts`: `legacyProjects`, `legacyScanDone`, `legacyMigration` (run state);
   subscribe to the two new socket events.

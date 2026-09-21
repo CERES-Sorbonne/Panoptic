@@ -8,6 +8,20 @@ entry-point note; the mechanics live in the companions:
 - `versioning_multiuser_undo.md` — per-cell resolution & multi-user semantics.
 - `versioning_revert_complexity.md` — cost analysis.
 
+**Update 2026-09-21 (`5a6893b9`), not folded into the text below:**
+- The enabling bit is called **`active`** on `Commit`, not `enabled`. Read every "enabled"
+  below as "active".
+- `Commit.redoable` was added. Order-independence makes any disabled commit re-enableable, so
+  redo is fenced: writing a commit clears `redoable` on that author's disabled commits, and
+  redo only considers `active = 0 AND redoable = 1`. Without it, undo → manual redo of the
+  same edit → ctrl+shift+Z leaves two enabled DELETE ops on one cell and undo does nothing
+  on screen.
+- A commit that asserts state the DB already holds produces no ops, so `apply_commit` writes
+  **no commit row** and returns `None` — every commit is worth undoing.
+- The entry points are `DataWriter.undo(author)` / `.redo(author)`; `set_commit_active`
+  remains for the commit timeline. `versioning_multiuser_undo.md` has the rationale, and
+  `test/test_undo_redo.py` the coverage.
+
 ---
 
 ## 1. Why we are changing this

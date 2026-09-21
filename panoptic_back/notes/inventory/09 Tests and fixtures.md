@@ -26,6 +26,9 @@ On 2026-09-11 `--collect-only` gave **249 tests collected, 3 modules failing at 
 - [ ] `test/pytest.ini` · asyncio auto mode
 - [ ] `test/conftest.py` · 92 L. Fixtures: `image_dir`, `import_csv`, `import_with_empty_csv`, `import_with_missing_csv`, `empty_project`, `instance_project`, `data_project`.
 - [ ] `test/test_data_db.py` · 406 L. Structural vs logged split, cascades, undo cycles. Extended 2026-09-11.
+- [ ] `test/test_undo_redo.py` · 872 L. Added 2026-09-21 with the undo/redo rework: per-author
+  undo stacks, the `redoable` fence (a new edit ends the redo branch), no-op commits writing no
+  row, interleaved multi-user histories, and `set_commit_active` from the timeline.
 - [ ] `test/test_legacy_migration.py` · 321 L. Legacy discovery, `panoptic.db` v1→v2, migration service.
 - [ ] `test/test_panoptic2.py` · 312 L. `Panoptic` integration: lifecycle, projects, users, plugins.
 - [ ] `test/test_panoptic_db.py` · 117 L. Projects, users and plugins CRUD cycles.

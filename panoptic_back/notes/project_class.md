@@ -2,6 +2,14 @@
 
 **File:** `panoptic/core/project/project.py`
 
+> **Status 2026-09-21: this describes the OLD, async `Project`, not the class in that file
+> today.** The rewrite (see `project2_architecture.md`) replaced it in place: today's `Project`
+> is **synchronous**, it is built on the four split databases (`ProjectDB`, `DataReader` /
+> `DataWriter`, `MediaDB`) instead of one `ProjectDb`, `start()` is not a coroutine, and the
+> surface is id allocation (`allocate_*`), reads/writes through the data DB, the commit
+> timeline (`get_commits`, `get_undo_redo`) and the task manager. `ProjectUi`, `ProjectEvents`,
+> `run_async()` and `sha1_to_files` are gone. Kept for the history of what was replaced.
+
 ---
 
 ## Purpose

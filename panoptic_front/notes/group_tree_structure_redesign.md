@@ -1,3 +1,10 @@
+> **Status 2026-09-21: implemented, then rebuilt on top.** The slot-based tree it designs is
+> what `GroupManager` builds, but clusters are no longer "custom groups": authored membership
+> lives in `ClusterOverlay` (a dense `slot → node` map per bucket) and cluster groups are
+> grafted into the same property tree. See `notes/refactor/`. `TreeScroller.computeLines()`
+> still materialises a line per image over the whole collection — that item is open and tracked
+> in `refactor/README.md`.
+
 # GroupManager — Tree Structure Redesign for 1M Instances
 
 Scope: the **shape of the group tree and the iterator/line-materialization path**, i.e.

@@ -1,3 +1,10 @@
+> **Status 2026-09-21: done; the checkboxes below were never ticked.** The plugin API is
+> `PluginProjectInterface` (`core/plugin/plugin_interface.py`), plugins take it directly, and
+> the sync/`run_in_executor` model described here is what `core/plugin/plugin.py` and
+> `core/task/` implement. "panoptic2" in this note means today's `panoptic/` — there is no
+> second package. The PanopticML paths point at a separate repo and are not checkable from
+> here.
+
 # Plugin System — Migration Analysis & Plan (panoptic → panoptic2)
 
 Reference plugin: `PanopticML` (`/Users/david/PanopticML/panopticml/panoptic_ml.py`)

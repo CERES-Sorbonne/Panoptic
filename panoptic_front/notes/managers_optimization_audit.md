@@ -1,9 +1,14 @@
+> **Status 2026-09-21: historical (audit of branch `opti`, 2026-05-30).** Its findings were
+> folded into the managers; the current audit of this code is
+> `notes/refactor/collection_pipeline_audit_fixes.md`, and the open items are listed in
+> `notes/refactor/README.md`.
+
 # Managers Optimization Audit — Group / Filter / Sort over ColumnStore
 
 Date: 2026-05-30. Branch: `opti`.
 
 Scope: `src/core/GroupManager.ts`, `src/core/FilterManager.ts`, `src/core/SortManager.ts`
-reading from `src/data/columnStore.ts`. This is a **current-state audit** — the codebase has
+reading from `src/data/stores/columnStore.ts`. This is a **current-state audit** — the codebase has
 already absorbed most of Phase 0/1 from [[group_manager_redesign_plan]],
 [[group_tree_structure_redesign]] and [[managers_1m_optimization]], so those notes now
 over-state the problem. This note records what is *actually* left, plus a direct answer to

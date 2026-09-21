@@ -1,3 +1,7 @@
+> **Status 2026-09-21: historical.** This analyses the *old* per-entity `_log` + `re_compute`
+> model, which `data.db` no longer uses — it was replaced by the generic `entity_log` +
+> resolver in July 2026 (`versioning_architecture.md`). Kept as the argument for why.
+
 # Versioning / Replay Logic — In-Depth Analysis & Proposal
 
 Scope: `panoptic/core/databases/data/` (`data_writer.py`, `entity_schema.py`,

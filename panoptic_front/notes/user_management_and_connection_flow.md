@@ -1,3 +1,9 @@
+> **Status 2026-09-21.** The backend flow still holds (`/users`, `/connect_user`,
+> `/disconnect_user` — see `panoptic_back/notes/routes_reference.md`), but `PanopticView.vue`
+> was deleted in `3a7388d2`. The user selector is `components/home/UserSelector.vue` on
+> `HomeView`. The render gate is gone with it: `panopticStore.isUserValid` is now just
+> `isConnected` and **no component reads it** — nor `failedConnected`, nor `askUser`.
+
 # User Management & Connection Flow
 
 ## The default user (backend)

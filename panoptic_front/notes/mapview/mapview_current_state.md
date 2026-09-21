@@ -1,3 +1,9 @@
+> **Snapshot taken 2026-07-27, before `6799e47f` "Map view integration".** `MapMenu.vue`,
+> `ImagePreview.vue`, `ImageMap.vue` and `MapRendererView.vue` were deleted by that commit and
+> their behaviour now lives in `MapView.vue` + `Toolbar.vue`; the view takes a `GroupInspector`
+> and no longer reaches into `filterManager.result`. The audit findings below were the input to
+> that rework — see `README.md` in this folder for what actually landed.
+
 # Map view — what it does today, and where it disagrees with the architecture
 
 Read against `src/components/mapview/` (`MapView.vue`, `Toolbar.vue`, `MapMenu.vue`,

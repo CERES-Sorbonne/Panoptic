@@ -1,3 +1,15 @@
+> **Historical — resolved.** This is the design Q&A that preceded `Project2`, with David's
+> answers inline. Every blocking item was settled and the class shipped as
+> `panoptic/core/project/project.py` (there is no `project2.py`/`main2.py`). Kept for the
+> reasoning, not as a to-do list.
+>
+> One answer was later reversed: **item 9, "ignore the undo queue — the UI will hold a local
+> undo queue unknown to the backend"**. Undo/redo is now owned by the backend and is per
+> author, with a `redoable` fence on the redo stack (`DataWriter.undo/redo`, the `/undo`,
+> `/redo` and `/history` routes). See `versioning_multiuser_undo.md`.
+>
+> Reviewed 2026-09-21.
+
 Now I have a complete picture. Here's everything that needs to be resolved
 
   before writing Project2:

@@ -47,7 +47,7 @@ function openSelectionModal() {
                 <i class="bi bi-image" />
             </WithToolTip>
         </div>
-        <div class="seg">
+        <div class="seg stamp-seg">
             <WithToolTip message="dropdown.stamp.paint_selection">
                 <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
             </WithToolTip>
@@ -126,6 +126,24 @@ function openSelectionModal() {
 .seg :deep(.sb:hover),
 .seg :deep(.sbb:hover) {
     background-color: transparent !important;
+}
+
+/* The stamp trigger sits several wrappers deep (tooltip > StampDropdown > Dropdown > popper),
+   and only the button itself opens the popup. Stretch every wrapper around it and move the
+   segment padding onto the button so the whole segment is clickable. */
+.stamp-seg {
+    padding: 0;
+}
+
+.stamp-seg :deep(*:has(.sb)) {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    flex: 1;
+}
+
+.stamp-seg :deep(.sb) {
+    padding: 0 6px;
 }
 
 .count-seg :deep(.wtt-trigger) {

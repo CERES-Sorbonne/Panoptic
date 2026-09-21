@@ -1,3 +1,7 @@
+> **Status 2026-09-21: the proposal still stands, and the frontier is still not built.**
+> `src/core/group/frontier.ts` does not exist; `GroupView.vue` keeps its own `walkVisible` and
+> the map colours by root children. The inspection half landed — see `README.md` in this folder.
+
 # The synchronisation model — the map is a projection of the result tree
 
 The premise: **every view shows the same result tree**. A view differs from another only in

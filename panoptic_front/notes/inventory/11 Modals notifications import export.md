@@ -10,7 +10,7 @@ Back to [[00 Frontend inventory]] · Unused files: [[99 Unused files]]
 
 ## Zone-level checks
 - [ ] ⚠ **Two modal shells, both used:** `Modal.vue` (only `FirstModal` uses it) and `Modal2.vue` (8 users). Move `FirstModal` over to `Modal2` and delete `Modal`.
-- [ ] Modals are imported in `App.vue` *and* `views/MainView.vue`. Check for double mounting ([[01 App shell routing and layout]]).
+- [ ] Modals are imported in `App.vue` *and* `views/ProjectView.vue`. Check for double mounting ([[01 App shell routing and layout]]).
 - [ ] `ExportModal2.vue` (534 L): export options against the backend exporter. The "2" suffix is left over from a deleted v1.
 - [ ] `import/TagImport.vue` contains a "Placeholder API import". Check whether that path is finished.
 - [ ] `modals/image/Instances.vue` deliberately uses its own `GroupManager`, not shared with `Similarity`, to avoid async races. Keep that in mind when refactoring `core/`.

@@ -12,7 +12,7 @@ Back to [[00 Backend inventory]] · Unused files: [[99 Unused files]]
 - [ ] `media/models.py` is imported by the PanopticML plugin in 5 places (`VectorType`, `Vector`, `Map`…). Renaming a field breaks plugins ([[07 Plugin system]]).
 - [ ] ⚠ `test/test_media_db.py` and `test/test_project_db.py` no longer import ([[09 Tests and fixtures]]), so this zone currently has **no working unit tests**.
 - [ ] `project_db_config_reader.py` is never imported ([[99 Unused files]]).
-- [ ] TabData is stored by the backend but versioned by the frontend (`TAB_MODEL_VERSION` in `panoptic_front/src/data/tabStore.ts`). Check who migrates old tab JSON.
+- [ ] TabData is stored by the backend but versioned by the frontend (`TAB_MODEL_VERSION` in `panoptic_front/src/data/stores/tabStore.ts`). Check who migrates old tab JSON.
 
 ## Files
 - [ ] `panoptic/core/databases/media/create.py` · 32 L. `media.db` schema.

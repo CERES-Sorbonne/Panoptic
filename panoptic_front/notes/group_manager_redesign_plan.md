@@ -1,3 +1,9 @@
+> **Status 2026-09-21: superseded.** This plan predates the split of `GroupManager` into
+> engine / `GroupResult` / `ClusterManager` / `ClusterOverlay` / `GroupNavigator`. The live
+> notes for that code are `notes/refactor/` (start at its `README.md`), and the behaviour is
+> now pinned by `npm test` (136 specs in `test/group/`). Kept as the reasoning behind the
+> slot-based tree.
+
 # GroupManager Redesign — Implementation Plan & Open Questions
 
 Related: [[group_tree_structure_redesign]], [[tree_scroller_computelines_optimization]],

@@ -1,3 +1,10 @@
+> **Status 2026-09-21: implemented, with one addition.** The schema here is what
+> `core/databases/data/create.py` builds (`entity_log`, typed result tables, `GENESIS_COMMIT_ID`,
+> `LOGGED_ENTITY_META`). Since then `Commit.redoable` was added to fence the redo stack, and a
+> commit whose payload changes nothing is not written at all — see `versioning_multiuser_undo.md`
+> and the addendum at the top of `versioning_architecture.md`. Note the enabling column is
+> called `active`, not `enabled`.
+
 # Typed Result Tables + Generic Partial-Diff Log — Design
 
 Builds on `versioning_replay_analysis.md`, `versioning_revert_complexity.md`,

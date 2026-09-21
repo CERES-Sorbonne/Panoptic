@@ -50,7 +50,7 @@ const name = computed(() => {
 
 
 <template>
-    <div class="badge tag-badge" :style="{ backgroundColor: background, color: textColor }">
+    <div class="badge tag-badge" :title="name" :style="{ backgroundColor: background, color: textColor }">
 
         <span class="m-0 p-0 label">
             <span>{{ name }}</span>

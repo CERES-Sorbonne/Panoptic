@@ -1,3 +1,8 @@
+> **Status 2026-09-21: not implemented.** `TreeScroller` still builds an `ImageIterator` per
+> image, and `GridScroller` a line object per image, for the whole collection on every version
+> bump, virtualising only afterwards. This note is the plan for fixing that; see
+> `README.md` → "Known-open performance".
+
 # TreeScroller — `computeLines()` Optimization
 
 Scope: the line-layout computation in `src/components/scrollers/tree/TreeScroller.vue`

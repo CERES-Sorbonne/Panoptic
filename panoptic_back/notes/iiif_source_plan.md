@@ -1,3 +1,11 @@
+> **Status: implemented, but not with these file names.** IIIF import works — `POST /import/iiif`
+> and `POST /iiif/test` (see `notes/routes_reference.md`) — and the code lives in
+> `panoptic/core/file_source/` (`base.py`, `registry.py`, `iiif_config.py`, `iiif_reader.py`,
+> `local_reader.py`, `processing.py`) with a single `panoptic/core/task/import_source_task.py`.
+> The `file_source_types.py`, `iiif_import_task.py` and `import_folder_task.py` this plan names
+> do not exist: the folder-import task was generalised into the source-import task instead of
+> being duplicated per source type. > Reviewed 2026-09-21 against `5a6893b9`.
+
 # IIIF File Source — Implementation Plan
 
 ## What is IIIF?

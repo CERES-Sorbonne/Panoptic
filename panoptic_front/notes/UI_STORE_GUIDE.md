@@ -86,27 +86,30 @@ uiStore.panelStates.rightPanelOpen = true
 
 ## Persistence
 
+*(Corrected 2026-09-21 — the store saves one key, not three.)*
+
 ### How It Works
 
-1. Each reactive state object has a watcher
-2. When state changes, the watcher calls `apiSetUIData()` with a key
-3. Changes are persisted to the backend with the current project
-4. On app load, `uiStore.init()` calls `apiGetUIData()` for each key
+1. **One** deep watcher covers all three objects (`panelStates`, `resizeStates`,
+   `scrollStates`), deep-copied into a single `layoutState`.
+2. It does nothing until `loaded` is true, so loading the saved state doesn't save it back.
+3. On change it reads the whole `uiState` object (`UIDataKeys.STATE = 'uiState'`), replaces its
+   `layout` field and writes it back with `apiSetUIData` — so the layout shares one `ui_data`
+   key with the rest of the UI state.
+4. `uiStore.init()` reads that same key once and `Object.assign`s each section back, with one
+   correction: `activeBottomPanel` is only restored when it is `'properties'`.
 
-### Backend Keys
+### Backend Key
 
-- `panelStates` → stored with key `'panelStates'`
-- `resizeStates` → stored with key `'resizeStates'`
-- `scrollStates` → stored with key `'scrollStates'`
+- everything above → `uiState.layout`, under the single `ui_data` key `'uiState'`.
 
-### Debouncing (Future)
+### Debouncing (still not done)
 
-If watchers trigger too frequently (e.g., during scroll), you can add debouncing:
+The watcher is undebounced, so a scroll position that changes continuously writes on every
+tick. If that becomes a problem:
 
 ```typescript
-watch(() => scrollStates, debounce(async () => {
-    await apiSetUIData(SCROLL_STATE_KEY, scrollStates)
-}, 500), { deep: true })
+watch(() => scrollStates, debounce(async () => { … }, 500), { deep: true })
 ```
 
 ## Integration with projectStore

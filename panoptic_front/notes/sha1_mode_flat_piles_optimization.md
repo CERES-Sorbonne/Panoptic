@@ -1,3 +1,8 @@
+> **Status 2026-09-21: implemented.** See `src/core/sha1Piles.ts` and
+> `GroupManager.applySha1Piles()`; the task list is `notes/sha1_piles_implementation_tasks.md`
+> (whose checkboxes were never ticked). Two performance follow-ups remain open — see
+> `notes/refactor/README.md`.
+
 # sha1Mode: flatten piles instead of materializing Groups
 
 ## How sha1Mode is managed today
@@ -297,8 +302,8 @@ result, wiring/reading stays in the manager, rendering stays in the scrollers.
 | Pipeline wiring — `applySha1Piles()` final pass; called at tail of `group()`, `addCustomGroups`, `updateSelection`; toggle in `setSha1Mode` | `GroupManager.ts` | `GroupResult`/compose step |
 | `orderedIds` — emit `PileData.order` for piled leaves | `GroupManager.buildOrdinalRanges` | `GroupResult` |
 | Iterator — read piles via `bounds` (not `children`) | `ImageIterator` in `GroupManager.ts` | moves with iterators to `GroupResult` |
-| sha1Mode flag/state | `GroupState.sha1Mode` (`GroupManager.ts` / `src/data/models.ts`) | unchanged |
-| sha1 reads (`sha1s()`, `systemProps.SHA1`) | `src/data/columnStore.ts` (exists, no change) | unchanged |
+| sha1Mode flag/state | `GroupState.sha1Mode` (`GroupManager.ts` / `src/data/models/`) | unchanged |
+| sha1 reads (`sha1s()`, `systemProps.SHA1`) | `src/data/stores/columnStore.ts` (exists, no change) | unchanged |
 | **Render** piles from `order`/`bounds` | tree: `TreeScroller.vue`, `Image.vue`, `GroupLine.vue`; grid: `GridScroller.vue`, `RowLine.vue` | unchanged |
 | Backend `isSha1Group` cluster flag — **stays separate** | `src/utils/utils.ts` (`convert*GroupResult`, `allChildrenSha1Groups`) | unchanged |
 

@@ -29,7 +29,6 @@ const dropdownElem = ref(null)
 function close() {
     clear()
     dropdownElem.value?.hide()
-    emits('stamped')
 }
 
 function clear() {
@@ -83,6 +82,8 @@ async function apply() {
     }
     await data.setPropertyValues(instanceValues, imageValues)
     close()
+    // only a real stamp notifies the parent (the selection bar clears the selection on it)
+    emits('stamped')
 }
 
 </script>

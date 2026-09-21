@@ -8,6 +8,7 @@ import { useDataStore } from '@/data/stores/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { useUiStore } from '@/data/stores/uiStore'
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue'
+import { ref } from 'vue'
 
 const data = useDataStore()
 const uiStore = useUiStore()
@@ -18,6 +19,8 @@ const props = defineProps<{
     filterManager?: FilterManager
     tab?: TabManager
 }>()
+
+const menuOpen = ref(false)
 
 function toggleVisible(folderId: number) {
     const visibleFolders = uiStore.panelStates.folderExpansions
@@ -74,7 +77,7 @@ function handleExpand(e: MouseEvent) {
 <template>
     <div
         class="tree-node"
-        :class="{ selected }"
+        :class="{ selected, 'menu-open': menuOpen }"
         :style="{ paddingLeft: 8 + depth * 14 + 'px' }"
         @click="handleToggle($event)"
     >
@@ -85,7 +88,7 @@ function handleExpand(e: MouseEvent) {
         <span class="tree-label">{{ folder.name }}</span>
         <span v-if="getCount(folder.id) > 0" class="tree-count">{{ getCount(folder.id) }}</span>
         <span class="folder-option">
-            <FolderOptionDropdown :folder="folder" />
+            <FolderOptionDropdown :folder="folder" @show="menuOpen = true" @hide="menuOpen = false" />
         </span>
     </div>
 </template>
@@ -102,12 +105,18 @@ function handleExpand(e: MouseEvent) {
     position: relative;
 }
 
-.tree-node:hover {
+.tree-node:hover,
+.tree-node.menu-open {
     background-color: var(--hover-bg);
 }
 
 .tree-node.selected {
-    background-color: rgba(38, 117, 191, 0.32);
+    background-color: rgba(38, 117, 191, 0.18);
+}
+
+.tree-node.selected:hover,
+.tree-node.selected.menu-open {
+    background-color: rgba(38, 117, 191, 0.10);
 }
 
 .tree-caret {
@@ -148,19 +157,19 @@ function handleExpand(e: MouseEvent) {
     min-width: 0;
 }
 
-/* Overlays the end of the row (over the name / count) on hover */
+/* Overlays the end of the row on hover, like PropertyOptions .prop-actions */
 .folder-option {
-    display: none;
     position: absolute;
-    right: 2px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: var(--bg-primary);
-    border-radius: var(--radius-sm);
-    z-index: 1;
+    top: 0;
+    bottom: 0;
+    right: var(--spacing-sm);
+    display: none;
+    align-items: center;
+    background-color: inherit;
 }
 
-.tree-node:hover .folder-option {
-    display: inline-flex;
+.tree-node:hover .folder-option,
+.tree-node.menu-open .folder-option {
+    display: flex;
 }
 </style>
