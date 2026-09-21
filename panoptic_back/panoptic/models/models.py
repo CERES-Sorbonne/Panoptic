@@ -76,6 +76,10 @@ class TaskState(BaseModel):
     failed: int = 0
     running: bool = False
     finished: bool = False
+    # Set when a stop was requested. While `running` is still True the task is stopping.
+    cancelled: bool = False
+    # Name of the plugin that queued the task, None for core tasks
+    owner: str | None = None
 
     # Current phase, e.g. "Scanning folder structure", "Loading plugin"
     step: str | None = None

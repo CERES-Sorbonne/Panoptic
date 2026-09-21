@@ -1334,6 +1334,36 @@ def get_image_medium(sha1: str, project: Project = Depends(_dep)):
 
 
 # ---------------------------------------------------------------------------
+# Tasks
+# ---------------------------------------------------------------------------
+
+class TaskIdRequest(BaseModel):
+    # In the body, not the path: task ids contain '#', e.g. 'ImportSourceTask#3'
+    id: str
+
+
+@project_router.post('/task/stop')
+def stop_task(req: TaskIdRequest, project: Project = Depends(_dep)):
+    """Stop a queued or running task. Clients follow its state through `tasks` events."""
+    if not project.stop_task(req.id):
+        raise HTTPException(404, f'Task {req.id!r} is not queued or running')
+    return True
+
+
+@project_router.post('/task/dismiss')
+def dismiss_task(req: TaskIdRequest, project: Project = Depends(_dep)):
+    if not project.dismiss_task(req.id):
+        raise HTTPException(404, f'Task {req.id!r} is not finished')
+    return True
+
+
+@project_router.post('/tasks/dismiss_finished')
+def dismiss_finished_tasks(project: Project = Depends(_dep)):
+    project.dismiss_finished_tasks()
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Actions & plugins
 # ---------------------------------------------------------------------------
 
@@ -1368,7 +1398,29 @@ def get_actions(project: Project = Depends(_dep)):
 
 @project_router.get('/plugins_info')
 def get_plugins_info(project: Project = Depends(_dep)):
-    return [p.get_description() for p in project.plugins]
+    return project.get_plugin_descriptions()
+
+
+class PluginNameRequest(BaseModel):
+    name: str
+
+
+@project_router.post('/plugin/stop')
+def stop_plugin(req: PluginNameRequest, project: Project = Depends(_dep)):
+    """Stop a plugin until it is started again or the project is reopened."""
+    if not project.unload_plugin(req.name):
+        raise HTTPException(404, f'Plugin {req.name!r} is not running')
+    return project.get_plugin_descriptions()
+
+
+@project_router.post('/plugin/start')
+def start_plugin(req: PluginNameRequest, project: Project = Depends(_dep)):
+    """Queue the load of a stopped plugin. Clients get `plugins_info` once it is loaded."""
+    try:
+        project.load_plugin(req.name)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    return project.get_plugin_descriptions()
 
 
 class PluginParamsRequest(BaseModel):
@@ -1382,7 +1434,7 @@ def update_plugin_params(req: PluginParamsRequest, project: Project = Depends(_d
         project.update_plugin_params(req.plugin, req.params)
     except KeyError as e:
         raise HTTPException(404, str(e))
-    return [p.get_description() for p in project.plugins]
+    return project.get_plugin_descriptions()
 
 
 # ---------------------------------------------------------------------------

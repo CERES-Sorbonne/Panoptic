@@ -389,15 +389,32 @@ The worker holds the lock only while picking the next task, not while running it
 
 ## Task history / cleanup
 
-Finished tasks stay in `TaskManager._tasks` until the client explicitly dismisses them via
-`DELETE /tasks/{task_id}`. The UI always shows what ran and any errors. No auto-pruning.
+Finished tasks stay in `TaskManager._tasks` until the client dismisses them:
+`POST /task/dismiss {id}` for one, `POST /tasks/dismiss_finished` for all. No auto-pruning.
+Task ids go in the body because they contain `#` (`ImportSourceTask#3`).
 
-## Cancellation for process tasks
+## Stopping tasks
 
-Thread tasks: `task.stop()` sets `threading.Event`. The task's loop checks
-`self._cancel_event.is_set()` between chunks.
+Every task can be stopped from the UI (`POST /task/stop {id}`), whether or not its code
+checks for it. Each task runs in its own thread, so a stuck task can be left behind.
 
-Process tasks: cancellation of a pending (not yet started) future works via the queue — the
-task simply never starts. Cancellation of a *running* subprocess is not supported in the
-initial implementation. `TaskManager.close()` calls `stop()` on all tasks and drains the
-queue with sentinels.
+- **Queued task:** marked `cancelled` + `finished` right away. The worker skips it.
+- **Running task:** `state.cancelled` is set (the UI shows "Stopping…"), then it escalates:
+  1. `task.is_cancelled()` turns True. Tasks that check it between chunks exit cleanly.
+  2. After `STOP_GRACE` (3s), `TaskCancelled` is raised in the task's thread with
+     `PyThreadState_SetAsyncExc`. It extends `BaseException`, so `except Exception` in task
+     code does not swallow it, while `finally` and `with` blocks still run.
+     `SQLiteWriter.transaction` rolls back on `BaseException` so the write lock is released.
+  3. After `INTERRUPT_GRACE` (3s more), the thread is abandoned: the task is marked finished,
+     its state is frozen (later writes by the thread do not reach the UI) and the next task
+     starts. This covers threads blocked in C code (GPU pass, lock wait), which only see the
+     exception once that call returns.
+
+`on_last()` still runs for a stopped task, so the work done so far is used (atlas, faiss
+index). It runs once per key, when no non-cancelled task of that key is left in the queue.
+
+Clean stop is optional: `is_cancelled()` is the only thing a task needs to check. Pools
+should be shut down with `cancel_futures=True` on stop, otherwise leaving the `with` block
+waits for every submitted item (see `ImportSourceTask`).
+
+Tests: `panoptic/core/task/tests/`.

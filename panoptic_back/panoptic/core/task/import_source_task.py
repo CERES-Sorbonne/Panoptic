@@ -103,6 +103,9 @@ class ImportSourceTask(Task):
             }
             for future in as_completed(futures):
                 if self._cancel_event.is_set():
+                    # Drop the items not started yet, or leaving the `with` block
+                    # would wait for every one of them.
+                    pool.shutdown(wait=False, cancel_futures=True)
                     break
 
                 folder_id, item = futures[future]

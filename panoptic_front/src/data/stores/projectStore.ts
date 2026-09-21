@@ -7,7 +7,7 @@
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref } from "vue";
 import { ExecuteActionPayload, PluginDescription, ProjectSettings, ScoreInterval, StatusUpdate, UIDataKeys, UiState, ProjectState, TaskState } from "../models";
-import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiCallActions, apiSetSettings, apiGetUIData, apiSetUIData, apiGetProjectState } from "../api/projectApi";
+import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiStartPlugin, apiStopPlugin, apiStopTask, apiDismissTask, apiDismissFinishedTasks, apiGetActions, apiCallActions, apiSetSettings, apiGetUIData, apiSetUIData, apiGetProjectState } from "../api/projectApi";
 import { deepCopy } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { useMediaStore } from "./mediaStore";
@@ -207,6 +207,29 @@ export const useProjectStore = defineStore('projectStore', () => {
         await actionStore.reload()
     }
 
+    // The backend sends `plugins_info` once the plugin is stopped or loaded,
+    // which refetches the plugins and their actions.
+    async function stopPlugin(name: string) {
+        state.value.plugins = await apiStopPlugin(name)
+    }
+
+    async function startPlugin(name: string) {
+        state.value.plugins = await apiStartPlugin(name)
+    }
+
+    // Task changes come back through the `tasks` socket event.
+    async function stopTask(id: string) {
+        await apiStopTask(id)
+    }
+
+    async function dismissTask(id: string) {
+        await apiDismissTask(id)
+    }
+
+    async function dismissFinishedTasks() {
+        await apiDismissFinishedTasks()
+    }
+
     return {
         // variables
         state, uiState,
@@ -218,7 +241,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         uploadPropFile,
         setPluginParams, saveUiState,
         call, importTasks,
-        fetchPluginsInfo,
+        fetchPluginsInfo, stopPlugin, startPlugin,
+        stopTask, dismissTask, dismissFinishedTasks,
         updateScoreInterval,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         reload,

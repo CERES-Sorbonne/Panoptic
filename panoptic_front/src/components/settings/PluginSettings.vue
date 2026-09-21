@@ -56,6 +56,21 @@ function applyLocalDefaults() {
     project.setPluginParams(props.plugin.name, toSend)
 }
 
+// Starting a plugin queues a LoadPluginTask. Its state arrives through `tasks`,
+// and `plugins_info` follows once it is loaded (or failed to load).
+const busy = ref(false)
+const loading = computed(() => (project.state.tasks ?? []).some(t => t.key === 'LoadPluginTask' && !t.finished))
+
+async function toggleRunning() {
+    busy.value = true
+    try {
+        if (props.plugin.running) await project.stopPlugin(props.plugin.name)
+        else await project.startPlugin(props.plugin.name)
+    } finally {
+        busy.value = false
+    }
+}
+
 onMounted(updateLocalDefaults)
 watch(() => props.plugin, updateLocalDefaults)
 
@@ -65,7 +80,20 @@ watch(() => props.plugin, updateLocalDefaults)
     <div v-if="props.plugin && localDefaults" class=p-3>
         <h3 class="text-center">{{ props.plugin.name }}</h3>
         <div class="">{{ props.plugin.description }}</div>
+        <div class="d-flex align-items-center mt-2">
+            <span :class="props.plugin.running ? 'text-success' : 'text-secondary'">
+                <i class="bi" :class="props.plugin.running ? 'bi-play-circle-fill' : 'bi-stop-circle'" />
+                {{ props.plugin.running ? $t('modals.settings.plugin_running') : $t('modals.settings.plugin_stopped') }}
+            </span>
+            <div class="flex-grow-1"></div>
+            <span v-if="busy || (!props.plugin.running && loading)" class="spinner-border spinner-border-sm text-secondary" />
+            <div v-else class="base-btn" @click="toggleRunning">
+                {{ props.plugin.running ? $t('modals.settings.plugin_stop') : $t('modals.settings.plugin_start') }}
+            </div>
+        </div>
+        <div v-if="!props.plugin.running" class="text-secondary mt-1">{{ $t('modals.settings.plugin_stopped_hint') }}</div>
         <div class="custom-hr mt-2 mb-2"></div>
+        <template v-if="props.plugin.running">
         <h5>{{$t('modals.settings.baseSettings')}}</h5>
         <div class="function">
             <div v-for="param in localDefaults" class="param">
@@ -81,6 +109,7 @@ watch(() => props.plugin, updateLocalDefaults)
             <div class="base-btn me-3" @click="updateLocalDefaults">{{$t('modals.settings.reset')}}</div>
             <div class="base-btn" @click="applyLocalDefaults">{{$t('modals.settings.update')}}</div>
         </div>
+        </template>
     </div>
 </template>
 

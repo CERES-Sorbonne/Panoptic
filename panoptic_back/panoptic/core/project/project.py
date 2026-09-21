@@ -49,10 +49,12 @@ class Project:
         # In-memory image type cache — loaded on start(), refreshed on every write
         self._image_types: list[ImageType] = []
 
-        # Event callback lists
-        self._on_import_complete_callbacks: list[Callable] = []
-        self._on_folder_delete_callbacks:   list[Callable] = []
+        # Event callbacks, each with the plugin that registered it (None for core)
+        self._on_import_complete_callbacks: list[tuple[str | None, Callable]] = []
+        self._on_folder_delete_callbacks:   list[tuple[str | None, Callable]] = []
         self._on_commit: Optional[Callable[[], None]] = None
+        # Called after a plugin is stopped, so clients refetch plugins and actions
+        self._on_plugins_changed: Optional[Callable[[], None]] = None
 
         self._local_fs_id: int | None = None
 
@@ -147,6 +149,8 @@ class Project:
 
     def close(self):
         self.task_manager.close()
+        for plugin in self.plugins:
+            _stop_plugin(plugin)
         if self._media:
             self._media.close()
             self._media = None
@@ -609,11 +613,14 @@ class Project:
     def add_task(self, task: Task, high_priority: bool = False) -> Task:
         return self.task_manager.add_task(task, high_priority=high_priority)
 
-    def stop_task(self, task_id: str):
-        self.task_manager.stop_task(task_id)
+    def stop_task(self, task_id: str) -> bool:
+        return self.task_manager.stop_task(task_id)
 
-    def dismiss_task(self, task_id: str):
-        self.task_manager.dismiss_task(task_id)
+    def dismiss_task(self, task_id: str) -> bool:
+        return self.task_manager.dismiss_task(task_id)
+
+    def dismiss_finished_tasks(self) -> None:
+        self.task_manager.dismiss_finished()
 
     def get_task_states(self):
         return self.task_manager.get_states()
@@ -625,6 +632,81 @@ class Project:
     def add_plugin(self, plugin) -> None:
         self.plugins.append(plugin)
 
+    def get_plugin_keys(self) -> list[PluginKey]:
+        """Plugins enabled for this project, running or not."""
+        return list(self._plugin_keys)
+
+    def get_plugin_descriptions(self) -> list:
+        """Descriptions of the enabled plugins, stopped ones included with running=False."""
+        from panoptic.models.action_models import PluginBaseParamsDescription, PluginDescription
+        loaded = {p.name: p for p in self.plugins}
+        result = []
+        for key in self._plugin_keys:
+            plugin = loaded.pop(key.id, None)
+            if plugin is not None:
+                result.append(plugin.get_description())
+            else:
+                result.append(PluginDescription(
+                    name=key.id, path=key.install_path,
+                    base_params=PluginBaseParamsDescription(), running=False,
+                ))
+        # Plugins loaded without a key (none in practice) still show
+        result.extend(p.get_description() for p in loaded.values())
+        return result
+
+    def is_plugin_loaded(self, name: str) -> bool:
+        return any(p.name == name for p in self.plugins)
+
+    def load_plugin(self, name: str) -> Task | None:
+        """Queue the load of a stopped plugin. Returns None if it is already loaded."""
+        key = next((k for k in self._plugin_keys if k.id == name), None)
+        if key is None:
+            raise KeyError(f'Plugin {name!r} is not enabled for this project')
+        if self.is_plugin_loaded(name):
+            return None
+        from panoptic.core.plugin.load_plugin_task import LoadPluginTask
+        return self.task_manager.add_task(LoadPluginTask(self, [key]), high_priority=True)
+
+    def unload_plugin(self, name: str) -> bool:
+        """Stop a plugin: stop its tasks, remove its actions and callbacks, call its stop().
+
+        Its running task, if any, keeps finishing in the background (see TaskManager.stop_task).
+        The plugin stays enabled and can be loaded again with load_plugin().
+        Returns False if the plugin was not loaded.
+        """
+        plugin = next((p for p in self.plugins if p.name == name), None)
+        self.task_manager.stop_owner_tasks(name)
+        self.action.remove_owner(name)
+        self._on_import_complete_callbacks = [c for c in self._on_import_complete_callbacks if c[0] != name]
+        self._on_folder_delete_callbacks = [c for c in self._on_folder_delete_callbacks if c[0] != name]
+        self.plugins = [p for p in self.plugins if p.name != name]
+        if plugin is None:
+            return False
+        _stop_plugin(plugin)
+        self._fire_plugins_changed()
+        return True
+
+    def _fire_plugins_changed(self) -> None:
+        if self._on_plugins_changed:
+            try:
+                self._on_plugins_changed()
+            except Exception:
+                logging.exception('on_plugins_changed callback failed')
+
+    def set_plugin_keys(self, keys: list[PluginKey]) -> None:
+        """Change the plugins enabled for this project: stop the removed ones, load the new ones."""
+        names = {k.id for k in keys}
+        removed = [k for k in self._plugin_keys if k.id not in names]
+        added = [k for k in keys if k.id not in {old.id for old in self._plugin_keys}]
+        for key in removed:
+            self.unload_plugin(key.id)
+        self._plugin_keys = list(keys)
+        for key in added:
+            self.load_plugin(key.id)
+        if removed:
+            # A removed plugin that was already stopped fired nothing yet
+            self._fire_plugins_changed()
+
     def make_plugin_interface(self, plugin_name: str):
         from panoptic.core.plugin.plugin_interface import PluginProjectInterface
         return PluginProjectInterface(
@@ -635,8 +717,8 @@ class Project:
             project_db_path=self.project_db_path,
             task_manager=self.task_manager,
             action_registry=self.action,
-            register_import_complete=self.on_import_complete,
-            register_folder_delete=self.on_folder_delete,
+            register_import_complete=lambda cb: self.on_import_complete(cb, owner=plugin_name),
+            register_folder_delete=lambda cb: self.on_folder_delete(cb, owner=plugin_name),
         )
 
     def update_plugin_params(self, plugin_name: str, params: dict) -> None:
@@ -649,14 +731,14 @@ class Project:
     # Events  (triggered by Project write methods)
     # ------------------------------------------------------------------
 
-    def on_import_complete(self, callback: Callable) -> None:
-        self._on_import_complete_callbacks.append(callback)
+    def on_import_complete(self, callback: Callable, owner: str | None = None) -> None:
+        self._on_import_complete_callbacks.append((owner, callback))
 
-    def on_folder_delete(self, callback: Callable) -> None:
-        self._on_folder_delete_callbacks.append(callback)
+    def on_folder_delete(self, callback: Callable, owner: str | None = None) -> None:
+        self._on_folder_delete_callbacks.append((owner, callback))
 
     def _trigger_import_complete(self, root_folder_id: int | None = None) -> None:
-        for cb in self._on_import_complete_callbacks:
+        for _, cb in list(self._on_import_complete_callbacks):
             try:
                 cb(root_folder_id)
             except Exception:
@@ -664,9 +746,16 @@ class Project:
                 logging.exception('on_import_complete callback failed')
 
     def _trigger_folder_delete(self, folders: list) -> None:
-        for cb in self._on_folder_delete_callbacks:
+        for _, cb in list(self._on_folder_delete_callbacks):
             try:
                 cb(folders)
             except Exception:
                 import logging
                 logging.exception('on_folder_delete callback failed')
+
+
+def _stop_plugin(plugin) -> None:
+    try:
+        plugin.stop()
+    except Exception:
+        logging.exception(f'Plugin {plugin.name!r} stop() failed')

@@ -283,6 +283,29 @@ export async function apiGetPluginsInfo() {
     return keysToCamel(res.data) as PluginDescription[]
 }
 
+export async function apiStopPlugin(name: string) {
+    let res = await projectApi.post('/plugin/stop', { name })
+    return keysToCamel(res.data) as PluginDescription[]
+}
+
+export async function apiStartPlugin(name: string) {
+    let res = await projectApi.post('/plugin/start', { name })
+    return keysToCamel(res.data) as PluginDescription[]
+}
+
+// Task ids contain '#', so they go in the body rather than the URL
+export async function apiStopTask(id: string) {
+    await projectApi.post('/task/stop', { id })
+}
+
+export async function apiDismissTask(id: string) {
+    await projectApi.post('/task/dismiss', { id })
+}
+
+export async function apiDismissFinishedTasks() {
+    await projectApi.post('/tasks/dismiss_finished')
+}
+
 export async function apiSetPluginParams(plugin: string, params: any) {
     let res = await projectApi.post('/plugin_params', { plugin, params })
     return keysToCamel(res.data) as PluginDescription[]

@@ -37,6 +37,8 @@ export interface PluginDescription {
     baseParams: PluginBaseParamsDescription
     registeredFunctions: FunctionDescription[]
     defaults: PluginDefaultParams
+    // False when the plugin is enabled for the project but stopped or failed to load
+    running: boolean
 }
 
 export interface PluginDefaultParams {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Toolbar button that shows the progress of the running backend task.
-// Clicking it opens a list of running, pending and finished tasks.
+// Clicking it opens a list of running, pending and finished tasks. Running and
+// pending tasks can be stopped, finished ones dismissed.
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/data/stores/projectStore'
@@ -52,6 +53,7 @@ function taskMessage(t: TaskState) {
 }
 
 function taskSubtitle(t: TaskState) {
+    if (t.cancelled) return $t('dropdown.tasks.stopping')
     const parts: string[] = []
     const message = taskMessage(t)
     if (message) parts.push(message)
@@ -59,6 +61,15 @@ function taskSubtitle(t: TaskState) {
     if (t.rate) parts.push($t('dropdown.tasks.rate', { rate: t.rate.toFixed(1) }))
     if (t.eta_seconds) parts.push($t('dropdown.tasks.eta', { time: formatEta(t.eta_seconds) }))
     return parts.join(' · ')
+}
+
+function finishedMessage(t: TaskState) {
+    if (t.cancelled) return $t('dropdown.tasks.stopped')
+    return taskMessage(t) || $t('dropdown.tasks.done')
+}
+
+function stop(t: TaskState) {
+    if (!t.cancelled) project.stopTask(t.id)
 }
 
 function formatEta(seconds: number) {
@@ -91,6 +102,9 @@ function formatEta(seconds: number) {
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
                         <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
+                        <i v-if="!t.cancelled" class="bi bi-stop-circle task-row-action"
+                            :title="$t('dropdown.tasks.stop')" @click.stop="stop(t)" />
+                        <span v-else class="spinner-border task-row-spinner" />
                     </div>
                     <div v-if="taskSubtitle(t)" class="task-row-subtitle">{{ taskSubtitle(t) }}</div>
                     <div class="task-row-track">
@@ -108,20 +122,28 @@ function formatEta(seconds: number) {
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
                         <span v-if="t.total" class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
+                        <i class="bi bi-x-circle task-row-action" :title="$t('dropdown.tasks.cancel')"
+                            @click.stop="stop(t)" />
                     </div>
                     <div class="task-row-subtitle">{{ taskSubtitle(t) || $t('dropdown.tasks.waiting') }}</div>
                 </div>
 
-                <div v-if="finished.length > 0" class="task-section-label"
-                    :class="{ 'task-section-label--past': running.length > 0 || pending.length > 0 }">{{ $t('dropdown.tasks.past') }}</div>
+                <div v-if="finished.length > 0" class="task-section-label task-section-label--row"
+                    :class="{ 'task-section-label--past': running.length > 0 || pending.length > 0 }">
+                    <span>{{ $t('dropdown.tasks.past') }}</span>
+                    <span class="task-clear" @click.stop="project.dismissFinishedTasks()">{{ $t('dropdown.tasks.clear') }}</span>
+                </div>
                 <div v-for="t in finished" :key="t.id" class="task-row task-row--done">
                     <div class="task-row-header">
-                        <i class="bi bi-check-circle-fill task-done-icon" />
+                        <i v-if="t.cancelled" class="bi bi-stop-circle-fill task-done-icon" />
+                        <i v-else class="bi bi-check-circle-fill task-done-icon" />
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
                         <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
+                        <i class="bi bi-x task-row-action" :title="$t('dropdown.tasks.dismiss')"
+                            @click.stop="project.dismissTask(t.id)" />
                     </div>
-                    <div class="task-row-subtitle">{{ taskMessage(t) || $t('dropdown.tasks.done') }}</div>
+                    <div class="task-row-subtitle">{{ finishedMessage(t) }}</div>
                 </div>
             </div>
         </template>
@@ -202,6 +224,23 @@ function formatEta(seconds: number) {
     letter-spacing: 0.05em;
 }
 
+.task-section-label--row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.task-clear {
+    text-transform: none;
+    font-weight: normal;
+    cursor: pointer;
+    letter-spacing: 0;
+}
+
+.task-clear:hover {
+    color: var(--text-color, #444);
+}
+
 .task-section-label--past {
     margin-top: 6px;
     border-top: 1px solid var(--border-color, #dee2e6);
@@ -261,6 +300,25 @@ function formatEta(seconds: number) {
     font-size: 11px;
     color: #e03131;
     white-space: nowrap;
+}
+
+.task-row-action {
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.task-row-action:hover {
+    color: #e03131;
+}
+
+.task-row-spinner {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+    color: #888;
+    flex-shrink: 0;
 }
 
 .task-done-icon {

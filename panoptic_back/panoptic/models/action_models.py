@@ -127,3 +127,5 @@ class PluginDescription(BaseModel):
     path: str
     base_params: PluginBaseParamsDescription
     registered_functions: list[FunctionDescription] = []
+    # False when the plugin is enabled for the project but stopped (or failed to load)
+    running: bool = True

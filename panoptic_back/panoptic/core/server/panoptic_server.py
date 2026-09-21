@@ -274,6 +274,9 @@ class PanopticServer:
         if project._on_commit is None:
             project._on_commit = self._make_commit_callback(id_)
 
+        if project._on_plugins_changed is None:
+            project._on_plugins_changed = self._make_plugins_callback(id_)
+
         state = self._connection_states.get(connection_id)
         if state:
             state.connected_project = id_
@@ -388,8 +391,9 @@ class PanopticServer:
     def _make_task_callback(self, id_: str):
         """Return a sync callable that bridges task updates into the event loop.
 
-        Throttled to at most 4 socket emissions per second; finished/stopped
-        states always bypass the throttle so the UI sees the final state.
+        Throttled to at most 4 socket emissions per second. A throttled update is sent
+        when the interval ends, so the UI always ends up with the latest states.
+        States with no running task bypass the throttle.
         """
         import time as _time
 
@@ -398,22 +402,16 @@ class PanopticServer:
         server = self
 
         _INTERVAL  = 0.25          # seconds between emissions
-        _last: list[float] = [0.0] # mutable cell; mutated only from the task thread
+        _last: list[float] = [0.0]
+        _flush_scheduled: list[bool] = [False]
         _plugins_info_sent: set[str] = set()  # task IDs that already triggered plugins_info
         _atlas_sent: set[str] = set()         # task IDs that already triggered atlas event
 
-        def on_update(states: list[TaskState]) -> None:
-            now = _time.monotonic()
-            # Only bypass throttle when no task is actively running (terminal state).
-            # Checking `any(finished)` would always be True once LoadPluginTask finishes
-            # because TaskManager keeps finished tasks in its registry indefinitely.
-            terminal = not any(s.running for s in states)
-            if not terminal and now - _last[0] < _INTERVAL:
-                return
-            _last[0] = now
+        def send(states: list[TaskState]) -> None:
+            _last[0] = _time.monotonic()
 
             # Only fire plugins_info once per LoadPluginTask instance (stale finished
-            # tasks stay in get_states() forever, so we must deduplicate by task ID).
+            # tasks stay in get_states(), so we must deduplicate by task ID).
             new_plugin_done = [
                 s for s in states
                 if s.key == 'LoadPluginTask' and s.finished and s.id not in _plugins_info_sent
@@ -444,7 +442,39 @@ class PanopticServer:
 
             loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_emit()))
 
+        def flush() -> None:
+            """Runs on the event loop at the end of a throttled interval."""
+            _flush_scheduled[0] = False
+            project = server._panoptic.get_project(id_)
+            if project is not None:
+                send(project.task_manager.get_states())
+
+        def on_update(states: list[TaskState]) -> None:
+            elapsed = _time.monotonic() - _last[0]
+            terminal = not any(s.running for s in states)
+            if terminal or elapsed >= _INTERVAL:
+                send(states)
+                return
+            if not _flush_scheduled[0]:
+                _flush_scheduled[0] = True
+                delay = _INTERVAL - elapsed
+                loop.call_soon_threadsafe(lambda: loop.call_later(delay, flush))
+
         return on_update
+
+    def _make_plugins_callback(self, id_: str):
+        """Return a sync callable that tells the project's clients to refetch plugins and actions."""
+        loop = self._loop
+        sio  = self._sio
+
+        def on_plugins_changed() -> None:
+            async def _emit() -> None:
+                sids = self._get_project_sids(id_)
+                if sids:
+                    await sio.emit('plugins_info', {'project_id': id_}, to=sids)
+            loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_emit()))
+
+        return on_plugins_changed
 
     def _make_commit_callback(self, id_: str):
         """Return a sync callable that bridges commit events into the event loop.

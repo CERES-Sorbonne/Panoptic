@@ -79,11 +79,10 @@ class PluginWatcher:
     async def _reload(self, key: PluginKey) -> None:
         print(f'[PluginWatcher] reloading {key.id!r} ...')
         try:
+            # Unload first so the old instance's actions, callbacks and tasks are gone
+            await asyncio.to_thread(self._project.unload_plugin, key.id)
             _clear_module_cache(key)
-            self._project.plugins = [p for p in self._project.plugins if p.name != key.id]
-
-            from panoptic.core.plugin.load_plugin_task import LoadPluginTask
-            self._project.add_task(LoadPluginTask(self._project, [key]))
+            self._project.load_plugin(key.id)
             print(f'[PluginWatcher] reload task queued for {key.id!r}')
         except Exception as e:
             print(f'[PluginWatcher] reload ERROR for {key.id!r}: {e}')

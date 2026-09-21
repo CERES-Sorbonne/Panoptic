@@ -39,6 +39,16 @@ class APlugin(ABC):
     def _start(self) -> None:
         """Override in subclass for plugin-specific initialisation."""
 
+    def stop(self) -> None:
+        """Called when the plugin is stopped or the project closes.
+
+        By then its tasks were asked to stop, and its actions and event callbacks were removed.
+        """
+        self._stop()
+
+    def _stop(self) -> None:
+        """Override in subclass to release resources: threads, models, open files."""
+
     # ------------------------------------------------------------------
     # Params
     # ------------------------------------------------------------------

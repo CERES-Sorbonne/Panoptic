@@ -91,10 +91,11 @@ def build_function_description(plugin_name: str, fn: Callable, hooks: list[str] 
 # ---------------------------------------------------------------------------
 
 class Action:
-    def __init__(self, fn: Callable, description: FunctionDescription):
+    def __init__(self, fn: Callable, description: FunctionDescription, owner: str | None = None):
         self.id = description.id
         self._fn = fn
         self.description = description
+        self.owner = owner  # plugin that registered the action
 
     def call(self, ctx: ActionContext) -> ActionResult:
         sig = inspect.signature(self._fn)
@@ -122,13 +123,17 @@ class ActionRegistry:
     def __init__(self):
         self.actions: dict[str, Action] = {}
 
-    def add(self, fn: Callable, description: FunctionDescription) -> None:
-        self.actions[description.id] = Action(fn, description)
+    def add(self, fn: Callable, description: FunctionDescription, owner: str | None = None) -> None:
+        self.actions[description.id] = Action(fn, description, owner)
 
     def easy_add(self, plugin_name: str, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
         desc = build_function_description(plugin_name, fn, hooks)
-        self.add(fn, desc)
+        self.add(fn, desc, owner=plugin_name)
         return desc
+
+    def remove_owner(self, owner: str) -> None:
+        """Remove every action registered by the plugin `owner`."""
+        self.actions = {i: a for i, a in self.actions.items() if a.owner != owner}
 
     def call(self, function_id: str, ctx: ActionContext) -> ActionResult:
         if function_id not in self.actions:

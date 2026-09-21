@@ -32,6 +32,9 @@ class LoadPluginTask(Task):
         for key in self._plugin_keys:
             if self._cancel_event.is_set():
                 break
+            if self._project.is_plugin_loaded(key.id):
+                self.state.done += 1
+                continue
             self.set_step('Loading plugin', detail=key.id)
             try:
                 module = _import_plugin(key)
@@ -45,7 +48,11 @@ class LoadPluginTask(Task):
                 self._project.add_plugin(plugin)
                 self.state.done += 1
                 logger.info(f'Loaded plugin {key.id!r}')
-            except Exception:
+            except BaseException as e:
+                # Drop whatever the plugin registered before it failed or was interrupted
+                self._project.unload_plugin(key.id)
+                if not isinstance(e, Exception):
+                    raise
                 logger.exception(f'Failed to load plugin {key.id!r}')
             self._notify()
 

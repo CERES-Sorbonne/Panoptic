@@ -240,18 +240,20 @@ class PluginProjectInterface:
     def register_action(self, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
         """Build a FunctionDescription and register fn in the project's ActionRegistry."""
         desc = build_function_description(self._name, fn, hooks)
-        self._actions.add(fn, desc)
+        self._actions.add(fn, desc, owner=self._name)
         return desc
 
     def register_action_with_desc(self, fn: Callable, description: FunctionDescription) -> None:
         """Register fn with an explicit FunctionDescription."""
-        self._actions.add(fn, description)
+        self._actions.add(fn, description, owner=self._name)
 
     # ------------------------------------------------------------------
     # Tasks
     # ------------------------------------------------------------------
 
     def add_task(self, task: Task, high_priority: bool = False) -> Task:
+        """Queue a task. It is stopped when the plugin is stopped."""
+        task.owner = self._name
         return self._tasks.add_task(task, high_priority=high_priority)
 
     # ------------------------------------------------------------------

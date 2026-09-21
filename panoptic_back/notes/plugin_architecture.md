@@ -45,6 +45,10 @@ Lifecycle:
 1. `__init__` — register actions with `add_action_easy` / `add_action`
 2. `start()` — loads params from DB, loads vector types, calls `_start()`
 3. `_start()` — plugin-specific init (download models, warmup, etc.)
+4. `stop()` → `_stop()` — called when the plugin is stopped from the UI, hot-reloaded, or the
+   project closes. Its tasks were already asked to stop and its actions and event callbacks
+   removed; `_stop()` releases what is left (threads, models). A stopped plugin stays enabled
+   and starts again with the project.
 
 ### Action registration
 

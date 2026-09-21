@@ -129,8 +129,13 @@ writing a new commit clears the author's redo stack. See `notes/versioning_multi
 |--------|------|---------|
 | GET | `/actions` | Available plugin actions and their parameters |
 | POST | `/action_execute` | Execute an action with a context |
-| GET | `/plugins_info` | Plugin descriptions for this project |
+| GET | `/plugins_info` | Plugin descriptions for this project, stopped ones with `running: false` |
 | POST | `/plugin_params` | Set plugin parameters |
+| POST | `/plugin/stop` | Stop a plugin `{name}`: its tasks, actions and callbacks |
+| POST | `/plugin/start` | Queue the load of a stopped plugin `{name}` |
+| POST | `/task/stop` | Stop a queued or running task `{id}` |
+| POST | `/task/dismiss` | Remove a finished task `{id}` from the list |
+| POST | `/tasks/dismiss_finished` | Remove every finished task |
 | GET | `/vector_types` | Vector types |
 | GET | `/vectors_info` | Vector metadata |
 | GET | `/vector_stats` | Vector statistics |

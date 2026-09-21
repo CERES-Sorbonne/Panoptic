@@ -88,7 +88,8 @@ Tears down in reverse order: marks `is_loaded = False`, closes the DB connection
 Plugins are passed in as `List[PluginKey]` at construction time. They are loaded asynchronously via `LoadPluginTask`. Once loaded, a plugin can:
 
 - Register **actions** via `ProjectActions.easy_add()` — each action gets a `FunctionDescription` built by inspecting the function signature and its docstring (`@param_name:` annotations become UI labels).
-- Be hot-reloaded by `PluginWatcher` when `PANOPTIC_WATCH_PLUGINS=1` is set. The watcher clears Python's module cache and re-enqueues a `LoadPluginTask`.
+- Be stopped and started at runtime: `Project.unload_plugin(name)` stops the tasks it queued (`task.owner`), removes its actions and event callbacks, and calls `APlugin.stop()`; `Project.load_plugin(name)` queues a `LoadPluginTask` for it. Routes: `POST /plugin/stop`, `POST /plugin/start`.
+- Be hot-reloaded by `PluginWatcher` when `PANOPTIC_WATCH_PLUGINS=1` is set: unload, clear Python's module cache, load.
 
 Loaded plugin instances are stored in `self.plugins: List[APlugin]`. `delete_vector_type` iterates over all plugins to call `load_vector_types()`, showing that plugins are notified of certain DB-level events.
 
@@ -113,4 +114,3 @@ Task progress is also routed through `on.sync.emitTasks()` via the `_emit_tasks`
 - **Module-level executor.** The `ThreadPoolExecutor` is created per-`Project` instance but registered globally with `atexit`. If multiple projects are opened and closed, old executors remain registered until process exit.
 - **`sha1_to_files` is in-memory only.** It is populated at start and updated during imports, but there is no explicit invalidation path if files are deleted outside Panoptic. It could drift from the DB.
 - **Atlas generation is fire-and-forget.** The `GenerateAtlasTask` is enqueued unconditionally on every `start()` if atlas `0` is missing, with no lock to prevent concurrent generation if `start()` is called twice.
-- **`PluginWatcher` hot-reload is broken.** `_reload_plugin` references `self._project.task_queue` which no longer exists (replaced by `task_manager`). Hot-reload would crash if triggered.

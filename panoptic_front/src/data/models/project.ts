@@ -63,6 +63,10 @@ export interface TaskState {
     remain: number
     running: boolean
     finished: boolean
+    // A stop was requested. While `running` is still true the task is stopping.
+    cancelled: boolean
+    // Plugin that queued the task, null for core tasks
+    owner?: string | null
     step?: string | null
     detail?: string | null
     workers?: number | null

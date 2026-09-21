@@ -163,7 +163,12 @@ class Panoptic:
             name=name if name is not None else key.name,
             excluded_plugins=excluded_plugins if excluded_plugins is not None else key.excluded_plugins,
         )
-        return self.db.update_project(updated)
+        result = self.db.update_project(updated)
+        project = self.get_project(id_)
+        if project is not None and excluded_plugins is not None:
+            # Apply to the open project too: stop newly excluded plugins, load re-included ones
+            project.set_plugin_keys([p for p in self.db.get_plugins() if p.id not in excluded_plugins])
+        return result
 
     # ------------------------------------------------------------------
     # User management

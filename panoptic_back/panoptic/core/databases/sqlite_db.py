@@ -145,10 +145,12 @@ class SQLiteWriter:
             cursor.execute("BEGIN IMMEDIATE")
             yield cursor
             self.conn.commit()
-        except Exception as e:
+        except BaseException as e:
+            # BaseException: a stopped task is interrupted with TaskCancelled, which
+            # must still release the write lock.
             self.conn.rollback()
-            logging.error(f"Transaction rolled back: {e}")
-            raise e
+            logging.error(f"Transaction rolled back: {e!r}")
+            raise
         finally:
             cursor.close()
 
