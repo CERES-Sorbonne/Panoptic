@@ -3,6 +3,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+PYTHON_VERSION = "3.13"
+
+# Forcer l'UTF-8 pour tous les sous-processus Python : sinon la console Windows
+# (cp1252) plante en encodant des caractères comme "✓" affichés par panoptic.
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
 def run_command(command, check=False, capture_output=False, shell=True):
     result = subprocess.run(command, shell=shell, text=True, capture_output=capture_output)
     if check and result.returncode != 0:
@@ -29,22 +36,27 @@ panoptic_dir = home_dir / "panoptic"
 panoptic_dir.mkdir(exist_ok=True)
 os.chdir(panoptic_dir)
 
-# Créer l'environnement virtuel avec Python 3.12 s'il n'existe pas
+# Créer l'environnement virtuel avec la version de Python configurée s'il n'existe pas
 if not (panoptic_dir / ".venv").exists():
-    run_command("uv venv --python 3.12")
+    run_command(f"uv venv --python {PYTHON_VERSION}")
 
 # Installer la dernière version de pip
 run_command("uv pip install pip")
 
 # Vérifier si panoptic est installé, sinon l'installer
 if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
-    run_command("uv pip install panoptic")
+    # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
+    run_command(f'uv pip install "{os.environ.get("PANOPTIC_PACKAGE", "panoptic")}"')
     with_cuda = input(
         "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme : (o/n) : ").strip().lower()
     if with_cuda == 'o':
         run_command("uv pip install torch torchvision --torch-backend=auto")
     print("Installation du plugin de similarité panopticml")
     run_command("uv run panoptic plugins add vision")
+    with_clip = input("Voulez-vous télécharger le modèle CLIP maintenant ? (o/n) : ").strip().lower()
+    if with_clip == 'o':
+        print("Téléchargement du modèle CLIP (openai/clip-vit-base-patch32)...")
+        run_command("uvx --from huggingface_hub hf download openai/clip-vit-base-patch32")
 
 # Vérifier si panoptic est obsolète
 outdated = run_command("uv pip list --outdated", capture_output=True).stdout
@@ -56,7 +68,11 @@ else:
     print("La dernière version de panoptic est déjà installée.")
 
 
-run_command("uv run panoptic")
+# En CI/test (PANOPTIC_INSTALL_TEST=1), on vérifie l'installation sans démarrer le serveur.
+if os.environ.get("PANOPTIC_INSTALL_TEST") == "1":
+    run_command("uv run panoptic --dry")
+else:
+    run_command("uv run panoptic")
 
 # Activer l'environnement virtuel et lancer panoptic
 # venv_activate = panoptic_dir / ".venv" / "Scripts" / "activate"

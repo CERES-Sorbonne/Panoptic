@@ -60,7 +60,7 @@ fi
 if [ -z "$INSTALL_DIR" ]; then
     echo "--- Premiere installation ---"
     read -p "Nom ou chemin du dossier d'installation (par defaut: $HOME/panoptic) : " USER_INPUT
-    
+
     if [ -z "$USER_INPUT" ]; then
         INSTALL_DIR="$HOME/panoptic"
     elif [[ "$USER_INPUT" = /* ]]; then
@@ -68,7 +68,7 @@ if [ -z "$INSTALL_DIR" ]; then
     else
         INSTALL_DIR="$HOME/$USER_INPUT"
     fi
-    
+
     mkdir -p "$INSTALL_DIR"
     save_path "$INSTALL_DIR"
     echo "Chemin sauvegarde dans $CONFIG_FILE"
@@ -90,9 +90,10 @@ uv pip install -U pip
 # --- INSTALLATION / MISE A JOUR PANOPTIC ---
 if ! uv pip show panoptic &> /dev/null; then
     echo "Installation de Panoptic..."
-    uv pip install panoptic
+    # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
+    uv pip install "${PANOPTIC_PACKAGE:-panoptic}"
     uv run .venv/bin/panoptic plugins add vision
-    
+
     # --- OPTION TELECHARGEMENT MODELE ---
     echo "-------------------------------------------------------"
     read -p "Voulez-vous telecharger le modele CLIP (openai/clip-vit-base-patch32) maintenant ? (y/n) : " DOWNLOAD_CLIP
@@ -108,4 +109,9 @@ fi
 
 # --- LANCEMENT ---
 echo "Lancement de Panoptic..."
-uv run .venv/bin/panoptic
+# En CI/test (PANOPTIC_INSTALL_TEST=1), on vérifie l'installation sans démarrer le serveur.
+if [ "$PANOPTIC_INSTALL_TEST" = "1" ]; then
+    uv run .venv/bin/panoptic --dry
+else
+    uv run .venv/bin/panoptic
+fi
