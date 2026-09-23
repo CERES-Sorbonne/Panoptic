@@ -1,5 +1,8 @@
 import sys
 
+from panoptic.macos_openmp import ensure_single_openmp
+ensure_single_openmp()
+
 import click
 
 from panoptic.core.panoptic.panoptic import Panoptic

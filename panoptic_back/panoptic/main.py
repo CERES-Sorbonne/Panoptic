@@ -1,6 +1,10 @@
 """Panoptic entry point — FastAPI + Socket.IO backed by Panoptic."""
 from __future__ import annotations
 
+if __name__ == '__main__':
+    from panoptic.macos_openmp import ensure_single_openmp
+    ensure_single_openmp()
+
 import os
 import traceback
 import webbrowser
