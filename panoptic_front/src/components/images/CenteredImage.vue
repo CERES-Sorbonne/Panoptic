@@ -35,22 +35,50 @@ const sha1 = computed(() => instanceStore.instanceData[props.instanceId]?.sha1 a
 const imageWidth  = computed(() => instanceStore.instanceData[props.instanceId]?.width  as number | undefined)
 const imageHeight = computed(() => instanceStore.instanceData[props.instanceId]?.height as number | undefined)
 
-function buildUrl(s: string): string {
+// Size asked from the server, rounded up to a power of two. The server only stores a few
+// sizes (128/256/1024...), so this picks the same one, and gives an image the same URL in
+// cells a pixel apart (browser cache hits).
+const requestSize = computed(() => {
+    const px = Math.max(props.width || 0, props.height || 0, 128)
+    return 2 ** Math.ceil(Math.log2(px))
+})
+
+function buildUrl(s: string, size: number): string {
     const projectId = panoptic.connectionState?.connectedProject
-    const size      = Math.ceil(Math.max(props.width, props.height))
     return `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${s}?size=${size}`
 }
 
-watch(sha1, (s) => {
-    if (loadTimer) clearTimeout(loadTimer)
+// The image shown (or loading) and the size it was asked at.
+let shownSha1: string | undefined
+let shownSize = 0
+
+watch([sha1, requestSize], ([s, size]) => {
     if (!s) {
         // No image for this instance → clear.
+        if (loadTimer) clearTimeout(loadTimer)
         activeUrl.value = ''
         loadedUrl.value = null
+        shownSha1 = undefined
+        shownSize = 0
         return
     }
-    const url = buildUrl(s)
-    if (url === loadedUrl.value) return            // same image already shown → no-op, no flicker
+    if (s === shownSha1) {
+        // Same image in a box that changed size. A smaller box keeps what it has; a
+        // bigger one loads the sharper version behind the current image (the hidden
+        // <img>), which stays visible until onLoad swaps it.
+        if (size <= shownSize) return
+        shownSize = size
+        if (loadTimer) clearTimeout(loadTimer)
+        loadTimer = null
+        const url = buildUrl(s, size)
+        activeUrl.value = url
+        if (loadedUrlCache.has(url)) loadedUrl.value = url
+        return
+    }
+    if (loadTimer) clearTimeout(loadTimer)
+    shownSha1 = s
+    shownSize = size
+    const url = buildUrl(s, size)
     if (loadedUrlCache.has(url)) {
         // Loaded before (in browser cache) → show instantly, no white frame. This is what
         // keeps an UNCHANGED image from flickering when the cell remounts/recycles.

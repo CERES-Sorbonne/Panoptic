@@ -1277,9 +1277,18 @@ def compact_route(req: _IdRequest, project: Project = Depends(_dep)):
 
 @project_router.get('/image/by_size/{sha1:path}')
 async def get_image_by_size(sha1: str, size: int | None = None, project: Project = Depends(_dep)):
-    """Serve a stored thumbnail. size=N picks the best fit; omit for the largest available."""
-    data = project.get_best_image_bytes(sha1, size)
+    """Serve a stored thumbnail. size=N picks the best fit; omit for the largest available.
+
+    When no stored thumbnail is N big, the original file is served instead if it is
+    local and a browser can show it, so large views are not an upscaled thumbnail.
+    """
+    data, covers = project.get_image_for_size(sha1, size)
+    if data and covers:
+        return Response(data, media_type='image/jpeg')
     if data:
+        path = project.get_local_original_path(sha1)
+        if path:
+            return FileResponse(path)
         return Response(data, media_type='image/jpeg')
     return await get_image_raw(sha1, project)
 

@@ -178,10 +178,10 @@ watch(() => props.property, () => {
                     <span class="prop-act" :class="{ active: isInGroups }" @click="setGroup">
                         <wTT :click="false" message="main.menu.groupby"><i class="bi bi-collection"></i></wTT>
                     </span>
-                    <Dropdown @click.prevent.stop="" @show="menuOpen = true" @hide="menuOpen = false">
+                    <Dropdown :teleport="true" placement="bottom-end" @click.prevent.stop="" @show="menuOpen = true" @hide="menuOpen = false">
                         <template #button><span class="prop-act"><i class="bi bi-three-dots"></i></span></template>
                         <template #popup="{ hide }">
-                            <div class="p-1">
+                            <div class="p-1 text-nowrap">
                                 <div v-if="props.property.id >= 0" class="bb" @click="startRename(); hide();">
                                     {{ $t('main.menu.editName') }}
                                 </div>

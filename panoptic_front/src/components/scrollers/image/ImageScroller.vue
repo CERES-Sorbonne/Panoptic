@@ -16,6 +16,7 @@ import { Property, PropertyMode, ModalId, Instance } from '@/data/models';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
+import { keyState } from '@/data/composables/keyState';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
@@ -230,9 +231,22 @@ function isSelectedId(id: number): boolean {
     columnStore.selectionTick(selectNs.value) // reactive dep on this namespace's selection
     return idsFor(id).every(i => columnStore.isSelectedId(i, selectNs.value))
 }
+// Last toggled cell: with shift held, the next toggle applies to the whole range
+// between it and the clicked cell (in list order).
+let anchorId: number | null = null
 function toggleSelect(id: number, v: boolean) {
-    if (v) columnStore.selectIds(idsFor(id), selectNs.value)
-    else columnStore.deselectIds(idsFor(id), selectNs.value)
+    let ids = idsFor(id)
+    if (keyState.shift && anchorId !== null) {
+        const insts = props.instances ?? []
+        const a = insts.findIndex(i => i.id === anchorId)
+        const b = insts.findIndex(i => i.id === id)
+        if (a !== -1 && b !== -1) {
+            ids = insts.slice(Math.min(a, b), Math.max(a, b) + 1).flatMap(i => idsFor(i.id))
+        }
+    }
+    anchorId = id
+    if (v) columnStore.selectIds(ids, selectNs.value)
+    else columnStore.deselectIds(ids, selectNs.value)
 }
 
 // ── Drag-and-drop ─────────────────────────────────────────────────────────────────────

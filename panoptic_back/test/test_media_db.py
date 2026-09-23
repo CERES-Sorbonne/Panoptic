@@ -1,6 +1,9 @@
+import asyncio
+import io
 from pathlib import Path
 
 import numpy as np
+from PIL import Image as PilImage
 
 from panoptic.core.databases.media.media_db import MediaDB
 from panoptic.core.databases.media.models import ImageType, Image, VectorType, Vector, ImageAtlas, Map
@@ -204,3 +207,120 @@ def test_upsert_map_updates_existing():
     assert len(result) == 1
     assert result[0].name == 'New'
     assert result[0].count == 20
+
+
+# ------------------------------------------------------------------
+# Picking a rendition for a size (/image/by_size)
+# ------------------------------------------------------------------
+
+def _jpeg(w: int, h: int) -> bytes:
+    buf = io.BytesIO()
+    PilImage.new('RGB', (w, h), 'red').save(buf, 'JPEG')
+    return buf.getvalue()
+
+
+def _project_with_types(folder: Path, types: list[ImageType], images: list[Image]) -> Project:
+    """A started project whose image types and images are exactly the given ones."""
+    project = Project(folder)
+    project.start()
+    project.close()
+    db = MediaDB(str(folder / 'media.db'), datastore_desc)
+    db.start()
+    for t in db.get_image_types():
+        db.delete_image_type(t.id)
+    for t in types:
+        db.upsert_image_type(t)
+    db.upsert_images(images)
+    db.close()
+    project = Project(folder)
+    project.start()
+    return project
+
+
+# A 0.x project migrated without recorded sizes: small/medium have no width and height.
+LEGACY_TYPES = [
+    ImageType(id=1, name='small',  format='jpeg', width=None, height=None),
+    ImageType(id=2, name='medium', format='jpeg', width=None, height=None),
+]
+LEGACY_IMAGES = [
+    Image(type_id=1, sha1='a', data=_jpeg(128, 96)),
+    Image(type_id=1, sha1='b', data=_jpeg(96, 128)),
+    Image(type_id=1, sha1='c', data=_jpeg(50, 40)),     # original smaller than the thumbnail
+    Image(type_id=2, sha1='a', data=_jpeg(256, 192)),
+    Image(type_id=2, sha1='b', data=_jpeg(192, 256)),
+    Image(type_id=2, sha1='c', data=_jpeg(4000, 3000)),  # stored while the type had no size
+]
+
+
+def test_legacy_types_without_size_get_it_from_their_images(tmp_path):
+    types = LEGACY_TYPES + [
+        ImageType(id=3, name='large', format='jpeg', width=None, height=None),  # no image
+        ImageType(id=4, name='full',  format='jpeg', width=None, height=None),  # full size on purpose
+    ]
+    project = _project_with_types(tmp_path / 'proj', types, LEGACY_IMAGES)
+    try:
+        sizes = {t.name: (t.width, t.height) for t in project.get_image_types()}
+    finally:
+        project.close()
+    assert sizes == {'small': (128, 128), 'medium': (256, 256),
+                     'large': (1024, 1024), 'full': (None, None)}
+
+
+def test_legacy_types_pick_the_fitting_size(tmp_path):
+    project = _project_with_types(tmp_path / 'proj', LEGACY_TYPES, LEGACY_IMAGES)
+    try:
+        small, medium = LEGACY_IMAGES[0].data, LEGACY_IMAGES[3].data
+        assert project.get_image_for_size('a', 100) == (small, True)
+        assert project.get_image_for_size('a', 200) == (medium, True)
+        assert project.get_image_for_size('a', 1500) == (medium, False)
+        assert project.get_image_for_size('a', None) == (medium, True)
+    finally:
+        project.close()
+
+
+def test_full_size_type_covers_any_size(tmp_path):
+    types = [ImageType(id=1, name='small', format='jpeg', width=256, height=256),
+             ImageType(id=2, name='full',  format='jpeg', width=None, height=None)]
+    images = [Image(type_id=1, sha1='a', data=_jpeg(256, 192)),
+              Image(type_id=2, sha1='a', data=_jpeg(2000, 1500))]
+    project = _project_with_types(tmp_path / 'proj', types, images)
+    try:
+        assert project.get_image_for_size('a', 200) == (images[0].data, True)
+        assert project.get_image_for_size('a', 1500) == (images[1].data, True)
+    finally:
+        project.close()
+
+
+def _by_size(project: Project, sha1: str, size: int | None):
+    from panoptic.routes.project_routes import get_image_by_size
+    return asyncio.run(get_image_by_size(sha1, size, project))
+
+
+def test_by_size_serves_the_original_when_no_thumbnail_is_big_enough(tmp_path, monkeypatch):
+    original = tmp_path / 'photo.jpg'
+    original.write_bytes(_jpeg(3000, 2000))
+    project = _project_with_types(tmp_path / 'proj', LEGACY_TYPES, LEGACY_IMAGES)
+    monkeypatch.setattr(project, 'resolve_image_ref',
+                        lambda sha1: {'kind': 'local', 'path': str(original)})
+    try:
+        assert _by_size(project, 'a', 200).body == LEGACY_IMAGES[3].data
+        assert Path(_by_size(project, 'a', 1500).path) == original
+        # no size = the largest thumbnail, as before
+        assert _by_size(project, 'a', None).body == LEGACY_IMAGES[3].data
+    finally:
+        project.close()
+
+
+def test_by_size_keeps_the_thumbnail_when_the_original_cannot_be_shown(tmp_path, monkeypatch):
+    original = tmp_path / 'scan.tif'
+    PilImage.new('RGB', (3000, 2000)).save(original, 'TIFF')
+    project = _project_with_types(tmp_path / 'proj', LEGACY_TYPES, LEGACY_IMAGES)
+    try:
+        monkeypatch.setattr(project, 'resolve_image_ref',
+                            lambda sha1: {'kind': 'local', 'path': str(original)})
+        assert _by_size(project, 'a', 1500).body == LEGACY_IMAGES[3].data
+        monkeypatch.setattr(project, 'resolve_image_ref',
+                            lambda sha1: {'kind': 'local', 'path': str(tmp_path / 'gone.jpg')})
+        assert _by_size(project, 'a', 1500).body == LEGACY_IMAGES[3].data
+    finally:
+        project.close()

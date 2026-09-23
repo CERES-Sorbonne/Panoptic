@@ -122,10 +122,10 @@ watch(props, updateLocalName)
                         </span>
 
                         <div class="group-actions">
-                            <Dropdown @click.prevent.stop="" v-if="props.node.groupId >= PropertyGroupId.DEFAULT">
+                            <Dropdown :teleport="true" placement="bottom-end" @click.prevent.stop="" v-if="props.node.groupId >= PropertyGroupId.DEFAULT">
                                 <template #button><i class="group-action bi bi-three-dots" /></template>
                                 <template #popup="{ hide }">
-                                    <div class="p-1">
+                                    <div class="p-1 text-nowrap">
                                         <template v-if="isEditable">
                                             <div class="bb" @click="editName = true; hide();">
                                                 {{ $t('main.menu.editName') }}

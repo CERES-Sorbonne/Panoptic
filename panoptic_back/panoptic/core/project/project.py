@@ -24,6 +24,14 @@ from panoptic.core.task.task_manager import TaskManager
 from panoptic.core.importer.importer import Importer
 from panoptic.core.exporter import Exporter
 
+logger = logging.getLogger(__name__)
+
+#: 0.x thumbnail sizes by name, used when a migrated type has no size and no stored image
+LEGACY_THUMBNAIL_SIZES = {'small': 128, 'medium': 256, 'large': 1024}
+
+#: original files a browser can display as they are (no TIFF)
+BROWSER_IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+
 
 class Project:
     def __init__(self, folder: Path, plugin_keys: list[PluginKey] = None, on_update: Callable = None):
@@ -104,6 +112,44 @@ class Project:
                 current = db.allocate('image_types', 0)  # peek without advancing
                 if current <= max_id:
                     db.allocate('image_types', max_id + 1 - current)
+            self._fill_legacy_image_type_sizes(existing)
+
+    def _fill_legacy_image_type_sizes(self, types: list[ImageType]):
+        """Give a size to the thumbnail types a 0.x migration left without one.
+
+        Legacy projects that did not record their thumbnail sizes are migrated with
+        `small`/`medium`/`large` types that have no width and no height. Without a
+        size, the image server cannot tell them apart (it always served `small`),
+        and new imports would store full-size images under these names. The size
+        is read from the stored thumbnails; the 0.x default is used when the type
+        has none. Types with other names are left alone: there, no size means
+        "full size" on purpose.
+        """
+        from collections import Counter
+        from io import BytesIO
+        from PIL import Image as PilImage
+
+        conn = self._media_read_conn()
+        for t in types:
+            if t.width or t.height or t.name not in LEGACY_THUMBNAIL_SIZES:
+                continue
+            # Every image bigger than the thumbnail size comes out at exactly that size,
+            # so the most common long side is the size. Taking the max instead would be
+            # thrown off by the odd full-size image stored while the type had no size.
+            sides = Counter()
+            rows = conn.execute(
+                "SELECT data FROM images WHERE type_id=? LIMIT 200", (t.id,)).fetchall()
+            for (data,) in rows:
+                try:
+                    with PilImage.open(BytesIO(data)) as img:  # reads the header only
+                        sides[max(img.size)] += 1
+                except Exception:
+                    continue
+            size = sides.most_common(1)[0][0] if sides else LEGACY_THUMBNAIL_SIZES[t.name]
+            self._media.upsert_image_type(ImageType(
+                id=t.id, name=t.name, format=t.format, width=size, height=size,
+                auto_gen=t.auto_gen))
+            logger.info('Image type %r had no size, set to %dpx', t.name, size)
 
     def _ensure_system_properties(self):
         existing = {p.system_key: p for p in self.get_properties() if p.system_key}
@@ -459,25 +505,47 @@ class Project:
         size=None → largest stored type.
         size=N   → smallest type whose max dimension >= N; falls back to largest.
         """
-        types = self._image_types
-        if not types:
-            return None
-        sized = [(t.id, t.width or 0, t.height or 0) for t in types if t.width or t.height]
-        if not sized:
-            type_id = types[0].id
-        elif size is None:
-            type_id = max(sized, key=lambda t: max(t[1], t[2]))[0]
-        else:
-            candidates = [t for t in sized if max(t[1], t[2]) >= size]
-            type_id = (
-                min(candidates, key=lambda t: max(t[1], t[2]))[0]
-                if candidates else
-                max(sized, key=lambda t: max(t[1], t[2]))[0]
-            )
+        return self.get_image_for_size(sha1, size)[0]
+
+    def get_image_for_size(self, sha1: str, size: int | None) -> tuple[bytes | None, bool]:
+        """Like get_best_image_bytes, plus whether the chosen type is at least `size` big.
+
+        False means no stored type reaches `size`, so the largest one was used.
+        """
+        type_id, covers = self._pick_image_type(size)
+        if type_id is None:
+            return None, False
         row = self._media_read_conn().execute(
             "SELECT data FROM images WHERE type_id=? AND sha1=?", (type_id, sha1)
         ).fetchone()
-        return row[0] if row else None
+        return (row[0] if row else None), covers
+
+    def _pick_image_type(self, size: int | None) -> tuple[int | None, bool]:
+        """(type id, whether it reaches `size`). A type with no width and no height
+        is full size, so it reaches any size."""
+        types = self._image_types
+        if not types:
+            return None, False
+
+        def bound(t: ImageType) -> float:
+            return max(t.width or 0, t.height or 0) or float('inf')
+
+        if size is None:
+            return max(types, key=bound).id, True
+        candidates = [t for t in types if bound(t) >= size]
+        if candidates:
+            return min(candidates, key=bound).id, True
+        return max(types, key=bound).id, False
+
+    def get_local_original_path(self, sha1: str) -> str | None:
+        """Path of the original file when it is local, exists and a browser can show it."""
+        ref = self.resolve_image_ref(sha1)
+        if not ref or ref['kind'] != 'local':
+            return None
+        path = Path(ref['path'])
+        if path.suffix.lower() not in BROWSER_IMAGE_EXTENSIONS or not path.exists():
+            return None
+        return str(path)
 
     def get_image_keys(self, sha1s: List[str]) -> set:
         return self._media.get_image_keys(sha1s)

@@ -68,6 +68,8 @@ function emitQuery() {
         }
         const ctx = actions.getContext(mode.value)
         ctx.uiInputs['text'] = searchText.value
+        // The search box keeps every scored image: no similarity threshold.
+        if ('min_similarity' in ctx.uiInputs) ctx.uiInputs['min_similarity'] = 0
         newQuery.ctx = ctx
     }
 
