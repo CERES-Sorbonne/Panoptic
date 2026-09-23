@@ -11,30 +11,12 @@ save_path() {
     echo "$1" > "$CONFIG_FILE"
 }
 
-# --- PRE-REQUIS : XCODE & LIBOMP ---
-if ! xcode-select -p &> /dev/null; then
-    echo "Installation des outils de developpement Xcode requis..."
-    xcode-select --install
-    read -p "Appuyez sur Entree une fois l'installation des outils Xcode terminee..."
-fi
-
-LIBOMP_ERROR=false
-if [ -f "/opt/homebrew/opt/libomp/lib/libomp.dylib" ]; then
-    echo "libomp est deja installe"
-    export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"
-else
-    if ! command -v brew &> /dev/null; then
-        echo "Homebrew n'est pas installe. Impossible d'installer libomp."
-        LIBOMP_ERROR=true
-    else
-        echo "Tentative d'installation de libomp via Homebrew..."
-        if brew install libomp 2>/dev/null; then
-            export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"
-            [[ ! $(grep "DYLD_LIBRARY_PATH.*libomp" ~/.zshrc) ]] && echo 'export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"' >> ~/.zshrc
-        else
-            LIBOMP_ERROR=true
-        fi
-    fi
+# --- NETTOYAGE DES ANCIENNES INSTALLATIONS ---
+# Les versions precedentes de ce script ajoutaient le libomp de Homebrew a
+# DYLD_LIBRARY_PATH dans ~/.zshrc. Ce n'est plus necessaire (panopticml charge torch
+# avant faiss) et ca remplacerait le libomp embarque par torch : on retire la ligne.
+if [ -f ~/.zshrc ] && grep -q 'DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib' ~/.zshrc; then
+    sed -i '' '/DYLD_LIBRARY_PATH="\/opt\/homebrew\/opt\/libomp\/lib/d' ~/.zshrc
 fi
 
 # --- INSTALLATION DE UV ---
@@ -75,14 +57,14 @@ if [ -z "$INSTALL_DIR" ]; then
 fi
 
 # --- GESTION DE L'ENVIRONNEMENT PYTHON ---
-PYTHON_VERSION=$([ "$LIBOMP_ERROR" = true ] && echo "3.11" || echo "3.13")
+PYTHON_VERSION="3.13"
 
+# Recree aussi les anciens venv Python 3.11 (torch 2.1, trop vieux pour panopticml)
 if [ ! -d ".venv" ] || [ "$(.venv/bin/python --version 2>&1 | grep -oE "[0-9]+\.[0-9]+")" != "$PYTHON_VERSION" ]; then
     echo "Configuration de l'environnement Python $PYTHON_VERSION..."
     rm -rf .venv
     uv python install $PYTHON_VERSION
     uv venv --python $PYTHON_VERSION
-    [ "$PYTHON_VERSION" = "3.11" ] && uv pip install torch==2.1.0 numpy==1.25.2
 fi
 
 uv pip install -U pip
