@@ -112,7 +112,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
-          gh release create "$RELEASE_TAG" installers/* \
+          # artifacts keep their bundle subfolders (deb/, rpm/…): upload the files, not the folders
+          mapfile -t files < <(find installers -type f)
+          gh release create "$RELEASE_TAG" "${files[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
