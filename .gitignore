@@ -213,3 +213,8 @@ mini/
 
 # headless test suite build output
 panoptic_front/test/group/.build/
+
+# local tool/editor state
+.obsidian/
+.opencode/
+.panoptic2/
