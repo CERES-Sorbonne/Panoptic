@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import { computed, ref } from 'vue';
 
 

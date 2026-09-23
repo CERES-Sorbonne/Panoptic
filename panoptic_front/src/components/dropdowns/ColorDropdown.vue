@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Dropdown from './Dropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Colors } from '@/data/models';
 import ColorInput from '../property_inputs/ColorInput.vue';
 const data = useDataStore()

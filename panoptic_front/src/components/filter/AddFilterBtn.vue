@@ -3,7 +3,7 @@ import { FilterGroup, FilterManager } from '@/core/FilterManager';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { PropertyID } from '@/data/models';
-import { Dropdowns } from '@/data/dropdowns';
+import { Dropdowns } from '@/components/dropdowns/registry';
 
 const props = defineProps<{
     group: FilterGroup

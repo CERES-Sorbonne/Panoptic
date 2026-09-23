@@ -1,0 +1,808 @@
+import json
+from typing import Any, List
+
+from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
+from panoptic.core.databases.data.create import (
+    COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
+    INSTANCES_SCHEMA, PROPERTIES_SCHEMA, PROPERTY_GROUPS_SCHEMA, TAGS_SCHEMA,
+    INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
+    INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
+)
+from panoptic.core.databases.sqlite_reader import SQLiteReader
+from panoptic.core.databases.data.models import (
+    Commit, FileSource, Folder, File, Instance,
+    Property, PropertyGroup, Tag, InstanceValue, Sha1Value, FileValue,
+    InstanceTagValue, Sha1TagValue,
+)
+from panoptic.models.models import PropertyType
+from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE, OP_DELETE
+
+_TAG_DTYPES = {PropertyType.tag.value, PropertyType.multi_tags.value}
+
+
+class DataReader(SQLiteReader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_max_commit_id(self) -> int:
+        result = self.conn.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()
+        return result[0] if result else 0
+
+    def get_next_sequence(self) -> int:
+        result = self.conn.execute("SELECT COALESCE(MAX(id), 0) FROM sequence").fetchone()
+        return result[0] if result else 0
+
+    def get_commits_since(self, last_commit_id: int) -> List[Commit]:
+        sql = f"SELECT * FROM {COMMITS_SCHEMA.table} WHERE id > ? ORDER BY id ASC"
+        rows = self.conn.execute(sql, (last_commit_id,)).fetchall()
+        return [COMMITS_SCHEMA._decode_row(r) for r in rows]
+
+    def get_commits(self, offset: int = None, limit: int = None, group_id: int = None) -> List[Commit]:
+        # id > 0 hides the synthetic genesis/compaction baseline commit from undo history.
+        sql = f"SELECT * FROM {COMMITS_SCHEMA.table} WHERE id > 0"
+        params = []
+
+        if group_id is not None:
+            sql += " AND group_id = ?"
+            params.append(group_id)
+
+        sql += " ORDER BY id DESC"
+        if limit is not None:
+            sql += f" LIMIT {limit}"
+        if offset is not None:
+            sql += f" OFFSET {offset}"
+
+        rows = self.conn.execute(sql, params).fetchall()
+        return [COMMITS_SCHEMA._decode_row(r) for r in rows]
+
+    def get_commit_by_id(self, commit_id: int) -> Commit:
+        return COMMITS_SCHEMA.get(self.conn, id=commit_id)[0]
+
+    def get_undo_redo(self, author: str = None,
+                      all_authors: bool = False) -> tuple[List[Commit], List[Commit]]:
+        """The (undo, redo) stacks, ascending by commit id.
+
+        Undo holds the enabled commits, redo the ones still on the redo stack (disabled, not
+        superseded by a later edit — see Commit.redoable). A discarded commit is on neither:
+        it can no longer be reached from either end of the history.
+
+        ``all_authors`` keeps everyone's commits for a project-wide, display-only history;
+        the default keeps ``author``'s alone, which is what undo/redo may actually touch.
+        """
+        commits = sorted(self.get_commits(), key=lambda c: c.id)
+        if not all_authors:
+            commits = [c for c in commits if c.author == author]
+        return ([c for c in commits if c.active],
+                [c for c in commits if not c.active and c.redoable])
+
+    def get_commit_stats(self, commit_ids: List[int]) -> dict:
+        """Per-commit edit counts for the undo/redo history panel.
+
+        Returns ``{commit_id: {'tags': n, 'values': m}}`` where ``tags`` counts tag
+        assignments on images (instance/sha1 tag values) and ``values`` counts property
+        value edits. Commits with no matching rows are returned with zero counts.
+        """
+        stats = {cid: {'tags': 0, 'values': 0} for cid in commit_ids}
+        if not commit_ids:
+            return stats
+        placeholders = ','.join('?' * len(commit_ids))
+        rows = self.conn.execute(
+            f"SELECT commit_id, entity_type, COUNT(*) FROM entity_log"
+            f" WHERE commit_id IN ({placeholders}) GROUP BY commit_id, entity_type",
+            commit_ids,
+        ).fetchall()
+        for commit_id, entity_type, count in rows:
+            if commit_id not in stats:
+                continue
+            if entity_type in ('instance_tag_value', 'sha1_tag_value'):
+                stats[commit_id]['tags'] += count
+            elif entity_type in ('instance_value', 'sha1_value', 'file_value'):
+                stats[commit_id]['values'] += count
+        return stats
+
+    def get_file_sources(self, **filters) -> List[FileSource]:
+        return FILE_SOURCES_SCHEMA.get(self.conn, **filters)
+
+    def get_folders(self, **filters) -> List[Folder]:
+        return FOLDERS_SCHEMA.get(self.conn, **filters)
+
+    def get_files(self, **filters) -> List[File]:
+        return FILES_SCHEMA.get(self.conn, **filters)
+
+    def get_instances(self, **filters) -> List[Instance]:
+        return INSTANCES_SCHEMA.get(self.conn, **filters)
+
+    def get_properties(self, **filters) -> List[Property]:
+        return PROPERTIES_SCHEMA.get(self.conn, **filters)
+
+    def get_property_groups(self, **filters) -> List[PropertyGroup]:
+        return PROPERTY_GROUPS_SCHEMA.get(self.conn, **filters)
+
+    def get_tags(self, **filters) -> List[Tag]:
+        return TAGS_SCHEMA.get(self.conn, **filters)
+
+    def get_instance_values(self, **filters) -> List[InstanceValue]:
+        return INSTANCE_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_sha1_values(self, **filters) -> List[Sha1Value]:
+        return SHA1_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_file_values(self, **filters) -> List[FileValue]:
+        return FILE_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_instance_tag_values(self, **filters) -> List[InstanceTagValue]:
+        return INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_sha1_tag_values(self, **filters) -> List[Sha1TagValue]:
+        return SHA1_TAG_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def count_instance_values(self) -> int:
+        return self.conn.execute(f"SELECT COUNT(*) FROM {INSTANCE_VALUES_SCHEMA.table}").fetchone()[0]
+
+    def count_sha1_values(self) -> int:
+        return self.conn.execute(f"SELECT COUNT(*) FROM {SHA1_VALUES_SCHEMA.table}").fetchone()[0]
+
+    def count_file_values(self) -> int:
+        return self.conn.execute(f"SELECT COUNT(*) FROM {FILE_VALUES_SCHEMA.table}").fetchone()[0]
+
+    def count_column_values(self, prop_id: int) -> tuple[int, str]:
+        """Return (total_count, mode) for a column's value table.
+
+        Modes: 'id' = instance_values, 'sha1' = sha1_values,
+               'file' = file_values.  Tag properties return ('tag', ...).
+        """
+        from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
+
+        if prop_id in SYSTEM_PROPERTY_MAP:
+            n = self.conn.execute(f"SELECT COUNT(*) FROM {INSTANCES_SCHEMA.table}").fetchone()[0]
+            return n, 'id'
+
+        if self._is_tag_property(prop_id):
+            count = self.conn.execute(
+                f"SELECT COUNT(*) FROM {INSTANCE_TAG_VALUES_SCHEMA.table} WHERE property_id = ? AND operation = ?",
+                (prop_id, OP_CREATE),
+            ).fetchone()[0]
+            return count, 'tag'
+
+        n_id = self.conn.execute(
+            f"SELECT COUNT(*) FROM {INSTANCE_VALUES_SCHEMA.table} WHERE property_id = ?",
+            (prop_id,),
+        ).fetchone()[0]
+
+        if n_id > 0:
+            return n_id, 'id'
+
+        n_sha1 = self.conn.execute(
+            f"SELECT COUNT(*) FROM {SHA1_VALUES_SCHEMA.table} WHERE property_id = ?",
+            (prop_id,),
+        ).fetchone()[0]
+
+        if n_sha1 > 0:
+            return n_sha1, 'sha1'
+
+        n_file = self.conn.execute(
+            f"SELECT COUNT(*) FROM {FILE_VALUES_SCHEMA.table} WHERE property_id = ?",
+            (prop_id,),
+        ).fetchone()[0]
+
+        if n_file > 0:
+            return n_file, 'file'
+
+        return 0, 'id'
+
+    def iter_instance_values(self, batch_size: int):
+        cursor = self.conn.execute(f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table}")
+        while rows := cursor.fetchmany(batch_size):
+            yield [INSTANCE_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+    def iter_sha1_values(self, batch_size: int):
+        cursor = self.conn.execute(f"SELECT * FROM {SHA1_VALUES_SCHEMA.table}")
+        while rows := cursor.fetchmany(batch_size):
+            yield [SHA1_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+    def iter_file_values(self, batch_size: int):
+        cursor = self.conn.execute(f"SELECT * FROM {FILE_VALUES_SCHEMA.table}")
+        while rows := cursor.fetchmany(batch_size):
+            yield [FILE_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+    def iter_column_values(self, prop_id: int, mode: str, batch_size: int):
+        """Yield batches of column data for a single property.
+
+        Each batch is a dict with keys:
+            - 'ids': list[int] (instance IDs for all modes)
+            - 'values': list[str] (JSON-encoded values)
+
+        For tag properties, each value is a sparse array of tag IDs.
+        """
+        import json as _json
+
+        if mode == 'tag':
+            # Group by instance_id, yielding batches of tags
+            grouped: dict[int, list[int]] = {}
+            cursor = self.conn.execute(
+                f"SELECT instance_id, tag_id FROM {INSTANCE_TAG_VALUES_SCHEMA.table} WHERE property_id = ? AND operation = ?",
+                (prop_id, OP_CREATE),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                for instance_id, tag_id in rows:
+                    grouped.setdefault(instance_id, []).append(tag_id)
+            if grouped:
+                yield {
+                    'ids': list(grouped.keys()),
+                    'values': [_json.dumps(v) for v in grouped.values()],
+                }
+            return
+
+        if mode == 'id':
+            cursor = self.conn.execute(
+                f"SELECT instance_id, value FROM {INSTANCE_VALUES_SCHEMA.table} WHERE property_id = ?",
+                (prop_id,),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                yield {
+                    'ids': [r[0] for r in rows],
+                    # `value` is a JSON column read here by raw SQL (no schema decoder), so
+                    # it is already JSON text — re-encoding would double-encode it.
+                    'values': ['null' if r[1] is None else r[1] for r in rows],
+                }
+            return
+
+        if mode == 'sha1':
+            # Join with instances table to get instance IDs
+            cursor = self.conn.execute(
+                f"SELECT i.id, sv.value FROM {SHA1_VALUES_SCHEMA.table} sv "
+                f"JOIN {INSTANCES_SCHEMA.table} i ON i.sha1 = sv.sha1 "
+                f"WHERE sv.property_id = ?",
+                (prop_id,),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                yield {
+                    'ids': [r[0] for r in rows],
+                    # `value` is a JSON column read here by raw SQL (no schema decoder), so
+                    # it is already JSON text — re-encoding would double-encode it.
+                    'values': ['null' if r[1] is None else r[1] for r in rows],
+                }
+            return
+
+        if mode == 'file':
+            # Join with instances table to get instance IDs
+            cursor = self.conn.execute(
+                f"SELECT i.id, fv.value FROM {FILE_VALUES_SCHEMA.table} fv "
+                f"JOIN {INSTANCES_SCHEMA.table} i ON i.file_id = fv.file_id "
+                f"WHERE fv.property_id = ?",
+                (prop_id,),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                yield {
+                    'ids': [r[0] for r in rows],
+                    # `value` is a JSON column read here by raw SQL (no schema decoder), so
+                    # it is already JSON text — re-encoding would double-encode it.
+                    'values': ['null' if r[1] is None else r[1] for r in rows],
+                }
+            return
+
+    def iter_instance_base(self, batch_size: int):
+        """Yield batches of (ids, sha1s, file_ids) for all non-deleted instances.
+
+        All three lists in each batch share the same positional order so
+        sha1s[i] and file_ids[i] correspond to ids[i].
+        """
+        cursor = self.conn.execute(
+            f"SELECT id, sha1, file_id FROM {INSTANCES_SCHEMA.table}"
+        )
+        while rows := cursor.fetchmany(batch_size):
+            yield (
+                [r[0] for r in rows],
+                [r[1] for r in rows],
+                [r[2] for r in rows],
+            )
+
+    # ------------------------------------------------------------------
+    # Lazy column fetch (used by the ColumnStore endpoints)
+    # ------------------------------------------------------------------
+
+    def _is_tag_property(self, prop_id: int) -> bool:
+        props = PROPERTIES_SCHEMA.get(self.conn, id=prop_id)
+        return bool(props and props[0].dtype in _TAG_DTYPES)
+
+    def get_values_for_instances(
+        self,
+        instance_ids: list[int],
+        prop_id: int,
+        mode: str,
+        system_key: str | None,
+    ) -> dict[int, Any]:
+        """Return {instance_id: value} for the given property and instance subset."""
+        if not instance_ids:
+            return {}
+
+        if system_key:
+            return self._system_values_for_instances(instance_ids, system_key)
+
+        if mode == 'id':
+            if self._is_tag_property(prop_id):
+                return self._tag_values_for_instances(instance_ids, prop_id)
+            rows = INSTANCE_VALUES_SCHEMA.get(self.conn, property_id=prop_id, instance_id=instance_ids)
+            return {v.instance_id: v.value for v in rows}
+
+        if mode == 'sha1':
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'], id=instance_ids)
+            sha1_to_ids: dict[str, list[int]] = {}
+            for inst_id, sha1 in inst_rows:
+                if sha1:
+                    sha1_to_ids.setdefault(sha1, []).append(inst_id)
+            if not sha1_to_ids:
+                return {}
+            if self._is_tag_property(prop_id):
+                return self._sha1_tag_values_for_instances(sha1_to_ids, prop_id)
+            val_rows = SHA1_VALUES_SCHEMA.get(self.conn, property_id=prop_id, sha1=list(sha1_to_ids))
+            result: dict[int, Any] = {}
+            for v in val_rows:
+                for inst_id in sha1_to_ids[v.sha1]:
+                    result[inst_id] = v.value
+            return result
+
+        if mode == 'file':
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'], id=instance_ids)
+            file_to_ids: dict[int, list[int]] = {}
+            for inst_id, file_id in inst_rows:
+                if file_id is not None:
+                    file_to_ids.setdefault(file_id, []).append(inst_id)
+            if not file_to_ids:
+                return {}
+            val_rows = FILE_VALUES_SCHEMA.get(self.conn, property_id=prop_id, file_id=list(file_to_ids))
+            result: dict[int, Any] = {}
+            for v in val_rows:
+                for inst_id in file_to_ids[v.file_id]:
+                    result[inst_id] = v.value
+            return result
+
+        return {}
+
+    def _alive_tag_ids(self) -> set:
+        # Junction rows can reference a tag whose creation was undone (tombstoned): those refs
+        # are dangling and must be filtered out of served values, mirroring the alive_props
+        # referential filter in get_delta. The junction ops stay in the log and reappear on redo.
+        return {t.id for t in TAGS_SCHEMA.get(self.conn)}
+
+    def _tag_values_for_instances(self, instance_ids: list[int], prop_id: int) -> dict[int, Any]:
+        tag_rows = INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, instance_id=instance_ids, operation=OP_CREATE)
+        alive = self._alive_tag_ids()
+        result: dict[int, list[int]] = {}
+        for r in tag_rows:
+            if r.tag_id in alive:
+                result.setdefault(r.instance_id, []).append(r.tag_id)
+        return result
+
+    def _sha1_tag_values_for_instances(self, sha1_to_ids: dict[str, list[int]], prop_id: int) -> dict[int, Any]:
+        tag_rows = SHA1_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, sha1=list(sha1_to_ids), operation=OP_CREATE)
+        alive = self._alive_tag_ids()
+        sha1_to_tags: dict[str, list[int]] = {}
+        for r in tag_rows:
+            if r.tag_id in alive:
+                sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
+        result: dict[int, Any] = {}
+        for sha1, inst_ids in sha1_to_ids.items():
+            tags = sha1_to_tags.get(sha1)
+            if tags:
+                for inst_id in inst_ids:
+                    result[inst_id] = tags
+        return result
+
+    def get_full_column(
+        self,
+        prop_id: int,
+        mode: str,
+        system_key: str | None,
+    ) -> tuple[list[int], list[Any]]:
+        """Return (instance_ids, values) for all instances for the given property."""
+        if system_key:
+            return self._system_full_column(system_key)
+
+        if mode == 'id':
+            if self._is_tag_property(prop_id):
+                return self._full_tag_column_by_instance(prop_id)
+            rows = INSTANCE_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
+            return [v.instance_id for v in rows], [v.value for v in rows]
+
+        if mode == 'sha1':
+            if self._is_tag_property(prop_id):
+                return self._full_tag_column_by_sha1(prop_id)
+            val_rows = SHA1_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
+            sha1_to_val = {v.sha1: v.value for v in val_rows}
+            if not sha1_to_val:
+                return [], []
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'])
+            ids, values = [], []
+            for inst_id, sha1 in inst_rows:
+                if sha1 in sha1_to_val:
+                    ids.append(inst_id)
+                    values.append(sha1_to_val[sha1])
+            return ids, values
+
+        if mode == 'file':
+            val_rows = FILE_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
+            file_to_val = {v.file_id: v.value for v in val_rows}
+            if not file_to_val:
+                return [], []
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'])
+            ids, values = [], []
+            for inst_id, file_id in inst_rows:
+                if file_id in file_to_val:
+                    ids.append(inst_id)
+                    values.append(file_to_val[file_id])
+            return ids, values
+
+        return [], []
+
+    def _full_tag_column_by_instance(self, prop_id: int) -> tuple[list[int], list[Any]]:
+        tag_rows = INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, operation=OP_CREATE)
+        alive = self._alive_tag_ids()
+        grouped: dict[int, list[int]] = {}
+        for r in tag_rows:
+            if r.tag_id in alive:
+                grouped.setdefault(r.instance_id, []).append(r.tag_id)
+        return list(grouped.keys()), list(grouped.values())
+
+    def _full_tag_column_by_sha1(self, prop_id: int) -> tuple[list[int], list[Any]]:
+        tag_rows = SHA1_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, operation=OP_CREATE)
+        alive = self._alive_tag_ids()
+        sha1_to_tags: dict[str, list[int]] = {}
+        for r in tag_rows:
+            if r.tag_id in alive:
+                sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
+        if not sha1_to_tags:
+            return [], []
+        inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'])
+        ids, values = [], []
+        for inst_id, sha1 in inst_rows:
+            if sha1 in sha1_to_tags:
+                ids.append(inst_id)
+                values.append(sha1_to_tags[sha1])
+        return ids, values
+
+    def _system_values_for_instances(self, instance_ids: list[int], system_key: str) -> dict[int, Any]:
+        defn = SYSTEM_PROPERTY_MAP[system_key]
+        if defn.source == 'instance':
+            rows = INSTANCES_SCHEMA.select(self.conn, ['id', defn.col], id=instance_ids)
+            return {r[0]: r[1] for r in rows}
+        # file-sourced: resolve file_id first, then look up the column on files
+        inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'], id=instance_ids)
+        file_ids = [r[1] for r in inst_rows if r[1] is not None]
+        if not file_ids:
+            return {}
+        file_rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
+        file_to_val = {r[0]: r[1] for r in file_rows}
+        return {r[0]: file_to_val[r[1]] for r in inst_rows if r[1] in file_to_val}
+
+    def _system_full_column(self, system_key: str) -> tuple[list[int], list[Any]]:
+        defn = SYSTEM_PROPERTY_MAP[system_key]
+        if defn.source == 'instance':
+            rows = INSTANCES_SCHEMA.select(self.conn, ['id', defn.col])
+            return [r[0] for r in rows], [r[1] for r in rows]
+        # file-sourced
+        inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'])
+        file_ids = [r[1] for r in inst_rows if r[1] is not None]
+        if not file_ids:
+            return [r[0] for r in inst_rows], [None] * len(inst_rows)
+        file_rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
+        file_to_val = {r[0]: r[1] for r in file_rows}
+        ids = [r[0] for r in inst_rows]
+        values = [file_to_val.get(r[1]) for r in inst_rows]
+        return ids, values
+
+    def get_file_path_for_sha1(self, sha1: str) -> str | None:
+        """Return the local filesystem path for the first local file matching sha1.
+
+        Returns None for IIIF (remote) sources — use resolve_image_ref for those.
+        """
+        ref = self.resolve_image_ref(sha1)
+        return ref['path'] if ref and ref['kind'] == 'local' else None
+
+    def get_local_paths(self) -> dict[str, str]:
+        """{sha1: local filesystem path} for every sha1 backed by a local file.
+
+        Bulk counterpart to get_file_path_for_sha1: one query for the whole
+        project instead of one connection + query per sha1 (see
+        GenerateThumbnailsTask). IIIF sha1s are absent — they have no local file.
+        """
+        rows = self.conn.execute(
+            "SELECT f.sha1, fo.path, f.name"
+            " FROM files f"
+            " JOIN folders fo ON fo.id = f.folder_id"
+            " JOIN file_sources fs ON fs.id = fo.source_id"
+            " WHERE f.sha1 IS NOT NULL AND f.name IS NOT NULL"
+            "   AND fo.path IS NOT NULL AND fs.dtype != 'iiif'"
+        ).fetchall()
+        paths: dict[str, str] = {}
+        for sha1, path, name in rows:
+            # first file wins, like resolve_image_ref's LIMIT 1
+            paths.setdefault(sha1, f"{path}/{name}")
+        return paths
+
+    def resolve_image_ref(self, sha1: str) -> dict | None:
+        """Resolve a sha1 to a fetchable image reference, branching on the source type.
+
+        Identity is always source + folder + file; the source dtype decides how they
+        combine. Returns one of:
+          {'kind': 'local', 'path': '<fs path>'}
+          {'kind': 'iiif',  'url':  '<http url>'}
+        or None if the sha1 has no resolvable file.
+        """
+        row = self.conn.execute(
+            "SELECT fo.path, f.name, fs.dtype, fs.id"
+            " FROM files f"
+            " JOIN folders fo ON fo.id = f.folder_id"
+            " JOIN file_sources fs ON fs.id = fo.source_id"
+            " WHERE f.sha1 = ? AND f.name IS NOT NULL"
+            " LIMIT 1",
+            (sha1,),
+        ).fetchone()
+        if not row:
+            return None
+        path, name, dtype, source_id = row[0], row[1], row[2], row[3]
+
+        if dtype == 'iiif':
+            # file.name holds the full, directly-fetchable image URL (built at import
+            # time with the version-correct Image API params).
+            return {'kind': 'iiif', 'url': name, 'source_id': source_id}
+
+        if path is None:
+            return None
+        return {'kind': 'local', 'path': f"{path}/{name}"}
+
+    def get_delta(
+        self,
+        since: int,
+        full_prop_ids: list[int] | None = None,
+        point_prop_ids: list[int] | None = None,
+        instance_ids: list[int] | None = None,
+    ) -> dict:
+        """Return all rows changed since `since`.
+
+        When filter params are provided, value tables are scoped:
+        - full_prop_ids:  return changed values for ALL instances (column reload)
+        - point_prop_ids + instance_ids: return changed values only for those instances
+        - sha1/file value tables: filtered by property_id only (no instance_id column)
+
+        The max sequence is always computed over unfiltered tables so that
+        lastSequence advances past rows the caller chose not to fetch.
+        """
+        data = {
+            'instances':       INSTANCES_SCHEMA.get_since(self.conn, since),
+            'files':           FILES_SCHEMA.get_since(self.conn, since),
+            'folders':         FOLDERS_SCHEMA.get_since(self.conn, since),
+            'properties':      PROPERTIES_SCHEMA.get_since(self.conn, since),
+            'property_groups': PROPERTY_GROUPS_SCHEMA.get_since(self.conn, since),
+            'tags':            TAGS_SCHEMA.get_since(self.conn, since),
+        }
+
+        filtering = full_prop_ids is not None or point_prop_ids is not None
+        if not filtering:
+            data['instance_values'] = INSTANCE_VALUES_SCHEMA.get_since(self.conn, since)
+            data['image_values']    = SHA1_VALUES_SCHEMA.get_since(self.conn, since)
+            data['file_values']     = FILE_VALUES_SCHEMA.get_since(self.conn, since)
+        else:
+            all_prop_ids = list({*(full_prop_ids or []), *(point_prop_ids or [])})
+            data['instance_values'] = self._iv_since_filtered(
+                since, full_prop_ids or [], point_prop_ids or [], instance_ids or []
+            )
+            data['image_values'] = self._values_since_prop_filter(
+                SHA1_VALUES_SCHEMA, since, all_prop_ids
+            )
+            data['file_values'] = self._values_since_prop_filter(
+                FILE_VALUES_SCHEMA, since, all_prop_ids
+            )
+
+            # Always fetch tombstones (OP_DELETE rows) for value tables — even when
+            # full_prop_ids/point_prop_ids filtering is active. The frontend must
+            # always receive tombstone notifications so it can clear stale values,
+            # regardless of which columns are currently loaded.
+            _del_iv = self._values_since_op(INSTANCE_VALUES_SCHEMA, since, OP_DELETE)
+            if _del_iv:
+                data['instance_values'] = list(data['instance_values']) + _del_iv
+            _del_sv = self._values_since_op(SHA1_VALUES_SCHEMA, since, OP_DELETE)
+            if _del_sv:
+                data['image_values'] = list(data['image_values']) + _del_sv
+            _del_fv = self._values_since_op(FILE_VALUES_SCHEMA, since, OP_DELETE)
+            if _del_fv:
+                data['file_values'] = list(data['file_values']) + _del_fv
+
+        # Merge instance_tag_values back into instance_values shape: {instance_id: [tag_ids]}
+        itv_since = INSTANCE_TAG_VALUES_SCHEMA.get_since(self.conn, since)
+        stv_since = SHA1_TAG_VALUES_SCHEMA.get_since(self.conn, since)
+        alive_tags = self._alive_tag_ids() if (itv_since or stv_since) else None
+        if itv_since:
+            grouped_itv: dict[tuple, list[int]] = {}
+            for r in itv_since:
+                grouped_itv.setdefault((r.instance_id, r.property_id), []).append(r.tag_id)
+            # Reconstruct full tag list from current junction state for affected (instance, property) pairs
+            merged_iv = data.get('instance_values', [])
+            affected_pairs = list(grouped_itv.keys())
+            for inst_id, prop_id in affected_pairs:
+                full_tags = [r.tag_id for r in INSTANCE_TAG_VALUES_SCHEMA.get(
+                    self.conn, instance_id=inst_id, property_id=prop_id)
+                    if r.tag_id in alive_tags]
+                merged_iv.append(InstanceValue(
+                    property_id=prop_id, instance_id=inst_id,
+                    value=full_tags if full_tags else None,
+                ))
+            data['instance_values'] = merged_iv
+
+        if stv_since:
+            grouped_stv: dict[tuple, list[int]] = {}
+            for r in stv_since:
+                grouped_stv.setdefault((r.sha1, r.property_id), [])
+            merged_sv = data.get('image_values', [])
+            for sha1, prop_id in grouped_stv.keys():
+                full_tags = [r.tag_id for r in SHA1_TAG_VALUES_SCHEMA.get(
+                    self.conn, sha1=sha1, property_id=prop_id)
+                    if r.tag_id in alive_tags]
+                merged_sv.append(Sha1Value(
+                    property_id=prop_id, sha1=sha1,
+                    value=full_tags if full_tags else None,
+                ))
+            data['image_values'] = merged_sv
+
+        # Referential filtering: dependent value rows whose property is no longer alive (e.g. a
+        # property whose creation was undone) are dormant, not deleted. Don't ship them — the
+        # client drops the property (and its column) from the property tombstone. The value ops
+        # stay in the log and reappear on redo.
+        alive_props = {p.id for p in PROPERTIES_SCHEMA.get(self.conn)}
+        for key in ('instance_values', 'sha1_values', 'image_values', 'file_values'):
+            rows = data.get(key)
+            if rows:
+                data[key] = [v for v in rows if getattr(v, 'property_id', None) in alive_props]
+
+        max_seq = since
+        for table in ('instances', 'files', 'folders', 'properties', 'property_groups', 'tags',
+                      'instance_values', 'sha1_values', 'file_values',
+                      'instance_tag_values', 'sha1_tag_values'):
+            row = self.conn.execute(
+                f"SELECT MAX(sequence) FROM {table} WHERE sequence > ?", (since,)
+            ).fetchone()
+            if row and row[0] is not None:
+                max_seq = max(max_seq, row[0])
+        data['sequence'] = max_seq
+        return data
+
+    def get_tag_counts(self, property_id: int | None = None) -> list[dict]:
+        """Return [{tag_id, instance_count, sha1_count}] from both junction tables."""
+        where = "WHERE property_id = ?" if property_id is not None else ""
+        params = (property_id,) if property_id is not None else ()
+        where_op = f"WHERE operation = {OP_CREATE}" if not where else f"{where} AND operation = {OP_CREATE}"
+        sql = f"""
+            SELECT tag_id,
+                   SUM(instance_count) AS instance_count,
+                   SUM(sha1_count)     AS sha1_count
+            FROM (
+                SELECT tag_id,
+                       COUNT(DISTINCT instance_id) AS instance_count,
+                       0                           AS sha1_count
+                FROM {INSTANCE_TAG_VALUES_SCHEMA.table}
+                {where_op}
+                GROUP BY tag_id
+                UNION ALL
+                SELECT tag_id,
+                       0                       AS instance_count,
+                       COUNT(DISTINCT sha1)    AS sha1_count
+                FROM {SHA1_TAG_VALUES_SCHEMA.table}
+                {where_op}
+                GROUP BY tag_id
+            )
+            GROUP BY tag_id
+        """
+        rows = self.conn.execute(sql, params + params).fetchall()
+        return [{'tag_id': r[0], 'instance_count': r[1], 'sha1_count': r[2]} for r in rows]
+
+    def count_instances_per_tag(self, property_id: int | None = None) -> dict[int, int]:
+        """Return {tag_id: count of distinct instance_ids} from instance_tag_values."""
+        if property_id is not None:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT instance_id) FROM instance_tag_values"
+                " WHERE property_id = ? GROUP BY tag_id",
+                (property_id,),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT instance_id) FROM instance_tag_values"
+                " GROUP BY tag_id"
+            ).fetchall()
+        return {tag_id: count for tag_id, count in rows}
+
+    def count_sha1s_per_tag(self, property_id: int | None = None) -> dict[int, int]:
+        """Return {tag_id: count of distinct sha1s} from sha1_tag_values."""
+        if property_id is not None:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT sha1) FROM sha1_tag_values"
+                " WHERE property_id = ? GROUP BY tag_id",
+                (property_id,),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT sha1) FROM sha1_tag_values"
+                " GROUP BY tag_id"
+            ).fetchall()
+        return {tag_id: count for tag_id, count in rows}
+
+    def count_instances_per_folder(self) -> dict[int, int]:
+        """Return {folder_id: instance_count} with counts propagated to parent folders."""
+        rows = self.conn.execute(
+            f"SELECT f.folder_id, COUNT(DISTINCT i.id)"
+            f" FROM {INSTANCES_SCHEMA.table} i"
+            f" JOIN {FILES_SCHEMA.table} f ON f.id = i.file_id"
+            f" GROUP BY f.folder_id"
+        ).fetchall()
+        direct: dict[int, int] = {folder_id: count for folder_id, count in rows if folder_id is not None}
+
+        # Propagate counts up through folder parents
+        folder_rows = self.conn.execute(
+            f"SELECT id, parent FROM {FOLDERS_SCHEMA.table}"
+        ).fetchall()
+        parent_map: dict[int, int | None] = {row[0]: row[1] for row in folder_rows}
+
+        totals: dict[int, int] = dict(direct)
+        for folder_id, count in direct.items():
+            ancestor = parent_map.get(folder_id)
+            while ancestor is not None:
+                totals[ancestor] = totals.get(ancestor, 0) + count
+                ancestor = parent_map.get(ancestor)
+        return totals
+
+    def _iv_since_filtered(
+        self,
+        since: int,
+        full_prop_ids: list[int],
+        point_prop_ids: list[int],
+        instance_ids: list[int],
+    ) -> list:
+        rows = []
+        if full_prop_ids:
+            rows += self._query_iv_since(since, full_prop_ids, None)
+        if point_prop_ids and instance_ids:
+            rows += self._query_iv_since(since, point_prop_ids, instance_ids)
+        return rows
+
+    def _query_iv_since(
+        self,
+        since: int,
+        prop_ids: list[int],
+        instance_ids: list[int] | None,
+    ) -> list:
+        if not prop_ids:
+            return []
+        prop_ph = ','.join('?' * len(prop_ids))
+        if instance_ids is None:
+            sql = (f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table} "
+                   f"WHERE sequence > ? AND property_id IN ({prop_ph})")
+            rows = self.conn.execute(sql, [since, *prop_ids]).fetchall()
+            return [INSTANCE_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+        # Chunk instance_ids to stay within SQLite's 999-variable limit
+        fixed = 1 + len(prop_ids)  # since + prop_ids placeholders
+        chunk_size = max(1, 900 - fixed)
+        result = []
+        for i in range(0, len(instance_ids), chunk_size):
+            chunk = instance_ids[i:i + chunk_size]
+            inst_ph = ','.join('?' * len(chunk))
+            sql = (f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table} "
+                   f"WHERE sequence > ? AND property_id IN ({prop_ph}) "
+                   f"AND instance_id IN ({inst_ph})")
+            rows = self.conn.execute(sql, [since, *prop_ids, *chunk]).fetchall()
+            result += [INSTANCE_VALUES_SCHEMA._decode_row(r) for r in rows]
+        return result
+
+    def _values_since_prop_filter(self, schema, since: int, prop_ids: list[int]) -> list:
+        if not prop_ids:
+            return []
+        prop_ph = ','.join('?' * len(prop_ids))
+        sql = (f"SELECT * FROM {schema.table} "
+               f"WHERE sequence > ? AND property_id IN ({prop_ph})")
+        rows = self.conn.execute(sql, [since, *prop_ids]).fetchall()
+        return [schema._decode_row(r) for r in rows]
+
+    def _values_since_op(self, schema, since: int, operation: int) -> list:
+        """Fetch rows from a value table with the given operation since `since` (unfiltered by property)."""
+        sql = f"SELECT * FROM {schema.table} WHERE sequence > ? AND operation = ?"
+        rows = self.conn.execute(sql, (since, operation)).fetchall()
+        return [schema._decode_row(r) for r in rows]

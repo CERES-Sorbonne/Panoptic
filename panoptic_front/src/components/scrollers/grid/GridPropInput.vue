@@ -9,15 +9,16 @@ import TextInput from '@/components/property_inputs/TextInput.vue';
 import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
 import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { useDataStore } from '@/data/dataStore';
-import { Instance, Property, PropertyType } from '@/data/models';
+import { useDataStore } from '@/data/stores/dataStore';
+import { Property, PropertyType } from '@/data/models';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { isTag } from '@/utils/utils';
 import { computed, ref } from 'vue';
 
 const data = useDataStore()
 
 const props = defineProps<{
-    instance: Instance
+    instance: InstanceEntry
     property: Property
     minHeight: number
     width: number
@@ -53,7 +54,7 @@ async function waitForDbAction() {
         <DBInput :instance="props.instance" :property-id="props.property.id" ref="dbInput">
             <template #default="{ value, set }">
                 <div style="padding: 2px 0px">
-                    <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :can-create="true" :can-delete="true" :can-customize="true"
+                    <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :instance-id="props.instance.id" :can-create="true" :can-delete="true" :can-customize="true"
                         @update:model-value="set" @update:height="emitHeight" :min-height="props.minHeight"
                         :teleport="true" :width="props.width" :auto-focus="true" ref="inputElem" />
 

@@ -10,7 +10,7 @@ import TagInput from '@/components/property_inputs/TagInput.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Property, PropertyType } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 
@@ -28,7 +28,14 @@ const props = defineProps<{
     minHeight?: number
     width?: number
     forceMulti?: boolean
+    // Force single-tag (mono) behaviour even for a multi-tag property: selecting a tag replaces
+    // the value and closes the popup. Used at group level in the cluster view (one tag per group).
+    forceMono?: boolean
+    instanceId?: number
 }>()
+
+// Mono when the property is single-tag, or when the caller forces it — but forceMulti wins.
+const isMono = computed(() => props.forceMono || (props.property.type == PropertyType.tag && !props.forceMulti))
 const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show', 'tab'])
 defineExpose({
     getHeight,
@@ -41,6 +48,8 @@ const safeValue = computed(() => localValue.value ?? [])
 const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 
 const localValue = ref(undefined)
+// True while the dropdown popup is open, i.e. the user is mid-edit.
+const isOpen = ref(false)
 
 function getHeight() {
     if (heightElem.value == undefined) return 0
@@ -50,7 +59,7 @@ function getHeight() {
 async function updateValue(value, hide) {
     localValue.value = value
     updateHeight()
-    if(props.property.type == PropertyType.tag && !props.forceMulti) {
+    if(isMono.value) {
         hide()
     }
 }
@@ -66,15 +75,27 @@ function focus() {
 }
 
 function updateLocal() {
+    // While the dropdown is open, `localValue` is the user's working selection and the
+    // single source of truth — never overwrite it from `props.modelValue`. In the tree,
+    // creating a tag runs `data.addTag` -> commit -> `triggerRefs()`, which re-renders the
+    // virtual scroller and hands us a fresh instance object. That makes `props.modelValue`
+    // change identity (same pre-edit value, new array) mid-edit, and a blind sync here would
+    // snap the selection back to its pre-edit state, dropping the tag just added. Closed, we
+    // sync normally so the cell reflects the confirmed value.
+    if (isOpen.value) return
     localValue.value = props.modelValue
 }
 
 function onHide() {
+    isOpen.value = false
     emits('hide')
     emits('update:modelValue', localValue.value)
 }
 
 function onShow() {
+    // Snapshot the current committed value as the editing baseline, then stop syncing.
+    localValue.value = props.modelValue
+    isOpen.value = true
     emits('show')
 }
 
@@ -103,11 +124,13 @@ onMounted(updateLocal)
         </template>
 
         <template #popup="{hide}">
-            <div class="p-1" style="max-width: 250px;">
+            <!-- no padding: the tag input's tinted header runs to the popup's edges -->
+            <div style="max-width: 250px; overflow: hidden; border-radius: 4px;">
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
-                    :force-multi="props.forceMulti" @tab="onTab(hide)"
+                    :force-multi="props.forceMulti" :force-mono="props.forceMono"
+                    :instance-id="props.instanceId" @tab="onTab(hide)"
                     ref="inputElem" />
             </div>
         </template>

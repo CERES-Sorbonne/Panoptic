@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import SectionDivider from '../utils/SectionDivider.vue';
 import ActionButton from '../actions/ActionButton.vue';
 import ActionSelect from '../actions/ActionSelect.vue';
 import ActionSelectFlat from '../actions/ActionSelectFlat.vue';
 import { computed, onMounted, ref } from 'vue';
 import { VectorType } from '@/data/models';
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import ComputeVectorButton from './ComputeVectorButton.vue';
 
-const data = useDataStore()
+const media = useMediaStore()
 const actions = useActionStore()
 
 const create = ref(false)
 const compute = ref(false)
 async function deleteType(id: number) {
-    await data.deleteVectorType(id)
+    await media.deleteVectorType(id)
 }
 
 async function computeVectors(vecType: VectorType) {
     await actions.callComputeVector(vecType)
 }
 
-onMounted(() => data.updateVectorStats())
+onMounted(() => media.updateVectorStats())
 
 
 </script>
@@ -43,14 +43,14 @@ onMounted(() => data.updateVectorStats())
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="vecType in data.vectorTypes" :key="vecType.id">
+                <tr v-for="vecType in media.vectorTypes" :key="vecType.id">
                     <td><i class="bb bi bi-x" @click="deleteType(vecType.id)" /></td>
                     <td>{{ vecType.id }}</td>
                     <td>
                         <div>
-                            <ComputeVectorButton v-if="data.vectorStats.count[vecType.id] != data.vectorStats.sha1Count" :vector-type="vecType" class="me-2" />
-                            <span v-if="data.vectorStats.count[vecType.id] != undefined">{{ data.vectorStats.count[vecType.id] }} / {{ data.vectorStats.sha1Count }}</span>
-                            <span v-else>0 / {{ data.vectorStats.sha1Count }}</span>
+                            <ComputeVectorButton v-if="media.vectorStats.count[vecType.id] != media.vectorStats.sha1Count" :vector-type="vecType" class="me-2" />
+                            <span v-if="media.vectorStats.count[vecType.id] != undefined">{{ media.vectorStats.count[vecType.id] }} / {{ media.vectorStats.sha1Count }}</span>
+                            <span v-else>0 / {{ media.vectorStats.sha1Count }}</span>
                         </div>
                     </td>
                     <td>{{ vecType.source }}</td>
@@ -65,12 +65,12 @@ onMounted(() => data.updateVectorStats())
             </tbody>
         </table>
         <div v-if="!create && actions.hasVectorFunction">
-            <span class="bb" @click="create = true">{{$t('modals.settings.createNewType')}} <i class="bi bi-plus" /></span>
+            <span class="bb" @click="create = true">{{$t('modals.settings.createNewVectorType')}} <i class="bi bi-plus" /></span>
         </div>
-        <SectionDivider v-if="create"><span style="margin-left: 3px;">{{$t('modals.settings.createNewType')}}</span></SectionDivider>
+        <SectionDivider v-if="create"><span style="margin-left: 3px;">{{$t('modals.settings.createNewVectorType')}}</span></SectionDivider>
         <div v-if="create">
             <ActionSelectFlat :action="'vector_type'" :size="15" @cancel="create = false"
-                @added="data.updateVectorTypes()" />
+                @added="media.updateVectorTypes()" />
         </div>
         <!-- <div v-if="!compute">
             <span class="bb" @click="compute = true">Compute Vectors <i class="bi bi-plus" /></span>

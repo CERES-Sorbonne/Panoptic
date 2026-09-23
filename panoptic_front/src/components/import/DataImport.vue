@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { computed, Ref, ref, watch } from 'vue';
 import { ModalId, UploadConfirm } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import FusionModeDropdown from '../dropdowns/FusionModeDropdown.vue';
 import { objValues } from '@/utils/utils';
-import { apiParseImport, apiConfirmImport, apiUploadPropertyCsv } from '@/data/apiProjectRoutes';
+import { apiParseImport, apiConfirmImport, apiUploadPropertyCsv } from '@/data/api/projectApi';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -136,7 +136,7 @@ watch(relative, () => proposeReparse.value = true)
 
                     <tr v-for="p, i in uploadConfirm.colToProperty" class="border"
                         :class="!take[i] ? 'dimmed' : ''">
-                        <td class="border text-center"><input v-if="i != 0" type="checkbox" v-model="take[i]" />
+                        <td class="border text-center"><input v-if="Number(i) != 0" type="checkbox" v-model="take[i]" />
                         </td>
                         <td class="border text-center">{{ i }}</td>
                         <td class="border">

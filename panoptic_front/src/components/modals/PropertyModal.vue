@@ -3,12 +3,12 @@
 import { ModalId, Property } from '@/data/models';
 import { ref, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
-import { useProjectStore } from '@/data/projectStore';
-import { useDataStore } from '@/data/dataStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import PropertyModeDropdown from '../dropdowns/PropertyModeDropdown.vue';
 import Modal2 from './Modal2.vue';
-import { useTabStore } from '@/data/tabStore';
-import { useModalStore } from '@/data/modalStore';
+import { useTabStore } from '@/data/stores/tabStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -19,6 +19,9 @@ const newProperty = reactive({}) as Property
 const message = ref('')
 
 const group = ref(undefined)
+// Called with the new property once it exists, for a caller that opened the modal to use it
+// right away (the group view's "Assign to… → New property").
+let onCreated: ((prop: Property) => void) | undefined
 
 async function saveProperty(hide) {
     console.log('halloo')
@@ -38,6 +41,7 @@ async function saveProperty(hide) {
 
     const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode, group.value ?? null)
     tabStore.getMainTab().setVisibleProperty(prop.id, true)
+    onCreated?.(prop)
 
     // if (group.value != undefined && group.value >= 0) {
     //     console.log(prop)
@@ -51,6 +55,10 @@ function onShow(data) {
     if(data?.mode) {
         newProperty.mode = data.mode
     }
+    if(data?.type) {
+        newProperty.type = data.type
+    }
+    onCreated = data?.onCreated
     if(data?.group) {
         group.value = data.group
     } else {

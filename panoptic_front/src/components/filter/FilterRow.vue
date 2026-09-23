@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import OperatorChoice from './OperatorChoice.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import FilterValueInput from './FilterValueInput.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Property } from '@/data/models';
 
 const data = useDataStore()

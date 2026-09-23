@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
-import { usePanopticStore } from '@/data/panopticStore';
-import router from '@/router';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
@@ -12,8 +12,14 @@ import { ModalId, PluginType, ProjectRef } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
+import UserSelector from '@/components/home/UserSelector.vue';
+import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
+import FirstModal from '@/components/modals/FirstModal.vue';
+import NotifModal from '@/components/modals/NotifModal.vue';
+import LegacyImportModal from '@/components/modals/LegacyImportModal.vue';
 
 const panoptic = usePanopticStore()
+const { t } = useI18n()
 
 const menuMode = ref(0) // 0 options 1 create
 const showPluginForm = ref(false)
@@ -21,24 +27,48 @@ const pluginFormElem = ref(null)
 const show = ref(true)
 const langs = ['fr', 'en']
 
-const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) && panoptic.serverState.projects.length > 0)
+const hasProjects = computed(() => panoptic.projects.length > 0)
+// Seuls les projets compatibles s'ouvrent. Les autres sont listés grisés en dessous,
+// avec un bouton de conversion quand c'est possible.
+const sortedProjects = computed(() => [
+    ...panoptic.projects.filter(p => isCompatible(p)),
+    ...panoptic.projects.filter(p => !isCompatible(p)),
+])
+// Projets 0.x trouvés par le scan: grisés eux aussi, convertis via LegacyImportModal
+const legacyProjects = computed(() => panoptic.hasLegacyProjects ? panoptic.legacyProjects : [])
+const showProjectMenu = computed(() => hasProjects.value || legacyProjects.value.length > 0)
 
-const showFirstModal = computed(() => !hasProjects.value)
-const showTutorial = computed(() => !hasProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
+// Cas classique de mise à jour: aucun projet récent mais plusieurs anciens.
+// La proposition de migration passe donc avant FirstModal et le tutoriel.
+const hasLegacyProjects = computed(() => panoptic.hasLegacyProjects)
+const showFirstModal = computed(() => !hasProjects.value && !hasLegacyProjects.value)
+const showTutorial = computed(() => !hasProjects.value && !hasLegacyProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p => p.type == PluginType.PIP && p.source == 'panopticml'))
+const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourceType == PluginType.PIP && p.sourcePath == 'panopticml'))
 
 const usePlugins = computed(() => {
     const res = {}
-    const projects = panoptic.serverState.projects
-    const plugins = panoptic.serverState.plugins
-    projects.forEach(project => {
+    panoptic.projects.forEach(project => {
         res[project.id] = {}
-        plugins.forEach(plugin => res[project.id][plugin.name] = true)
-        project.ignoredPlugins.forEach(pId => res[project.id][pId] = false)
+        panoptic.plugins.forEach(plugin => res[project.id][plugin.id] = true)
+        project.excludedPlugins.forEach(pId => res[project.id][pId] = false)
     })
     return res
 })
+
+function isCompatible(project: ProjectRef) {
+    return !project.status || project.status == 'ok'
+}
+
+function openProject(project: ProjectRef) {
+    if (!isCompatible(project)) return
+    panoptic.loadProject(project.id)
+}
+
+async function convertProject(project: ProjectRef) {
+    if (!window.confirm(t('main.home.convert.confirm', { name: project.name }))) return
+    await panoptic.convertProject(project.id)
+}
 
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
@@ -70,13 +100,11 @@ async function rerender() {
 }
 
 async function updateIgnorePlugin(project: ProjectRef, pluginName: string, value: boolean) {
-    console.log(project.id, pluginName, value)
-    if(!value && !project.ignoredPlugins.includes(pluginName)) {
-        project.ignoredPlugins.push(pluginName)
-    } else if (value && project.ignoredPlugins.includes(pluginName)) {
-        project.ignoredPlugins = project.ignoredPlugins.filter(n => n !== pluginName)
+    if (!value && !project.excludedPlugins.includes(pluginName)) {
+        project.excludedPlugins.push(pluginName)
+    } else if (value && project.excludedPlugins.includes(pluginName)) {
+        project.excludedPlugins = project.excludedPlugins.filter(n => n !== pluginName)
     }
-    console.log(project.ignoredPlugins)
     await panoptic.updateProject(project)
 }
 
@@ -96,14 +124,26 @@ async function downloadPackagesInfos() {
     }
 }
 
-onMounted(() => {
-    if (panoptic.isProjectLoaded) {
-        router.push('/view')
+// Le scan des anciens projets arrive de façon asynchrone: on attend son résultat
+// avant de décider quelle intro afficher, sinon FirstModal gagne la course.
+// La modale de conversion ne s'ouvre jamais seule, uniquement via la bannière.
+watch(() => [panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjects.value], () => {
+    if (!panoptic.projectsLoaded || !panoptic.legacyScanLoaded) return
+    if (hasLegacyProjects.value) {
+        if (panoptic.openModalId === ModalId.FIRSTMODAL) panoptic.hideModal(ModalId.FIRSTMODAL)
+        panoptic.introShown = true
+        return
     }
+    if (panoptic.introShown) return
+    panoptic.introShown = true
     if (showFirstModal.value) {
         panoptic.showModal(ModalId.FIRSTMODAL)
     }
-})
+}, { immediate: true })
+
+function openLegacyModal(legacyPath?: string) {
+    panoptic.showModal(ModalId.LEGACY, legacyPath ? { legacyPath } : undefined)
+}
 
 </script>
 
@@ -112,13 +152,31 @@ onMounted(() => {
         <Egg />
         <Tutorial v-if="showTutorial" />
 
+        <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+        <FirstModal />
+        <LegacyImportModal />
+        <NotifModal />
+
         <div class="window2 d-flex ">
-            <div v-if="hasProjects" class="project-menu">
-                <div v-for="project in panoptic.serverState.projects" class="d-flex">
-                    <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.id)">
+            <div v-if="showProjectMenu" class="project-menu">
+                <div v-for="project in sortedProjects" :key="project.id" class="d-flex"
+                    :class="{ 'old-project': !isCompatible(project) }">
+                    <div class="project flex-grow-1 overflow-hidden" @click="openProject(project)"
+                        :title="project.problem ?? ''">
                         <h5 class="m-0">{{ project.name }}</h5>
                         <div class="m-0 p-0 text-wrap text-break dimmed-2" style="font-size: 13px;">{{
                             correctHyphen(project.path) }}</div>
+                        <template v-if="!isCompatible(project)">
+                            <div style="font-size: 12px;">{{ $t('main.home.convert.' + project.status) }}</div>
+                            <span v-if="project.status == 'outdated'" class="legacy-banner-btn legacy-convert"
+                                :class="{ converting: panoptic.convertingProjects.includes(project.id) }"
+                                @click.stop="convertProject(project)">
+                                <template v-if="panoptic.convertingProjects.includes(project.id)">
+                                    <i class="bi bi-hourglass-split me-1"></i>{{ $t('main.home.convert.running') }}
+                                </template>
+                                <template v-else>{{ $t('main.home.legacy.banner_button') }}</template>
+                            </span>
+                        </template>
                     </div>
                     <div class="project-option flex-shrink-0">
                         <Dropdown>
@@ -133,10 +191,10 @@ onMounted(() => {
                                     </div>
                                     <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
                                     </div>
-                                    <div v-for="p in panoptic.serverState.plugins" class="mt-1">
-                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.name]"
-                                            @change="e => updateIgnorePlugin(project, p.name, (e.target as any).checked)" />{{
-                                                p.name }}
+                                    <div v-for="p in panoptic.plugins" class="mt-1">
+                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.id]"
+                                            @change="e => updateIgnorePlugin(project, p.id, (e.target as any).checked)" />{{
+                                                p.id }}
                                     </div>
                                     <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
                                 </div>
@@ -145,8 +203,26 @@ onMounted(() => {
 
                     </div>
                 </div>
+                <div v-for="project in legacyProjects" :key="project.legacyPath" class="d-flex legacy-project">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <h5 class="m-0">{{ project.name }}</h5>
+                        <div class="m-0 p-0 text-wrap text-break" style="font-size: 13px;">{{
+                            correctHyphen(project.legacyPath) }}</div>
+                        <div style="font-size: 12px;">{{ $t('main.home.convert.outdated') }}</div>
+                    </div>
+                    <div class="flex-shrink-0 align-self-center">
+                        <span class="legacy-banner-btn legacy-convert" @click="openLegacyModal(project.legacyPath)">
+                            {{ $t('main.home.legacy.banner_button') }}
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="flex-grow-1">
+            <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+                <div v-if="hasLegacyProjects" class="legacy-banner" @click="openLegacyModal()">
+                    <i class="bi bi-box-arrow-in-down me-1"></i>
+                    <b>{{ $t('main.home.legacy.banner', { count: panoptic.legacyProjects.length }) }}</b>
+                    <span class="legacy-banner-btn ms-2">{{ $t('main.home.legacy.banner_button') }}</span>
+                </div>
                 <div class="d-flex flex-column main-menu justify-content-center">
                     <div>
                         <div class="icon">
@@ -154,7 +230,7 @@ onMounted(() => {
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
                         <div class="d-flex justify-content-center gap-1">
-                            <h6 class="dimmed-2 mt-1">Version {{ panoptic.serverState.version }} </h6>
+                            <h6 class="dimmed-2 mt-1">Version {{ panoptic.version }} </h6>
                             <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
                                     @click="downloadPackagesInfos"></i></wTT>
                         </div>
@@ -187,12 +263,14 @@ onMounted(() => {
                     <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
                         <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem" />
                         <div v-else>
-                            <div v-for="plugin in panoptic.serverState.plugins" style="display: inline-block;">
+                            <div v-for="plugin in panoptic.plugins" style="display: inline-block;">
                                 <PluginOptionsDropdown :plugin="plugin"></PluginOptionsDropdown>
                             </div>
                         </div>
                     </div>
-
+                </div>
+                <div class="user-section">
+                    <UserSelector />
                 </div>
             </div>
         </div>
@@ -236,7 +314,8 @@ onMounted(() => {
 
 
 .main-menu {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     /* background-color: white; */
     text-align: center;
     padding: 15px;
@@ -275,5 +354,58 @@ onMounted(() => {
     padding: 4px;
     font-size: 15px;
     color: rgb(50, 50, 50);
+}
+
+.user-section {
+    flex-shrink: 0;
+    width: 500px;
+    margin: 0 auto;
+    border-top: 1px solid var(--border-color);
+}
+
+.legacy-banner {
+    background-color: rgb(238, 238, 255);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 15px;
+    text-align: left;
+    cursor: pointer;
+    color: rgb(45, 45, 45);
+}
+
+.old-project .project {
+    cursor: default;
+    color: rgb(150, 150, 150);
+}
+
+.old-project .project:hover {
+    background-color: transparent;
+}
+
+.old-project .legacy-convert {
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.legacy-convert.converting {
+    background-color: rgb(200, 200, 200);
+    cursor: default;
+}
+
+.legacy-project {
+    padding: 10px;
+    margin-right: 15px;
+    color: rgb(150, 150, 150);
+}
+
+.legacy-convert {
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.legacy-banner-btn {
+    background-color: rgb(170, 170, 255);
+    color: white;
+    border-radius: 8px;
+    padding: 2px 8px;
 }
 </style>

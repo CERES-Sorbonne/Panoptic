@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 import wTT from '../tooltips/withToolTip.vue'
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useTabStore } from '@/data/tabStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import TabButton from './TabButton.vue';
-import { useSocketStore } from '@/data/socketStore';
+import { useSocketStore } from '@/data/stores/socketStore';
+import { computed } from 'vue';
 
 const panoptic = usePanopticStore()
 const tabStore = useTabStore()
@@ -21,7 +22,7 @@ const props = defineProps<{
 const emits = defineEmits(['update:filterOpen'])
 
 async function addTab(event: any) {
-    await tabStore.addTab('New Tab')
+    await tabStore.addTab(t('main.menu.new_tab'))
 }
 
 const langs = ['fr', 'en']
@@ -52,7 +53,7 @@ function onChangeLang(event) {
             <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"
                     id="add-tab-button"><span class="bi bi-plus"></span></button></wTT>
             <div class="flex-grow-1"></div>
-            <div style="margin: 2px;" class=" bb me-3 text-secondary" v-if="panoptic.clientState.user" @click="useSocketStore().disconnectUser()"> {{ panoptic.clientState.user.name }} </div>
+            <div style="margin: 2px;" class=" bb me-3 text-secondary" v-if="panoptic.connectionState?.user" @click="panoptic.disconnectUser()"> {{ panoptic.connectionState.user.name }} </div>
             <div style="padding-top: 2px; margin-right: 2px;">
                 <wTT message="modals.notif.icon">
                     <span class="bb" @click="panoptic.showModal(ModalId.NOTIF)"><i class="bi bi-bell"></i></span>

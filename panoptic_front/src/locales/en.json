@@ -57,17 +57,53 @@
                 "import_details": "Choose an existing Panoptic folder.",
                 "import_button": "Import"
             },
-            "version_tooltip": "Display debug info of panoptic"
+            "user": {
+                "title": "User",
+                "default": "Default",
+                "new": "New user",
+                "name_placeholder": "Name",
+                "create": "Create",
+                "cancel": "Cancel",
+                "delete": "Delete",
+                "name_taken": "Name already taken"
+            },
+            "version_tooltip": "Display debug info of panoptic",
+            "convert": {
+                "outdated": "Created with an older version of Panoptic",
+                "incompatible": "Cannot be opened by this version of Panoptic",
+                "missing": "Project folder not found",
+                "running": "Converting…",
+                "confirm": "Convert \"{name}\" to the current format?\n\nA backup of the old data is kept in the project folder. The undo history is not kept."
+            },
+            "legacy": {
+                "banner": "Projects from an older version were found",
+                "banner_button": "Convert"
+            }
         },
         "status": {
             "no_project": "No open Panoptic project"
         },
         "nav": {
+            "hide_panel": "Hide panel",
+            "split_view": "Split right",
+            "unsplit_view": "Unsplit",
             "folders": {
                 "title": "Folders",
                 "add": "Add an images folder",
                 "del": "Remove",
-                "del_alert": "Removing this folder will delete every images from this folder from panoptic"
+                "reimport": "Re-import",
+                "del_alert": "Removing this folder will delete every images from this folder from panoptic",
+                "local_source": "Local disk"
+            },
+            "fileSources": {
+                "del": "Remove",
+                "del_alert": "Removing this file source will delete every image from this source from panoptic",
+                "sync": {
+                    "counts": "{folders} folders · {files} images",
+                    "lastSynced": "Last synced {date}",
+                    "neverSynced": "Not synced yet",
+                    "resync": "Resync"
+                }
             },
             "tasks": {
                 "title": "Background task",
@@ -102,6 +138,7 @@
             }
         },
         "menu": {
+            "new_tab": "New Tab",
             "add_tab_tooltip": "Create a new tab",
             "rename_tab_tooltip": "Rename tab",
             "delete_tab_tooltip": "Delete tab",
@@ -110,6 +147,9 @@
             "grid_tooltip": "Switch to image grid view",
             "table_tooltip": "Switch to table view",
             "graph_tooltip": "Switch to chart view",
+            "map_tooltip": "Switch to map view",
+            "reco_tooltip": "Switch to recommendations view",
+            "cluster_tooltip": "Switch to group view",
             "image_size_tooltip": "Image size",
             "all_images": "Instances",
             "sha1_images": "Images",
@@ -118,6 +158,7 @@
             "selected_images": "selected images",
             "tag_selection": "Tag the ",
             "remove_selection_tooltip": "Cancel selection",
+            "show_selection_tooltip": "Show selected images",
             "filters": "Filter ",
             "groupby": "Group ",
             "sort": {
@@ -142,6 +183,32 @@
             "filter": "Toggle global filter in recommandations",
             "reload": "Reload recommandations"
         },
+        "reco": {
+            "empty": "Group your data to see recommendations",
+            "incoming": "Incoming recommendations",
+            "in_group": "Images in group",
+            "blacklist": "Blacklist",
+            "no_more": "No more recommendations",
+            "selected": "{count} selected",
+            "clear": "Clear selection",
+            "accept_selected": "Add selected to group",
+            "refuse_selected": "Refuse selected",
+            "remove_from_group": "Remove from group",
+            "remove_from_blacklist": "Remove from blacklist"
+        },
+        "group": {
+            "title": "Groups",
+            "empty": "No images to display.",
+            "assign_to": "Assign to…",
+            "new_property": "New property…",
+            "no_lines": "No groups to display",
+            "images": "images",
+            "groups": "groups",
+            "leaf_clusters": "leaf clusters",
+            "mode_single": "Single image",
+            "mode_mosaic": "Mosaic: a few images per group",
+            "mode_mosaic_large": "Mosaic: more images per group"
+        },
         "view": {
             "all_group": "All",
             "group_clusters": "Clusters",
@@ -153,11 +220,25 @@
             "collapse": "Collapse"
         },
         "graph-view": {
-            "histo": "Histogram",
-            "curve": "LineChart",
-            "stack": "Stack",
-            "over": "UnStack",
-            "info": "Click on the legend to show images of all datapoints"
+            "chart_line": "Lines",
+            "chart_area": "Areas",
+            "chart_bar": "Bars",
+            "stack": "Stack the series on top of each other",
+            "thumbnails": "Show a thumbnail on each data point",
+            "thumbnails_grouped": "Thumbnails need a single series, stacked bars, or a line chart",
+            "images": "Images",
+            "other": "Other",
+            "no_value": "No value",
+            "total_images": "{count} images",
+            "selected": "{count} selected",
+            "hint": "Click or drag across the chart to select images · Shift to add, Alt to remove · Scroll to zoom",
+            "no_grouping": "Group the images to draw a chart",
+            "no_grouping_hint": "Pick a property in the group menu: the first level becomes the X axis, a second level becomes one series per value.",
+            "loading": "Grouping images…",
+            "empty": "Nothing to chart in this collection",
+            "folded": "{count} smaller values grouped as \"Other\"",
+            "ignored_levels": "Only the first two grouping levels are charted",
+            "skipped_no_value": "{count} images without a value are not shown"
         }
     },
     "modals": {
@@ -170,6 +251,9 @@
             "open": "Select"
         },
         "image": {
+            "properties": "Properties",
+            "properties_tooltip": "Show / Hide the properties panel",
+            "history_tooltip": "Show / Hide the navigation history",
             "similar_images": "Similar images",
             "similar_images_tooltip": "Images considered to be visually and/or semantically close to the current image using the KDTree algorithm and image vectors",
             "unique_properties": "Unique properties",
@@ -243,6 +327,8 @@
             "clear": "Clear",
             "apply": "Apply",
             "erase": "Erase",
+            "add_property": "Add a property",
+            "empty": "No property selected yet",
             "erase_tooltip": "Erase this field for whole selection",
             "cancel_tooltip": "Cancel changes"
         },
@@ -290,7 +376,26 @@
             "images": "Images",
             "vectors": "Vectors",
             "plugins": "Plugins",
+            "data": "Data",
+            "dataPage": {
+                "title": "Commit timeline",
+                "info": "Toggle any commit on or off, or compact history up to a commit. Compacting is permanent.",
+                "empty": "No commits yet.",
+                "enabled": "Enabled",
+                "when": "When",
+                "author": "Author",
+                "source": "Source",
+                "compact": "Compact up to here",
+                "compactConfirm": "Permanently merge all history up to this commit into a baseline? Commits before this point can no longer be undone.",
+                "confirm": "Confirm",
+                "cancel": "Cancel"
+            },
             "baseSettings": "Base Settings",
+            "plugin_running": "Running",
+            "plugin_stopped": "Stopped",
+            "plugin_stop": "Stop plugin",
+            "plugin_start": "Start plugin",
+            "plugin_stopped_hint": "Its actions and tasks are unavailable until it is started again. It starts again when the project is reopened.",
             "reset": "Reset",
             "update": "Update",
             "registeredVectorTypes": "Registered Vector Types",
@@ -298,7 +403,13 @@
             "computed": "Computed",
             "source": "Source",
             "params": "Params",
-            "createNewType": "Create New Type",
+            "createNewVectorType": "Add vector type",
+            "createNewImageType": "Add image type",
+            "generateImages": "Recompute all missing thumbnails",
+            "name": "Name",
+            "format": "Format",
+            "maxSize": "Max size",
+            "autoOnImport": "Auto on import",
             "function": "Function",
             "computeNow": "Compute now",
             "computeNowTooltip": "Don't check if you want to start compute manually later",
@@ -358,6 +469,75 @@
             "warning_icon": "Toggle notifications: Alert",
             "error_icon": "Toggle notifications: Error",
             "read_icon": "Toggle read notifications"
+        },
+        "filesource": {
+            "title": "Add file source",
+            "local": "Local folder",
+            "iiif": "IIIF",
+            "iiif_url_label": "IIIF Manifest or Collection URL",
+            "iiif_url_hint": "Paste a IIIF Presentation API manifest or collection URL (v2 or v3).",
+            "test_success": "Connection successful!",
+            "test_failed": "Connection failed:",
+            "result_title": "Title:",
+            "result_version": "IIIF Version:",
+            "result_items": "Items:",
+            "auth_section": "Authentication (Optional)",
+            "auth_type": "Auth Type",
+            "auth_none": "None",
+            "auth_bearer": "Bearer Token",
+            "auth_basic": "Basic Auth",
+            "auth_custom": "Custom Header (X-API-Key)",
+            "token_label": "API Key / Token",
+            "token_placeholder": "your-api-key",
+            "token_hint": "Sent as: Authorization: Bearer <token>",
+            "username": "Username",
+            "password": "Password",
+            "basic_hint": "Sent as: Authorization: Basic <base64(user:pass)>",
+            "api_key": "API Key",
+            "api_key_hint": "Sent as: X-API-Key: <key>",
+            "headers_label": "Custom Headers (JSON)",
+            "optional": "Optional",
+            "headers_hint": "Additional HTTP headers as JSON object",
+            "test_connection": "Test Connection",
+            "import": "Import",
+            "error_invalid_headers": "Invalid JSON in custom headers field",
+            "error_network": "Network error or server unavailable",
+            "error_import": "Import failed",
+            "add_source": "Add an image source"
+        },
+        "legacy": {
+            "title": "Convert old Panoptic projects",
+            "safety": "The conversion creates a copy of the original project.",
+            "registry": "{count} project(s) listed (format {shape}) in",
+            "shape": "Format",
+            "images": "{count} images",
+            "plugins": "Plugins used: {plugins} (nothing is installed automatically)",
+            "destination": "Destination folder of the converted copy",
+            "migrate": "Convert",
+            "unavailable": "Cannot be converted",
+            "ignore": "Ignore",
+            "already": "Already converted to",
+            "previous_failed": "A previous attempt failed",
+            "dismiss_all": "Don't ask again",
+            "later": "Later",
+            "done": "Conversion finished",
+            "failed": "Conversion failed",
+            "failed_hint": "The original project is intact. Delete the partial destination folder before trying again.",
+            "warnings": "Logs",
+            "report": "Open the report",
+            "stages": {
+                "read-legacy": "Reading the old project",
+                "write-data-db": "Writing the data database",
+                "write-media-db": "Writing the media database",
+                "write-project-db": "Writing the project database",
+                "check": "Checking",
+                "register-project": "Registering the project"
+            },
+            "losses": {
+                "title": "Warning",
+                "tabs": "Tabs are not preserved.",
+                "vectors": "Vectors must be recomputed (PanopticML)."
+            }
         }
     },
     "tutorial": {
@@ -408,16 +588,70 @@
             "values": "modified values",
             "tags": "modified tags",
             "undo": "Undo",
-            "redo": "Redo"
+            "redo": "Redo",
+            "mine": "My edits",
+            "all": "All users",
+            "empty": "No modification yet"
         },
         "action": {
             "execute": "Run a plugin function",
-            "group": "Run a clustering function"
+            "group": "Run a clustering function",
+            "similar": "Find similar images",
+            "map": "Run a map function"
         },
         "stamp": {
             "add": "add",
             "set": "set",
             "del": "remove"
+        },
+        "tasks": {
+            "title": "Tasks",
+            "running": "Running",
+            "pending": "Pending",
+            "past": "Past",
+            "failed": "{count} failed",
+            "workers": "{count} workers",
+            "rate": "{rate}/s",
+            "eta": "{time} left",
+            "waiting": "Waiting to start",
+            "done": "Done",
+            "stop": "Stop",
+            "cancel": "Cancel",
+            "stopping": "Stopping…",
+            "stopped": "Stopped",
+            "dismiss": "Remove from the list",
+            "clear": "Clear",
+            "seconds": "{value}s",
+            "minutes": "{value}m",
+            "hours": "{value}h",
+            "names": {
+                "LoadPluginTask": "Loading plugins",
+                "ImportSourceTask": "Importing images",
+                "ComputeVectorsTask": "Computing image vectors",
+                "GenerateAtlasTask": "Creating image atlas"
+            },
+            "steps": {
+                "Loading plugin": "Loading plugin",
+                "Scanning folder structure": "Scanning folders",
+                "Reconciling removed files": "Checking for deleted files",
+                "Importing files": "Importing files"
+            }
+        },
+        "property_status": {
+            "title": "Property loading",
+            "base_label": "Images",
+            "loading": "Loading: {name}",
+            "images_loaded": "Images loaded",
+            "properties_total": "Properties",
+            "images_in_view": "Images displayed",
+            "properties_in_use": "Properties in use",
+            "legend_in_use": "in use",
+            "status": {
+                "loading": "loading",
+                "empty": "not loaded",
+                "loaded": "loaded"
+            },
+            "no_properties": "No properties yet."
         }
     },
     "btn": {
@@ -427,7 +661,12 @@
             "dirty": "Data is not up to-date, click to reload"
         },
         "close-clusters": "Close clusters",
-        "save-clusters": "Save the clusters in a new property"
+        "save-clusters": "Save the clusters in a new property",
+        "subcluster-group": "Sub-cluster this group",
+        "inspect-group": "Inspect in the side panel\nHold shift to open a second inspector",
+        "open-group": "Show the sub-groups",
+        "close-group": "Back to the parent group\nCloses the other groups of this level",
+        "goto-group": "Focus this group on the map"
     },
     "datepicker": {
         "cancel": "Cancel",
@@ -437,13 +676,17 @@
         "correct": "Rectify"
     },
     "none": "Empty...",
+    "tag_menu_hint": "Add or create tags",
+    "tag_menu_create": "Create",
     "tmp": "Tooltip to be written",
     "common": {
         "properties": {
-            "panoptic": "Panoptic properties",
+            "default": "Project",
+            "metadata": "Metadata",
             "instance": "Instance properties",
             "instances": "All instances properties",
             "image": "Image properties",
+            "file": "File properties",
             "delete": "Do you really want to delete property"
         }
     },
@@ -455,6 +698,11 @@
         "update_local": "Reinstall Plugin",
         "path": "Path",
         "source": "Source"
+    },
+    "map": {
+        "groups": "Groups",
+        "border_width": "Border width",
+        "hover_scale": "Hover zoom size"
     },
     "confirm": "Confirm",
     "cancel": "Cancel",

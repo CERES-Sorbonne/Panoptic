@@ -9,9 +9,11 @@ import TagMenu from '@/components/tags/TagMenu.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { computed, ref } from 'vue';
 import { Property, Tag, PropertyType } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
 
 const data = useDataStore()
+const instanceStore = useInstanceStore()
 
 const props = defineProps<{
     property: Property,
@@ -22,7 +24,10 @@ const props = defineProps<{
     canLink?: boolean,
     canDelete?: boolean,
     autoFocus?: boolean,
-    forceMulti?: boolean
+    forceMulti?: boolean,
+    // Force single-tag (mono) selection even for a multi-tag property: a pick replaces the value.
+    forceMono?: boolean,
+    instanceId?: number
 }>()
 const emits = defineEmits(['update:modelValue', 'select', 'remove', 'tab'])
 defineExpose({
@@ -35,11 +40,32 @@ const safeValue = computed(() => props.modelValue ?? [])
 const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
+// Tags the user removed during this editing session. The store commit is deferred (e.g.
+// CellTagInput only writes on hide), so instanceStore still holds a just-removed tag; without
+// this, the union in `currentValue` would re-add it on the next select. Re-selecting a tag
+// clears it from the set.
+const removed = ref(new Set<number>())
+
+// When editing a concrete instance, union `safeValue` (this session's accumulated local
+// edits) with the CURRENT value straight from instanceStore. `safeValue` alone can go
+// stale across an async gap — e.g. while `data.addTag` is awaited to create a brand-new
+// tag — silently dropping tags that were already assigned but hadn't reached this
+// component's local snapshot yet. instanceStore.instanceData is the canonical live source,
+// so unioning against it can only ever add missing tags back in, never drop one — except a
+// tag removed this session, which `removed` filters back out so a deferred commit doesn't
+// resurrect it.
+function currentValue(): number[] {
+    if (props.instanceId == null) return safeValue.value.filter(id => !removed.value.has(id))
+    const fromStore: number[] = instanceStore.instanceData[props.instanceId]?.properties[props.property.id] ?? []
+    return [...new Set([...safeValue.value, ...fromStore])].filter(id => !removed.value.has(id))
+}
+
 function onSelect(tag: Tag) {
-    if (props.property.type == PropertyType.tag && !props.forceMulti) {
+    removed.value.delete(tag.id)
+    if (props.forceMono || (props.property.type == PropertyType.tag && !props.forceMulti)) {
         emits('update:modelValue', [tag.id])
     } else {
-        emits('update:modelValue', [...safeValue.value, tag.id])
+        emits('update:modelValue', [...new Set([...currentValue(), tag.id])])
     }
 
     emits('select', tag)
@@ -51,7 +77,8 @@ function onCreate(tag: Tag) {
 }
 
 function onDelete(tagId: number) {
-    emits('update:modelValue', [...safeValue.value.filter(i => i != tagId)])
+    removed.value.add(tagId)
+    emits('update:modelValue', currentValue().filter(i => i != tagId))
     emits('remove', tagId)
     focus()
 }
@@ -68,11 +95,12 @@ function focus() {
 
 <template>
     <div>
-        <div class="overflow-hidden mb-1 text-wrap">
-            <template v-for="tag in tags">
-                <TagBadge v-if="tag" @delete="removeTag(tag)" :show-delete="true" :id="tag.id" class="me-1" />
+        <!-- selection zone: tinted header above the menu, chips wrapping over as many rows as
+             they need -->
+        <div v-if="tags.length" class="selection">
+            <template v-for="tag in tags" :key="tag?.id">
+                <TagBadge v-if="tag" @delete="removeTag(tag)" :show-delete="true" :id="tag.id" />
             </template>
-
         </div>
         <TagMenu :property="props.property" :excluded="allExcluded" :can-create="props.canCreate"
             :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete"
@@ -81,3 +109,20 @@ function focus() {
 
     </div>
 </template>
+
+<style scoped>
+.selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px 2px;
+    /* deliberately a shade under the white tag list below, so the two zones read apart */
+    background-color: color-mix(in srgb, var(--border-color) 20%, white);
+}
+
+/* The search field belongs to TagMenu but reads as part of this header: same tint, no rule
+   between the two zones — the tint change is the separation. */
+:deep(.search-row) {
+    background-color: color-mix(in srgb, var(--border-color) 20%, white);
+}
+</style>

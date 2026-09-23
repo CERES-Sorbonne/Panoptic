@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ParamDescription } from '@/data/models';
 import { objValues } from '@/utils/utils';
 import { computed, onMounted, ref } from 'vue'
@@ -57,7 +57,7 @@ async function submit() {
     for (let i in localInputs.value) {
         actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
     }
-    await actions.updateDefaultParams()
+    await actions.updateDefaultParams(funcId)
     emits('changed')
 }
 

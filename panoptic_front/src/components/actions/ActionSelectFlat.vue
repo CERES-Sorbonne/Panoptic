@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ActionContext, ExecuteActionPayload, ParamDescription } from '@/data/models';
 import { deepCopy, objValues, sleep, sourceFromFunction } from '@/utils/utils';
 import { computed, onMounted, ref } from 'vue'
@@ -7,8 +7,8 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import ParamInputRow from '../inputs/ParamInputRow.vue';
 import SectionDivider from '../utils/SectionDivider.vue';
-import { useProjectStore } from '@/data/projectStore';
-import { useDataStore } from '@/data/dataStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const actions = useActionStore()
 const project = useProjectStore()
@@ -96,7 +96,7 @@ async function call() {
         for (let i in localInputs.value) {
             actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
         }
-        await actions.updateDefaultParams()
+        await actions.updateDefaultParams(funcId)
 
         const update = {}
         update[props.action] = localFunction.value

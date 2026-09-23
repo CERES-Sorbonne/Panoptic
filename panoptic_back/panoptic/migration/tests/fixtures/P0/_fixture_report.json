@@ -1,0 +1,114 @@
+{
+  "version": "0.0.8",
+  "shape": "P0",
+  "images": 12,
+  "folders": [
+    [
+      1,
+      "sample_images",
+      null
+    ],
+    [
+      2,
+      "sub",
+      1
+    ]
+  ],
+  "properties": {
+    "txt": [
+      1,
+      "string"
+    ],
+    "num": [
+      2,
+      "number"
+    ],
+    "tag": [
+      3,
+      "tag"
+    ],
+    "multi": [
+      4,
+      "multi_tags"
+    ],
+    "imglink": [
+      5,
+      "image_link"
+    ],
+    "url": [
+      6,
+      "url"
+    ],
+    "date": [
+      7,
+      "date"
+    ],
+    "path": [
+      8,
+      "path"
+    ],
+    "color": [
+      9,
+      "color"
+    ],
+    "check": [
+      10,
+      "checkbox"
+    ]
+  },
+  "tags": {
+    "landscape": [
+      7,
+      [
+        0
+      ]
+    ],
+    "portrait": [
+      8,
+      [
+        0
+      ]
+    ],
+    "animal": [
+      1,
+      [
+        0
+      ]
+    ],
+    "mammal": [
+      2,
+      [
+        1
+      ]
+    ],
+    "cat": [
+      3,
+      [
+        2
+      ]
+    ],
+    "dog": [
+      4,
+      [
+        2
+      ]
+    ],
+    "bird": [
+      5,
+      [
+        1
+      ]
+    ],
+    "pet": [
+      6,
+      [
+        3,
+        4
+      ]
+    ]
+  },
+  "values": 118,
+  "tabs": "tabs table (2)",
+  "vectors": "images.vector (inline, dim 16) for 12 sha1s",
+  "plugin_data": "n/a - no plugin system in this era"
+}

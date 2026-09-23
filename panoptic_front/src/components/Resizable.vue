@@ -31,7 +31,11 @@ onMounted(() => {
       const entry = entries[0]
       const { width, height } = entry.contentRect
       text.value = `width: ${width}, height: ${height}`
-      emits('resize', elem.value.clientWidth+1)
+      // The element is border-box, so offsetWidth is exactly the width we set.
+      // Emitting anything else (clientWidth, contentRect) makes the value drift
+      // by the border/padding on every observer pass and the cell grows forever.
+      const w = elem.value.offsetWidth
+      if (w !== props.startWidth) emits('resize', w)
     })
 })
 

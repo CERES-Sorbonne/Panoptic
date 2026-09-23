@@ -8,11 +8,10 @@
  */
 import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
-import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
-import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
-import { deletedID, useDataStore } from '@/data/dataStore';
-import { objValues, sum } from '@/utils/utils';
+import TagListScroller from './TagListScroller.vue';
+import { deletedID, deletedName, Property, Tag, PropertyType, TagIndex } from '@/data/models';
+import { useDataStore } from '@/data/stores/dataStore';
+import { objValues } from '@/utils/utils';
 
 const data = useDataStore()
 
@@ -33,20 +32,26 @@ defineExpose({
 })
 
 const searchElem = ref(null)
+const listElem = ref(null)
 
 const tagFilter = ref('')
 
 
 const tagProposals = ref(null);
-const selectedIndex = ref(0)
+// undefined = nothing highlighted. The list opens with no row looking hovered; typing or an
+// arrow key puts the highlight on the first match.
+const selectedIndex = ref(undefined)
 
 const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredTagList.value.some(t => t.value == tagFilter.value))
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
+// A deleted tag is not removed from data.tags; the store marks it in place (id -> deletedID,
+// value -> deletedName). Exclude both markers so tombstoned / undone tags never appear.
+const isDeleted = (t: Tag) => t.id == deletedID || t.value == deletedName || t.deleted
 const tags = computed(() => {
     const res: TagIndex = {}
-    objValues(data.tags).filter(t => t.propertyId == props.property.id && t.id != deletedID).forEach(t => res[t.id] = t)
+    objValues(data.tags).filter(t => t.propertyId == props.property.id && !isDeleted(t)).forEach(t => res[t.id] = t)
     return res
 })
 const filteredTagList = computed(() => {
@@ -57,7 +62,6 @@ const filteredTagList = computed(() => {
     }
 
     filtered.sort((t1, t2) => t2.count - t1.count)
-    filtered = filtered.filter(t => !t.deleted)
     return filtered
 })
 
@@ -96,6 +100,7 @@ function moveSelected(value: number) {
     else if (value < 0 && selectedIndex.value > 0) {
         selectedIndex.value -= 1
     }
+    scrollToSelected()
 }
 
 
@@ -103,7 +108,7 @@ const selectOption = async function () {
     if (selectedIndex.value == undefined) return
 
     if (isCreateSelected.value) {
-        const newTag = await data.addTag(props.property.id, tagFilter.value);
+        const newTag = await data.addTag(props.property.id, tagFilter.value, undefined, -1);
         emits('create', newTag)
     }
     else if (selectedIndex.value < filteredTagList.value.length) {
@@ -117,11 +122,22 @@ const selectOption = async function () {
     }
 }
 
+function scrollToSelected() {
+    // The last index can be the "create tag" row, which lives outside the scroller.
+    if (selectedIndex.value == undefined || selectedIndex.value >= filteredTagList.value.length) return
+    listElem.value?.scrollToIndex(selectedIndex.value)
+}
+
 function endSelection(index) {
     if (selectedIndex.value == index) {
         selectedIndex.value = undefined
     }
 }
+
+// Searching means the top match is the one Enter should take.
+watch(tagFilter, (val) => {
+    selectedIndex.value = val.length ? 0 : undefined
+})
 
 watch(filteredTagList, () => {
     if (filteredTagList.value.length == 0 && isCreatePossible.value) {
@@ -133,47 +149,69 @@ watch(filteredTagList, () => {
 
 <template>
     <div class="m-0 p-0">
-        <div class="w-100 mb-1">
-            <input type="text" class="w-100" v-model="tagFilter" ref="searchElem"
+        <div class="w-100 search-row">
+            <input type="text" class="w-100 search" v-model="tagFilter" ref="searchElem"
                 style="font-size: 13px; min-width: 100px;" @keydown.down="moveSelected(1)"
                 @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""
                 @keydown.tab.stop.prevent="emits('tab')" />
         </div>
 
-        <div class="pb-0" style="max-height: 300px; overflow-y: auto;">
-            <div v-for="tag, index in filteredTagList" :class="optionClass(index)" style="cursor: pointer;"
-                @mouseover="selectedIndex = index" @mouseleave="endSelection(index)">
-                <div class="ms-2 d-flex">
-                    <div class="flex-grow-1" style="overflow: hidden;" @click="selectOption">
-                        <TagBadge :id="tag.id" />
-                    </div>
-                    <div v-if="props.canLink"
-                        :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
-                        <TagChildSelectDropdown :property-id="tag.propertyId" :tag-id="tag.id" @hide="focus" />
-                    </div>
-                    <div v-if="props.canCustomize || props.canDelete"
-                        :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
+        <!-- what the list below is for -->
+        <div class="list-hint">{{ $t('tag_menu_hint') }}</div>
 
-                        <TagOptionsDropdown :property-id="property.id" :tag-id="tag.id" :can-delete="props.canDelete"
-                            :can-customize="props.canCustomize" @delete="id => emits('delete', id)" @hide="focus" />
-                    </div>
-                    <div class="text-secondary" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
-                        {{tag.count + sum(tag.allChildren.map(c => data.tags[c].count))}}
-                    </div>
+        <div class="pb-0">
+            <TagListScroller ref="listElem" :property="props.property" :tags="filteredTagList"
+                v-model:selected-index="selectedIndex" :can-link="props.canLink" :can-customize="props.canCustomize"
+                :can-delete="props.canDelete" :max-height="300" @select="index => { selectedIndex = index; selectOption() }"
+                @delete="id => emits('delete', id)" @hide="focus" />
 
-                </div>
-            </div>
-            <div v-if="props.canCreate && isCreatePossible" :class="optionClass(filteredTagList.length)"
+            <div v-if="props.canCreate && isCreatePossible" :class="[optionClass(filteredTagList.length), 'tag-row']"
                 style="cursor: pointer;" @mouseover="selectedIndex = filteredTagList.length"
                 @click.prevent.stop="selectOption">
-                <span class="text-muted ms-1">Create </span>
-                <TagBadge :name="tagFilter" :color="-1" />
+                <!-- same ms-2 indent as the tag rows above: it is one of them, not a footer -->
+                <div class="ms-2 d-flex align-items-center">
+                    <span class="text-muted me-1">{{ $t('tag_menu_create') }}</span>
+                    <TagBadge :name="tagFilter" :color="-1" />
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
+/* No chrome of its own: it sits in whatever surface the host gives it (the tinted selection
+   zone in TagInput) and reads as a caret on that surface rather than as a boxed field. */
+.search {
+    appearance: none;
+    border: none;
+    outline: none;
+    /* no surface of its own: it sits on the host's tint and reads as a caret on it */
+    background-color: transparent;
+    padding: 2px 0;
+    font: inherit;
+}
+
+.search-row {
+    padding: 4px 8px 6px;
+}
+
+/* A row is a badge with room around it, not a line of text: without this the badges stack edge
+   to edge and read as one block. The padding is what separates them; the badge itself is then
+   centred in the row it sits in. */
+.tag-row {
+    /* pulled 4px out on each side and given the same back as padding: the row's highlight runs
+       wider than its content instead of hugging the badge, while the badge itself does not move */
+    margin: 0 -4px;
+    padding: 3px 4px;
+    border-radius: 3px;
+}
+
+.list-hint {
+    padding: 6px 8px 2px;
+    font-size: 12px;
+    color: var(--text-secondary, #6c757d);
+}
+
 .list {
     max-height: 400px;
     overflow-y: scroll;

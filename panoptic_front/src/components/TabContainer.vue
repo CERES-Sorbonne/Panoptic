@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { TabManager } from '@/core/TabManager';
-import { useTabStore } from '@/data/tabStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import { nextTick, onMounted, ref, watch } from 'vue';
 
 const tabStore = useTabStore()
 
 const props = defineProps<{
-    id?: number
+    id?: string
 }>()
 
 let tab: TabManager

@@ -3,19 +3,23 @@ import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, Prop
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { useDataStore } from '@/data/dataStore';
-import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useColumnStore } from '@/data/stores/columnStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 
 const data = useDataStore()
+const columnStore = useColumnStore()
+const instanceStore = useInstanceStore()
 const project = useProjectStore()
 
 const props = defineProps<{
-    images: Instance[],
+    images: Instance[] | (() => Instance[]),
     noBorder?: boolean,
     showNumber?: boolean
 }>()
 
-const emits = defineEmits(['stamped'])
+const emits = defineEmits(['stamped', 'show', 'hide'])
 
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
@@ -25,7 +29,6 @@ const dropdownElem = ref(null)
 function close() {
     clear()
     dropdownElem.value?.hide()
-    emits('stamped')
 }
 
 function clear() {
@@ -45,11 +48,17 @@ async function apply() {
     const instanceValues: InstancePropertyValue[] = []
     const imageValues: ImagePropertyValue[] = []
 
-    for (let propId of Object.keys(stamp).map(Number)) {
-        for (let img of props.images) {
+    const propIds = Object.keys(stamp).map(Number)
+    const resolvedImages = typeof props.images === 'function' ? props.images() : props.images
+    await instanceStore.ensureValues(resolvedImages.map(img => img.id), propIds)
+
+    for (let propId of propIds) {
+        for (let img of resolvedImages) {
             let stampValue = stamp[propId]
+            const slot = columnStore.slotMap.get(img.id)
+            if (slot === undefined) continue
             if (data.properties[propId].type == PropertyType.multi_tags && stampValue) {
-                const oldTags = img.properties[propId] ?? []
+                const oldTags = (instanceStore.instanceData[img.id]?.properties[propId] ?? [])
                 if (!modes[propId]) {
                     stampValue = Array.from(new Set([...oldTags, ...stampValue]))
                 }
@@ -66,25 +75,29 @@ async function apply() {
                 const value: InstancePropertyValue = { propertyId: propId, instanceId: img.id, value: stampValue }
                 instanceValues.push(value)
             } else {
-                const value: ImagePropertyValue = { propertyId: propId, sha1: img.sha1, value: stampValue }
+                const value: ImagePropertyValue = { propertyId: propId, sha1: columnStore.sha1s()[slot], value: stampValue }
                 imageValues.push(value)
             }
         }
     }
     await data.setPropertyValues(instanceValues, imageValues)
     close()
+    // only a real stamp notifies the parent (the selection bar clears the selection on it)
+    emits('stamped')
 }
 
 </script>
 
 <template>
     <div class="m-0 p-0">
-        <Dropdown ref="dropdownElem" :teleport="true">
+        <Dropdown ref="dropdownElem" :teleport="true" @show="emits('show')" @hide="emits('hide')">
             <template #button>
-                <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">
-                    <span v-if="props.showNumber"><i class="bi bi-paint-bucket" style="position: relative; left: 1px"></i></span>
-                    <span v-else>{{ $t('modals.tagging.button') }}</span>
-                </div>
+                <slot name="button">
+                    <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">
+                        <span v-if="props.showNumber"><i class="bi bi-paint-bucket" style="position: relative; left: 1px"></i></span>
+                        <span v-else>{{ $t('modals.tagging.button') }}</span>
+                    </div>
+                </slot>
             </template>
             <template #popup>
                 <div @keydown.escape.prevent.stop="">

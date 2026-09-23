@@ -9,7 +9,7 @@ import TagInputDropdown from './TagInputDropdown.vue';
 import { computed, nextTick, onMounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual } from '@/utils/utils';
 import { Instance, Property } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { Exception } from 'sass';
 
 const data = useDataStore()

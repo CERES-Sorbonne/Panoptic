@@ -3,7 +3,7 @@ from pathlib import Path
 
 from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, Property, PropertyMode, InstanceProperty, DbCommit, Instance
-from panoptic.utils import Trie, RelativePathTrie
+from panoptic.utils import RelativePathTrie
 
 TAG_ID = 1
 MULTI_TAGS_ID = 2
@@ -227,11 +227,11 @@ async def test_delete_empty_clones(instance_project: Project, import_csv: str):
     instances = await instance_project.db.get_instances()
     assert len(instances) == 20
 
-    props = await instance_project.db.get_properties(computed=False)
+    props = await instance_project.db.get_properties()
     for prop in props:
         await instance_project.db.delete_property(prop.id)
 
-    props2 = await instance_project.db.get_properties(computed=False)
+    props2 = await instance_project.db.get_properties()
     assert len(props2) == 0
 
     await instance_project.db.delete_empty_instance_clones()

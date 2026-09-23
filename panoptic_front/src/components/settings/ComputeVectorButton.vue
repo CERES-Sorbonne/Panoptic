@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { VectorType } from '@/data/models';
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 
 const props = defineProps<{
     vectorType: VectorType

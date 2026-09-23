@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { DbCommit, ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
 import { TabManager } from '@/core/TabManager';
 import draggableComponent from 'vuedraggable';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import WithToolTip from '../tooltips/withToolTip.vue';
 
 const data = useDataStore()
 const panoptic = usePanopticStore()
+const { t } = useI18n()
 
 const props = defineProps<{
     tab: TabManager
@@ -32,10 +34,10 @@ const group = computed(() => {
         return data.propertyGroups[props.node.groupId]
     }
     if (props.node.groupId == PropertyGroupId.DEFAULT) {
-        return { id: PropertyGroupId.DEFAULT, name: 'default' }
+        return { id: PropertyGroupId.DEFAULT, name: t('common.properties.default') }
     }
-    if (props.node.groupId == PropertyGroupId.COMPUTED) {
-        return { id: PropertyGroupId.COMPUTED, name: 'computed' }
+    if (props.node.groupId == PropertyGroupId.METADATA) {
+        return { id: PropertyGroupId.METADATA, name: t('common.properties.metadata') }
     }
 })
 
@@ -78,6 +80,7 @@ async function log(e) {
         if (groupId < 0) {
             groupId = null
         }
+        prop.propertyGroupId = groupId
         await data.updateProperty(prop.id, prop.name, groupId)
         await data.triggerPropertyTreeChange()
     }
@@ -100,59 +103,60 @@ watch(props, updateLocalName)
 </script>
 
 <template>
-    <div class="prop-container" v-if="data.propertyGroups[props.node.groupId] || props.node.groupId < 0">
+    <div class="prop-group" v-if="data.propertyGroups[props.node.groupId] || props.node.groupId < 0">
         <draggableComponent :list="props.node.propertyIds" :item-key="a => a"
             :group="props.node.groupId > 0 || props.node.groupId == PropertyGroupId.DEFAULT ? 'properties' : undefined"
             @change="log">
             <template #header>
-                <div class="d-flex group-container" @click="toggle">
-                    <div v-if="open"><i class="bi bi-caret-down-fill" /></div>
-                    <div v-if="!open"><i class="bi bi-caret-right-fill" /></div>
-                    
+                <div class="group-header" @click="toggle">
+                    <span class="group-caret">
+                        <i :class="open ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" />
+                    </span>
+
                     <template v-if="props.menuOpen">
-                        <div v-if="!editName" class="ms-2 text-capitalize overflow-hidden">{{ group.name }}</div>
-                        <div v-if="editName" class="ms-2">
+                        <span v-if="!editName" class="group-name">{{ group.name }}</span>
+                        <span v-else class="group-edit" @click.stop>
                             <TextInput :auto-focus="true" v-model="localName" style="background-color: white;"
-                                :min-height="25" :width="135" @submit="updateName" @cancel="updateLocalName"
+                                :min-height="22" :width="135" @submit="updateName" @cancel="updateLocalName"
                                 @blur="editName = false" />
-                        </div>
-                        <div class="flex-grow-1"></div>
-                        <Dropdown @click.prevent.stop="" v-if="props.node.groupId >= PropertyGroupId.DEFAULT">
-                            <template #button><i class="bb bi bi-three-dots" /></template>
-                            <template #popup="{ hide }">
-                                <div class="p-1">
-                                    <template v-if="isEditable">
-                                        <div class="bb" @click="editName = true; hide();">
-                                            {{ $t('main.menu.editName') }}
+                        </span>
+
+                        <div class="group-actions">
+                            <Dropdown @click.prevent.stop="" v-if="props.node.groupId >= PropertyGroupId.DEFAULT">
+                                <template #button><i class="group-action bi bi-three-dots" /></template>
+                                <template #popup="{ hide }">
+                                    <div class="p-1">
+                                        <template v-if="isEditable">
+                                            <div class="bb" @click="editName = true; hide();">
+                                                {{ $t('main.menu.editName') }}
+                                            </div>
+                                            <div class="bb" @click="deleteGroup">
+                                                {{ $t('main.menu.removeGroup') }}
+                                            </div>
+                                        </template>
+                                        <div class="bb" @click="deleteProperties(); hide();">
+                                            {{ $t('main.menu.deleteGroupAndProperties') }}
                                         </div>
-                                        <div class="bb" @click="deleteGroup">
-                                            {{ $t('main.menu.removeGroup') }}
-                                        </div>
-                                    </template>
-                                    <div class="bb" @click="deleteProperties(); hide();">
-                                        {{ $t('main.menu.deleteGroupAndProperties') }}
                                     </div>
-                                </div>
-                            </template>
-                        </Dropdown>
-                        <div v-if="props.node.groupId >= -1" class="bb me-1"
-                            @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, { group: props.node.groupId })">
-                            <WithToolTip :message="$t('main.menu.addNewPropertyToGroup')">
-                                <i class="bi bi-plus" />
-                            </WithToolTip>
+                                </template>
+                            </Dropdown>
+                            <span v-if="props.node.groupId >= -1" class="group-action"
+                                @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, { group: props.node.groupId })">
+                                <WithToolTip :message="$t('main.menu.addNewPropertyToGroup')">
+                                    <i class="bi bi-plus-lg" />
+                                </WithToolTip>
+                            </span>
                         </div>
                     </template>
-                    <div v-if="props.node.propertyIds.length" style="cursor: pointer; flex-shrink: 0; margin-right: 11px;"
-                        @click.stop="toggleVisible"> <span
-                            :class="'bi bi-eye text-' + (allVisible ? 'primary' : 'secondary')"></span></div>
 
+                    <span v-if="props.node.propertyIds.length" class="group-eye" @click.stop="toggleVisible">
+                        <i :class="'bi bi-eye text-' + (allVisible ? 'primary' : 'secondary')"></i>
+                    </span>
                 </div>
             </template>
             <template #item="{ element, index }">
-                <div v-if="open && properties.length && data.properties[element]" class="ps-1 pe-1">
-                    <div class="property-item">
-                        <PropertyOptions :tab="props.tab" :property="data.properties[element]" :open="props.menuOpen" />
-                    </div>
+                <div v-if="open && properties.length && data.properties[element]" class="property-item">
+                    <PropertyOptions :tab="props.tab" :property="data.properties[element]" :open="props.menuOpen" />
                 </div>
             </template>
         </draggableComponent>
@@ -161,20 +165,96 @@ watch(props, updateLocalName)
 
 
 <style scoped>
-.group-container {
+.prop-group {
+    margin-bottom: 2px;
+}
+
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 var(--spacing-sm);
     cursor: pointer;
-    background-color: rgba(195, 207, 217, 0.158);
-    padding: 4px 0px 2px 4px;
+    white-space: nowrap;
 }
 
-.group-container:hover {
-    background-color: rgba(195, 207, 217, 0.397);
+.group-header:hover {
+    background-color: var(--hover-bg);
 }
 
-.prop-container {
-    border: 1px solid var(--border-color);
-    border-radius: 3px;
-    /* background-color: rgb(212, 212, 212); */
+.group-caret {
+    width: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.group-name {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
     overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.group-edit {
+    display: inline-flex;
+    align-items: center;
+}
+
+.group-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    opacity: 0;
+}
+
+.group-header:hover .group-actions {
+    opacity: 1;
+}
+
+.group-action {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.group-action:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.group-eye {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    padding-right: 2px;
+    font-size: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+/* When actions are present they own the margin-left:auto, so the eye sits next to them */
+.group-actions + .group-eye {
+    margin-left: 4px;
+}
+
+.property-item {
+    padding: 0;
+    border: none;
 }
 </style>

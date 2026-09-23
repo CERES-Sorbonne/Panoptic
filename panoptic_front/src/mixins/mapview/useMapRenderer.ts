@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted, shallowRef, type Ref, watch, ref } from 'vue'
 import { MapRenderer } from './MapRenderer'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 
 /**
  * Controller Composable for the MapRenderer.

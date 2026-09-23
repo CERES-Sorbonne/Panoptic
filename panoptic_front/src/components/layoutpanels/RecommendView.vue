@@ -1,0 +1,838 @@
+<script setup lang="ts">
+// Group recommendation workspace. Header: view title, then the group selection
+// and the similarity function. Below: a top-level vertical split between the
+// next-recommendation hero (accept / refuse) and the panels block. The panels
+// block holds three panels — the incoming queue, the images already in the
+// group, and the blacklist — each a virtualized flat ImageScroller over its own
+// instance list. The hero divider resizes the hero against the whole
+// panels block; the panels resize among themselves and can be collapsed to their
+// header. Each panel has its own selection namespace so selecting in one panel
+// doesn't affect the others or the global selection.
+import { computed, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import CenteredImage from '@/components/images/CenteredImage.vue'
+import ActionButton2 from '@/components/actions/ActionButton2.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
+import RecoPanel from '@/components/layoutpanels/RecoPanel.vue'
+import GroupSelect from '@/components/layoutpanels/GroupSelect.vue'
+import { Group, GroupType } from '@/core/GroupManager'
+import { isNoValue } from '@/core/group/valueParser'
+import { CollectionManager } from '@/core/CollectionManager'
+import { TabManager } from '@/core/TabManager'
+import {
+    ActionResult, ImagePropertyValue, Instance, InstancePropertyValue,
+    PropertyMode, PropertyType, PropertyValue as PropertyValueModel, RecoOptions,
+} from '@/data/models'
+import { useActionStore } from '@/data/stores/actionStore'
+import { useDataStore } from '@/data/stores/dataStore'
+import { useColumnStore } from '@/data/stores/columnStore'
+import { convertSearchGroupResult, sortGroupByScore } from '@/core/group/convertGroupResult'
+import { apiGetUIData, apiSetUIData } from '@/data/api/projectApi'
+
+const data = useDataStore()
+const actions = useActionStore()
+const col = useColumnStore()
+
+const props = defineProps<{
+    tab: TabManager
+    collection: CollectionManager
+    recoOptions: RecoOptions
+    imageSize: number
+    width: number
+    height: number
+}>()
+
+const emit = defineEmits(['close'])
+
+// ---- Group selection ---------------------------------------------------------
+
+function isEligible(g: Group): boolean {
+    const hasImages = g.slots.length > 0
+    const hasSubgroups = g.children.length > 0
+    const someValue = (g.meta.propertyValues ?? []).some(v => !isNoValue(v.value))
+    return hasImages && !hasSubgroups && g.type != GroupType.Cluster && someValue
+}
+
+// Eligible leaf groups in display order (DFS).
+const eligibleGroups = computed(() => {
+    props.collection.version.value // reactive dep on the group tree
+    const root = props.collection.result?.root
+    if (!root) return [] as Group[]
+    const res: Group[] = []
+    const stack: Group[] = [root]
+    while (stack.length) {
+        const g = stack.pop()!
+        if (isEligible(g)) res.push(g)
+        for (let i = g.children.length - 1; i >= 0; i--) stack.push(g.children[i])
+    }
+    return res
+})
+
+// Selected group, revalidated against the eligible list (falls back to first).
+const group = computed<Group | null>(() => {
+    const groups = eligibleGroups.value
+    if (!groups.length) return null
+    return groups.find(g => g.id === props.recoOptions.selectedGroupId) ?? groups[0]
+})
+
+function selectGroup(g: Group) {
+    props.recoOptions.selectedGroupId = g.id
+}
+
+// ---- Search + curation state -------------------------------------------------
+
+const searchResult = ref<Group>(null)
+const propertyValues = reactive([]) as PropertyValueModel[]
+const blacklist = reactive(new Set<number>())
+// Accepted images: filtered out of the proposed queue but NOT blacklisted
+// (session-only; group membership keeps them out after a reload).
+const accepted = reactive(new Set<number>())
+const useFilter = ref(true)
+
+const similarIds = ref<number[]>([])
+
+const groupIds = computed<number[]>(() => {
+    props.collection.version.value
+    if (!group.value) return []
+    const ids = col.instanceIds()
+    const g = props.collection.result.index[group.value.id]
+    return g ? g.slots.map(s => ids[s]) : []
+})
+
+const queueIds = computed<number[]>(() => {
+    const inGroup = new Set(groupIds.value)
+    return similarIds.value.filter(id => !inGroup.has(id) && !blacklist.has(id) && !accepted.has(id))
+})
+
+const blacklistIds = computed<number[]>(() => Array.from(blacklist))
+
+const hero = computed<Instance | null>(() => {
+    const id = queueIds.value[0]
+    return id != undefined ? data.instances[id] : null
+})
+
+// ---- Instance lists feeding the three panels ---------------------------------
+
+// The panels are flat ImageScrollers, so they only need the instances themselves;
+// each keeps its own selection namespace (disposed on unmount).
+// instanceStore entries are created lazily (on register), so an id may have no
+// entry yet — fall back to a minimal instance, as the image cells do, instead of
+// dropping it. Dropping it would empty the panels and, worse, empty the
+// similarity context sent to the backend.
+function toInstances(ids: number[]): Instance[] {
+    return ids.map(id => (data.instances[id] ?? { id, imageUrl: '' }) as Instance)
+}
+
+const queueInstances = computed(() => toInstances(queueIds.value))
+const groupPanelInstances = computed(() => toInstances(groupIds.value))
+const blacklistInstances = computed(() => toInstances(blacklistIds.value))
+
+onUnmounted(() => {
+    col.disposeNamespace('reco-queue')
+    col.disposeNamespace('reco-group')
+    col.disposeNamespace('reco-blacklist')
+})
+
+// ---- Blacklist persistence (one entry per group id) --------------------------
+
+function blacklistKey() {
+    return 'group_blacklist.' + group.value?.id
+}
+
+async function loadBlacklist() {
+    blacklist.clear()
+    if (!group.value) return
+    const saved = await apiGetUIData(blacklistKey()) as number[] | null
+    if (Array.isArray(saved)) saved.forEach(id => blacklist.add(id))
+}
+
+function persistBlacklist() {
+    if (!group.value) return
+    apiSetUIData(blacklistKey(), Array.from(blacklist)) // fire-and-forget
+}
+
+// ---- Recommendations ---------------------------------------------------------
+
+// Ids of the current group's instances, used both as the similarity search
+// context and as the images passed to the header's similarity ActionButton2.
+const groupInstances = computed<Instance[]>(() => toInstances(groupIds.value))
+
+async function applySimilarResult(res: ActionResult) {
+    if (!res || !res.groups) return
+
+    let searchGroup = convertSearchGroupResult(res.groups)[0]
+    if (!searchGroup) return
+
+    const ids = col.instanceIds()
+    if (useFilter.value) {
+        const valid = new Set(
+            Array.from(props.collection.filterManager.result.slots).map(s => ids[s])
+        )
+        searchGroup.slots = searchGroup.slots.filter(s => valid.has(ids[s]))
+    }
+    if (searchGroup.scores) sortGroupByScore(searchGroup)
+    searchResult.value = searchGroup
+
+    // The group's defining property values (walked up the tree) — applied on accept.
+    propertyValues.length = 0
+    let current: Group = group.value
+    while (current) {
+        if (current.meta.propertyValues) propertyValues.push(...current.meta.propertyValues)
+        current = current.parent
+    }
+
+    await loadBlacklist()
+    similarIds.value = searchGroup.slots.map(s => ids[s])
+}
+
+async function getReco() {
+    similarIds.value = []
+    accepted.clear()
+    if (!group.value) return
+    if (!actions.hasSimilaryFunction) return
+
+    const func = actions.defaultActions['similar']
+    const ctx = actions.getContext(func)
+    // An empty list means "the whole project" to the backend, which then ignores
+    // every sha1 and returns nothing — never call with an empty context.
+    ctx.instanceIds = groupIds.value
+    if (!ctx.instanceIds.length) return
+    const res = await actions.getSimilarImages(ctx)
+    await applySimilarResult(res)
+}
+
+async function onSimilarCall(res: ActionResult) {
+    similarIds.value = []
+    accepted.clear()
+    if (!group.value) return
+    await applySimilarResult(res)
+}
+
+// Instance data lives in the column store (the Instance object only carries
+// id / imageUrl), so sha1 and property values are read through the slot.
+function sha1Of(image: Instance): string {
+    const slot = col.slotMap.get(image.id)
+    return slot !== undefined ? col.sha1s()[slot] as string : undefined
+}
+
+function valueOf(image: Instance, propertyId: number): any {
+    const slot = col.slotMap.get(image.id)
+    return slot !== undefined ? col.readSlot(propertyId, slot) : undefined
+}
+
+async function acceptRecommend(image: Instance) {
+    const imageValues: ImagePropertyValue[] = []
+    const instanceValues: InstancePropertyValue[] = []
+
+    propertyValues.forEach(v => {
+        if (v.value != undefined) {
+            const prop = data.properties[v.propertyId]
+            let value = v.value
+            if (prop.type == PropertyType.multi_tags) {
+                value = valueOf(image, v.propertyId) ?? []
+                value = [...value, v.value]
+            } else if (prop.type == PropertyType.tag) {
+                value = [value]
+            }
+            if (prop.mode == PropertyMode.id) {
+                instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
+            } else {
+                imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
+            }
+        }
+    })
+    await data.setPropertyValues(instanceValues, imageValues)
+    // The image now matches the group; keep it out of the queue without
+    // blacklisting it (it belongs to the group now).
+    matchingIds(image).forEach(id => accepted.add(id))
+}
+
+// Ids to hide for a recommendation. For a sha1 group every instance sharing the
+// image's sha1 is included (they are the same picture).
+function matchingIds(image: Instance): number[] {
+    if (searchResult.value?.isSha1Group) {
+        const ids = col.instanceIds()
+        const sha1s = col.sha1s()
+        const sha1 = sha1Of(image)
+        return Array.from(searchResult.value.slots)
+            .filter(s => sha1s[s] == sha1)
+            .map(s => ids[s])
+    }
+    return [image.id]
+}
+
+function refuseRecommend(image: Instance) {
+    matchingIds(image).forEach(id => blacklist.add(id))
+    persistBlacklist()
+}
+
+function toggleFilter() {
+    useFilter.value = !useFilter.value
+}
+
+// ---- Per-panel batch actions (operate on each panel's own selection) ---------
+
+// Remove images from the current group by unsetting the group's defining
+// property values (inverse of acceptRecommend). For multi_tags the group tag is
+// pulled out of the image's list; other types are cleared to null.
+async function removeFromGroup(images: Instance[]) {
+    if (!group.value || !images.length) return
+    const defining = group.value.meta.propertyValues ?? []
+    const imageValues: ImagePropertyValue[] = []
+    const instanceValues: InstancePropertyValue[] = []
+    images.forEach(image => {
+        defining.forEach(v => {
+            if (v.value == undefined) return
+            const prop = data.properties[v.propertyId]
+            let value: any = null
+            if (prop.type == PropertyType.multi_tags) {
+                const cur = valueOf(image, v.propertyId) ?? []
+                value = cur.filter((t: any) => t !== v.value)
+            }
+            if (prop.mode == PropertyMode.id) {
+                instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
+            } else {
+                imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
+            }
+        })
+    })
+    await data.setPropertyValues(instanceValues, imageValues)
+}
+
+function selectedInstances(ns: string): Instance[] {
+    return col.getSelectedIds(ns).map(id => data.instances[id]).filter(Boolean) as Instance[]
+}
+
+async function acceptSelected() {
+    for (const img of selectedInstances('reco-queue')) await acceptRecommend(img)
+    col.clearSelection('reco-queue')
+}
+
+function refuseSelected() {
+    selectedInstances('reco-queue').forEach(img => refuseRecommend(img))
+    col.clearSelection('reco-queue')
+}
+
+async function removeSelectedFromGroup() {
+    await removeFromGroup(selectedInstances('reco-group'))
+    col.clearSelection('reco-group')
+}
+
+function removeSelectedFromBlacklist() {
+    col.getSelectedIds('reco-blacklist').forEach(id => blacklist.delete(id))
+    persistBlacklist()
+    col.clearSelection('reco-blacklist')
+}
+
+onMounted(getReco)
+watch(group, getReco)
+watch(useFilter, getReco)
+
+// ---- Resizable / collapsible stack -------------------------------------------
+
+const HEADER_PX = 27  // a collapsed panel keeps only its header
+
+type PanelKey = 'queue' | 'group' | 'blacklist'
+const panelKeys: PanelKey[] = ['queue', 'group', 'blacklist']
+
+// Top-level split: the hero vs the whole panels block.
+const heroWeight = ref(1.3)
+const panelsWeight = ref(2.7)
+
+// Weights + collapse state within the panels block.
+const panelWeights = reactive<Record<PanelKey, number>>({ queue: 1, group: 1, blacklist: 1 })
+const collapsed = reactive<Record<PanelKey, boolean>>({ queue: false, group: false, blacklist: false })
+
+const panelItems = computed(() => ([
+    { key: 'queue' as PanelKey, titleKey: 'main.reco.incoming', instances: queueInstances.value, inputKey: 'reco-queue', emptyKey: 'main.reco.no_more' },
+    { key: 'group' as PanelKey, titleKey: 'main.reco.in_group', instances: groupPanelInstances.value, inputKey: 'reco-group', emptyKey: '' },
+    { key: 'blacklist' as PanelKey, titleKey: 'main.reco.blacklist', instances: blacklistInstances.value, inputKey: 'reco-blacklist', emptyKey: '' },
+]))
+
+const heroStyle = computed(() => ({ flex: `${heroWeight.value} 1 0`, minHeight: '150px' }))
+const panelsStyle = computed(() => ({ flex: `${panelsWeight.value} 1 0`, minHeight: '0' }))
+
+function panelSlotStyle(key: PanelKey) {
+    if (collapsed[key]) return { flex: '0 0 auto' }
+    return { flex: `${panelWeights[key]} 1 0`, minHeight: '0' }
+}
+
+function toggleCollapse(key: PanelKey) {
+    collapsed[key] = !collapsed[key]
+}
+
+// Nearest expanded panel strictly after position li (the handle sits after li).
+function nextExpandedPanel(li: number): number {
+    for (let j = li + 1; j < panelKeys.length; j++) if (!collapsed[panelKeys[j]]) return j
+    return -1
+}
+
+// Nearest expanded panel at or before position li — the collapsed panels between
+// it and the handle are skipped so the divider still resizes across them.
+function prevExpandedPanel(li: number): number {
+    for (let j = li; j >= 0; j--) if (!collapsed[panelKeys[j]]) return j
+    return -1
+}
+
+function showPanelHandle(li: number): boolean {
+    return prevExpandedPanel(li) !== -1 && nextExpandedPanel(li) !== -1
+}
+
+const stackRef = ref<HTMLElement>()
+const panelsRef = ref<HTMLElement>()
+
+type ResizeState =
+    | { mode: 'hero'; startY: number; wh: number; wp: number }
+    | { mode: 'panel'; a: PanelKey; b: PanelKey; startY: number; wa: number; wb: number }
+let resizeState: ResizeState | null = null
+
+function startHeroResize(e: PointerEvent) {
+    resizeState = { mode: 'hero', startY: e.clientY, wh: heroWeight.value, wp: panelsWeight.value }
+    attachResize()
+    e.preventDefault()
+}
+
+function startPanelResize(li: number, e: PointerEvent) {
+    const i = prevExpandedPanel(li)
+    const j = nextExpandedPanel(li)
+    if (i < 0 || j < 0) return
+    resizeState = {
+        mode: 'panel', a: panelKeys[i], b: panelKeys[j], startY: e.clientY,
+        wa: panelWeights[panelKeys[i]], wb: panelWeights[panelKeys[j]],
+    }
+    attachResize()
+    e.preventDefault()
+}
+
+function attachResize() {
+    window.addEventListener('pointermove', onResize)
+    window.addEventListener('pointerup', stopResize)
+}
+
+function onResize(e: PointerEvent) {
+    if (!resizeState) return
+    if (resizeState.mode === 'hero') {
+        const { startY, wh, wp } = resizeState
+        const total = wh + wp
+        const px = stackRef.value?.clientHeight ?? 0
+        if (px <= 0) return
+        const dw = ((e.clientY - startY) / px) * total
+        const min = 0.4
+        const na = Math.min(total - min, Math.max(min, wh + dw))
+        heroWeight.value = na
+        panelsWeight.value = total - na
+    } else {
+        const { a, b, startY, wa, wb } = resizeState
+        const total = wa + wb
+        const sumW = panelKeys.filter(k => !collapsed[k]).reduce((s, k) => s + panelWeights[k], 0)
+        const collapsedCount = panelKeys.filter(k => collapsed[k]).length
+        const px = (panelsRef.value?.clientHeight ?? 0) - collapsedCount * HEADER_PX
+        if (px <= 0 || sumW <= 0) return
+        const combinedPx = px * total / sumW
+        const dw = ((e.clientY - startY) / combinedPx) * total
+        const min = 0.15
+        const na = Math.min(total - min, Math.max(min, wa + dw))
+        panelWeights[a] = na
+        panelWeights[b] = total - na
+    }
+}
+
+function stopResize() {
+    resizeState = null
+    window.removeEventListener('pointermove', onResize)
+    window.removeEventListener('pointerup', stopResize)
+}
+
+onBeforeUnmount(stopResize)
+
+// ---- Hero image sizing (tracks its resizable slot) ---------------------------
+
+const heroImageRef = ref<HTMLElement>()
+const heroDims = ref({ width: 0, height: 0 })
+let heroObserver: ResizeObserver | null = null
+
+watch(heroImageRef, (el, old) => {
+    if (!heroObserver) {
+        heroObserver = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect
+                heroDims.value = { width, height }
+            }
+        })
+    }
+    if (old) heroObserver.unobserve(old)
+    if (el) heroObserver.observe(el)
+})
+
+onBeforeUnmount(() => heroObserver?.disconnect())
+</script>
+
+<template>
+    <div class="reco-workspace" :style="{ height: props.height + 'px' }">
+        <!-- Header: title, then group selection + similarity function -->
+        <div class="reco-header">
+            <div class="d-flex" style="column-gap: 4px;">
+                <wTT message="main.recommand.filter">
+                    <span class="sb" @click="toggleFilter">
+                        <span :class="useFilter ? 'bi bi-funnel-fill text-primary' : 'bi bi-funnel'"></span>
+                        <span class="filter-label">Filtrer</span>
+                    </span>
+                </wTT>
+
+                <ActionButton2 :no-border="true" action="similar" @call="onSimilarCall" :images="groupInstances">
+                    <span>
+                        <i class="bi bi-boxes me-1" />{{ actions.defaultActions['similar'] }}
+                    </span>
+                </ActionButton2>
+
+                <GroupSelect :groups="eligibleGroups" :selected="group" @select="selectGroup" />
+
+                <wTT message="main.recommand.reload">
+                    <span class="sb reload-tool" @click="getReco"><span class="bi bi-arrow-clockwise"
+                            style="position: relative; top: 1px;"></span></span>
+                </wTT>
+            </div>
+        </div>
+
+        <div v-if="!group" class="reco-empty text-secondary">{{ $t('main.reco.empty') }}</div>
+
+        <!-- Top-level split: hero vs the whole panels block -->
+        <div v-else class="stack" ref="stackRef">
+            <div class="hero-slot" :style="heroStyle">
+                <div class="hero">
+                    <div ref="heroImageRef" class="hero-image">
+                        <CenteredImage v-if="hero && heroDims.height > 0" :instance-id="hero.id"
+                            :width="Math.max(heroDims.width - 16, 40)" :height="Math.max(heroDims.height - 8, 40)" />
+                        <div v-else-if="!hero" class="hero-empty text-secondary">{{ $t('main.reco.no_more') }}</div>
+                    </div>
+                    <div v-if="hero" class="hero-actions">
+                        <wTT message="main.recommand.accept">
+                            <button class="accept" @click="acceptRecommend(hero)"><span
+                                    class="bi bi-check-lg"></span></button>
+                        </wTT>
+                        <wTT message="main.recommand.refuse">
+                            <button class="refuse" @click="refuseRecommend(hero)"><span
+                                    class="bi bi-x-lg"></span></button>
+                        </wTT>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stack-handle resizable" @pointerdown="startHeroResize">
+                <div class="stack-handle-line"></div>
+            </div>
+
+            <!-- Panels block: resize among themselves, collapsible -->
+            <div class="panels" ref="panelsRef" :style="panelsStyle">
+                <template v-for="(it, li) in panelItems" :key="it.key">
+                    <div class="panel-slot" :style="panelSlotStyle(it.key)">
+                        <RecoPanel :title="$t(it.titleKey)" :instances="it.instances" :image-size="imageSize"
+                            :input-key="it.inputKey" :select-namespace="it.inputKey"
+                            :collapsed="collapsed[it.key]" :empty-message="it.emptyKey ? $t(it.emptyKey) : undefined"
+                            @toggle="toggleCollapse(it.key)">
+                            <template #actions>
+                                <template v-if="it.key === 'queue'">
+                                    <wTT message="main.reco.accept_selected">
+                                        <button class="panel-action accept" @click="acceptSelected">
+                                            <span class="bi bi-check-lg"></span>
+                                        </button>
+                                    </wTT>
+                                    <wTT message="main.reco.refuse_selected">
+                                        <button class="panel-action refuse" @click="refuseSelected">
+                                            <span class="bi bi-x-lg"></span>
+                                        </button>
+                                    </wTT>
+                                </template>
+                                <button v-else-if="it.key === 'group'" class="panel-action text"
+                                    @click="removeSelectedFromGroup">
+                                    {{ $t('main.reco.remove_from_group') }}
+                                </button>
+                                <button v-else-if="it.key === 'blacklist'" class="panel-action text"
+                                    @click="removeSelectedFromBlacklist">
+                                    {{ $t('main.reco.remove_from_blacklist') }}
+                                </button>
+                            </template>
+                        </RecoPanel>
+                    </div>
+                    <div v-if="li < panelItems.length - 1" class="stack-handle"
+                        :class="{ resizable: showPanelHandle(li) }"
+                        @pointerdown="showPanelHandle(li) && startPanelResize(li, $event)">
+                        <div class="stack-handle-line"></div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.reco-workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.reco-header {
+    flex-shrink: 0;
+    margin-top: 4px;
+    margin-left: -2px;
+    /* border-bottom: 1px solid var(--border-color); */
+}
+
+.reco-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-md, 15px);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.reco-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 15px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.reco-close:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.reco-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.control-sep {
+    width: 1px;
+    align-self: stretch;
+    background-color: var(--border-color);
+    margin: 2px var(--spacing-xs);
+}
+
+.reco-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* The stack fills all remaining space. */
+.stack {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Full-width slots so a panel (and its title) always spans the whole width,
+   even when collapsed. */
+.hero-slot,
+.panel-slot {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.panels {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: var(--spacing-sm) 0;
+}
+
+.hero-image {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+.accept,
+.refuse {
+    width: 110px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.accept {
+    color: var(--text-success, #2e7d32);
+    border-color: var(--validate-border);
+}
+
+.accept:hover {
+    background-color: var(--validate-border);
+}
+
+.refuse {
+    color: var(--text-danger, #c62828);
+    border-color: var(--refuse-border);
+}
+
+.refuse:hover {
+    background-color: var(--refuse-border);
+}
+
+/* Compact per-panel selection action buttons (header). Reuse the accept/refuse
+   colouring but override the hero sizing. */
+.panel-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    padding: 0 var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.panel-action.accept,
+.panel-action.refuse {
+    width: 26px;
+    height: 20px;
+    font-size: 13px;
+}
+
+.panel-action.accept {
+    color: var(--text-success, #2e7d32);
+    border-color: var(--validate-border);
+}
+
+.panel-action.accept:hover {
+    background-color: var(--validate-border);
+}
+
+.panel-action.refuse {
+    color: var(--text-danger, #c62828);
+    border-color: var(--refuse-border);
+}
+
+.panel-action.refuse:hover {
+    background-color: var(--refuse-border);
+}
+
+.panel-action.text:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+/* Consistent thin gutter between every stack item (drag-resizable where the
+   `resizable` class is set; a plain spacer otherwise). */
+.stack-handle {
+    position: relative;
+    height: 6px;
+    flex-shrink: 0;
+}
+
+.stack-handle.resizable {
+    cursor: row-resize;
+}
+
+.stack-handle-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    transform: translateY(-50%);
+    border-radius: 1px;
+    background-color: transparent;
+    transition: background-color var(--transition-fast);
+}
+
+.stack-handle.resizable:hover .stack-handle-line {
+    background-color: var(--primary);
+}
+
+.tool {
+    text-align: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    /* font-size: 20px; */
+    padding-top: 2px;
+}
+
+.tool:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.reload-tool {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    /* top:1px; */
+}
+
+.filter-tool {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    height: auto;
+    padding: 0px 2px;
+    border-radius: 3px;
+
+    color: var(--text-primary);
+}
+
+.filter-label {
+    white-space: nowrap;
+}
+
+.group-select-label {
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+</style>

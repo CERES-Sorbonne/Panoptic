@@ -1,8 +1,8 @@
 <script setup lang="ts">
 
 import { ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useProjectStore } from '@/data/projectStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { onMounted, inject, watch, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -213,7 +213,7 @@ const steps = props.tutorial === 'home' ? steps_home : step_projects
 
 let currentStep = parseInt(localStorage.getItem('currentStep') || '0')
 
-const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) && panoptic.serverState.projects.length > 0)
+const hasProjects = computed(() => panoptic.projects.length > 0)
 const showTutorial = computed(() => ((!hasProjects.value) || project.showTutorial))
 
 watch(showTutorial, async () => {

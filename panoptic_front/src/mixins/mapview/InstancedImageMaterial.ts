@@ -25,13 +25,15 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 attribute vec3 vBorderCol;
                 attribute float vBorderWidth;
                 attribute float vRatioAttr;
+                attribute float vDesaturate;
 
                 varying vec2 vMappedUv;
-                varying vec2 vRawUv; 
+                varying vec2 vRawUv;
                 varying vec4 vInstanceTint;
                 varying vec3 vInstanceBorder;
                 varying float vInstanceBorderWidth;
-                varying float vRatio; 
+                varying float vRatio;
+                varying float vInstanceDesaturate;
 
                 uniform float uGridCols;
                 uniform float uGridRows;
@@ -74,9 +76,6 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                         // Portrait: Height is 1.0, Width is Ratio
                         sizeScale = vec2(vRatio, 1.0);
                     }
-                    if(uZoom < z1/2.0) {
-                        sizeScale = vec2(1.0, 1.0);
-                    }
 
                     transformed.xy *= sizeScale * zoomScale;
                 }
@@ -95,6 +94,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 vInstanceTint = vTint;
                 vInstanceBorder = vBorderCol;
                 vInstanceBorderWidth = vBorderWidth;
+                vInstanceDesaturate = vDesaturate;
                 `
             );
 
@@ -105,9 +105,12 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying vec3 vInstanceBorder;
                 varying float vInstanceBorderWidth;
                 varying float vRatio;
+                varying float vInstanceDesaturate;
 
                 uniform float uRadius;
                 uniform float uShowAsPoint;
+                uniform float uZoom;
+                uniform vec3 uZoomParams;
 
                 float sdRoundedBox(vec2 p, vec2 b, float r) {
                     vec2 q = abs(p) - b + r;
@@ -122,12 +125,15 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 if(uShowAsPoint > 0.5) {
     vec2 p = vRawUv - 0.5;
     float dist = length(p);
-    
+
     // Use a larger radius (0.5 fills the square) to ensure visibility
-    float pointRadius = 0.45; 
-    float aa = 0.1; // Softer edge for points
-    float pointMask = smoothstep(pointRadius + aa, pointRadius, dist);
-    
+    float pointRadius = 0.45;
+    // Antialias over roughly one screen pixel (fwidth) rather than a fixed slice of the quad:
+    // a constant uv-space width is a large fraction of the dot's radius, so the fade read as a
+    // pale halo where the dot blended into the white background.
+    float aa = fwidth(dist);
+    float pointMask = smoothstep(pointRadius + aa, pointRadius - aa, dist);
+
     // Instead of multiplying, use the logic from your image mode:
     // This ensures that if it's visible in image mode, it's visible here.
     vec3 finalRGB = mix(vInstanceBorder, vInstanceTint.rgb, vInstanceTint.a);
@@ -150,16 +156,35 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     
                     float aa = 0.002; 
                     float outsideMask = smoothstep(aa, 0.0, d);
-                    float borderMask = smoothstep(aa, 0.0, d + vInstanceBorderWidth);
+                    // The border shrinks as the camera zooms in (scale = z1/uZoom, capped at 1):
+                    // zoomed out, the coloured ring is the only way to read a group's colour, but
+                    // on a close-up a full-width ring would just cover the photo. Zooming below z1
+                    // keeps it at full strength, so it is thickest exactly when thumbnails are
+                    // smallest. A floor proportional to the set border width (MIN_BORDER_RATIO)
+                    // stops it from vanishing entirely at extreme zoom-in.
+                    const float MIN_BORDER_RATIO = 0.15;
+                    float borderScale = clamp(uZoomParams.y / max(uZoom, uZoomParams.y), 0.0, 1.0);
+                    float borderW = vInstanceBorderWidth * max(borderScale, MIN_BORDER_RATIO);
+                    float borderMask = smoothstep(aa, 0.0, d + borderW);
 
                     vec4 texelColor = texture2D( map, vMappedUv );
-                    
+
+                    // Grey out (per-pixel luminance, not a flat colour wash) before tinting, so a
+                    // dimmed-group photo and a blue selection overlay compose instead of fighting.
+                    float luminance = dot(texelColor.rgb, vec3(0.299, 0.587, 0.114));
+                    vec3 desaturatedColor = mix(texelColor.rgb, vec3(luminance), vInstanceDesaturate);
+
                     // Mix between original texture and tint color based on tint alpha
-                    vec3 tintedColor = mix(texelColor.rgb, vInstanceTint.rgb, vInstanceTint.a);
+                    vec3 tintedColor = mix(desaturatedColor, vInstanceTint.rgb, vInstanceTint.a);
                     vec3 tintedBorderColor = mix(vInstanceBorder.rgb, vInstanceTint.rgb, vInstanceTint.a);
 
                     vec3 finalRGB = mix(tintedBorderColor, tintedColor, borderMask);
-                    diffuseColor = vec4(finalRGB, texelColor.a * outsideMask);
+                    // The border ring is drawn inside the image box, so it must be opaque even
+                    // where the sampled texel is semi-transparent — at the bottom edge the plane's
+                    // uv lands on the atlas cell's opaque/transparent boundary, and with a thin
+                    // (zoom-scaled) border the whole ring would otherwise go see-through, letting
+                    // the white background bleed through as a white glow on the bottom border.
+                    diffuseColor = vec4(finalRGB, max(texelColor.a, 1.0 - borderMask) * outsideMask);
                 }
                 `
             );
@@ -190,6 +215,18 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
 
     public setShowAsPoint(show: boolean) {
         this._showAsPoint.value = show ? 1.0 : 0.0;
+        // Point mode drops the depth buffer entirely: dots are flat single-colour discs with
+        // nothing to occlude, so depth ordering buys nothing, while depth-writing antialiased
+        // edges blocked the disc behind them and traced a pale ring around every overlap.
+        // Without depth write the alphaTest cut can go back to ~0, keeping the edges smooth.
+        // Image mode keeps depth (photos really do occlude each other and the z tiers order them).
+        this.depthWrite = !show;
+        const alphaTest = show ? 0.0 : 0.5;
+        if (this.alphaTest !== alphaTest) {
+            // Crossing 0 toggles the USE_ALPHATEST define, so the program must be rebuilt.
+            this.alphaTest = alphaTest;
+            this.needsUpdate = true;
+        }
         if (this.userData.shader) {
             this.userData.shader.uniforms.uShowAsPoint.value = this._showAsPoint.value;
         }

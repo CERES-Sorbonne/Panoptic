@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { FilterOperator, availableOperators } from '@/core/FilterManager';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 const props = defineProps<{

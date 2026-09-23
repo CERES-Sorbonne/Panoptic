@@ -57,17 +57,53 @@
                 "import_details": "Choisissez un dossier Panoptic existant.",
                 "import_button": "Importer"
             },
-            "version_tooltip": "Afficher les informations de debug panoptic"
+            "user": {
+                "title": "Utilisateur",
+                "default": "Par défaut",
+                "new": "Nouvel utilisateur",
+                "name_placeholder": "Nom",
+                "create": "Créer",
+                "cancel": "Annuler",
+                "delete": "Supprimer",
+                "name_taken": "Ce nom est déjà utilisé"
+            },
+            "version_tooltip": "Afficher les informations de debug panoptic",
+            "convert": {
+                "outdated": "Créé avec une ancienne version de Panoptic",
+                "incompatible": "Ne peut pas être ouvert par cette version de Panoptic",
+                "missing": "Dossier du projet introuvable",
+                "running": "Conversion…",
+                "confirm": "Convertir « {name} » au format actuel ?\n\nUne sauvegarde des anciennes données est conservée dans le dossier du projet. L'historique d'annulation n'est pas conservé."
+            },
+            "legacy": {
+                "banner": "Des projets d'une ancienne version ont été trouvés",
+                "banner_button": "Convertir"
+            }
         },
         "status": {
             "no_project": "Aucun projet Panoptic ouvert"
         },
         "nav": {
+            "hide_panel": "Masquer le panneau",
+            "split_view": "Diviser à droite",
+            "unsplit_view": "Fusionner la vue",
             "folders": {
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images",
                 "del": "Retirer",
-                "del_alert": "Retirer le dossier supprimera toutes les instances associées aux images contenues dans le dossier."
+                "reimport": "Réimporter",
+                "del_alert": "Retirer le dossier supprimera toutes les instances associées aux images contenues dans le dossier.",
+                "local_source": "Disque local"
+            },
+            "fileSources": {
+                "del": "Retirer",
+                "del_alert": "Retirer la source supprimera toutes les instances associées aux images contenues dans cette source.",
+                "sync": {
+                    "counts": "{folders} dossiers · {files} images",
+                    "lastSynced": "Dernière synchro {date}",
+                    "neverSynced": "Pas encore synchronisé",
+                    "resync": "Resynchroniser"
+                }
             },
             "tasks": {
                 "title": "Tâche de fond",
@@ -102,6 +138,7 @@
             }
         },
         "menu": {
+            "new_tab": "Nouvel onglet",
             "add_tab_tooltip": "Créer un nouvel onglet",
             "rename_tab_tooltip": "Renommer l'onglet",
             "delete_tab_tooltip": "Supprimer l'onglet",
@@ -110,6 +147,9 @@
             "grid_tooltip": "Passer en vue grille d'images",
             "table_tooltip": "Passer en vue tableau",
             "graph_tooltip": "Passer en vue graphique",
+            "map_tooltip": "Passer en vue carte",
+            "reco_tooltip": "Passer en vue recommandations",
+            "cluster_tooltip": "Passer en vue groupes",
             "image_size_tooltip": "Taille des images",
             "all_images": "Images",
             "sha1_images": "Instances",
@@ -119,6 +159,7 @@
             "selected_images": "image(s)",
             "tag_selection": "Tagger ",
             "remove_selection_tooltip": "Annuler la sélection",
+            "show_selection_tooltip": "Afficher les images sélectionnées",
             "filters": "Filtrer",
             "groupby": "Grouper",
             "sort": {
@@ -147,6 +188,32 @@
             "filter": "Activer/Désactiver le filtre global d'image dans les propositions",
             "reload": "Recharger les propositions"
         },
+        "reco": {
+            "empty": "Groupez vos données pour voir des recommandations",
+            "incoming": "Recommandations à venir",
+            "in_group": "Images du groupe",
+            "blacklist": "Liste noire",
+            "no_more": "Plus de recommandations",
+            "selected": "{count} sélectionné(s)",
+            "clear": "Effacer la sélection",
+            "accept_selected": "Ajouter la sélection au groupe",
+            "refuse_selected": "Refuser la sélection",
+            "remove_from_group": "Retirer du groupe",
+            "remove_from_blacklist": "Retirer de la liste noire"
+        },
+        "group": {
+            "title": "Groupes",
+            "empty": "Aucune image à afficher.",
+            "assign_to": "Assigner à…",
+            "new_property": "Nouvelle propriété…",
+            "no_lines": "Aucun groupe à afficher",
+            "images": "images",
+            "groups": "groupes",
+            "leaf_clusters": "clusters",
+            "mode_single": "Image unique",
+            "mode_mosaic": "Mosaïque : quelques images par groupe",
+            "mode_mosaic_large": "Mosaïque : plus d'images par groupe"
+        },
         "view": {
             "all_group": "Toutes",
             "group_clusters": "Groupes IA",
@@ -158,11 +225,25 @@
             "collapse": "Réduire"
         },
         "graph-view": {
-            "histo": "Histogramme",
-            "curve": "Courbe",
-            "stack": "Empiler",
-            "over": "Superposer",
-            "info": "Cliquez sur la légende pour afficher les images de tous les points"
+            "chart_line": "Courbes",
+            "chart_area": "Aires",
+            "chart_bar": "Barres",
+            "stack": "Empiler les séries",
+            "thumbnails": "Afficher une vignette sur chaque point",
+            "thumbnails_grouped": "Les vignettes demandent une seule série, des barres empilées ou une courbe",
+            "images": "Images",
+            "other": "Autres",
+            "no_value": "Sans valeur",
+            "total_images": "{count} images",
+            "selected": "{count} sélectionnées",
+            "hint": "Cliquez ou glissez sur le graphique pour sélectionner des images · Maj pour ajouter, Alt pour retirer · Molette pour zoomer",
+            "no_grouping": "Groupez les images pour dessiner un graphique",
+            "no_grouping_hint": "Choisissez une propriété dans le menu de groupes : le premier niveau devient l'axe X, un second niveau devient une série par valeur.",
+            "loading": "Groupement des images…",
+            "empty": "Rien à représenter dans cette collection",
+            "folded": "{count} valeurs plus petites regroupées dans « Autres »",
+            "ignored_levels": "Seuls les deux premiers niveaux de groupes sont représentés",
+            "skipped_no_value": "{count} images sans valeur ne sont pas affichées"
         }
     },
     "modals": {
@@ -175,6 +256,9 @@
             "open": "Sélectionner"
         },
         "image": {
+            "properties": "Propriétés",
+            "properties_tooltip": "Afficher / Masquer le panneau des propriétés",
+            "history_tooltip": "Afficher / Masquer l'historique de navigation",
             "similar_images": "Images similaires",
             "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",
             "unique_properties": "Propriétés des instances",
@@ -248,6 +332,8 @@
             "clear": "Nettoyer",
             "apply": "Appliquer",
             "erase": "Effacer",
+            "add_property": "Ajouter une propriété",
+            "empty": "Aucune propriété sélectionnée",
             "erase_tooltip": "Effacer le champ pour toute la sélection",
             "cancel_tooltip": "Annuler les changements"
         },
@@ -295,7 +381,26 @@
             "images": "Images",
             "vectors": "Vecteurs",
             "plugins": "Extensions",
+            "data": "Données",
+            "dataPage": {
+                "title": "Historique des commits",
+                "info": "Activez ou désactivez n'importe quel commit, ou compactez l'historique jusqu'à un commit. Le compactage est définitif.",
+                "empty": "Aucun commit pour l'instant.",
+                "enabled": "Actif",
+                "when": "Date",
+                "author": "Auteur",
+                "source": "Source",
+                "compact": "Compacter jusqu'ici",
+                "compactConfirm": "Fusionner définitivement tout l'historique jusqu'à ce commit dans une base ? Les commits antérieurs ne pourront plus être annulés.",
+                "confirm": "Confirmer",
+                "cancel": "Annuler"
+            },
             "baseSettings": "Paramètres généraux",
+            "plugin_running": "Actif",
+            "plugin_stopped": "Arrêté",
+            "plugin_stop": "Arrêter le plugin",
+            "plugin_start": "Démarrer le plugin",
+            "plugin_stopped_hint": "Ses actions et ses tâches sont indisponibles jusqu'à son redémarrage. Il redémarre à la réouverture du projet.",
             "reset": "Réinitialiser",
             "update": "Actualiser",
             "registeredVectorTypes": "Vecteurs disponibles",
@@ -303,7 +408,13 @@
             "computed": "Généré",
             "source": "Source",
             "params": "Paramètres",
-            "createNewType": "Créer de nouveaux vecteurs",
+            "createNewVectorType": "Ajouter un type de vecteur",
+            "createNewImageType": "Ajouter un type d'image",
+            "generateImages": "Recalculer toutes les miniatures manquantes",
+            "name": "Nom",
+            "format": "Format",
+            "maxSize": "Taille max",
+            "autoOnImport": "Auto à l'import",
             "function": "Fonction",
             "computeNow": "Calculer maintenant",
             "computeNowTooltip": "Ne cochez pas si vous souhaitez lancer le calcul manuellement plus tard",
@@ -315,7 +426,8 @@
             "large": "Grand",
             "px": "px",
             "imageStorage": "Stockage des images complète",
-            "fullImage": "Image complète"
+            "fullImage": "Image complète",
+            "calc": "calculer"
         },
         "import": {
             "data": "Données",
@@ -367,6 +479,75 @@
             "warning_icon": "Afficher/Cacher notifications: Alerte",
             "error_icon": "Afficher/Cacher notifications: Erreur",
             "read_icon": "Afficher/Cacher notifications lus"
+        },
+        "filesource": {
+            "title": "Ajouter une source d'images",
+            "local": "Dossier local",
+            "iiif": "IIIF",
+            "iiif_url_label": "URL du manifeste ou de la collection IIIF",
+            "iiif_url_hint": "Collez l'URL d'un manifeste ou d'une collection IIIF Presentation API (v2 ou v3).",
+            "test_success": "Connexion réussie !",
+            "test_failed": "Échec de la connexion :",
+            "result_title": "Titre :",
+            "result_version": "Version IIIF :",
+            "result_items": "Éléments :",
+            "auth_section": "Authentification (optionnelle)",
+            "auth_type": "Type d'authentification",
+            "auth_none": "Aucune",
+            "auth_bearer": "Jeton Bearer",
+            "auth_basic": "Authentification Basic",
+            "auth_custom": "En-tête personnalisé (X-API-Key)",
+            "token_label": "Clé d'API / Jeton",
+            "token_placeholder": "votre-cle-api",
+            "token_hint": "Envoyé sous la forme : Authorization: Bearer <token>",
+            "username": "Nom d'utilisateur",
+            "password": "Mot de passe",
+            "basic_hint": "Envoyé sous la forme : Authorization: Basic <base64(user:pass)>",
+            "api_key": "Clé d'API",
+            "api_key_hint": "Envoyé sous la forme : X-API-Key: <key>",
+            "headers_label": "En-têtes personnalisés (JSON)",
+            "optional": "Optionnel",
+            "headers_hint": "En-têtes HTTP supplémentaires sous forme d'objet JSON",
+            "test_connection": "Tester la connexion",
+            "import": "Importer",
+            "error_invalid_headers": "JSON invalide dans le champ des en-têtes personnalisés",
+            "error_network": "Erreur réseau ou serveur indisponible",
+            "error_import": "Échec de l'import",
+            "add_source": "Ajouter une source d'images"
+        },
+        "legacy": {
+            "title": "Convertir d'anciens projets Panoptic",
+            "safety": "La conversion crée une copie du projet original.",
+            "registry": "{count} projet(s) listés (format {shape}) dans",
+            "shape": "Format",
+            "images": "{count} images",
+            "plugins": "Plugins utilisés : {plugins} (rien n'est installé automatiquement)",
+            "destination": "Dossier de destination de la copie convertie",
+            "migrate": "Convertir",
+            "unavailable": "Non convertible",
+            "ignore": "Ignorer",
+            "already": "Déjà converti dans",
+            "previous_failed": "Une tentative précédente a échoué",
+            "dismiss_all": "Ne plus me demander",
+            "later": "Plus tard",
+            "done": "Conversion terminée",
+            "failed": "La conversion a échoué",
+            "failed_hint": "Le projet d'origine est intact. Supprimez le dossier de destination partiel avant de réessayer.",
+            "warnings": "Logs",
+            "report": "Ouvrir le rapport",
+            "stages": {
+                "read-legacy": "Lecture de l'ancien projet",
+                "write-data-db": "Écriture de la base de données",
+                "write-media-db": "Écriture de la base des médias",
+                "write-project-db": "Écriture de la base du projet",
+                "check": "Vérification",
+                "register-project": "Enregistrement du projet"
+            },
+            "losses": {
+                "title": "Attention",
+                "tabs": "Les onglets ne sont pas préservés.",
+                "vectors": "Les vecteurs doivent être recalculés (PanopticML)."
+            }
         }
     },
     "tutorial": {
@@ -418,11 +599,16 @@
             "values": "valeur(s) modifiée(s)",
             "tags": "tag(s) modifié(s)",
             "undo": "Annuler",
-            "redo": "Refaire"
+            "redo": "Refaire",
+            "mine": "Mes modifications",
+            "all": "Tous les utilisateurs",
+            "empty": "Aucune modification"
         },
         "action": {
             "execute": "Execute une fonction plugin sur les instances",
-            "group": "Execute une fonction de clustering sur les instances"
+            "group": "Execute une fonction de clustering sur les instances",
+            "similar": "Trouver des images similaires",
+            "map": "Execute une fonction de carte"
         },
         "stamp": {
             "add": "ajouter",
@@ -433,6 +619,55 @@
         },
         "property": {
             "select": "Selectionez une propriété"
+        },
+        "tasks": {
+            "title": "Tâches",
+            "running": "En cours",
+            "pending": "En attente",
+            "past": "Terminées",
+            "failed": "{count} échec(s)",
+            "workers": "{count} workers",
+            "rate": "{rate}/s",
+            "eta": "{time} restant",
+            "waiting": "En attente de démarrage",
+            "done": "Terminé",
+            "stop": "Arrêter",
+            "cancel": "Annuler",
+            "stopping": "Arrêt en cours…",
+            "stopped": "Arrêtée",
+            "dismiss": "Retirer de la liste",
+            "clear": "Effacer",
+            "seconds": "{value}s",
+            "minutes": "{value}min",
+            "hours": "{value}h",
+            "names": {
+                "LoadPluginTask": "Chargement des plugins",
+                "ImportSourceTask": "Import des images",
+                "ComputeVectorsTask": "Calculs des vecteurs d'images",
+                "GenerateAtlasTask": "Création d'atlas d'image"
+            },
+            "steps": {
+                "Loading plugin": "Chargement du plugin",
+                "Scanning folder structure": "Analyse des dossiers",
+                "Reconciling removed files": "Vérification des fichiers supprimés",
+                "Importing files": "Import des fichiers"
+            }
+        },
+        "property_status": {
+            "title": "Chargement des propriétés",
+            "base_label": "Images",
+            "loading": "Chargement : {name}",
+            "images_loaded": "Images chargées",
+            "properties_total": "Propriétés",
+            "images_in_view": "Images affichées",
+            "properties_in_use": "Propriétés utilisées",
+            "legend_in_use": "utilisée",
+            "status": {
+                "loading": "en cours",
+                "empty": "non chargée",
+                "loaded": "chargée"
+            },
+            "no_properties": "Aucune propriété pour le moment."
         }
     },
     "btn": {
@@ -442,7 +677,12 @@
             "dirty": "Actualisation nécessaire\nCliquez pour actualiser"
         },
         "close-clusters": "Retirer les clusters",
-        "save-clusters": "Sauvegarde les clusters dans une propriétés tag"
+        "save-clusters": "Sauvegarde les clusters dans une propriétés tag",
+        "subcluster-group": "Sous-clusteriser ce groupe",
+        "inspect-group": "Inspecter dans le panneau latéral\nMaintenir shift pour ouvrir un second inspecteur",
+        "open-group": "Afficher les sous-groupes",
+        "close-group": "Revenir au groupe parent\nFerme les autres groupes de ce niveau",
+        "goto-group": "Centrer la carte sur ce groupe"
     },
     "datepicker": {
         "cancel": "Annuler",
@@ -453,10 +693,12 @@
     },
     "common": {
         "properties": {
-            "panoptic": "Propriétés Panoptic",
+            "default": "Projet",
+            "metadata": "Métadonnées",
             "instance": "Propriétés de l'instance",
             "instances": "Propriété des instances",
             "image": "Propriétés d'image",
+            "file": "Propriétés du fichier",
             "delete": "Voulez vous vraiment supprimer la propriété"
         }
     },
@@ -483,9 +725,14 @@
         "show_boxes": "Afficher les boites",
         "display": "Affichage",
         "group_property": "Groupes",
-        "group_cluster": "Clusters"
+        "group_cluster": "Clusters",
+        "groups": "Groupes",
+        "border_width": "Largeur de bordure",
+        "hover_scale": "Taille au survol"
     },
     "none": "Vide...",
+    "tag_menu_hint": "Ajoutez ou créez des tags",
+    "tag_menu_create": "Créer",
     "installing": "Installation...",
     "installed": "Installé",
     "confirm": "Confirmer",

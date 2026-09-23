@@ -3,14 +3,14 @@
 import { ModalId } from '../../data/models';
 import { ref, computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue';
-import FolderList2 from '../foldertree/FolderList2.vue';
-import { useProjectStore } from '@/data/projectStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import FolderList2 from '../folder_tree/FolderList2.vue';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import TabContainer from '../TabContainer.vue';
-import { useTabStore } from '@/data/tabStore';
+import { useTabStore } from '@/data/stores/tabStore';
 import DraggablePropertyList from './DraggablePropertyList.vue';
 
 const BASE_WIDTH = 200
@@ -35,7 +35,7 @@ const handleInput = async () => {
     panoptic.showModal(ModalId.IMPORT)
 }
 
-const tasks = computed(() => project.state.tasks.filter(t => !(t.done)) ?? [])
+const tasks = computed(() => project.state.tasks.filter(t => !(t.finished)) ?? [])
 
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
@@ -91,8 +91,7 @@ function toggleMenu() {
                                 </div>
                                 <div style="max-height: 300px; overflow: auto;">
                                     <FolderList2 :folders="data.folderRoots"
-                                        :filter-manager="tab.collection.filterManager"
-                                        :visible-folders="tab.state.visibleFolders" :tab="tab" />
+                                        :filter-manager="tab.collection.filterManager" :tab="tab" />
                                 </div>
 
                             </div>

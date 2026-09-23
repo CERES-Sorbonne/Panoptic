@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
-import { buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
-import { deletedID, useDataStore } from '@/data/dataStore';
-import { computeTagToInstance, deepCopy, isTag } from '@/utils/utils';
-import { usePanopticStore } from '@/data/panopticStore';
+import { deletedID, buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
+import { useDataStore } from '@/data/stores/dataStore';
+import { wouldCreateTagCycle } from '@/data/lib/tree';
+import { deepCopy, isTag } from '@/utils/utils';
+import { useColumnStore } from '@/data/stores/columnStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TagColumn from '@/components/tags/TagColumn.vue';
 import TagTree from '@/components/tags/TagTree.vue';
 import Modal2 from './Modal2.vue';
 import TagImagesPreview from '../images/TagImagesPreview.vue';
-import { useModalStore } from '@/data/modalStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
+const columnStore = useColumnStore()
 
 const propId = ref(-1)
 // const tagId = ref(-1)
@@ -37,8 +40,8 @@ const property = computed(() => {
     }
     return prop
 })
-const properties = computed(() => data.propertyList.filter(p => isTag(p.type) && p.id != deletedID))
-const tags = computed(() => data.tagList.filter(t => t.propertyId == property.value?.id))
+const properties = computed(() => (data.propertyList ?? []).filter(p => isTag(p.type) && p.id != deletedID))
+const tags = computed(() => (data.tagList ?? []).filter(t => t.propertyId == property.value?.id))
 
 
 const selectedTags = computed(() => selectedTagIds.value.map(tId => data.tags[tId]))
@@ -112,7 +115,12 @@ function hide() {
 
 async function addChild(tag: Tag) {
     const parentSet = new Set<number>(tag.parents)
-    selectedTags.value.forEach(t => parentSet.add(t.id))
+    // Skip any selected tag that already sits under `tag`: that edge would close a loop and
+    // buildTagTree would ignore it anyway.
+    selectedTags.value
+        .filter(t => !wouldCreateTagCycle(data.tags, tag.id, t.id))
+        .forEach(t => parentSet.add(t.id))
+    if (parentSet.size === new Set(tag.parents).size) return
     const update = deepCopy(tag)
     update.parents = Array.from(parentSet)
     const commit = { tags: [update] }
@@ -120,7 +128,11 @@ async function addChild(tag: Tag) {
 }
 
 async function addParent(tag: Tag) {
-    const toUpdate = selectedTags.value.filter(t => !t.parents.find(p => p == tag.id)).map(deepCopy)
+    const toUpdate = selectedTags.value
+        .filter(t => !t.parents.find(p => p == tag.id))
+        .filter(t => !wouldCreateTagCycle(data.tags, t.id, tag.id))
+        .map(deepCopy)
+    if (!toUpdate.length) return
     toUpdate.forEach(t => t.parents.push(tag.id))
     const commit = { tags: toUpdate }
     await data.sendCommit(commit)
@@ -198,23 +210,61 @@ function onDragEnd() {
     childDisabled.value = false
 }
 
-function updateTagToInstance() {
-    tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
+async function updateTagToInstance() {
+    if (!property.value) return
+
+    const res: { [tId: number]: { id: number }[] } = {}
+    for (const tag of tags.value) {
+        res[tag.id] = []
+    }
+
+    const prop = property.value
+    await columnStore.requireFullColumn(prop.id)
+
+    const col = columnStore.columnData[prop.id]
+    if (!col || col.kind !== 'tag') return
+
+    const idArray = columnStore.instanceIds()
+    const slotCount = columnStore.slotCount()
+
+    for (let s = 0; s < slotCount; s++) {
+        const tagIds = col.sparse[s]
+        if (!tagIds) continue
+
+        const instanceId = idArray[s]
+        const allTags = new Set<number>()
+
+        for (const tId of tagIds) {
+            const tag = data.tags[tId]
+            if (!tag) continue
+            tag.allParents?.forEach(p => allTags.add(p))
+            allTags.add(tId)
+        }
+
+        allTags.forEach(tId => {
+            if (res[tId]) res[tId].push({ id: instanceId })
+        })
+    }
+
+    tagToInstance.value = res as any
 }
 
 async function mergeTags() {
     const list = selectedTagIds.value
-    selectedTagIds.value = [list[0]]
+    if (list.length < 2) return
+    const keepId = list[0]
+    selectedTagIds.value = [keepId]
     await data.mergeTags(list)
+    await updateTagToInstance()
 }
 
 
+watch(propId, async (id) => {
+    if (id !== -1) await updateTagToInstance()
+})
+
 watch(tags, () => {
     updateTagToInstance()
-    // data.tagList.forEach(t => {
-    //     if (tagToInstance.value[t.id]) return
-    //     tagToInstance.value[t.id] = []
-    // })
 })
 
 </script>

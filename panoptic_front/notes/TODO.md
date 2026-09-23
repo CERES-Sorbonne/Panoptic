@@ -1,0 +1,1 @@
+Fix the group collapse by removing the big arrays of images. ITs the bottelneck in GroupLine (tree scroller)

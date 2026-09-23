@@ -1,0 +1,673 @@
+import { defineStore } from 'pinia'
+import { computed, markRaw, nextTick, reactive, ref } from 'vue'
+import { LoadResult, PropertyType } from '../models'
+import { apiStreamColumn, apiStreamInstanceBase, projectApi } from '../api/projectApi'
+import { EventEmitter } from '@/utils/utils'
+import { ColumnData, buildCSR, growColumn, makeColumn, propertyKind, stripTagIds } from '../lib/columns'
+
+export const useColumnStore = defineStore('columnStore', () => {
+
+    let _instanceIdPropId: number | null = null
+    let _sha1PropId: number | null = null
+    let _fileIdPropId: number | null = null
+
+    const slotMap = markRaw(new Map<number, number>())
+    let slotCount = 0
+    // Slot generation. A slot number denotes the same instance for as long as this counter is
+    // unchanged: the store only ever appends, and deletion is a mask. clear() re-mints the
+    // numbering, so anything holding a slot-indexed map (the cluster overlay) compares this
+    // and drops rather than silently renaming its members.
+    let slotEpoch = 0
+    let deletedMask = new Uint8Array(0)
+    // Selection is keyed by namespace. 'global' is always present and behaves
+    // exactly as the old single mask; custom namespaces (e.g. the reco panels)
+    // hold their own independent, slot-indexed selection.
+    const selectionMasks = markRaw(new Map<string, Uint8Array>())
+    selectionMasks.set('global', new Uint8Array(0))
+
+    let instanceIds = new Int32Array(0)
+    let sha1s: (string | null)[] = []
+    let fileIds = new Int32Array(0)
+
+    const columnData: Record<number, ColumnData> = markRaw({})
+    const columnFetched: Record<number, Uint8Array> = markRaw({})
+    const _propTypes: Record<number, PropertyType> = markRaw({})
+
+    const fullColumnStatus = reactive<Record<number, 'empty' | 'loading' | 'loaded'>>({})
+    const _fullColumnPromise: Record<number, Promise<void>> = {}
+    const columnProgress = reactive<Record<number, { counter: number; max: number }>>({})
+    const baseProgress = reactive<{ loading: boolean; counter: number; max: number }>({ loading: false, counter: 0, max: 0 })
+
+    const tagInverted: Record<number, Int32Array> = markRaw({})
+    const _tagInvertedPromise: Record<number, Promise<void>> = {}
+
+    const onSelectionChange = new EventEmitter()
+    // Reactive per-namespace tick for the (non-reactive) selection masks. Bumped
+    // on every selection mutation so Vue templates can depend on
+    // `selectionTick(ns)` and re-render, while the 1M-slot masks themselves stay
+    // out of reactivity (note §5, step 2). Kept separate from any result/version
+    // signal (Q-I).
+    const selectionVersions = reactive<Record<string, number>>({ global: 0 })
+    // Backward-compatible global tick: existing global consumers read
+    // `col.selectionVersion` (Pinia unwraps the computed ref).
+    const selectionVersion = computed(() => selectionVersions.global)
+    const isReady = ref(false)
+    const instanceCount = ref(0)
+
+    const systemProps = {
+        get INSTANCE_ID() { return _instanceIdPropId },
+        get SHA1() { return _sha1PropId },
+        get FILE_ID() { return _fileIdPropId }
+    }
+
+    async function init(instanceIdPropId: number, sha1PropId: number, fileIdPropId: number) {
+        _instanceIdPropId = instanceIdPropId
+        _sha1PropId = sha1PropId
+        _fileIdPropId = fileIdPropId
+
+        registerProperty(instanceIdPropId, PropertyType.number)
+        registerProperty(sha1PropId, PropertyType.string)
+        registerProperty(fileIdPropId, PropertyType.number)
+
+        fullColumnStatus[instanceIdPropId] = 'loading'
+        fullColumnStatus[sha1PropId] = 'loading'
+        fullColumnStatus[fileIdPropId] = 'loading'
+        baseProgress.loading = true
+        baseProgress.counter = 0
+        baseProgress.max = 0
+
+        await apiStreamInstanceBase((batch) => {
+            if (batch.total !== undefined) baseProgress.max = batch.total
+            baseProgress.counter += batch.ids.length
+            const oldSize = slotCount
+            const newSize = oldSize + batch.ids.length
+
+            const newDeletedMask = new Uint8Array(newSize)
+            newDeletedMask.set(deletedMask)
+            deletedMask = newDeletedMask
+
+            for (const [ns, mask] of selectionMasks) {
+                const grown = new Uint8Array(newSize)
+                grown.set(mask)
+                selectionMasks.set(ns, grown)
+            }
+
+            const newInstanceIds = new Int32Array(newSize)
+            newInstanceIds.set(instanceIds)
+            instanceIds = newInstanceIds
+
+            const newFileIds = new Int32Array(newSize)
+            newFileIds.set(fileIds)
+            fileIds = newFileIds
+
+            const newSha1s: (string | null)[] = new Array(newSize).fill(null)
+            for (let i = 0; i < oldSize; i++) newSha1s[i] = sha1s[i]
+            sha1s = newSha1s
+
+            for (const propId of Object.keys(columnData).map(Number)) {
+                columnData[propId] = growColumn(columnData[propId], oldSize, newSize)
+                const newFetched = new Uint8Array(newSize)
+                newFetched.set(columnFetched[propId])
+                columnFetched[propId] = newFetched
+            }
+
+            for (let i = 0; i < batch.ids.length; i++) {
+                const s = oldSize + i
+                slotMap.set(batch.ids[i], s)
+                instanceIds[s] = batch.ids[i]
+                sha1s[s] = batch.sha1s[i]
+                fileIds[s] = batch.fileIds[i] ?? 0
+            }
+            slotCount = newSize
+        })
+
+        fullColumnStatus[instanceIdPropId] = 'loaded'
+        fullColumnStatus[sha1PropId] = 'loaded'
+        fullColumnStatus[fileIdPropId] = 'loaded'
+
+        // Clamp to max so the bar visually reaches 100%, wait for the
+        // transition to complete (0.2s), then hide.
+        if (baseProgress.max > 0) baseProgress.counter = baseProgress.max
+        await nextTick()
+        await new Promise(r => setTimeout(r, 250))
+        baseProgress.loading = false
+
+        instanceCount.value = slotCount
+        isReady.value = true
+    }
+
+    function getRawBuffer(propId: number | null): any {
+        if (propId === null) return undefined
+        if (propId === _instanceIdPropId) return instanceIds
+        if (propId === _sha1PropId) return sha1s
+        if (propId === _fileIdPropId) return fileIds
+
+        const col = columnData[propId]
+        if (!col) return undefined
+        return col.kind === 'tag' ? col.sparse : col.data
+    }
+
+    function readSlot(propId: number, slot: number): any {
+        if (propId === _instanceIdPropId) return isNaN(instanceIds[slot]) ? null : instanceIds[slot]
+        if (propId === _sha1PropId) return sha1s[slot]
+        if (propId === _fileIdPropId) return isNaN(fileIds[slot]) ? null : fileIds[slot]
+
+        const col = columnData[propId]
+        if (!col) return undefined
+        switch (col.kind) {
+            case 'numeric': {
+                const v = col.data[slot]
+                if (isNaN(v)) return null
+                if (_propTypes[propId] === PropertyType.date) return new Date(v)
+                return v
+            }
+            case 'bool': return col.data[slot] === 255 ? null : col.data[slot] === 1
+            case 'string': return col.data[slot]
+            case 'tag': return col.sparse[slot]
+        }
+    }
+
+    function isFetched(propId: number, slot: number): boolean {
+        if (propId === _instanceIdPropId || propId === _sha1PropId || propId === _fileIdPropId) return true
+        return columnFetched[propId]?.[slot] === 1
+    }
+
+    function ensureColumn(propId: number): ColumnData {
+        if (propId === _instanceIdPropId || propId === _sha1PropId || propId === _fileIdPropId) {
+            throw new Error(`ensureColumn should not be called directly for system properties.`)
+        }
+        if (!columnData[propId]) {
+            const kind = propertyKind(_propTypes[propId] ?? PropertyType.string)
+            columnData[propId] = makeColumn(kind, slotCount)
+            columnFetched[propId] = new Uint8Array(slotCount)
+        }
+        return columnData[propId]
+    }
+
+    function writeSlot(propId: number, slot: number, value: any) {
+        if (propId === _instanceIdPropId) { instanceIds[slot] = value == null ? NaN : Number(value); return }
+        if (propId === _sha1PropId) { sha1s[slot] = value ?? null; return }
+        if (propId === _fileIdPropId) { fileIds[slot] = value == null ? NaN : Number(value); return }
+
+        const col = ensureColumn(propId)
+        switch (col.kind) {
+            case 'numeric':
+                if (_propTypes[propId] === PropertyType.date && typeof value === 'string') {
+                    col.data[slot] = value == null ? NaN : new Date(value).getTime()
+                } else {
+                    col.data[slot] = value == null ? NaN : Number(value)
+                }
+                break
+            case 'bool':
+                col.data[slot] = value == null ? 255 : (value ? 1 : 0)
+                break
+            case 'string':
+                col.data[slot] = value ?? null
+                break
+            case 'tag':
+                col.sparse[slot] = Array.isArray(value) ? value : null
+                col.csr = undefined
+                break
+        }
+        columnFetched[propId][slot] = 1
+    }
+
+    function registerProperty(propId: number, type: PropertyType) {
+        _propTypes[propId] = type
+        if (fullColumnStatus[propId] === undefined) {
+            fullColumnStatus[propId] = (propId === _instanceIdPropId || propId === _sha1PropId || propId === _fileIdPropId)
+                ? 'loaded'
+                : 'empty'
+        }
+    }
+
+    function addInstances(newIds: number[], newSha1s: string[], newFileIds: number[]) {
+        if (_instanceIdPropId === null || _sha1PropId === null || _fileIdPropId === null) return
+
+        // Skip instances already registered (deltas can re-deliver the same rows).
+        if (newIds.some(id => slotMap.has(id))) {
+            const fIds: number[] = [], fSha: string[] = [], fFile: number[] = []
+            for (let i = 0; i < newIds.length; i++) {
+                if (!slotMap.has(newIds[i])) { fIds.push(newIds[i]); fSha.push(newSha1s[i]); fFile.push(newFileIds[i]) }
+            }
+            newIds = fIds; newSha1s = fSha; newFileIds = fFile
+        }
+        if (newIds.length === 0) return
+
+        const oldSize = slotCount
+        const newSize = oldSize + newIds.length
+
+        const newDeletedMask = new Uint8Array(newSize)
+        newDeletedMask.set(deletedMask)
+        deletedMask = newDeletedMask
+
+        for (const [ns, mask] of selectionMasks) {
+            const grown = new Uint8Array(newSize)
+            grown.set(mask)
+            selectionMasks.set(ns, grown)
+        }
+
+        const newInstanceIdArray = new Int32Array(newSize).fill(NaN)
+        newInstanceIdArray.set(instanceIds)
+        instanceIds = newInstanceIdArray
+
+        const newFileIdArray = new Int32Array(newSize).fill(NaN)
+        newFileIdArray.set(fileIds)
+        fileIds = newFileIdArray
+
+        const newSha1Array = new Array(newSize).fill(null)
+        for (let i = 0; i < oldSize; i++) newSha1Array[i] = sha1s[i]
+        sha1s = newSha1Array
+
+        for (const propId of Object.keys(columnData).map(Number)) {
+            columnData[propId] = growColumn(columnData[propId], oldSize, newSize)
+            const newFetched = new Uint8Array(newSize)
+            newFetched.set(columnFetched[propId])
+            columnFetched[propId] = newFetched
+        }
+
+        for (let i = 0; i < newIds.length; i++) {
+            const s = oldSize + i
+            const instanceId = newIds[i]
+
+            slotMap.set(instanceId, s)
+            instanceIds[s] = instanceId
+            sha1s[s] = newSha1s[i]
+            fileIds[s] = newFileIds[i]
+        }
+        slotCount = newSize
+        instanceCount.value = newSize
+    }
+
+    function markSlotDeleted(instanceId: number) {
+        const slot = slotMap.get(instanceId)
+        if (slot !== undefined) deletedMask[slot] = 1
+    }
+
+    // Clear a single (property, instance) cell to empty. Used when a delta reports a value
+    // was removed (e.g. a commit that wrote the value was disabled). Only touches loaded
+    // columns — an unloaded column will fetch the correct (cleared) state on its next load.
+    function clearCell(propId: number, instanceId: number) {
+        const status = fullColumnStatus[propId]
+        const slot = slotMap.get(instanceId)
+        console.log('[delta] columnStore.clearCell', {
+            propId, instanceId, columnStatus: status, slot,
+            hasSlot: slot !== undefined, columnKind: columnData[propId]?.kind,
+        })
+        if (status !== 'loaded') { console.warn('[delta] clearCell skipped: column not loaded', { propId, status }); return }
+        if (slot === undefined) { console.warn('[delta] clearCell skipped: instance not in slotMap', { propId, instanceId }); return }
+        writeSlot(propId, slot, null)
+        console.log('[delta] clearCell wrote null', { propId, instanceId, slot })
+    }
+
+    async function requireFullColumn(propId: number): Promise<void> {
+        if (fullColumnStatus[propId] === 'loaded') return
+        if (_fullColumnPromise[propId]) return _fullColumnPromise[propId]
+
+        if (isReady.value && columnData[propId] !== undefined) {
+            fullColumnStatus[propId] = 'loaded'
+            return
+        }
+
+        fullColumnStatus[propId] = 'loading'
+        columnProgress[propId] = { counter: 0, max: 0 }
+        
+        _fullColumnPromise[propId] = (async () => {
+            try {
+                let csrBuilt = false
+
+                await apiStreamColumn(propId, async (data: LoadResult) => {
+                    // Update progress from state info in each batch
+                    if (data.state?.maxInstanceValue) {
+                        columnProgress[propId].max = data.state.maxInstanceValue
+                    }
+                    if (data.state?.counterInstanceValue !== undefined) {
+                        columnProgress[propId].counter = data.state.counterInstanceValue
+                    }
+
+                    // Process instance values from the batch. Each value arrives JSON-encoded
+                    // (the backend re-encodes every cell), so parse it before writing — matches
+                    // updateFromLoadResult. Without this, dates/strings/tags become NaN/garbage.
+                    if (data.instanceValues) {
+                        const parseValue = (v: any) => typeof v === 'string' ? JSON.parse(v) : v
+                        for (const chunk of data.instanceValues) {
+                            if (chunk.propertyId !== propId) continue
+
+                            const ids = chunk.ids || []
+                            for (let i = 0; i < ids.length; i++) {
+                                const slot = slotMap.get(ids[i])
+                                if (slot !== undefined) writeSlot(propId, slot, parseValue(chunk.values[i]))
+                            }
+                        }
+                    }
+
+                    // Build CSR index for tag columns after last batch
+                    if (!csrBuilt && data.instanceValues?.length) {
+                        const col = columnData[propId]
+                        if (col?.kind === 'tag') {
+                            col.csr = buildCSR(col.sparse, slotCount)
+                            csrBuilt = true
+                        }
+                    }
+                })
+
+                fullColumnStatus[propId] = 'loaded'
+            } catch (e) {
+                fullColumnStatus[propId] = 'empty'
+                delete columnProgress[propId]
+                delete _fullColumnPromise[propId]
+                throw e
+            }
+        })()
+        return _fullColumnPromise[propId]
+    }
+
+    async function requireTagInverted(propId: number): Promise<void> {
+        await requireFullColumn(propId)
+        if (_tagInvertedPromise[propId]) return _tagInvertedPromise[propId]
+        _tagInvertedPromise[propId] = (async () => {
+            const col = columnData[propId]
+            if (!col || col.kind !== 'tag') return
+            const tmp: Record<number, number[]> = {}
+            for (let s = 0; s < slotCount; s++) {
+                const tags = col.sparse[s]
+                if (!tags) continue
+                for (const t of tags) {
+                    if (!tmp[t]) tmp[t] = []
+                    tmp[t].push(s)
+                }
+            }
+            for (const [tagIdStr, slots] of Object.entries(tmp))
+                tagInverted[Number(tagIdStr)] = new Int32Array(slots).sort()
+        })()
+        return _tagInvertedPromise[propId]
+    }
+
+    /**
+     * Scrub deleted tag ids out of every loaded tag column. Returns the instance ids whose value
+     * changed, which is the dirty set the collections recompute from — see the `emptyTags`
+     * branch of dataStore.applyCommit for why a delete has to reach the columns at all.
+     */
+    function removeTagIds(tagIds: number[]): number[] {
+        if (!tagIds?.length) return []
+        const drop = new Set(tagIds)
+        const touched: number[] = []
+        for (const propIdStr of Object.keys(columnData)) {
+            const col = columnData[Number(propIdStr)]
+            if (col?.kind !== 'tag') continue
+            const slots = stripTagIds(col.sparse, slotCount, drop)
+            if (!slots.length) continue
+            // The CSR mirrors sparse, and the inverted index is keyed by tag id: both describe
+            // the column as it was before the scrub.
+            col.csr = undefined
+            for (const s of slots) touched.push(instanceIds[s])
+        }
+        for (const id of drop) delete tagInverted[id]
+        return touched
+    }
+
+    function getFullyLoadedPropIds(): number[] {
+        return Object.keys(fullColumnStatus).map(Number).filter(id => fullColumnStatus[id] === 'loaded')
+    }
+
+    function getInstancesBySha1(sha1: string): number[] {
+        const ids: number[] = []
+        const count = slotCount
+
+        for (let i = 0; i < count; i++) {
+            if (sha1s[i] === sha1 && !deletedMask[i]) {
+                ids.push(instanceIds[i])
+            }
+        }
+        return ids
+    }
+
+    function getInstancesByFileId(fileId: number): number[] {
+        const ids: number[] = []
+        const count = slotCount
+
+        for (let i = 0; i < count; i++) {
+            if (fileIds[i] === fileId && !deletedMask[i]) {
+                ids.push(instanceIds[i])
+            }
+        }
+        return ids
+    }
+
+    function getActivePropIds(): number[] {
+        return Object.keys(fullColumnStatus)
+            .map(Number)
+            .filter(id => fullColumnStatus[id] === 'loaded' || fullColumnStatus[id] === 'loading')
+    }
+
+    async function updateFromLoadResult(result: LoadResult): Promise<void> {
+        const tasks: Promise<void>[] = []
+        
+        // Collect all distinct property IDs targeted by this payload
+        const targetPropIds = new Set<number>()
+        result.instanceValues?.forEach(v => targetPropIds.add(v.propertyId))
+        result.imageValues?.forEach(v => targetPropIds.add(v.propertyId))
+        result.fileValues?.forEach(v => targetPropIds.add(v.propertyId))
+
+        console.log('[delta] updateFromLoadResult (upserts)', {
+            targetPropIds: [...targetPropIds],
+            statuses: [...targetPropIds].map(p => ({ propId: p, status: fullColumnStatus[p] })),
+            instanceValues: result.instanceValues?.map(v => ({ propertyId: v.propertyId, ids: (v as any).ids, values: v.values })),
+        })
+
+        for (const propId of targetPropIds) {
+            const status = fullColumnStatus[propId]
+
+            // DISMISS IF NOT REQUESTED: Ignore updates if column is empty or uninitialized
+            if (!status || status === 'empty') {
+                continue
+            }
+
+            tasks.push((async () => {
+                // WAY FOR LOAD TO END IF LOADING: Await the active flight promise before writing updates
+                if (status === 'loading' && _fullColumnPromise[propId]) {
+                    await _fullColumnPromise[propId]
+                }
+
+                // UPDATE WHEN LOADED
+                const parseValue = (v: any) => typeof v === 'string' ? JSON.parse(v) : v
+
+                // Process Instance Values
+                if (result.instanceValues) {
+                    const chunks = result.instanceValues.filter(v => v.propertyId === propId)
+                    for (const chunk of chunks) {
+                        const ids = (chunk as any).instanceIds || (chunk as any).ids || []
+                        for (let i = 0; i < ids.length; i++) {
+                            const slot = slotMap.get(Number(ids[i]))
+                            if (slot !== undefined) writeSlot(propId, slot, parseValue(chunk.values[i]))
+                        }
+                    }
+                }
+
+                // Process Image SHA1 Values
+                if (result.imageValues) {
+                    const chunks = result.imageValues.filter(v => v.propertyId === propId)
+                    for (const chunk of chunks) {
+                        for (let i = 0; i < chunk.sha1s.length; i++) {
+                            const matchingIds = getInstancesBySha1(chunk.sha1s[i])
+                            const parsed = parseValue(chunk.values[i])
+                            for (const id of matchingIds) {
+                                const slot = slotMap.get(id)
+                                if (slot !== undefined) writeSlot(propId, slot, parsed)
+                            }
+                        }
+                    }
+                }
+
+                // Process File ID Values
+                if (result.fileValues) {
+                    const chunks = result.fileValues.filter(v => v.propertyId === propId)
+                    for (const chunk of chunks) {
+                        for (let i = 0; i < chunk.fileIds.length; i++) {
+                            const matchingIds = getInstancesByFileId(chunk.fileIds[i])
+                            const parsed = parseValue(chunk.values[i])
+                            for (const id of matchingIds) {
+                                const slot = slotMap.get(id)
+                                if (slot !== undefined) writeSlot(propId, slot, parsed)
+                            }
+                        }
+                    }
+                }
+
+                // Post-update structural cleanup for compression formats
+                const col = columnData[propId]
+                if (col?.kind === 'tag') {
+                    col.csr = buildCSR(col.sparse, slotCount)
+                }
+            })())
+        }
+
+        await Promise.all(tasks)
+    }
+
+    // Lazily create a namespace's mask (sized to the current slot count).
+    function ensureNamespace(ns: string): void {
+        if (!selectionMasks.has(ns)) {
+            selectionMasks.set(ns, new Uint8Array(slotCount))
+            selectionVersions[ns] = 0
+        }
+    }
+
+    // Free a custom namespace. 'global' is permanent and never disposed.
+    function disposeNamespace(ns: string): void {
+        if (ns === 'global') return
+        selectionMasks.delete(ns)
+        delete selectionVersions[ns]
+    }
+
+    // Reactive dep for templates: reading it inside a computed tracks the ns tick.
+    function selectionTick(ns = 'global'): number {
+        return selectionVersions[ns] ?? 0
+    }
+
+    function bumpSelection(ns = 'global'): void {
+        selectionVersions[ns] = (selectionVersions[ns] ?? 0) + 1
+        onSelectionChange.emit(ns)
+    }
+
+    function isSelected(slot: number, ns = 'global'): boolean {
+        return selectionMasks.get(ns)?.[slot] === 1
+    }
+
+    // Instance-id convenience wrappers (the mask itself is slot-indexed).
+    function isSelectedId(instanceId: number, ns = 'global'): boolean {
+        const slot = slotMap.get(instanceId)
+        return slot !== undefined && selectionMasks.get(ns)?.[slot] === 1
+    }
+
+    function select(slots: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const s of slots) mask[s] = 1
+        bumpSelection(ns)
+    }
+
+    function deselect(slots: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const s of slots) mask[s] = 0
+        bumpSelection(ns)
+    }
+
+    function selectIds(instanceIds: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) mask[s] = 1 }
+        bumpSelection(ns)
+    }
+
+    function deselectIds(instanceIds: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) mask[s] = 0 }
+        bumpSelection(ns)
+    }
+
+    function clearSelection(ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        mask.fill(0)
+        bumpSelection(ns)
+    }
+
+    // Scan the mask for all currently-selected instance ids (excludes deleted).
+    function getSelectedIds(ns = 'global'): number[] {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return []
+        const ids: number[] = []
+        for (let s = 0; s < slotCount; s++) {
+            if (mask[s] === 1 && !deletedMask[s]) ids.push(instanceIds[s])
+        }
+        return ids
+    }
+
+    function selectedCount(ns = 'global'): number {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return 0
+        let n = 0
+        for (let s = 0; s < slotCount; s++) if (mask[s] === 1 && !deletedMask[s]) n++
+        return n
+    }
+
+    function clear() {
+        slotMap.clear()
+        slotCount = 0
+        slotEpoch++
+        deletedMask = new Uint8Array(0)
+        selectionMasks.clear()
+        selectionMasks.set('global', new Uint8Array(0))
+        for (const k of Object.keys(selectionVersions)) delete selectionVersions[k]
+        selectionVersions.global = 0
+        instanceIds = new Int32Array(0)
+        sha1s = []
+        fileIds = new Int32Array(0)
+
+        _instanceIdPropId = null
+        _sha1PropId = null
+        _fileIdPropId = null
+        for (const k of Object.keys(columnData)) delete columnData[Number(k)]
+        for (const k of Object.keys(columnFetched)) delete columnFetched[Number(k)]
+        for (const k of Object.keys(_propTypes)) delete _propTypes[Number(k)]
+        for (const k of Object.keys(fullColumnStatus)) delete fullColumnStatus[Number(k)]
+        for (const k of Object.keys(columnProgress)) delete columnProgress[Number(k)]
+        for (const k of Object.keys(_fullColumnPromise)) delete _fullColumnPromise[Number(k)]
+        for (const k of Object.keys(tagInverted)) delete tagInverted[Number(k)]
+        for (const k of Object.keys(_tagInvertedPromise)) delete _tagInvertedPromise[Number(k)]
+        instanceCount.value = 0
+        isReady.value = false
+    }
+
+    return {
+        isReady, instanceCount,
+        slotMap,
+        slotCount() { return slotCount },
+        slotEpoch() { return slotEpoch },
+        deletedMask() { return deletedMask },
+        selectionMask() { return selectionMasks.get('global')! },
+        instanceIds() { return instanceIds },
+        sha1s() { return sha1s },
+        fileIds() { return fileIds },
+
+        columnData, columnFetched, tagInverted,
+        fullColumnStatus,
+        columnProgress,
+        baseProgress,
+        onSelectionChange,
+        selectionVersion,
+        systemProps,
+
+        init, getRawBuffer, readSlot, writeSlot, isFetched, ensureColumn,
+        addInstances, markSlotDeleted, clearCell, registerProperty,
+        requireFullColumn, requireTagInverted, getFullyLoadedPropIds, removeTagIds,
+        isSelected, isSelectedId, select, deselect, selectIds, deselectIds,
+        clearSelection, getSelectedIds, selectedCount,
+        ensureNamespace, disposeNamespace, selectionTick,
+        getInstancesBySha1, getInstancesByFileId, updateFromLoadResult,
+        clear,
+    }
+})

@@ -2,6 +2,14 @@ import * as THREE from 'three'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { InstancedImageMaterial } from './InstancedImageMaterial'
 
+// Total z spread used to break ties between overlapping points *within one priority tier*
+// (MapView.vue's DIM_Z / BASE_Z / SELECTED_Z — dimmed, normal, selected points render in that
+// front-to-back order regardless of array index). Must stay well under the 0.5 gap between
+// tiers, which in turn stays well under HDLayer's HD_Z_OFFSET (1.5), so ties never spill into
+// the next tier and a fully-stacked atlas layer can never render in front of the HD/hover-dot
+// preview.
+const STACK_Z_RANGE = 0.1
+
 export class AtlasLayer {
     public mesh: THREE.InstancedMesh
     private geometry: THREE.PlaneGeometry
@@ -25,8 +33,11 @@ export class AtlasLayer {
         this.material = new InstancedImageMaterial({
             map: texture,
             transparent: true,
-            // CRITICAL: Tells GPU to discard transparent pixels so they don't block depth
-            alphaTest: 0.1,
+            // CRITICAL: Tells GPU to discard transparent pixels so they don't block depth.
+            // Cut at half coverage, not 0.1: an antialiased edge pixel that passes the test both
+            // blends with the white background AND writes depth, so the dot/photo behind it can
+            // never fill in — that showed up as a pale ring tracing every overlapping point.
+            alphaTest: 0.5,
             // CRITICAL: Allows Z-buffer to handle sorting automatically
             depthTest: true,
             depthWrite: true
@@ -40,14 +51,15 @@ export class AtlasLayer {
         this.geometry.setAttribute('vBorderCol', new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3))
         this.geometry.setAttribute('vBorderWidth', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
         this.geometry.setAttribute('vRatioAttr', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
+        this.geometry.setAttribute('vDesaturate', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
 
         // Initial population of all attributes
         this.updateUVsAndOffsets()
         this.updatePositions()
         this.updateRatios()
         this.updateTints()
-        this.updateBorderColors()
-        this.updateBorderWidths()
+        this.updateBorder()
+        this.updateDesaturation()
 
         this.mesh.frustumCulled = false
         this.mesh.matrixAutoUpdate = false
@@ -56,11 +68,18 @@ export class AtlasLayer {
 
     /**
      * Updates Matrices based on point x, y and ratio.
+     *
+     * All points share the same nominal z, so overlapping quads (points close together on the
+     * map) had no depth ordering — whichever instance happened to rasterize last won the tie,
+     * painting its border across the photo behind it. A tiny per-index z step (bounded so the
+     * whole layer stays well under HDLayer's HD_Z_OFFSET) gives overlaps a stable resolution via
+     * the depth buffer: later-index points sit fractionally closer to the camera and win.
      */
     public updatePositions() {
+        const zStep = STACK_Z_RANGE / Math.max(1, this.points.length)
         this.points.forEach((p, i) => {
             this.matrixHelper.makeScale(1.0, 1.0, 1.0)
-            this.matrixHelper.setPosition(p.x, p.y, p.z)
+            this.matrixHelper.setPosition(p.x, p.y, p.z + i * zStep)
             this.mesh.setMatrixAt(i, this.matrixHelper)
         })
         this.mesh.instanceMatrix.needsUpdate = true
@@ -72,6 +91,21 @@ export class AtlasLayer {
 
         this.points.forEach((p, i) => {
             array[i] = p.ratio // Pass the raw ratio (e.g., 1.5 for landscape)
+        })
+        attr.needsUpdate = true
+    }
+
+    /**
+     * Updates the vDesaturate attribute — per-pixel greyscale mix amount, kept separate from
+     * vTint so a dimmed-group point and a selection-tinted point can compose (grey photo, blue
+     * overlay) instead of one flat-colour mix fighting the other.
+     */
+    public updateDesaturation() {
+        const attr = this.geometry.getAttribute('vDesaturate') as THREE.InstancedBufferAttribute
+        const array = attr.array as Float32Array
+
+        this.points.forEach((p, i) => {
+            array[i] = p.desaturate ?? 0.0
         })
         attr.needsUpdate = true
     }
@@ -95,32 +129,24 @@ export class AtlasLayer {
     }
 
     /**
-     * Updates the vBorderCol attribute.
+     * Updates the vBorderCol + vBorderWidth attributes together — they always change together
+     * (MapRenderer.updateBorder), so this avoids a second full pass over the points array.
      */
-    public updateBorderColors() {
-        const attr = this.geometry.getAttribute('vBorderCol') as THREE.InstancedBufferAttribute
-        const array = attr.array as Float32Array
+    public updateBorder() {
+        const colAttr = this.geometry.getAttribute('vBorderCol') as THREE.InstancedBufferAttribute
+        const widthAttr = this.geometry.getAttribute('vBorderWidth') as THREE.InstancedBufferAttribute
+        const colArray = colAttr.array as Float32Array
+        const widthArray = widthAttr.array as Float32Array
 
         this.points.forEach((p, i) => {
             this.colorHelper.set(p.borderColor || '#000000')
-            array[i * 3] = this.colorHelper.r
-            array[i * 3 + 1] = this.colorHelper.g
-            array[i * 3 + 2] = this.colorHelper.b
+            colArray[i * 3] = this.colorHelper.r
+            colArray[i * 3 + 1] = this.colorHelper.g
+            colArray[i * 3 + 2] = this.colorHelper.b
+            widthArray[i] = p.border ?? 0.0
         })
-        attr.needsUpdate = true
-    }
-
-    /**
-     * Updates the vBorderWidth attribute.
-     */
-    public updateBorderWidths() {
-        const attr = this.geometry.getAttribute('vBorderWidth') as THREE.InstancedBufferAttribute
-        const array = attr.array as Float32Array
-
-        this.points.forEach((p, i) => {
-            array[i] = p.border ?? 0.0 // Default to 0 if not specified
-        })
-        attr.needsUpdate = true
+        colAttr.needsUpdate = true
+        widthAttr.needsUpdate = true
     }
 
     /**

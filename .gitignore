@@ -1,6 +1,8 @@
 #Plugins
 PanopticML
 
+.claude/
+
 # Logs
 logs
 *.log
@@ -204,3 +206,10 @@ mini/
 *.pkl
 
 /panoptic_back/clusters/
+
+
+# Python-template lib/ rule above must not swallow frontend source
+!panoptic_front/src/data/lib/
+
+# headless test suite build output
+panoptic_front/test/group/.build/

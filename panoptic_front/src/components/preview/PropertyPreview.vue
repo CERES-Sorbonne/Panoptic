@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 

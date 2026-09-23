@@ -1,12 +1,13 @@
-import { buildGroup, Group, GroupType } from "@/core/GroupManager"
-import { TabManager } from "@/core/TabManager"
-import { deletedID, useDataStore } from "@/data/dataStore"
-import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
-import { useProjectStore } from "@/data/projectStore"
+import type { Group } from "@/core/group/types"
+import type { InstanceEntry } from "@/data/stores/instanceStore"
+import { deletedID, PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { Ref, computed, inject, ref, watch } from "vue"
 import chroma from 'chroma-js';
 
-export function hasProperty(image: Instance, propertyId: number) {
+let _tmpIdCounter = -10000
+export function getTmpId() { return _tmpIdCounter-- }
+
+export function hasProperty(image: InstanceEntry, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
 
@@ -15,30 +16,8 @@ export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
 
-export function getFolderAndParents(folder: Folder) {
-    const data = useDataStore()
-    const res = []
-    let current = folder
-    while (current) {
-        res.push(current.id)
-        current = data.folders[current.parent]
-    }
-    return res
-}
 
-export function getFolderChildren(folderId: number) {
-    const data = useDataStore()
-    let res: Folder[] = []
-    const recursive = (fId: number) => {
-        const children = data.folders[fId].children
-        res.push(...children)
-        children.forEach(c => recursive(c.id))
-    }
-    recursive(folderId)
-    return res
-}
-
-export function computedPropValue(property: Ref<Property>, image: Ref<Instance>) {
+export function computedPropValue(property: Ref<Property>, image: Ref<InstanceEntry>) {
     const propValue = computed(() => {
         if (!hasProperty(image.value, property.value.id)) {
             return undefined
@@ -96,28 +75,33 @@ export function getGroupParents(group: Group): Group[] {
 
 export function getTagChildren(tag: Tag, tags: TagIndex) {
     const res = []
-    const recursive = (t: Tag) => {
+    const seen = new Set<number>()
+    const stack = [tag]
+    while (stack.length) {
+        const t = stack.pop()
+        if (!t || t.id === deletedID || seen.has(t.id)) continue
+        seen.add(t.id)
         res.push(t.id)
         if (t.children) {
-            t.children.filter(c => c != deletedID).forEach(cId => recursive(tags[cId]))
+            for (const cId of t.children) if (cId != deletedID) stack.push(tags[cId])
         }
-
     }
-    recursive(tag)
     return res
 }
 
-export function getTagParents(tag: Tag, tags) {
+export function getTagParents(tag: Tag, tags: TagIndex) {
     const res = []
-    const recursive = (t: Tag) => {
-        if (!t) return
-        for (let pId of t.parents) {
-            if (pId == 0) continue
-            res.push(pId)
-            recursive(tags[pId])
-        }
+    const seen = new Set<number>([tag.id])
+    const stack = [...(tag.effectiveParents ?? tag.parents ?? [])]
+    while (stack.length) {
+        const pId = stack.pop()
+        if (pId <= 0 || seen.has(pId)) continue
+        const parent = tags[pId]
+        if (!parent || parent.id === deletedID) continue
+        seen.add(pId)
+        res.push(pId)
+        stack.push(...(parent.effectiveParents ?? parent.parents ?? []))
     }
-    recursive(tag)
     return res
 }
 // export async function getSimilarImagesFromText(context: ActionContext) {
@@ -262,14 +246,14 @@ export async function fileToBase64(file) {
     });
 }
 
-export function getComputedValues(instance: Instance) {
+export function getComputedValues(instance: InstanceEntry) {
     const res = [instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
     return res;
 }
 
 
-export function computeTagToInstance(instances: Instance[], properties: Property[], tags: Tag[], tagIndex: TagIndex) {
-    const res: { [tId: number]: Instance[] } = {}
+export function computeTagToInstance(instances: InstanceEntry[], properties: Property[], tags: Tag[], tagIndex: TagIndex) {
+    const res: { [tId: number]: InstanceEntry[] } = {}
 
     for (let tag of tags) {
         res[tag.id] = []
@@ -321,7 +305,7 @@ export function adjustForTimezone(date: Date): Date {
 
 export function allChildrenSha1Groups(group: Group) {
     function recursive(child: Group) {
-        if (!child.isSha1Group && child.type != GroupType.Sha1) {
+        if (!child.isSha1Group) {
             return false
         }
         if (child.children) {
@@ -332,83 +316,15 @@ export function allChildrenSha1Groups(group: Group) {
     return group.children.every(recursive)
 }
 
-export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext) {
-    const data = useDataStore()
-    const sha1Index: { [key: string]: number[] } = {}
-
-    ctx.instanceIds.forEach(id => {
-        const sha1 = data.instances[id].sha1
-        if (!sha1Index[sha1]) sha1Index[sha1] = []
-        sha1Index[sha1].push(id)
-    })
-
-    return groups.map((group) => {
-        let instances: Instance[] = []
-        const scoreIndex: { [sha1: string]: number } = {}
-        if (group.ids) {
-            instances = group.ids.map(i => data.instances[i])
-        } else {
-            if (group.scores) {
-                group.sha1s.forEach((sha1, i) => {
-                    scoreIndex[sha1] = group.scores.values[i]
-                })
-            }
-            group.sha1s.forEach(sha1 => sha1Index[sha1].forEach(i => instances.push(data.instances[i])))
-        }
-        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
-        res.meta.score = Math.round(group.score?.value ?? undefined)
-        res.name = group.name
-        res.isSha1Group = group.ids ? false : true
-        res.score = group.score
-        res.scores = convertScoreListToGroupScoreList(group, data.sha1Index)
-
-        return res
-    })
-}
-
-export function convertSearchGroupResult(groups: GroupResult[]) {
-    const data = useDataStore()
-
-    return groups.map((group) => {
-        let instances: Instance[] = []
-        const scoreIndex: { [sha1: string]: number } = {}
-        if (group.ids) {
-            instances = group.ids.map(i => data.instances[i])
-        } else {
-            if (group.scores) {
-                group.sha1s.forEach((sha1, i) => {
-                    scoreIndex[sha1] = group.scores.values[i]
-                })
-            }
-            group.sha1s.forEach(sha1 => data.sha1Index[sha1].forEach(i => instances.push(i)))
-        }
-        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
-        res.meta.score = Math.round(group.score?.value)
-        res.name = group.name
-        res.isSha1Group = group.ids ? false : true
-        res.score = group.score
-        res.scores = convertScoreListToGroupScoreList(group, data.sha1Index)
-        return res
-    })
-}
-
-export function sortGroupByScore(group: Group) {
-    let dir = group.scores.maxIsBest ? -1 : 1
-    group.images.sort((i1, i2) => {
-        return (group.scores.valueIndex[i1.id] - group.scores.valueIndex[i2.id]) * dir
-    })
-    return group
-}
-
 export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: Sha1ToInstances) {
     if (!group.scores) return
 
     const index: ScoreIndex = {}
     if (group.sha1s) {
         for (let i = 0; i < group.sha1s.length; i++) {
-            let sha1 = group.sha1s[i]
-            for (let instance of sha1Index[sha1]) {
-                index[instance.id] = group.scores.values[i]
+            const sha1 = group.sha1s[i]
+            for (const instanceId of (sha1Index[sha1] ?? [])) {
+                index[instanceId] = group.scores.values[i]
             }
         }
     }
@@ -435,6 +351,7 @@ export function isFinished(state: LoadState): boolean {
         state.finishedTags &&
         state.finishedInstanceValues &&
         state.finishedImageValues &&
+        state.finishedFileValues &&
         state.finishedPropertyGroups
 }
 

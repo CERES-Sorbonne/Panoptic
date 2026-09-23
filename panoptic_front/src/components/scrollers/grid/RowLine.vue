@@ -2,19 +2,27 @@
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { Group } from '@/core/GroupManager';
-import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useProjectStore } from '@/data/projectStore';
+import type { GroupInspector } from '@/core/group/inspector'
+import { ModalId, Property } from '@/data/models';
+import { PileRowLine, RowLine } from '@/components/scrollers/types';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { useProjectStore } from '@/data/stores/projectStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useColumnStore } from '@/data/stores/columnStore';
+import { emptyInstanceEntry, useInstanceStore } from '@/data/stores/instanceStore';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GridPropInput from './GridPropInput.vue';
 import { TabManager } from '@/core/TabManager';
 
 const panoptic = usePanopticStore()
-const project = useProjectStore()
+const project  = useProjectStore()
+const store    = useDataStore()
+const columnStore = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager,
+    imageSize: number,
+    manager: GroupInspector,
     item: any,
     properties: Property[],
     showImage: boolean,
@@ -33,23 +41,30 @@ const hover = ref(false)
 
 
 const tab = computed(() => props.tab.state)
-const image = computed(() => {
+const instanceId = computed(() => {
     if (props.item.type == 'pile') {
-        return (props.item as PileRowLine).data.images[0]
+        const handle = (props.item as PileRowLine).data
+        return columnStore.instanceIds()[handle.slots[0]]
     }
-    return (props.item as RowLine).data
+    return (props.item as RowLine).data.id
 })
+
+// Use the reactive instance from the store so property values populated by
+// InstanceData (via register) are reflected here without an extra fetch.
+const image = computed(() =>
+    useInstanceStore().instanceData[instanceId.value] ?? emptyInstanceEntry(instanceId.value)
+)
 
 const pile = computed(() => {
     if (props.item.type == 'pile') {
-        return props.item.data as Group
+        return (props.item as PileRowLine).data
     }
     return undefined
 })
 
 const imageHeight = computed(() => {
     if (props.showImage) {
-        return Math.max(imageSize.value.h + 4, 30)
+        return Math.max(imageDims.value.h + 4, 30)
     }
     return 0
 })
@@ -81,7 +96,7 @@ const propMinRowHeight = computed(() => {
         }
         if (props.showImage) {
             // max = Math.max(max, tab.value.data.imageSize)
-            max = Math.max(max, imageSize.value.h+4)
+            max = Math.max(max, imageDims.value.h+4)
         }
         max = Math.max(max, props.showImage ? 26 : 24)
         res[prop.id] = max
@@ -98,15 +113,12 @@ const propWidth = computed(() => {
 })
 
 
-const imageSize = computed(() => {
-    let imgRatio = image.value.width / image.value.height
-    let divRatio = 1
-
-    if (divRatio > imgRatio) {
-        return { w: tab.value.imageSize * imgRatio, h: tab.value.imageSize }
+const imageDims = computed(() => {
+    const imgRatio = 1
+    if (1 > imgRatio) {
+        return { w: props.imageSize * imgRatio, h: props.imageSize }
     }
-    return { w: tab.value.imageSize, h: tab.value.imageSize / imgRatio }
-
+    return { w: props.imageSize, h: props.imageSize / imgRatio }
 })
 
 const inputWidth = computed(() => {
@@ -114,9 +126,8 @@ const inputWidth = computed(() => {
     props.properties.forEach(p => {
         res[p.id] = tab.value.propertyOptions[p.id].size - 7
         if (p.id == props.properties[props.properties.length - 1].id) {
+            // The scrollbar is already excluded from missingWidth by GridScroller.
             if (props.missingWidth > 0) res[p.id] += props.missingWidth
-
-            res[p.id] -= 15 // remove scrolling bar width
         }
     })
     return res
@@ -157,8 +168,18 @@ function emitResizeOnce() {
 }
 
 function showModal() {
-    // console.log(props.item.iterator)
-    panoptic.showModal(ModalId.IMAGE, props.item.iterator)
+    let iterator
+    if (props.item.type === 'pile') {
+        const handle = (props.item as PileRowLine).data
+        iterator = props.manager.getImageIterator(handle.groupId, handle.pileIndex)
+    } else {
+        const rowItem = props.item as RowLine
+        iterator = props.manager.getImageIterator(rowItem.groupId, rowItem.index)
+    }
+    // A recycled line can outlive its group; an invalid iterator has no slot, and the modal
+    // would open on nothing.
+    if (!iterator?.isValid) return
+    panoptic.showModal(ModalId.IMAGE, iterator)
 }
 
 
@@ -175,19 +196,19 @@ watch(() => props.properties, () => {
 
 
 <template>
-    <div class="d-flex" :style="{ height: props.item.size + 'px' }">
-        <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
+    <div class="d-flex row-line" :style="{ height: props.item.size + 'px' }">
+        <!-- <div class="left-border" :style="{ height: props.item.size + 'px' }"></div> -->
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
+            width: (props.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <Zoomable :image="image">
-                <CenteredImage :image="image" :width="tab.imageSize - 1" :height="rowHeight - 2" />
-                <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.imageSize + 'px' }"
+                <CenteredImage :instance-id="image.id" :width="props.imageSize - 1" :height="rowHeight - 2" />
+                <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: props.imageSize + 'px' }"
                     style="position: absolute; top:0; left:0; right: 0px; bottom: 0px;"></div>
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                     @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
                     class="select" :light-mode="true" />
-                <div class="image-count" v-if="pile?.images.length > 1">{{ pile.images.length }}</div>
+                <div class="image-count" v-if="pile?.slots.length > 1">{{ pile.slots.length }}</div>
             </Zoomable>
         </div>
 
@@ -198,10 +219,21 @@ watch(() => props.properties, () => {
                 :width="inputWidth[property.id]" @update:height="h => sizes[property.id] = h" ref="inputElems"
                 @click.stop="" />
         </div>
+
+        <!-- With no properties shown there is no column to absorb the leftover
+             width, so the row would stop at the image and lose its borders. -->
+        <div v-if="!props.properties.length && props.missingWidth > 0" class="container22"
+            :style="{ width: props.missingWidth + 'px', height: '100%' }"></div>
     </div>
 </template>
 
 <style scoped>
+/* Columns keep their exact width even when the row is wider than the viewport,
+   so they stay aligned with the (non-flex, inline-block) table header. */
+.row-line > * {
+    flex-shrink: 0;
+}
+
 .image-count {
     position: absolute;
     top: 0;

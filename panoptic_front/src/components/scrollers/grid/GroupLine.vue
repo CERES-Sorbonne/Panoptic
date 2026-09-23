@@ -2,19 +2,21 @@
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
 import { SelectedImages } from '@/core/GroupManager';
-import { GroupLine } from '@/data/models';
+import { GroupLine } from '@/components/scrollers/types';
 import { getGroupParents } from '@/utils/utils';
 import { Ref, computed } from 'vue';
+import { useColumnStore } from '@/data/stores/columnStore';
 
 
 
 const props = defineProps<{
   item: GroupLine
   width: number
-  selectedImages: Ref<SelectedImages>
 }>()
 
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
+
+const columnStore = useColumnStore()
 
 const closed = computed(() => getGroupParents(props.item.data).some(g => g.view.closed) || props.item.data.view.closed)
 
@@ -27,7 +29,10 @@ function toggleClosed() {
     }
 }
 
-const selected = computed(() => !props.item.data.images.some(i => !props.selectedImages.value[i.id]))
+const selected = computed(() => {
+    columnStore.selectionVersion  // reactive dep on global selection (step 2)
+    return !props.item.data.slots.some(s => !columnStore.isSelected(s))
+})
 
 const propertyValues = computed(() => {
     const res = []
@@ -44,11 +49,11 @@ const propertyValues = computed(() => {
 <template>
     <div class="d-flex flex-row group-row m-0"
         :style="{ width: (props.width - 0) + 'px', height: (props.item.size) + 'px' }">
-        <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
+        <div @click="toggleClosed" class="align-self-center" style="cursor: pointer; margin-left: 0.25rem;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div class="me-2"><SelectCircle :model-value="selected" @update:model-value="emits('toggle:group', props.item.data.id)"/></div>
+        <div class="ms-1 me-2"><SelectCircle :model-value="selected" @update:model-value="emits('toggle:group', props.item.data.id)"/></div>
         <template v-for="value, index in propertyValues">
             <PropertyValueVue class="" :value="value" />
             <div v-if="index < propertyValues.length - 1" class="separator">&</div>
@@ -58,7 +63,7 @@ const propertyValues = computed(() => {
 
 <style scoped>
 .group-row {
-    border-left: 1px solid var(--border-color);
+    /* border-left: 1px solid var(--border-color); */
     border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     box-sizing: border-box;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { FunctionDescription } from '@/data/models';
 import { objValues } from '@/utils/utils';
 import { onMounted, computed, watch, reactive } from 'vue';

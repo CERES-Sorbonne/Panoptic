@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { Ref, computed, nextTick, onMounted, ref, watch } from 'vue';
-import { PileRowLine, type GroupLine, type Property, type RowLine, type ScrollerLine } from '@/data/models'
+import { type Property } from '@/data/models'
+import { PileRowLine, type GroupLine, type RowLine, type ScrollerLine } from '@/components/scrollers/types'
 
 import GroupLineVue from './GroupLine.vue';
 import RowLineVue from './RowLine.vue';
-import { SelectedImages } from '@/core/GroupManager';
+import { SelectedImages } from '@/core/GroupManager'
+import type { GroupInspector } from '@/core/group/inspector'
 import { TabManager } from '@/core/TabManager';
+import { useColumnStore } from '@/data/stores/columnStore';
 
 
 const props = defineProps<{
     tab: TabManager,
+    imageSize: number,
+    manager: GroupInspector,
     item: ScrollerLine,
     width: number,
     missingWidth: number,
     properties: Property[],
     showImages: boolean,
-    selectedImages: Ref<SelectedImages>
 }>()
 
 const emits = defineEmits({
@@ -26,13 +30,15 @@ const emits = defineEmits({
     'toggle:group': Object
 })
 
+const columnStore = useColumnStore()
 const loaded = ref(true)
 
 const selected = computed(() => {
+    columnStore.selectionVersion  // reactive dep on global selection (step 2)
     if (props.item.type == 'image') {
-        return props.selectedImages.value[props.item.data.id]
-    } else if( props.item.type = 'pile') {
-        return props.selectedImages.value[props.item.data.images[0].id]
+        return columnStore.isSelectedId((props.item as RowLine).data.id)
+    } else if (props.item.type == 'pile') {
+        return columnStore.isSelected((props.item as PileRowLine).data.slots[0])
     }
 })
 
@@ -50,19 +56,19 @@ watch(() => props.item.id, reload)
     <template v-if="loaded" class="container">
         <div v-if="item.type == 'group'">
             <GroupLineVue :prop-values="item.data.propertyValues" :item="(item as GroupLine)" :width="props.width"
-                :selectedImages="props.selectedImages" @close:group="e => emits('close:group', e)"
+                @close:group="e => emits('close:group', e)"
                 @open:group="e => emits('open:group', e)" @toggle:group="e => emits('toggle:group', e)" />
         </div>
         <div v-if="item.type == 'image'">
             <!-- <div class="border-top position-absolute border-warning" style="width: 100%;"></div> -->
-            <RowLineVue :tab="props.tab" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
                 @toggle:image="e => emits('toggle:image', e)" :selected="selected" />
         </div>
         <div v-if="item.type == 'pile'">
-            <RowLineVue :tab="props.tab" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)" :selected="selected"
-                @toggle:image="e => emits('toggle:image', { groupId: item.data.parent.id, imageIndex: item.data.parentIdx })" />
+                @toggle:image="e => emits('toggle:image', { groupId: (item as PileRowLine).data.groupId, imageIndex: (item as PileRowLine).data.pileIndex })" />
         </div>
         <div v-if="item.type == 'filler'" style="height: 1000px;">
 

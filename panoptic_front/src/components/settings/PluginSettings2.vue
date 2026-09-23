@@ -2,7 +2,7 @@
 import { FunctionDescription, ParamDescription, PluginDefaultParams, PluginDescription } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import ParamInput from '@/components/inputs/ParamInput.vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { deepCopy, objValues } from '@/utils/utils';
 
 const project = useProjectStore()
@@ -74,7 +74,7 @@ watch(() => props.plugin, updateLocalDefaults)
             <div v-for="param in localDefaults" class="param">
                 <!-- {{ param }} -->
                 <template v-if="localDefaults[param.name]">
-                    <ParamInput :input="param" />
+                    <ParamInput :input="param" :source="props.plugin.name" />
                     <div class="text-secondary">{{ param.description }}</div>
                 </template>
             </div>

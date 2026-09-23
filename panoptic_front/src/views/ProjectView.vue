@@ -1,183 +1,160 @@
 <script setup lang="ts">
-import router from '@/router';
-import { ref, computed, onMounted, nextTick, onUnmounted, provide } from 'vue';
-import Menu from '../components/menu/Menu.vue';
-
-import { keyState } from '@/data/keyState';
-import MainView from '@/components/mainview/MainView.vue';
-import TabNav from '@/components/mainview/TabNav.vue';
-import { ModalId } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
-import { usePanopticStore } from '@/data/panopticStore';
-import Tutorial from '@/tutorials/Tutorial.vue';
-import { useDataStore } from '@/data/dataStore';
-import TabContainer from '@/components/TabContainer.vue';
-import { useTabStore } from '@/data/tabStore';
-import DataLoad from '@/components/loading/DataLoad.vue';
-
-let x = 0
+import { computed, onMounted } from 'vue'
+import router from '@/router'
+import AppShellLayout from '@/layouts/AppShellLayout.vue'
+import SidebarLayout from '@/layouts/SidebarLayout.vue'
+import SplitLayout from '@/layouts/SplitLayout.vue'
+import TopBarPanel from '@/components/layoutpanels/TopBarPanel.vue'
+import LeftBarPanel from '@/components/layoutpanels/LeftBarPanel.vue'
+import FolderPanel from '@/components/layoutpanels/FolderPanel.vue'
+import PropertyPanel from '@/components/layoutpanels/PropertyPanel.vue'
+import FilterIsland from '@/components/layoutpanels/FilterIsland.vue'
+import ViewPanel from '@/components/layoutpanels/ViewPanel.vue'
+import TabProvider from '@/components/layoutpanels/TabProvider.vue'
+import { useProjectStore } from '@/data/stores/projectStore'
+import { usePanopticStore } from '@/data/stores/panopticStore'
+import { useUiStore } from '@/data/stores/uiStore'
+import { useTabStore } from '@/data/stores/tabStore'
+import { ModalId } from '@/data/models'
+import PropertyModal from '@/components/modals/PropertyModal.vue'
+import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue'
+import ExportModal2 from '@/components/modals/ExportModal2.vue'
+import ImageModal from '@/components/modals/ImageModal.vue'
+import ImageZoomModal from '@/components/modals/ImageZoomModal.vue'
+import SettingsModal from '@/components/modals/SettingsModal.vue'
+import ImportModal from '@/components/modals/ImportModal.vue'
+import FileSourceModal from '@/components/modals/FileSourceModal.vue'
+import TagModal from '@/components/modals/TagModal.vue'
+import FirstModal from '@/components/modals/FirstModal.vue'
+import NotifModal from '@/components/modals/NotifModal.vue'
+import SelectionModal from '@/components/modals/SelectionModal.vue'
 
 const project = useProjectStore()
-const data = useDataStore()
 const panoptic = usePanopticStore()
+const uiStore = useUiStore()
 const tabStore = useTabStore()
-
-const mainViewRef = ref(null)
-const navElem = ref(null)
-const windowHeight = ref(window.innerHeight)
-const hasHeight = ref(false)
-const show = ref(true)
-
-const filterOpen = ref(true)
-
-const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
-const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
-
-let isMac = navigator.userAgent.indexOf('Mac OS X') !== -1
-
-async function rerender() {
-    show.value = false
-    await nextTick()
-    show.value = true
-}
+const leftCollapsed = computed(() => !uiStore.panelStates.leftPanelOpen && uiStore.panelStates.activeBottomPanel === null)
 
 onMounted(async () => {
+    console.log('[ProjectView] Mounted, checking if project is loaded')
     if (!panoptic.isProjectLoaded) {
+        console.log('[ProjectView] Project not loaded, redirecting to home')
         router.push('/')
         return
     }
 
-    project.init()
-
-    nextTick(() => {
-        window.addEventListener('resize', onResize);
-        onResize()
-    })
-
-    window.addEventListener('keydown', (ev) => {
-        if (ev.key == 'Meta') keyState.cmd = true;
-        if (ev.key == 'Control') keyState.ctrl = true;
-        if (ev.key == 'Alt') {
-            if (isMac) {
-                keyState.ctrl = true
-            }
-            keyState.alt = true;
-        }
-        if (ev.key == 'Shift') keyState.shift = true;
-        if (ev.key == 'ArrowLeft') keyState.left = true;
-        if (ev.key == 'ArrowRight') { keyState.right = true; }
-
-        if (ev.key == 'Z' && keyState.ctrl) data.redo()
-        if (ev.key == 'z' && keyState.ctrl) data.undo()
-
-        if (ev.key == 'f' && (keyState.ctrl || keyState.cmd)) {
-            ev.preventDefault()
-            // ev.stopImmediatePropagation()
-            keyState.ctrlF.emit()
-        }
-    })
-    window.addEventListener('keyup', (ev) => {
-        if (ev.key == 'Meta') keyState.cmd = false; //
-        if (ev.key == 'Control') keyState.ctrl = false;
-        if (ev.key == 'Alt') {
-            if (isMac) {
-                keyState.ctrl = false
-            }
-            keyState.alt = false;
-        }
-        if (ev.key == 'Shift') keyState.shift = false;
-        if (ev.key == 'ArrowLeft') keyState.left = false;
-        if (ev.key == 'ArrowRight') keyState.right = false;
-    })
-    window.addEventListener('mousemove', (ev) => {
-        keyState.ctrl = ev.ctrlKey
-        keyState.alt = ev.altKey
-        keyState.shift = ev.shiftKey
-        keyState.cmd = ev.metaKey
-        if (isMac) {
-            keyState.ctrl = keyState.ctrl || keyState.alt
-        }
-    })
+    console.log('[ProjectView] Initializing project store and uiStore')
+    await project.init()
+    console.log('[ProjectView] Stores initialized, uiStore.loaded:', uiStore.loaded)
 })
-
-onUnmounted(() => {
-    window.removeEventListener('resize', onResize);
-    useProjectStore().clear()
-})
-
-function onResize() {
-    // console.log('resize', window.innerHeight)
-    windowHeight.value = window.innerHeight
-    hasHeight.value = true
-}
-
-function showModal() {
-    panoptic.showModal(ModalId.EXPORT, filteredImages)
-}
-
-function redirectHome() {
-    router.push('/')
-}
-
-function updateWidth() {
-    if (mainViewRef.value) {
-        mainViewRef.value.updateScrollerWidth()
-    }
-}
-
 </script>
 
 <template>
-    <div v-if="show">
-        <Tutorial v-if="mainViewRef && !mainViewRef.imageList" tutorial="project" />
-        <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
-        <div id="panoptic">
-            <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
-            <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-                <div v-if="!data.isLoaded" class="d-flex flex-column w-100" :style="{ height: windowHeight + 'px' }">
-                    <DataLoad class="flex-grow-1" />
-                </div>
-                <template v-else-if="data.isLoaded">
-                    <div>
-                        <Menu @export="showModal()" @toggle="updateWidth" />
-                    </div>
-                    <div class="w-100">
-                        <div class="ms-1" ref="navElem">
-                            <TabNav :re-render="rerender" :filterOpen="filterOpen"
-                                @update:filterOpen="v => filterOpen = v" />
-                        </div>
-                        <div class="custom-hr" v-if="hasHeight" />
-                        <TabContainer :id="tabStore.mainTab">
-                            <template #default="{ tab }">
-                                <MainView :tab="tab" :height="contentHeight" ref="mainViewRef"
-                                    :filter-open="filterOpen" />
-                            </template>
-                        </TabContainer>
-                    </div>
+    <AppShellLayout :gap="6" :activity-width="32" :toolbar-height="32" :status-height="0">
+        <!-- Top toolbar -->
+        <template #toolbar>
+            <TopBarPanel />
+        </template>
 
-                </template>
-                <div v-else-if="!panoptic.isProjectLoaded" class="loading">
-                    <div class="text-center">
-                        <div>{{ $t('main.status.no_project') }}</div>
-                        <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;">
-                        </div>
-                    </div>
+        <!-- Left activity bar -->
+        <template #activity>
+            <LeftBarPanel />
+        </template>
+
+        <!-- Work area -->
+        <template v-if="uiStore.loaded && tabStore.loaded">
+        <SidebarLayout
+            :sidebar-width="uiStore.resizeStates.leftSidebarWidth"
+            @update:sidebar-width="(w) => { console.log('[ProjectView] Sidebar resized to:', w); uiStore.resizeStates.leftSidebarWidth = w }"
+            :gap="6"
+            resizable
+            :min-width="180"
+            :max-width="500"
+            :collapsed="leftCollapsed"
+        >
+            <!-- Folders over properties, resizable divider -->
+            <template #sidebar>
+                <SplitLayout
+                    direction="column"
+                    :secondary-ratio="uiStore.resizeStates.foldersHeight"
+                    @update:secondary-ratio="(r) => { console.log('[ProjectView] Folders resized to:', r); uiStore.resizeStates.foldersHeight = r }"
+                    :gap="6"
+                    resizable
+                    :min-primary="100"
+                    :min-secondary="90"
+                    :hide-primary="!uiStore.panelStates.leftPanelOpen"
+                    :hide-secondary="uiStore.panelStates.activeBottomPanel === null"
+                >
+                    <template #primary>
+                        <FolderPanel />
+                    </template>
+                    <template #secondary>
+                        <PropertyPanel />
+                    </template>
+                </SplitLayout>
+            </template>
+
+            <!-- Center: filter bar above the views -->
+            <template #main>
+                <div class="center-stack">
+                    <!-- Filter bar -->
+                    <FilterIsland />
+
+                    <!-- One or two views, side by side when split -->
+                    <TabProvider v-slot="{ tab }">
+                        <SplitLayout
+                            class="view-split"
+                            direction="row"
+                            :secondary-ratio="tab.state.splitRatio"
+                            @update:secondary-ratio="(r) => { tab.state.splitRatio = r }"
+                            :gap="10"
+                            resizable
+                            :min-primary="200"
+                            :min-secondary="200"
+                            :hide-secondary="!tab.state.splitView"
+                        >
+                            <template #primary>
+                                <ViewPanel :view-index="0" />
+                            </template>
+                            <template #secondary>
+                                <ViewPanel :view-index="1" />
+                            </template>
+                        </SplitLayout>
+                    </TabProvider>
                 </div>
-                <div v-else class="loading">
-                    <i class="spinner-border" role="status"></i>
-                    <span class="ms-1">Loading...</span>
-                </div>
-            </div>
-        </div>
-    </div>
+            </template>
+        </SidebarLayout>
+        </template>
+    </AppShellLayout>
+    <div id="popup" style="position: fixed; top:0;left: 0; z-index: 9990;"></div>
+    <PropertyModal :id="ModalId.PROPERTY" />
+    <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+    <ExportModal2 />
+    <ImageModal />
+    <ImageZoomModal />
+    <SettingsModal />
+    <ImportModal />
+    <FileSourceModal />
+    <TagModal />
+    <FirstModal />
+    <NotifModal />
+    <SelectionModal />
 </template>
 
 <style scoped>
-.loading {
-    width: 100%;
-    height: 100vh;
+/* Center column: filter bar above the views */
+.center-stack {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    gap: var(--island-gap);
 }
+
+/* View split fills the center column */
+.view-split {
+    width: 100%;
+}
+
 </style>

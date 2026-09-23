@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useDataStore } from '@/data/dataStore';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { ModalId, Property, PropertyType } from '@/data/models';
 import PropertyDropdown from '../properties/PropertyDropdown.vue'; // Using your existing component
 import wTT from '@/components/tooltips/withToolTip.vue'; // Using the tooltip wrapper
-import { apiUploadTagsCsv } from '@/data/apiProjectRoutes';
+import { apiUploadTagsCsv } from '@/data/api/projectApi';
 
 // Placeholder API import
-// import { apiImportTags } from '@/data/apiProjectRoutes'; 
+// import { apiImportTags } from '@/data/api/projectApi'; 
 
 const data = useDataStore()
 const panoptic = usePanopticStore()

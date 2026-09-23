@@ -1,611 +1,588 @@
+"""CSV importer for Panoptic V2.
+
+Stateful: call parse_headers → verify_mapping → import_data_and_commit in order.
+"""
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+import io
+import os
+from dataclasses import dataclass
 from random import randint
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import Any, TYPE_CHECKING
 
 import polars as pl
 
-from panoptic.core.importer.parsing import parser
-from panoptic.utils import RelativePathTrie
-
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstanceProperty, \
-    ImageProperty, DbCommit, UploadError, UploadConfirm, PropertyGroup, ImportVerify
 
+from panoptic.core.databases.data.models import (
+    Instance, Property, Tag, InstanceValue, Sha1Value, UpsertCommit,
+)
+from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE
+
+
+# ---------------------------------------------------------------------------
+# Internal property descriptor used during an import session
+# ---------------------------------------------------------------------------
 
 @dataclass
-class ImportValues:
-    property_id: int
-    instance_ids: list = field(default_factory=list)
-    values: list = field(default_factory=list)
-    write_mode: str = field(default="set")
+class ImportProp:
+    id: int       # negative = new; positive = existing DB id
+    name: str
+    dtype: str    # 'text', 'number', 'tag', 'multi_tags', etc.
+    mode: str     # 'sha1' | 'id'
 
 
-@dataclass
-class ImportData:
-    instances: list[Instance] = field(default_factory=list)
-    properties: list[Property] = field(default_factory=list)
-    tags: list[Tag] = field(default_factory=list)
-    values: list[ImportValues] = field(default_factory=list)
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+_VALID_TYPES = {'text', 'number', 'tag', 'multi_tags', 'url', 'date', 'path', 'color', 'checkbox'}
+_VALID_KEYS  = {'id', 'path'}
+_TAG_TYPES   = {'tag', 'multi_tags'}
+
+# Number of CSV columns to read per disk pass. Higher = fewer reads but more RAM.
+_COL_BATCH = 50
+
+_PARSERS: dict[str, Any] = {
+    'text':       lambda v: str(v) if v else None,
+    'number':     lambda v: (float(v) if '.' in v else int(v)) if v else None,
+    'tag':        lambda v: [v.strip()] if v and v.strip() else None,
+    'multi_tags': lambda v: [x.strip() for x in v.split(',') if x.strip()] if v else None,
+    'date':       lambda v: str(v) if v else None,
+    'color':      lambda v: int(v) if v else None,
+    'url':        lambda v: str(v) if v else None,
+    'checkbox':   lambda v: True if v else None,
+    'path':       lambda v: str(v) if v else None,
+}
 
 
-def clean_type(type_: PropertyType):
-    valid = {
-        PropertyType.string,
-        PropertyType.number,
-        PropertyType.tag,
-        PropertyType.multi_tags,
-        PropertyType.image_link,
-        PropertyType.url,
-        PropertyType.date,
-        PropertyType.path,
-        PropertyType.color,
-        PropertyType.checkbox,
-        PropertyType.id,
-        PropertyType.sha1,
-        PropertyType.ahash,
-        PropertyType.width,
-        PropertyType.height
-    }
-    if type_ not in valid:
-        return PropertyType.string
-    return type_
+# ---------------------------------------------------------------------------
+# CSV helpers
+# ---------------------------------------------------------------------------
 
-
-valid_types = ['text', 'number', 'tag', 'multi_tags', 'url', 'date', 'path', 'color', 'checkbox']
-
-
-def parse_header(index: int, name: str, errors: dict):
-    if '[' not in name:
-        if name in valid_keys:
-            errors[index] = UploadError.invalid_position
-        else:
-            errors[index] = UploadError.missing_bracket
-        type_ = PropertyType.string
-    else:
-        name, remain = name.split('[')
-        raw_type = remain.split(']')[0]
-        if raw_type not in valid_types:
-            errors[index] = UploadError.invalid_type
-            type_ = PropertyType.string
-        else:
-            type_ = PropertyType(raw_type)
-            type_ = clean_type(type_)
-    return index, name, type_
-
-
-__tag_id_counter = 0
-
-
-def gen_tag_id():
-    global __tag_id_counter
-    __tag_id_counter -= 1
-    return __tag_id_counter
-
-
-__instance_id_counter = 0
-
-
-def gen_instance_id():
-    global __instance_id_counter
-    __instance_id_counter -= 1
-    return __instance_id_counter
-
-
-valid_keys = ['id', 'path']
-
-
-def extract_key(columns):
-    key = columns[0]
-    if key not in valid_keys:
+def _read_csv(file_path: str, columns: list[str] | None = None,
+              n_rows: int | None = None) -> pl.DataFrame | None:
+    try:
+        return pl.read_csv(
+            file_path,
+            separator=';',
+            encoding='utf-8',
+            null_values=[],
+            infer_schema=False,
+            n_rows=n_rows,
+            columns=columns,
+        )
+    except Exception:
         return None
-    return key
 
+
+def _parse_header(index: int, name: str, errors: dict[int, str]):
+    if '[' not in name:
+        if name in _VALID_KEYS:
+            errors[index] = 'Key column found in wrong position; it must be first'
+        else:
+            errors[index] = 'Missing type bracket — columns must be "Name[type]"'
+        dtype = 'text'
+    else:
+        name, remain = name.split('[', 1)
+        raw_type = remain.split(']')[0]
+        if raw_type not in _VALID_TYPES:
+            errors[index] = f'Invalid type "{raw_type}"'
+            dtype = 'text'
+        else:
+            dtype = raw_type
+    return index, name.strip(), dtype
+
+
+# ---------------------------------------------------------------------------
+# Path index: flat dict instead of a character trie
+#
+# The character trie stored one Python dict node per character across all
+# paths — ~30 M nodes for 512 K paths, costing 10–20 GB of RAM.
+# This flat dict stores one entry per path-component suffix, which is
+# O(depth × n_paths) — typically 1.5 M entries for the same dataset (~400 MB).
+# Component-level suffix matching is also more correct: a query "sub/file.jpg"
+# matches "root/sub/file.jpg" but NOT "nosub/file.jpg" (no false char-level hits).
+# ---------------------------------------------------------------------------
+
+def _norm_path(p: str) -> str:
+    return p.replace('\\', '/').strip('/')
+
+
+class _PathIndex:
+    def __init__(self, relative: bool):
+        self._relative = relative
+        # full normalised path → [inst_ids]
+        self._exact: dict[str, list[int]] = {}
+        # each component suffix → [inst_ids]  (only built when relative=True)
+        self._suffix: dict[str, list[int]] | None = {} if relative else None
+
+    def insert(self, path: str, inst_id: int):
+        key = _norm_path(path)
+        self._exact.setdefault(key, []).append(inst_id)
+        if self._relative:
+            parts = key.split('/')
+            # start from 1 so the full path is only stored in _exact
+            for i in range(1, len(parts)):
+                self._suffix.setdefault('/'.join(parts[i:]), []).append(inst_id)
+
+    def search(self, path: str) -> list[int]:
+        key = _norm_path(path)
+        if self._relative:
+            return self._suffix.get(key) or self._exact.get(key) or []
+        return self._exact.get(key) or []
+
+
+# ---------------------------------------------------------------------------
+# Importer
+# ---------------------------------------------------------------------------
 
 class Importer:
-    def __init__(self, project: Project):
+    """Stateful CSV importer for Project.
+
+    Usage::
+
+        importer = project.importer
+        confirm  = importer.parse_headers('/path/to/file.csv')
+        verify   = importer.verify_mapping(relative=False, fusion='new')
+        importer.import_data_and_commit()
+    """
+
+    def __init__(self, project: 'Project'):
         self.project = project
         self.file_path: str = ''
-        self.columns: list[str] | None = None  # Stores all column names from the header
-        self._row_to_ids: list[list[int]] = []
-        self.file_key: str | None = None
-        self.col_to_prop: dict[int, Property] = {}
-        self._new_instances: list[Instance] = []
-        self.exclude = []
-        self.properties = {}
+        self.columns:   list[str] = []
+        self.file_key:  str | None = None
+        self.col_to_prop: dict[int, ImportProp] = {}
+        self._row_to_ids:      list[list[int]] = []
+        self._new_inst_info:   list[tuple[int, int, str]] = []   # (file_id, inst_id, sha1)
 
-    async def _read_csv(self, columns: list[str] | None = None,
-                        stop_after_n_rows: int | None = None) -> pl.DataFrame | None:
-        """Helper to read the CSV file, reading only specified columns."""
-        try:
-            return pl.read_csv(
-                self.file_path,
-                separator=';',
-                encoding='utf-8',
-                null_values=[],
-                infer_schema=False,
-                n_rows=stop_after_n_rows,
-                columns=columns
-            )
-        except pl.exceptions.PolarsError:
-            return None
+    # ------------------------------------------------------------------
+    # Step 1: parse CSV headers
+    # ------------------------------------------------------------------
 
-    async def parse_headers(self, file_path: str) -> UploadConfirm:
-        """
-        Reads only the header to detect the key column and properties.
-        """
-        self.clear()
+    def parse_headers(self, file_path: str) -> dict:
+        self._clear()
         self.file_path = file_path
-        errors: dict[int, UploadError] = {}
+        errors: dict[int, str] = {}
 
-        # 1. Read ONLY the header (n_rows=0) to get column names
-        df = await self._read_csv(stop_after_n_rows=0)
-
+        df = _read_csv(file_path, n_rows=0)
         if df is None:
-            errors[0] = UploadError.invalid_csv
-            return UploadConfirm(key="", col_to_property={}, errors=errors)
+            errors[0] = 'Invalid CSV — use ";" as separator'
+            return {'key': '', 'col_to_property': {}, 'errors': errors}
 
-        self.columns = df.columns
-        self.file_key = extract_key(self.columns)
+        self.columns  = df.columns
+        first         = self.columns[0] if self.columns else ''
+        self.file_key = first if first in _VALID_KEYS else None
 
         if self.file_key is None:
-            errors[0] = UploadError.no_key
+            errors[0] = 'No valid key column (must be "id" or "path" in first column)'
 
-        # 2. Parse header into file properties
-        file_props = [
-            parse_header(i, col_name, errors)
-            for i, col_name in enumerate(self.columns[1:], start=1)
-            if col_name
+        file_props: list[tuple[int, str, str]] = [
+            _parse_header(i, col, errors)
+            for i, col in enumerate(self.columns[1:], start=1)
+            if col
         ]
 
-        # 3. Load DB properties
-        db_properties = await self.project.db.get_properties()
+        db_props    = self.project.get_properties()
+        prop_lookup = {(p.name, p.dtype): p for p in db_props}
 
-        # 4. Build col_to_prop from file headers
-        for i, name, type_ in file_props:
-            prop = Property(
-                id=-i,
-                name=name,
-                type=type_,
-                mode=PropertyMode.id
-            )
-            self.col_to_prop[i] = prop
-
-        # 5. Merge with existing DB properties
-        for db_prop in db_properties:
-            for prop in self.col_to_prop.values():
-                if prop.name == db_prop.name and prop.type == db_prop.type:
-                    prop.id = db_prop.id
-                    prop.mode = db_prop.mode
-
-        self.properties = self.col_to_prop
-        return UploadConfirm(key=self.file_key, col_to_property=self.col_to_prop, errors=errors)
-
-    async def verify_mapping(self, relative: bool = False, fusion: str = 'new') -> ImportVerify:
-        """
-        Determines the final instance mapping (including new instances via fusion),
-        stores the finalized self._row_to_ids, and returns statistics on the outcome.
-
-        Returns: A dictionary containing 'missing_rows' and 'new_instances'.
-        """
-        if not self.file_key or not self.columns:
-            raise ValueError("Headers must be parsed first with parse_headers.")
-
-        # Initialize ImportData and new instance list
-        new_instances: list[Instance] = []
-
-        # 1. Read ONLY the key column data
-        df = await self._read_csv(columns=[self.file_key])
-        if df is None:
-            raise IOError("Could not read the key column from CSV file.")
-
-        key_column_data = df[self.file_key].to_list()
-
-        # This list will hold the final, fused IDs (temporary or existing)
-        self._row_to_ids: list[list[int]] = []
-
-        # Fetch all instances for path/fusion logic
-        instances = await self.project.db.get_instances()
-        instance_index = {i.id: i for i in instances}
-
-        # 2. Initial Mapping: Find ALL possible existing matches
-        initial_mapping: list[list[int]] = []
-        if self.file_key == 'id':
-            all_ids = await self.project.db.get_all_instances_ids()
-            for id_ in key_column_data:
-                try:
-                    n_id = int(id_)
-                    initial_mapping.append([n_id] if n_id in all_ids else [])
-                except (ValueError, TypeError):
-                    initial_mapping.append([])
-
-        elif self.file_key == 'path':
-            trie = RelativePathTrie()
-            trie.insert_paths(instances)
-
-            for path in key_column_data:
-                if relative:
-                    ids = trie.search_relative_path(path)
-                else:
-                    ids = trie.search_absolute_path(path)
-                initial_mapping.append(ids)
-
-        # 3. Apply Fusion Logic and Assign IDs (Including Negative IDs)
-
-        current_mapping = initial_mapping  # Start with all matches
-        empty = set()
-        used_id = set()
-        if fusion == 'new':
-            to_test = [vv for v in current_mapping for vv in v]
-            empty = await self.project.db.test_empty(to_test)
-            used_id = set()
-
-        for i in range(len(current_mapping)):
-            if fusion == 'first':
-                self._row_to_ids.append([current_mapping[i][0]] if current_mapping[i] else [])
-            elif fusion == 'last':
-                self._row_to_ids.append([current_mapping[i][-1]] if current_mapping[i] else [])
-            elif fusion == 'new':
-                if current_mapping[i]:
-                    valid = [
-                        inst_id for inst_id in current_mapping[i]
-                        if inst_id in empty and inst_id not in used_id
-                    ]
-                    if valid:
-                        # Found a reusable, empty instance
-                        free_id = valid[0]
-                        used_id.add(free_id)
-                        self._row_to_ids.append([free_id])
-                    elif self.file_key == 'path':
-                        # Clone existing instance and assign a new temporary ID
-                        instance_clone = replace(instance_index[current_mapping[i][0]])
-                        instance_clone.id = gen_instance_id()
-                        self._row_to_ids.append([instance_clone.id])
-                        new_instances.append(instance_clone)
-                    else:
-                        # 'id' key fusion: Matched non-empty/non-reusable instance. No value assignment.
-                        self._row_to_ids.append([])
-                else:
-                    self._row_to_ids.append([])  # No match
+        col_to_prop: dict[int, ImportProp] = {}
+        for i, name, dtype in file_props:
+            existing = prop_lookup.get((name, dtype))
+            if existing:
+                col_to_prop[i] = ImportProp(id=existing.id, name=name, dtype=dtype,
+                                             mode=existing.mode or 'sha1')
             else:
-                # Default behavior (e.g., if fusion mode is not supported for key type)
-                self._row_to_ids.append([current_mapping[i][0]] if current_mapping[i] else [])
+                col_to_prop[i] = ImportProp(id=-i, name=name, dtype=dtype, mode='sha1')
 
-        # Save new instances to data object
-        self._new_instances = new_instances
+        self.col_to_prop = col_to_prop
+        return {
+            'key': self.file_key or '',
+            'col_to_property': {
+                str(i): {'id': p.id, 'name': p.name, 'type': p.dtype, 'mode': p.mode}
+                for i, p in col_to_prop.items()
+            },
+            'errors': errors,
+        }
 
-        # 4. Find Missing rows
-        missing_rows = []
-        for i in range(len(self._row_to_ids)):
-            if not self._row_to_ids[i]:
-                missing_rows.append(i)
+    # ------------------------------------------------------------------
+    # Step 2: map CSV rows → instance IDs
+    # ------------------------------------------------------------------
 
-        return ImportVerify(missing_rows=missing_rows, new_instances_count=len(new_instances))
+    def verify_mapping(self, relative: bool = False, fusion: str = 'new') -> dict:
+        if not self.file_key or not self.columns:
+            raise ValueError("Call parse_headers first")
 
+        print(f"[import] verify_mapping  file={self.file_path}  key={self.file_key}  fusion={fusion}  relative={relative}")
 
-    async def import_data_and_commit(self, exclude: list[int] | None = None,
-                                     properties: dict[int, Property] | None = None):
-        """
-        Executes the import process in sequential database commits.
+        df = _read_csv(self.file_path, columns=[self.file_key])
+        if df is None:
+            raise IOError("Cannot read key column from CSV")
 
-        Optimized approach:
-        1. Single-pass loop over data columns (load & clear).
-        2. Creates Tags "just-in-time".
-        3. Unified Batching: Sends new Tags AND Values in the same commit.
-           The backend resolves the temporary negative IDs within the commit.
-        4. Updates local cache with permanent Tag IDs after every batch.
-        """
-        if self._row_to_ids is None or not self.col_to_prop or not self.columns:
-            raise ValueError("Mapping must be determined first.")
+        key_data = df[self.file_key].to_list()
+        print(f"[import] CSV rows: {len(key_data):,}")
 
-        if not properties:
-            properties = self.properties
+        from panoptic.core.databases.data.create import (
+            INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA,
+        )
 
-        # Configuration
-        BATCH_SIZE = 25_000
-        exclude = set(exclude) if exclude else set()
+        print("[import] loading instances / files / folders from DB …")
+        with self.project._data_reader() as reader:
+            inst_rows   = INSTANCES_SCHEMA.select(reader.conn, ['id', 'sha1', 'file_id'])
+            file_rows   = FILES_SCHEMA.select(reader.conn, ['id', 'name', 'folder_id'])
+            folder_rows = FOLDERS_SCHEMA.select(reader.conn, ['id', 'path', 'name'])
+            print(f"[import]   instances={len(inst_rows):,}  files={len(file_rows):,}  folders={len(folder_rows):,}")
 
-        # Mappings (Temp ID -> Permanent ID)
-        temp_prop_id_map: dict[int, int] = {}
-        temp_instance_id_map: dict[int, int] = {}
+            non_empty_ids: set[int] = set()
+            if fusion == 'new':
+                rows = reader.conn.execute(
+                    f"SELECT DISTINCT instance_id FROM {INSTANCE_VALUES_SCHEMA.table}"
+                ).fetchall()
+                non_empty_ids = {r[0] for r in rows}
+                print(f"[import]   instances with existing values: {len(non_empty_ids):,}")
 
-        # executed_commits: list[DbCommit] = []
+        instances  = {r[0]: (r[1], r[2]) for r in inst_rows}
+        files      = {r[0]: (r[1], r[2]) for r in file_rows}
+        folders    = {r[0]: (r[1], r[2]) for r in folder_rows}
 
-        # --- 1. PREPARE COLUMN MAPPING ---
+        used_ids: set[int] = set()
 
-        col_to_import_prop: dict[int, Property] = {}
-        cols_to_read: list[str] = []
+        initial: list[list[int]] = []
 
+        if self.file_key == 'id':
+            print("[import] building id lookup …")
+            all_ids = set(instances)
+            for val in key_data:
+                try:
+                    n = int(val)
+                    initial.append([n] if n in all_ids else [])
+                except (ValueError, TypeError):
+                    initial.append([])
+
+        else:  # 'path'
+            print("[import] building path index …")
+            idx = _PathIndex(relative)
+            for inst_id, (sha1, file_id) in instances.items():
+                if file_id is None:
+                    continue
+                fname, folder_id = files.get(file_id, (None, None))
+                if not fname:
+                    continue
+                if folder_id is not None:
+                    fpath, _ = folders.get(folder_id, (None, None))
+                    full_path = os.path.join(fpath, fname) if fpath else fname
+                else:
+                    full_path = fname
+                idx.insert(full_path, inst_id)
+            print(f"[import] path index built  exact={len(idx._exact):,}  suffix={len(idx._suffix) if idx._suffix is not None else 'n/a':,}")
+
+            print("[import] matching CSV rows to instances …")
+            for val in key_data:
+                initial.append(idx.search(val) if val else [])
+
+        matched = sum(1 for m in initial if m)
+        print(f"[import] row matching done  matched={matched:,}  unmatched={len(initial)-matched:,}")
+
+        print(f"[import] applying fusion mode '{fusion}' …")
+        row_to_ids:    list[list[int]] = []
+        new_inst_info: list[tuple[int, int, str]] = []
+
+        for matches in initial:
+            if fusion == 'first':
+                row_to_ids.append([matches[0]] if matches else [])
+
+            elif fusion == 'last':
+                row_to_ids.append([matches[-1]] if matches else [])
+
+            elif fusion == 'new':
+                if matches:
+                    reusable = [m for m in matches if m not in non_empty_ids and m not in used_ids]
+                    if reusable:
+                        free_id = reusable[0]
+                        used_ids.add(free_id)
+                        row_to_ids.append([free_id])
+                    elif self.file_key == 'path':
+                        orig_sha1, orig_file_id = instances[matches[0]]
+                        new_id = self.project.allocate_instances(1)
+                        if isinstance(new_id, range):
+                            new_id = new_id.start
+                        row_to_ids.append([new_id])
+                        new_inst_info.append((orig_file_id or 0, new_id, orig_sha1 or ''))
+                    else:
+                        row_to_ids.append([])
+                else:
+                    row_to_ids.append([])
+            else:
+                row_to_ids.append([matches[0]] if matches else [])
+
+        self._row_to_ids    = row_to_ids
+        self._new_inst_info = new_inst_info
+
+        missing = [[i, key_data[i]] for i, ids in enumerate(row_to_ids) if not ids]
+        print(f"[import] verify_mapping done  mapped={len(row_to_ids)-len(missing):,}  missing={len(missing):,}  new_instances={len(new_inst_info):,}")
+        return {'missing_rows': missing, 'new_instances_count': len(new_inst_info)}
+
+    # ------------------------------------------------------------------
+    # Step 3: read CSV data and commit to DB
+    # ------------------------------------------------------------------
+
+    def import_data_and_commit(self, exclude: list[int] | None = None,
+                                properties: dict[str, dict] | None = None):
+        if not self.columns or not self.col_to_prop:
+            raise ValueError("Call parse_headers and verify_mapping first")
+
+        print("[import] import_data_and_commit start")
+
+        BATCH = 25_000
+        exclude_set = set(exclude or [])
+
+        working: dict[int, ImportProp] = {}
         for i, prop in self.col_to_prop.items():
-            if i not in exclude:
-                final_prop = properties.get(i, prop)
-                col_to_import_prop[i] = final_prop
-                cols_to_read.append(self.columns[i])
+            if i in exclude_set:
+                continue
+            override = (properties or {}).get(str(i))
+            if override:
+                working[i] = ImportProp(
+                    id=int(override.get('id', prop.id)),
+                    name=override.get('name', prop.name),
+                    dtype=override.get('dtype', prop.dtype),
+                    mode=override.get('mode', prop.mode),
+                )
+            else:
+                working[i] = ImportProp(id=prop.id, name=prop.name,
+                                         dtype=prop.dtype, mode=prop.mode)
 
-        if not cols_to_read:
+        if not working:
+            print("[import] no columns to import — aborting")
             return
 
-        # --- 2. COMMIT NEW PROPERTIES ---
+        print(f"[import] columns to import: {[f'{p.name}[{p.dtype}]/{p.mode}' for p in working.values()]}")
 
-        new_properties = [p for p in col_to_import_prop.values() if p.id < 0]
-        if new_properties:
-            old_prop_ids = [p.id for p in new_properties]
-            prop_commit = DbCommit(properties=new_properties)
+        if self._new_inst_info:
+            print(f"[import] committing {len(self._new_inst_info):,} new instances …")
+            inst_commit = UpsertCommit()
+            for file_id, inst_id, sha1 in self._new_inst_info:
+                inst_commit.instances[inst_id] = Instance(
+                    id=inst_id, file_id=file_id, sha1=sha1,
+                )
+            self.project.apply_upsert_commit('import', inst_commit)
+            print("[import] new instances committed")
 
-            group = PropertyGroup(id=-1, name='Imported Data')
-            prop_commit.property_groups = [group]
-            for prop in new_properties:
-                prop.property_group_id = group.id
+        new_props = [p for p in working.values() if p.id < 0]
+        if new_props:
+            print(f"[import] creating {len(new_props)} new propert{'y' if len(new_props)==1 else 'ies'} …")
+            ids = self.project.allocate_properties(len(new_props))
+            if isinstance(ids, int):
+                ids = range(ids, ids + 1)
+            prop_commit = UpsertCommit()
+            for p, real_id in zip(new_props, ids):
+                p.id = real_id
+                prop_commit.properties[real_id] = Property(
+                    id=real_id, dtype=p.dtype, mode=p.mode,
+                    name=p.name, access='write', tag_list_id=real_id,
+                    commit_id=0, operation=OP_CREATE,
+                )
+            self.project.apply_upsert_commit('import', prop_commit)
+            print(f"[import] properties committed: {[p.name for p in new_props]}")
 
-            await self.project.db.apply_commit(prop_commit)
-            # executed_commits.append(prop_commit)
+        from panoptic.core.databases.data.create import INSTANCES_SCHEMA
 
-            new_prop_ids = [p.id for p in prop_commit.properties]
-            temp_prop_id_map = {old_id: new_id for old_id, new_id in zip(old_prop_ids, new_prop_ids)}
+        print("[import] loading tag cache and sha1 map …")
+        with self.project._data_reader() as reader:
+            tag_cache: dict[int, dict[str, int]] = {}
+            for t in reader.get_tags():
+                if t.list_id is not None:
+                    tag_cache.setdefault(t.list_id, {})[t.value] = t.id
 
-        # Update working properties with permanent IDs
-        for prop in col_to_import_prop.values():
-            if prop.id in temp_prop_id_map:
-                prop.id = temp_prop_id_map[prop.id]
+            sha1_map: dict[int, str] = {}
+            if any(p.mode == 'sha1' for p in working.values()):
+                for inst_id, sha1 in INSTANCES_SCHEMA.select(reader.conn, ['id', 'sha1']):
+                    if sha1:
+                        sha1_map[inst_id] = sha1
+        print(f"[import] sha1_map={len(sha1_map):,}  tag_cache lists={len(tag_cache):,}")
 
-        # --- 3. COMMIT NEW INSTANCES ---
+        pending         = UpsertCommit()
+        pending_n       = 0
+        total_committed = 0
+        seen_sha1_pairs: set[tuple[int, str]] = set()
 
-        if self._new_instances:
-            old_instance_ids = [i.id for i in self._new_instances]
-            instance_commit = DbCommit(instances=self._new_instances)
-            await self.project.db.apply_commit(instance_commit)
-            # executed_commits.append(instance_commit)
-
-            new_instance_ids = [i.id for i in instance_commit.instances]
-            temp_instance_id_map = {old_id: new_id for old_id, new_id in zip(old_instance_ids, new_instance_ids)}
-
-        # --- 4. MAIN DATA IMPORT LOOP ---
-
-        # State containers for the loop
-        pending_tags: list[Tag] = []
-        # Map to ensure we don't create the same temp tag twice inside one batch
-        pending_tag_map: dict[tuple[int, str], int] = {}  # (prop_id, name) -> temp_id
-
-        pending_instance_values: list[InstanceProperty] = []
-        pending_image_values: list[ImageProperty] = []
-
-        # Cache existing DB tags (Permanent IDs)
-        # Structure: { prop_id: { tag_name: tag_id } }
-        tag_lookup_cache: dict[int, dict[str, int]] = {}
-
-        # Pre-fill cache for existing properties
-        for prop in col_to_import_prop.values():
-            if prop.type in {PropertyType.tag, PropertyType.multi_tags} and prop.id > 0:
-                db_tags = await self.project.db.get_tags(prop.id)
-                tag_lookup_cache[prop.id] = {t.value: t.id for t in db_tags}
-
-        # Helper: SHA1 Map
-        all_instances_sha1_map: dict[int, str] = {}
-        if any(p.mode != PropertyMode.id for p in col_to_import_prop.values()):
-            all_db_instances = await self.project.db.get_instances()
-            all_instances_sha1_map = {i.id: i.sha1 for i in all_db_instances}
-
-        # --- INTERNAL FLUSH FUNCTION ---
-        async def flush_batch():
-            """
-            Sends Tags and Values in a single commit.
-            Updates the tag_lookup_cache with the newly created permanent IDs.
-            """
-            nonlocal pending_tags, pending_instance_values, pending_image_values
-
-            if not (pending_tags or pending_instance_values or pending_image_values):
+        def flush():
+            nonlocal pending, pending_n, seen_sha1_pairs, total_committed
+            if pending_n == 0:
                 return
+            self.project.apply_upsert_commit('import', pending)
+            total_committed += pending_n
+            print(f"[import]   flushed {pending_n:,} values  (total so far: {total_committed:,})")
+            pending         = UpsertCommit()
+            pending_n       = 0
+            seen_sha1_pairs = set()
 
-            # 1. Create Unified Commit
-            # Backend automatically maps negative tag IDs in 'data' to the new tags in 'tags'
-            commit = DbCommit(
-                tags=list(pending_tags),
-                instance_values=list(pending_instance_values),
-                image_values=list(pending_image_values)
-            )
+        prop_items = list(working.items())
+        n_col_chunks = (len(prop_items) + _COL_BATCH - 1) // _COL_BATCH
 
-            # 2. Apply Commit
-            await self.project.db.apply_commit(commit)
-            # executed_commits.append(commit)
+        for chunk_idx, chunk_start in enumerate(range(0, len(prop_items), _COL_BATCH)):
+            chunk     = prop_items[chunk_start: chunk_start + _COL_BATCH]
+            col_names = [self.columns[col_i] for col_i, _ in chunk]
+            print(f"[import] reading CSV chunk {chunk_idx+1}/{n_col_chunks}: {col_names} …")
 
-            # 3. Post-Commit: Update Cache with Real IDs
-            # We must iterate the committed tags to get their new permanent IDs
-            # so future batches (and iterations) use the real ID.
-            if commit.tags:
-                # commit.tags contains the updated objects with positive IDs
-                for tag_obj in commit.tags:
-                    if tag_obj.property_id not in tag_lookup_cache:
-                        tag_lookup_cache[tag_obj.property_id] = {}
-
-                    # Map Name -> New Permanent ID
-                    tag_lookup_cache[tag_obj.property_id][tag_obj.value] = tag_obj.id
-
-            # 4. Clear buffers
-            pending_tags.clear()
-            pending_tag_map.clear()
-            pending_instance_values.clear()
-            pending_image_values.clear()
-
-        # --- ITERATE COLUMNS ---
-        for col_name in cols_to_read:
-            col_i = self.columns.index(col_name)
-            prop = col_to_import_prop[col_i]
-            is_tag_prop = prop.type in {PropertyType.tag, PropertyType.multi_tags}
-
-            # Load ONE column
-            df_col = await self._read_csv(columns=[col_name])
-            if df_col is None:
+            df_chunk = _read_csv(self.file_path, columns=col_names)
+            if df_chunk is None:
+                print(f"[import]   could not read chunk — skipping")
                 continue
 
-            csv_values = df_col[col_name].to_list()
+            for col_i, prop in chunk:
+                col_name = self.columns[col_i]
+                is_tag   = prop.dtype in _TAG_TYPES
+                parse_fn = _PARSERS.get(prop.dtype, _PARSERS['text'])
 
-            # Iterate Rows
-            for row_i, value in enumerate(csv_values):
-                instance_ids_for_row = self._row_to_ids[row_i]
-                if not instance_ids_for_row:
-                    continue
+                csv_values = df_chunk[col_name].to_list()
+                print(f"[import]   processing '{prop.name}[{prop.dtype}]' ({len(csv_values):,} rows) …")
 
-                parsed_value = parser[prop.type](value)
-                if parsed_value is None:
-                    continue
-
-                final_value = parsed_value
-
-                # --- TAG HANDLING ---
-                if is_tag_prop:
-                    if not parsed_value:
+                for row_i, raw in enumerate(csv_values):
+                    ids = self._row_to_ids[row_i] if row_i < len(self._row_to_ids) else []
+                    if not ids:
                         continue
 
-                    parsed_names = [v.strip() for v in parser[prop.type](value)]
-                    tag_ids = []
+                    parsed = parse_fn(raw)
+                    if parsed is None:
+                        continue
 
-                    for name in parsed_names:
-                        # 1. Check Permanent Cache (Already in DB or committed in prev batch)
-                        if prop.id in tag_lookup_cache and name in tag_lookup_cache[prop.id]:
-                            tag_ids.append(tag_lookup_cache[prop.id][name])
-
-                        # 2. Check Pending Queue (Created in this current batch)
-                        elif (prop.id, name) in pending_tag_map:
-                            tag_ids.append(pending_tag_map[(prop.id, name)])
-
-                        # 3. Create New Tag (Assign Temp ID)
-                        else:
-                            new_temp_id = gen_tag_id()
-                            new_tag = Tag(
-                                id=new_temp_id,
-                                property_id=prop.id,
-                                value=name,
-                                parents=[],
-                                color=randint(0, 11)
-                            )
-
-                            pending_tags.append(new_tag)
-                            pending_tag_map[(prop.id, name)] = new_temp_id
-                            tag_ids.append(new_temp_id)
-
-                    final_value = tag_ids
-
-                # --- CREATE VALUE OBJECTS ---
-
-                # Map Instance IDs (Temp -> Perm)
-                final_instance_ids = [
-                    temp_instance_id_map.get(id_, id_) for id_ in instance_ids_for_row
-                ]
-
-                for instance_id in final_instance_ids:
-                    if prop.mode == PropertyMode.id:
-                        pending_instance_values.append(InstanceProperty(
-                            property_id=prop.id, instance_id=instance_id, value=final_value
-                        ))
+                    if is_tag:
+                        names   = parsed if isinstance(parsed, list) else [parsed]
+                        list_id = prop.id
+                        cache   = tag_cache.setdefault(list_id, {})
+                        tag_ids = []
+                        for name in names:
+                            if name in cache:
+                                tag_ids.append(cache[name])
+                            else:
+                                new_tid = self.project.allocate_tags(1)
+                                if isinstance(new_tid, range):
+                                    new_tid = new_tid.start
+                                pending.tags[new_tid] = Tag(
+                                    id=new_tid, list_id=list_id, parents=[],
+                                    value=name, color=randint(0, 11),
+                                    commit_id=0, operation=OP_CREATE,
+                                )
+                                cache[name] = new_tid
+                                tag_ids.append(new_tid)
+                        final_val = tag_ids
                     else:
-                        instance_sha1 = all_instances_sha1_map.get(instance_id)
-                        if instance_sha1:
-                            pending_image_values.append(ImageProperty(
-                                property_id=prop.id, sha1=instance_sha1, value=final_value
-                            ))
+                        final_val = parsed
 
-                # --- BATCH CHECK ---
-                if len(pending_instance_values) + len(pending_image_values) >= BATCH_SIZE:
-                    await flush_batch()
+                    for inst_id in ids:
+                        if prop.mode == 'sha1':
+                            sha1 = sha1_map.get(inst_id)
+                            if sha1:
+                                pair = (prop.id, sha1)
+                                if pair in seen_sha1_pairs:
+                                    continue
+                                seen_sha1_pairs.add(pair)
+                                pending.sha1_values.setdefault(prop.id, []).append(
+                                    Sha1Value(property_id=prop.id, sha1=sha1,
+                                              value=final_val, commit_id=0, operation=OP_UPDATE)
+                                )
+                                pending_n += 1
+                        else:
+                            pending.instance_values.setdefault(prop.id, []).append(
+                                InstanceValue(property_id=prop.id, instance_id=inst_id,
+                                              value=final_val, commit_id=0, operation=OP_UPDATE)
+                            )
+                            pending_n += 1
 
-            # Clear memory immediately
-            del df_col
+                    if pending_n >= BATCH:
+                        flush()
 
-        # Final Flush
-        await flush_batch()
-        self.clear()
+            del df_chunk
 
-    async def import_tags(self, file: BinaryIO, property_id: int):
-        """
-        Import tags from a CSV file with format: name, color, parents
-        """
+        flush()
+        print(f"[import] done — total values committed: {total_committed:,}")
+        self._clear()
 
+    # ------------------------------------------------------------------
+    # Tag CSV import  (separate from the main CSV flow)
+    # ------------------------------------------------------------------
+
+    def import_tags(self, file_bytes: bytes, property_id: int):
+        """Import tag hierarchy from a CSV with columns: name, color, parents."""
         try:
-            # Read CSV using polars
             df = pl.read_csv(
-                file,
+                io.BytesIO(file_bytes),
                 separator=';',
                 encoding='utf-8',
                 has_header=False,
                 new_columns=['name', 'color', 'parents'],
-                infer_schema=False
+                infer_schema=False,
             )
-
-            tags_to_create = []
-            tag_name_to_temp_id = {}
-
-            # First pass: Create all tags with temporary IDs
-            for row in df.iter_rows(named=True):
-                tag_name = row['name'].strip() if row['name'] else None
-                tag_color = row['color'].strip() if row['color'] else None
-
-                if not tag_name:
-                    continue
-
-                # Parse color (default to random if invalid)
-                try:
-                    color = int(tag_color) if tag_color else randint(1, 12)
-                    # Clamp color to valid range (0-11)
-                    color = max(0, min(11, color))
-                except (ValueError, TypeError):
-                    color = randint(1, 12)
-
-                # Generate temporary ID
-                temp_id = gen_tag_id()
-                tag_name_to_temp_id[tag_name] = temp_id
-
-                # Create tag (parents will be resolved in second pass)
-                tag = Tag(
-                    id=temp_id,
-                    property_id=property_id,  # Will need to be set based on context
-                    value=tag_name,
-                    parents=[],
-                    color=color
-                )
-                tags_to_create.append(tag)
-
-            # Second pass: Resolve parent relationships
-            for i, row in enumerate(df.iter_rows(named=True)):
-                tag_parents = row['parents'].strip() if row['parents'] else ''
-
-                if tag_parents:
-                    # Parse parent names (comma-separated)
-                    parent_names = [p.strip() for p in tag_parents.split(',') if p.strip()]
-
-                    # Map parent names to their temp IDs
-                    parent_ids = []
-                    for parent_name in parent_names:
-                        if parent_name in tag_name_to_temp_id:
-                            parent_ids.append(tag_name_to_temp_id[parent_name])
-
-                    tags_to_create[i].parents = parent_ids
-            print(tags_to_create)
-
         except Exception as e:
-            # Handle errors gracefully
-            raise ValueError(f"Failed to parse tags CSV: {str(e)}")
+            raise ValueError(f"Failed to parse tags CSV: {e}")
 
-        db_tags = await self.project.db.get_tags(prop=property_id)
-        name_to_tag = {tag.value: tag for tag in db_tags}
+        existing   = {t.value: t for t in self.project.get_tags() if t.list_id == property_id}
+        name_to_id: dict[str, int] = {v: t.id for v, t in existing.items()}
+        new_tags:   list[Tag] = []
 
-        to_import = []
-        for tag in tags_to_create:
-            if tag.value not in name_to_tag:
-                to_import.append(tag)
+        # Pass 1: allocate IDs for new tags
+        rows = list(df.iter_rows(named=True))
+        for row in rows:
+            name = (row['name'] or '').strip()
+            if not name or name in name_to_id:
+                continue
+            raw_color = (row['color'] or '').strip()
+            try:
+                color = max(0, min(11, int(raw_color)))
+            except (ValueError, TypeError):
+                color = randint(1, 12)
+            new_id = self.project.allocate_tags(1)
+            if isinstance(new_id, range):
+                new_id = new_id.start
+            new_tags.append(Tag(id=new_id, list_id=property_id, parents=[],
+                                value=name, color=color, commit_id=0, operation=OP_CREATE))
+            name_to_id[name] = new_id
+
+        # Pass 2: resolve parent references
+        tags_with_parents: list[Tag] = []
+        for i, row in enumerate(rows):
+            name = (row['name'] or '').strip()
+            if not name:
+                continue
+            tag_id = name_to_id.get(name)
+            if tag_id is None:
+                continue
+            raw_parents = (row['parents'] or '').strip()
+            parent_ids  = [name_to_id[p.strip()] for p in raw_parents.split(',')
+                           if p.strip() and p.strip() in name_to_id] if raw_parents else []
+
+            if name in existing:
+                orig = existing[name]
+                tags_with_parents.append(
+                    Tag(id=orig.id, list_id=orig.list_id, parents=parent_ids,
+                        value=orig.value, color=orig.color, commit_id=0, operation=OP_UPDATE)
+                )
             else:
-                db_tag = name_to_tag[tag.value]
-                db_tag.parents = list({p for p in db_tag.parents} and {p for p in tag.parents})
-                to_import.append(db_tag)
-        commit = DbCommit(tags=to_import)
-        await self.project.db.apply_commit(commit)
+                for j, t in enumerate(new_tags):
+                    if t.id == tag_id:
+                        new_tags[j] = Tag(id=t.id, list_id=t.list_id, parents=parent_ids,
+                                          value=t.value, color=t.color,
+                                          commit_id=0, operation=t.operation)
+                        break
 
+        all_tags = new_tags + tags_with_parents
+        if all_tags:
+            commit = UpsertCommit()
+            for t in all_tags:
+                commit.tags[t.id] = t
+            self.project.apply_upsert_commit('import', commit)
 
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
 
-    def clear(self):
-        self._new_instances = []
-        self._row_to_ids = None
-        self.col_to_prop = {}
-        self.columns = []
-        self.properties = []
+    def _clear(self):
+        self.file_path    = ''
+        self.columns      = []
+        self.file_key     = None
+        self.col_to_prop  = {}
+        self._row_to_ids  = []
+        self._new_inst_info = []

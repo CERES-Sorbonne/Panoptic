@@ -3,14 +3,7 @@ import { computed } from 'vue'
 
 import Dropdown from '../dropdowns/Dropdown.vue'
 import wTT from '../tooltips/withToolTip.vue'
-
-export interface SelectOption {
-    value: string | number
-    label?: string
-    description?: string
-    disabled?: boolean
-    icon?: string
-}
+import { SelectOption } from '@/data/models';
 
 const props = defineProps<{
     options: SelectOption[]
@@ -20,6 +13,7 @@ const props = defineProps<{
     width?: number
     noBorder?: boolean
     teleport?: boolean
+    iconOnly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -54,8 +48,14 @@ const capitalizeFirst = (text: any) => {
             <div :style="{ fontSize: fontSize + 'px' }" style="white-space: nowrap;" class="w-100"
                 :class="{ 'sbb': !props.noBorder, 'sb': props.noBorder }">
 
+                <!-- Icon-only mode: just the selected option's icon (or chevron fallback) -->
+                <div v-if="props.iconOnly" class="display display-flex display-container icon-only">
+                    <span v-if="selectedOption?.icon" :class="'bi bi-' + selectedOption.icon"></span>
+                    <i v-else class="bi bi-chevron-down" />
+                </div>
+
                 <!-- Case 1: Nothing selected OR no options available -->
-                <div v-if="!selectedOption" class="display placeholder-display display-flex">
+                <div v-else-if="!selectedOption" class="display placeholder-display display-flex">
                     <span class="display-text">{{ capitalizeFirst(placeholder ?? 'Select Option') }}</span>
                     <!-- Only show chevron if there are options to open -->
                     <i v-if="options.length > 0" class="bi bi-chevron-down" />
@@ -155,5 +155,22 @@ const capitalizeFirst = (text: any) => {
 
 .bi-chevron-down {
     flex-shrink: 0;
+}
+
+/* Icon-only mode: give the glyph a real box instead of letting inline text
+   metrics place it. `line-height: normal` on the icon font and the
+   `vertical-align: -.125em` bootstrap-icons puts on `.bi::before` resolve
+   differently in Firefox and Chrome, which made the icon sit higher on
+   Firefox next to a fixed-height input. */
+.icon-only > .bi {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.icon-only > .bi::before {
+    display: block;
+    vertical-align: 0;
 }
 </style>

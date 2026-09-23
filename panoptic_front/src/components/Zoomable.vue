@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import { ref, watch } from 'vue';
 import { zoomModal } from './modals/zoomModal';
 import { Instance } from '@/data/models';
@@ -20,7 +20,8 @@ watch(keyState, () => {
         zoomModal.show(props.image)
     }
 
-    const rect = elem.value.getBoundingClientRect()
+    const rect = elem.value?.getBoundingClientRect()
+    if (!rect) return
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
     
     if (isActive && (!absoluteHover || !keyState.ctrl)) {

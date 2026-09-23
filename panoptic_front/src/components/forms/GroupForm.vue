@@ -7,7 +7,7 @@ import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
 import { PropertyType } from '@/data/models';
 import GroupOptionDropdown from '../dropdowns/GroupOptionDropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
 
@@ -18,27 +18,22 @@ const props = defineProps({
 
 function add(id: number) {
     props.manager.setGroupOption(id)
-    props.manager.update(true)
 }
 
 function del(id: number) {
     props.manager.delGroupOption(id)
-    props.manager.update(true)
 }
 
 function setDirection(propertyId: number, value: SortDirection) {
     props.manager.setGroupOption(propertyId, {direction: value})
-    props.manager.sortGroups(true)
 }
 
 function setSortType(propertyId: number, value: GroupSortType) {
     props.manager.setGroupOption(propertyId, {type: value})
-    props.manager.sortGroups(true)
 }
 
 function updateGroupOption(propertyId: number, option: GroupOption) {
     props.manager.setGroupOption(propertyId, option)
-    props.manager.update(true)
 }
 
 const selectedProperties = computed(() => props.manager.state.groupBy.map(id => data.properties[id]))

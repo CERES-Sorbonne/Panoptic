@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
+import { usePanopticStore } from '@/data/stores/panopticStore';
 import { goNext } from '@/utils/utils';
 
 const panoptic = usePanopticStore()

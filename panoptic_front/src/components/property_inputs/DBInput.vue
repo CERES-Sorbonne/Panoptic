@@ -1,13 +1,14 @@
 <!-- Wrapper to connect any property input to a value in the database -->
 <script setup lang="ts">
-import { useDataStore } from '@/data/dataStore';
-import { Instance, Property } from '@/data/models';
+import { useDataStore } from '@/data/stores/dataStore';
+import { Property } from '@/data/models';
+import { InstanceEntry } from '@/data/stores/instanceStore';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 const data = useDataStore()
 
 const props = defineProps<{
-    instance: Instance
+    instance: InstanceEntry
     propertyId: number
 }>()
 const emits = defineEmits([])
@@ -16,7 +17,8 @@ defineExpose({
     waitForDbAction
 })
 
-const propValue = computed(() => data.instances[props.instance.id]?.properties[props.propertyId])
+const propValue = computed(() => props.instance.properties?.[props.propertyId])
+const status = computed(() => props.instance.propertyStatus?.[props.propertyId] ?? 'confirmed')
 const localValue = ref(undefined)
 const valid = ref(true)
 
@@ -55,7 +57,7 @@ watch(() => props.instance.id, forceUpdate)
 
 <template>
     <template v-if="valid">
-        <slot :set="set" :value="localValue"></slot>
+        <slot :set="set" :value="localValue" :status="status"></slot>
     </template>
 </template>
 

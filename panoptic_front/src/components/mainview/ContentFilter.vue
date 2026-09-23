@@ -11,13 +11,15 @@ import wTT from '../tooltips/withToolTip.vue'
 import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
-import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
-import { useInputStore } from '@/data/inputStore';
+import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue';
+import { useInputStore } from '@/data/stores/inputStore';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
+import { useColumnStore } from '@/data/stores/columnStore';
 
 const inputs = useInputStore()
+const col = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager,
@@ -28,28 +30,26 @@ const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
 const localQuery = ref<TextQuery>({ type: 'text', text: '' })
 
-const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number))
+// Global selection ids (note §5, step 2), reactive via selectionVersion.
+const selectedImageIds = computed(() => { col.selectionVersion; return col.getSelectedIds() })
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 
 function updateSha1Mode(value: boolean) {
-    props.tab.collection.groupManager.setSha1Mode(value, true)
+    props.tab.collection.setSha1Mode(value, true)
 }
 
 function getLocalQuery() {
-    localQuery.value = props.tab.state.filterState.query
+    localQuery.value = props.tab.collection.filterManager.state.query
 }
 
 function setQuery(query) {
     localQuery.value = query
     props.tab.collection.filterManager.setQuery(localQuery.value)
-    props.tab.collection.filterManager.update(true)
-    props.tab.saveState()
 }
 
 function deleteQuery() {
     props.tab.collection.filterManager.setQuery({ type: 'text', text: '' })
-    props.tab.collection.filterManager.update(true)
 }
 
 onMounted(getLocalQuery)
@@ -65,22 +65,22 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
         <div class="me-3 d-flex align-items-center">
             <wTT message="main.menu.grid_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'tree' }" @click="props.tab.setViewMode('tree')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'tree' }" @click="props.tab.setViewType(0, 'tree')">
                     <i class="bi bi-grid-3x3-gap-fill"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.table_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'grid' }" @click="props.tab.setViewMode('grid')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'grid' }" @click="props.tab.setViewType(0, 'grid')">
                     <i class="bi bi-table"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.graph_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'graph' }" @click="props.tab.setViewMode('graph')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'graph' }" @click="props.tab.setViewType(0, 'graph')">
                     <i class="bi bi-bar-chart"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.map_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'map' }" @click="props.tab.setViewMode('map')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'map' }" @click="props.tab.setViewType(0, 'map')">
                     <i class="bi bi-map"></i>
                 </div>
             </wTT>
@@ -90,30 +90,27 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             <div class="bi bi-aspect-ratio me-1"></div>
         </wTT>
         <div>
-            <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
+            <RangeInput :min="30" :max="500" v-model="props.tab.state.views[0].imageSize" />
         </div>
 
         <div class="ms-3 d-flex align-items-center">
             <wTT message="main.menu.instance_mode_tooltip">
-                <div class="tool-sm" :class="{ selected: !props.tab.collection.groupManager.state.sha1Mode }" @click="updateSha1Mode(false)">
+                <div class="tool-sm" :class="{ selected: !props.tab.collection.groupState.sha1Mode }" @click="updateSha1Mode(false)">
                     <i class="bi bi-image"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.image_mode_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.collection.groupManager.state.sha1Mode }" @click="updateSha1Mode(true)">
+                <div class="tool-sm" :class="{ selected: props.tab.collection.groupState.sha1Mode }" @click="updateSha1Mode(true)">
                     <i class="bi bi-images"></i>
                 </div>
             </wTT>
         </div>
 
-        <div class="ms-3">
-            <HistoryDropdown />
-        </div>
         <div>
             <SelectionStamp v-if="hasSelectedImages" class="ms-5" style="font-size: 14px;"
                 :selected-images-ids="selectedImageIds"
-                @remove:selected="props.tab.collection.groupManager.clearSelection()"
-                @stamped="props.tab.collection.groupManager.clearSelection()" />
+                @remove:selected="props.tab.collection.clearSelection()"
+                @stamped="props.tab.collection.clearSelection()" />
         </div>
         <div class="flex-grow-1"></div>
         <wTT message="main.menu.issue" class="bb ">
@@ -122,12 +119,12 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         </wTT>
     </div>
     <div class="d-flex flex-wrap content-container ps-2 align-items-center">
+        <ColumnStatusDropdown :tab="props.tab" />
         <ToggleReload :tab="props.tab" class="me-1" />
         <FilterForm :tab="props.tab" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
         <SortForm :manager="props.tab.collection.sortManager" />
-        <div>
-        </div>
+        <div class="flex-grow-1" />
     </div>
 </template>
 

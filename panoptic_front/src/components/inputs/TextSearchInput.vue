@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ref, watch, computed, onMounted } from 'vue'
-import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
-import { keyState } from '@/data/keyState';
+import SelectDropdown from '../dropdowns/SelectDropdown.vue';
+import { keyState } from '@/data/composables/keyState';
 import InputOptions from '../actions/InputOptions.vue';
-import { TextQuery } from '@/data/models';
+import { SelectOption, TextQuery } from '@/data/models';
 import LoadWheel from '../loading/LoadWheel.vue';
 import { useSearchStore } from '@/data/stores/textSearchStore';
-import { FilterManager } from '@/core/FilterManager';
 import { TabManager } from '@/core/TabManager';
+import { CollectionManager } from '@/core/CollectionManager';
 
 const actions = useActionStore()
 const searchStore = useSearchStore()
 
-const props = defineProps<{ tab: TabManager, size?: number }>()
+const props = defineProps<{ tab: TabManager, size?: number, collection?: CollectionManager }>()
 const emits = defineEmits(['update:query'])
+
+// The collection this search controls — the per-view one when provided
+// (FilterPanel), else the tab's primary collection.
+const collection = computed(() => props.collection ?? props.tab.collection)
 
 const inputElem = ref(null)
 const isFocus = ref(false)
@@ -36,9 +40,9 @@ function updateModes() {
 }
 
 function loadFromProps() {
-    if (!props.tab.collection.filterManager.state.query) return
-    mode.value = props.tab.collection.filterManager.state.query.type || 'text'
-    searchText.value = props.tab.collection.filterManager.state.query.text || ''
+    if (!collection.value.filterManager.state.query) return
+    mode.value = collection.value.filterManager.state.query.type || 'text'
+    searchText.value = collection.value.filterManager.state.query.text || ''
 }
 
 function resetSearch() {
@@ -70,25 +74,23 @@ function emitQuery() {
     setQuery(newQuery)
 }
 
-async function setQuery(query) {
-    if(areQueryEquals(query, props.tab.collection.filterManager.state.query)) return
-    searchStore.setLoading(true)
-    props.tab.collection.filterManager.setQuery(query)
-    await props.tab.collection.filterManager.update(true)
-    props.tab.saveState()
-    searchStore.setLoading(false)
-
+function setQuery(query) {
+    if(areQueryEquals(query, collection.value.filterManager.state.query)) return
+    // Mutating the query triggers the CollectionManager's filter watch, which
+    // debounces + recomputes (Pillar B). Persistence is handled by autosave.
+    collection.value.filterManager.setQuery(query)
 }
 
 function areQueryEquals(query1: TextQuery, query2: TextQuery) {
+    if(!query1 || !query2) return false
     if(query1.type != query2.type) return false
     if(query1.text != query2.text) return false
-    if(JSON.stringify(query1.ctx.uiInputs) !== JSON.stringify(query2.ctx.uiInputs)) return false
+    if(JSON.stringify(query1.ctx?.uiInputs) !== JSON.stringify(query2.ctx?.uiInputs)) return false
     return true
 }
 
 updateModes()
-watch(() => props.tab.collection.filterManager.state.query, loadFromProps, { deep: true })
+watch(() => collection.value.filterManager.state.query, loadFromProps, { deep: true })
 watch(() => actions.textSearchFunctions, updateModes)
 watch(mode, emitQuery)
 onMounted(() => {
@@ -101,12 +103,13 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 </script>
 
 <template>
-    <div class="cont3">
+    <div class="cont3" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
         <div class="select-wrapper">
-            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" class="bg-white"
-                :size="size * 0.6" :teleport="false" />
+            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" :no-border="true"
+                :icon-only="true" :size="size * 0.6" :teleport="false" />
         </div>
-        <div class="input-field d-flex items-align-center" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
+        <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
+        <div class="input-field d-flex align-items-center">
             <input class="text-input2" :style="{ height: size + 'px' }" type="text" v-model="searchText"
                 :placeholder="$t('main.menu.search')" ref="inputElem" @focusin="isFocus = true"
                 @focusout="isFocus = false" @blur="confirmSearch"
@@ -120,7 +123,8 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
             </div>
 
         </div>
-        <div v-if="isPluginMode">
+        <div v-if="isPluginMode" class="options-wrapper">
+            <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
             <InputOptions :function-id="mode" :size="props.size * 0.6" :style="{ fontSize: size * 0.56 + 'px' }"
                 :hide-text="true" @changed="emitQuery" />
         </div>
@@ -130,10 +134,42 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 <style scoped>
 .cont3 {
     display: flex;
-    gap: 4px;
     align-items: center;
+    border: 1px solid var(--border-color, #ccc);
+    background-color: var(--grey, #f8f8f8);
     border-radius: 3px;
-    /* overflow: hidden; */
+    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 0 0px;
+    overflow: hidden;
+    min-width: 100px;
+    max-width: 200px;
+    flex: 1 1 100px;
+}
+
+.cont3:hover {
+    border-color: #999;
+}
+
+.cont3.focus {
+    border-color: var(--blue);
+}
+
+.select-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0 0px;
+}
+
+.divider {
+    width: 1px;
+    background-color: var(--border-color, #ccc);
+    flex-shrink: 0;
+    margin: 0 2px;
+}
+
+.options-wrapper {
+    display: flex;
+    align-items: center;
 }
 
 .toolbar {
@@ -144,10 +180,6 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 }
 
 .input-field {
-    border: 1px solid var(--border-color, #ccc);
-    background-color: var(--grey, #f8f8f8);
-    border-radius: 3px;
-    transition: border-color 0.2s, box-shadow 0.2s;
     padding: 0;
     position: relative;
     flex-grow: 1;
@@ -158,13 +190,5 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     background-color: transparent;
     outline: none;
     width: 100%;
-}
-
-.input-field:hover {
-    border-color: #999;
-}
-
-.input-field.focus {
-    border-color: var(--blue);
 }
 </style>

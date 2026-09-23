@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 import ContentEditable from './ContentEditable.vue';
 
 const props = withDefaults(defineProps<{
@@ -159,7 +159,9 @@ watch(() => props.modelValue, () => {
 .focus {
     /* border: 2px solid blue;
     border-radius: 5px; */
-    box-shadow: 0px 0px 3px 1px var(--border-color);
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.04),
+                0px 4px 12px rgba(0, 0, 0, 0.08),
+                0px 12px 32px rgba(0, 0, 0, 0.10);
     z-index: 99 !important;
     padding: 20px;
 }

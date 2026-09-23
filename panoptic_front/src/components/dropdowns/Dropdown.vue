@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { nextTick, onUnmounted, ref } from 'vue';
+import { inject, InjectionKey, nextTick, onUnmounted, provide, ref } from 'vue';
 import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 
 const props = withDefaults(defineProps<{
     offset?: number
@@ -29,6 +29,18 @@ const globalElem = ref(null)
 const boudaryElem = ref(document.getElementsByTagName('body')[0])
 
 const visible = ref(false)
+
+// Nested dropdowns may render their popup elsewhere (teleport). Each one registers its popup
+// with every ancestor dropdown, so a click inside it does not count as an outside click.
+type PopupGetter = () => HTMLElement | null
+const nestedPopups = new Set<PopupGetter>()
+const parentRegistry = inject(dropdownRegistryKey, null)
+const getPopup: PopupGetter = () => popupElem.value
+provide(dropdownRegistryKey, {
+    add(fn: PopupGetter) { nestedPopups.add(fn); parentRegistry?.add(fn) },
+    remove(fn: PopupGetter) { nestedPopups.delete(fn); parentRegistry?.remove(fn) }
+})
+parentRegistry?.add(getPopup)
 // 1. New reactive variable for width
 const popupWidth = ref('auto')
 
@@ -47,7 +59,9 @@ async function focus() {
 async function onShow() {
     // 2. Calculate width before showing
     if (buttonElem.value) {
-        const width = buttonElem.value.getBoundingClientRect().width
+        // floor: a fractional trigger width rounds the popup up to the next pixel, which shows
+        // as the popup sticking out 1px past the cell it belongs to
+        const width = Math.floor(buttonElem.value.getBoundingClientRect().width)
         popupWidth.value = `${width}px`
     }
 
@@ -70,12 +84,12 @@ function onHide() {
 }
 
 function clickHandler(e: Event) {
-    if (popupElem.value.contains(e.target) || buttonElem.value.contains(e.target)) {
+    const target = e.target as Node
+    if (popupElem.value?.contains(target) || buttonElem.value?.contains(target)) return
+    for (const getNested of nestedPopups) {
+        if (getNested()?.contains(target)) return
     }
-    else {
-        hide()
-    }
-
+    hide()
 }
 
 function onEscape() {
@@ -87,9 +101,17 @@ function onEnter(hide) {
 }
 
 onUnmounted(() => {
+    parentRegistry?.remove(getPopup)
     document.removeEventListener('click', clickHandler, true)
 })
 
+</script>
+
+<script lang="ts">
+export const dropdownRegistryKey: InjectionKey<{
+    add(fn: () => HTMLElement | null): void
+    remove(fn: () => HTMLElement | null): void
+}> = Symbol('dropdownRegistry')
 </script>
 
 <template>
@@ -121,6 +143,10 @@ onUnmounted(() => {
     min-width: 0px; /* This is now overridden by the inline style when visible */
     font-size: 14px;
     border: none;
+    /* full-bleed content (tinted headers, hovered list rows) must stop at the rounded edge
+       instead of painting over the popup's own outline */
+    overflow: hidden;
+    box-sizing: border-box;
 
     /* box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -webkit-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);

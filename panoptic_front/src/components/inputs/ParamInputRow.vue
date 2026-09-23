@@ -2,10 +2,13 @@
 import { ref, watch, onMounted } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import { ParamDescription, VectorType } from '@/data/models';
+import { useActionStore } from '@/data/stores/actionStore';
 
 const data = useDataStore()
+const media = useMediaStore()
 
 const props = defineProps<{
     input: ParamDescription
@@ -25,6 +28,8 @@ function focus() {
         elem.value.focus()
     }
 }
+
+console.log(useActionStore().index)
 
 function initValues() {
     localValue.value = props.input.defaultValue
@@ -88,13 +93,13 @@ onMounted(initValues)
 
             <span v-if="props.input.type == 'vector_type'">
                 <select v-model="localValue" style="max-width: 200px;">
-                    <option v-for="v in data.vectorTypes" :value="v">{{ vector_name(v) }}</option>
+                    <option v-for="v in media.vectorTypes" :value="v">{{ vector_name(v) }}</option>
                 </select>
             </span>
 
             <span v-if="props.input.type == 'own_vector_type'">
                 <select v-model="localValue" style="max-width: 200px;">
-                    <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
+                    <option v-for="v in media.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
                         vector_name(v) }}</option>
                 </select>
             </span>

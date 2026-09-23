@@ -2,10 +2,9 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import CenteredImage from '../images/CenteredImage.vue';
 import { zoomModal } from './zoomModal';
-import { Instance } from '@/data/models';
 
 
-const image = computed(() => zoomModal.image ?? { width: 0, height: 0 } as Instance)
+const image = computed(() => zoomModal.image)
 const rect = reactive({ width: 500, height: 500 })
 
 onMounted(onWindowResize)
@@ -22,7 +21,7 @@ function onWindowResize() {
 <template>
     <div v-if="zoomModal.open" class="p-modal">
         <div class="w-100 h-100" v-if="image" style="padding: 28px;">
-            <CenteredImage :image="image" :width="rect.width - 56" :height="rect.height - 56" :border="4" :is-zoom="true" />
+            <CenteredImage :instance-id="image.id" :width="rect.width - 56" :height="rect.height - 56" :border="4" :is-zoom="true" />
         </div>
     </div>
 </template>

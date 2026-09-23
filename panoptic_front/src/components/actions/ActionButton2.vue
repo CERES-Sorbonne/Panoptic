@@ -1,34 +1,33 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { ActionContext, Instance, ParamDescription } from '@/data/models';
 import ParamInput from '../inputs/ParamInput.vue';
-import { useActionStore } from '@/data/actionStore';
-import { useDataStore } from '@/data/dataStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult, sourceFromFunction, objValues, fileToBase64 } from '@/utils/utils';
+import { sourceFromFunction, objValues } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
-const project = useProjectStore()
-const data = useDataStore()
 const actions = useActionStore()
-const panoptic = usePanopticStore()
 
 const props = defineProps<{
     action: string
-    images?: Instance[]
+    images?: Instance[] | (() => Instance[])
     propertyIds?: number[],
     autoCall?: boolean,
-    noBorder?: boolean
+    noBorder?: boolean,
+    // Hand-off mode: instead of awaiting the action itself, the button emits `submit` with the
+    // chosen function + params and is done. Whoever owns the operation (the ClusterManager) runs
+    // it, so the result no longer depends on this button still being mounted. `busy` is then the
+    // pending state read back from that owner.
+    defer?: boolean,
+    busy?: boolean
 }>()
-const emits = defineEmits(['instances', 'groups', 'call'])
+const emits = defineEmits(['instances', 'groups', 'call', 'submit', 'show', 'hide'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref<string>(null)
-const setDefault = ref(false)
 const loading = ref(false)
 const dropdownElem = ref(null)
 const showFunctionSelect = ref(false)
@@ -60,51 +59,29 @@ function loadInput() {
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
 
+const pending = computed(() => props.defer ? !!props.busy : loading.value)
+
 async function call() {
-    if (loading.value) return
-    const imgs = props.images ?? []
+    if (pending.value) return
+
+    if (props.defer) {
+        emits('submit', { funcId: localFunction.value, inputs: localInputs.value, hook: props.action })
+        return
+    }
+
+    const imgs = typeof props.images === 'function' ? props.images() : (props.images ?? [])
+
     loading.value = true
     try {
-        const uiInputs = {}
-        for (let input of localInputs.value) {
-            if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
-                input.defaultValue = data.propertyList[0].id
-            }
-            if (input.type == 'input_file') {
-                if (input.defaultValue?.name) {
-                    input.defaultValue = await fileToBase64(input.defaultValue)
-                } else {
-                    input.defaultValue = undefined
-                }
-            }
-            uiInputs[input.name] = input.defaultValue
-        }
         const imageIds = imgs.map(i => i.id)
-        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
-        const req: ExecuteActionPayload = { function: localFunction.value, context: context }
-        const res = await project.call(req)
-        if (res.groups) {
-            const groups = convertClusterGroupResult(res.groups, context)
+        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds }
+        const { result, groups } = await actions.executeAction(localFunction.value, props.action, context, localInputs.value)
+        if (groups) {
             emits('groups', groups)
         }
-        emits('call', res)
+        emits('call', result)
     } catch (e) {
         console.error(e)
-    }
-    try {
-        if (setDefault.value) {
-            const funcId = localFunction.value
-            for (let i in localInputs.value) {
-                actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
-            }
-            await actions.updateDefaultParams()
-
-            const update = {}
-            update[props.action] = localFunction.value
-            await actions.updateDefaultActions(update)
-        }
-    } catch (e) {
-
     }
 
     loading.value = false
@@ -122,6 +99,7 @@ function handleMainClick() {
 function handleShow() {
     showFunctionSelect.value = false
     loadAction()
+    emits('show')
 }
 
 function selectFunction(func) {
@@ -141,14 +119,14 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
+    <Dropdown :teleport="true" @show="handleShow" @hide="emits('hide')" ref="dropdownElem">
         <template #button>
-            <div class="d-flex main2" :class="{ sbb: !props.noBorder }">
-                <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+            <div class="d-flex main2" :class="{ sbb: !props.noBorder, sb: props.noBorder }">
+                <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <wTT :message="'dropdown.action.' + props.action" class="">
-                    <div class="">
+                <wTT :message="'dropdown.action.' + props.action" class="slot-wrap">
+                    <div class="slot-inner">
                         <slot></slot>
                     </div>
                 </wTT>
@@ -190,10 +168,7 @@ watch(localFunction, loadInput)
                         </div>
 
                         <div class="d-flex flex-center p-1 bar" :class="{ 'no-shadow': localInputs.length == 0 }">
-                            <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                    style="position: relative; top: 2px" /></div>
-                            <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
-                            <div class="ms-2 flex-grow-1"></div>
+                            <div class="flex-grow-1"></div>
                             <div class="bb" @click="hide">{{ $t('cancel') }}</div>
                             <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
                         </div>
@@ -209,6 +184,19 @@ watch(localFunction, loadInput)
     cursor: pointer;
     /* font-size: 14px; */
     align-items: center;
+    height: 100%;
+}
+
+.slot-wrap {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.slot-inner {
+    display: flex;
+    align-items: center;
+    height: 100%;
 }
 
 .params-grid {

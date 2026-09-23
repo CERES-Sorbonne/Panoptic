@@ -1,0 +1,38 @@
+/* Chrome of the teleported cell editors (see cellPopup.ts). Global rather than scoped: the popup
+   is shared by several tree inputs and lives on the body, not inside any of them. */
+
+/* Parked on the cell it edits, above the scroller and any card clipping. It carries its own
+   surface and ring, since it is no longer inside the frame that used to draw them. */
+.cell-popup {
+    position: fixed;
+    z-index: 2000;
+    box-sizing: border-box;
+    /* No padding of its own: the box IS the cell (see place()), and each input pads itself with
+       the cell's own insets so its content lands on the value's line. */
+    background: white;
+    /* The ring is an outline, not an inset shadow: an inset shadow on a scrolling box is painted
+       against the scrolled content, so it drops off the right and bottom edges as soon as the
+       cap brings a scrollbar. An outline is painted on the border box and costs no layout. */
+    outline: 1px solid var(--cell-blue);
+    outline-offset: -1px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    /* only ever reached once fit() caps the height: content taller than the window scrolls
+       here, inside the popup, rather than running off the screen */
+    overflow-y: auto;
+}
+
+/* Parked on the box the cell's own icon occupies (see place()), so it never drifts with the
+   content growing below it. */
+.cell-popup .popup-icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--grey-text);
+    cursor: pointer;
+}
+
+.cell-popup .popup-icon:hover {
+    color: black;
+}

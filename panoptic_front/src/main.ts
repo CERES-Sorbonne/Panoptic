@@ -1,0 +1,31 @@
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+
+import VueTour from 'vue3-tour'
+
+import App from './App.vue'
+
+// Self-hosted Inter (npm: inter-ui) so font metrics are identical on every OS.
+import "inter-ui/inter-variable.css"
+import "bootstrap/dist/css/bootstrap.min.css"
+import "bootstrap-icons/font/bootstrap-icons.css"
+import "bootstrap"
+import '@vueform/toggle/themes/default.css'
+import 'vue3-tour/dist/vue3-tour.css'
+import VueVirtualScroller from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+
+// The instance lives in locales/i18n so non-component modules can reach it too.
+import { i18n } from './locales/i18n'
+
+const pinia = createPinia()
+
+const app = createApp(App)
+app.use(pinia)
+app.use(VueVirtualScroller)
+
+import router from './router'
+app.use(router)
+app.use(i18n)
+app.use(VueTour).provide('tours', app.config.globalProperties.$tours)
+app.mount('#app')

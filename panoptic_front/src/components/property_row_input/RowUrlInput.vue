@@ -3,7 +3,7 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import { onMounted, ref, watch } from 'vue';
 import TextInput from '@/components/property_inputs/TextInput.vue';
 import UrlPreview from '../property_preview/UrlPreview.vue';
-import { keyState } from '@/data/keyState';
+import { keyState } from '@/data/composables/keyState';
 
 const props = withDefaults(defineProps<{
     modelValue?: string

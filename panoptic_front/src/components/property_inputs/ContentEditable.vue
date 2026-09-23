@@ -63,14 +63,15 @@ function cleanText(text: string) {
 }
 
 function updateContent(newcontent: string) {
+    if (!element.value) return
     if (props.onlyNumber) {
         newcontent = cleanText(newcontent)
     }
     if (props.noHtml) {
-        element.value!.innerText = newcontent;
+        element.value.innerText = newcontent;
     }
     else {
-        element.value!.innerHTML = newcontent;
+        element.value.innerHTML = newcontent;
     }
 }
 

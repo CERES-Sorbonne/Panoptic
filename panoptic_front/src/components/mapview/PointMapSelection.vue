@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
-import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
-import { keyState } from '@/data/keyState';
-import { useDataStore } from '@/data/dataStore';
+import SelectDropdown from '../dropdowns/SelectDropdown.vue';
+import { SelectOption } from '@/data/models';
+import { keyState } from '@/data/composables/keyState';
+import { useMediaStore } from '@/data/stores/mediaStore';
 import { objValues } from '@/utils/utils';
 
-const data = useDataStore()
+const media = useMediaStore()
 const props = defineProps<{
     modelValue?: number
 }>()
@@ -20,7 +21,7 @@ const localMap = ref()
 
 
 async function updateMaps() {
-    mapOptions.value = objValues(data.maps).map(m => ({
+    mapOptions.value = objValues(media.maps).map(m => ({
         value: m.id,
         label: m.id + ': ' + m.source + '.' + m.name,
         icon: 'geo'
@@ -28,7 +29,7 @@ async function updateMaps() {
 
     let nextValue = props.modelValue
 
-    if (nextValue && !data.maps[nextValue]) {
+    if (nextValue && !media.maps[nextValue]) {
         nextValue = null
     }
 
@@ -45,7 +46,7 @@ async function updateMaps() {
 
 // updateModes()
 watch(() => props.modelValue, (val) => localMap.value = val)
-watch(() => data.maps, () => updateMaps())
+watch(() => media.maps, () => updateMaps())
 watch(localMap, (val) => emits('update:modelValue', val))
 
 onMounted(() => {

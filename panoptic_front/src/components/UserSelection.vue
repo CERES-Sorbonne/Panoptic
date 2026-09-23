@@ -1,14 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue'
-
-export interface User {
-  id: number
-  name: string
-}
-
-export interface UserState extends User {
-  connectedTo?: string
-}
+import { UserState } from '@/data/models'
 
 const props = defineProps<{
   users: UserState[]

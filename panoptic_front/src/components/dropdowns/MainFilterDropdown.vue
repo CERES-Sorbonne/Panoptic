@@ -4,9 +4,9 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { PropertyID } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import FilterGroupVue from '../filter/FilterGroup.vue';
-import { Dropdowns } from '@/data/dropdowns';
+import { Dropdowns } from '@/components/dropdowns/registry';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TabManager } from '@/core/TabManager';
 import { deepCopy } from '@/utils/utils';
@@ -45,8 +45,6 @@ function resetQuery() {
     const query = deepCopy(props.manager.state.query)
     query.text = ""
     props.manager.setQuery(query)
-    props.manager.update(true)
-    props.tab.saveState()
 
     if (props.manager.state.filter.filters.length == 0) {
         dropdownElem.value.hide()

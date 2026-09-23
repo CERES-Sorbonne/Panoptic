@@ -1,24 +1,26 @@
 <script setup lang="ts">
 import { ModalId, Property, PropertyID, PropertyMode, PropertyType } from '@/data/models';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import TagMenu from '../tags/TagMenu.vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useProjectStore } from '@/data/stores/projectStore';
 import { Filter } from '@/core/FilterManager';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/stores/dataStore';
 import { isTag, objValues } from '@/utils/utils';
-import { usePanopticStore } from '@/data/panopticStore';
-import { Dropdowns } from '@/data/dropdowns';
+import { usePanopticStore } from '@/data/stores/panopticStore';
+import { Dropdowns } from '@/components/dropdowns/registry';
 import { useI18n } from 'vue-i18n';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { TabManager } from '@/core/TabManager';
+import { useHoverStore } from '@/data/stores/hoverStore';
 
 const { t } = useI18n(({ useScope: 'global' }))
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
 const data = useDataStore()
+const hover = useHoverStore()
 
 const props = defineProps<{
     tab: TabManager
@@ -26,16 +28,20 @@ const props = defineProps<{
     open?: boolean
 }>()
 
-const optionsOpen = ref(false)
-const valuesOpen = ref(false)
-const localName = ref('')
+// Pointing at (or editing) a cell of this property anywhere in the app lights up its row here.
+const remoteHover = computed(() => hover.activeProperty === props.property.id)
 
-const fullHover = ref(false)
+const valuesOpen = ref(false)
+// dropdown open: keeps the row's action icons mounted after the mouse leaves the row
+const menuOpen = ref(false)
+const editName = ref(false)
+const localName = ref('')
+const nameInput = ref<HTMLInputElement>()
 
 const propertyVisible = computed(() => props.tab.state.visibleProperties[props.property.id] == true)
 
 const isInFilter = computed(() => props.tab.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
-const isInGroups = computed(() => props.tab.collection.groupManager.state.groupBy.includes(props.property.id))
+const isInGroups = computed(() => props.tab.collection.groupState.groupBy.includes(props.property.id))
 const isInSort = computed(() => props.tab.collection.sortManager.state.sortBy.includes(props.property.id))
 const filterId = computed(() => {
     if (!isInFilter.value) return undefined
@@ -44,7 +50,12 @@ const filterId = computed(() => {
 const filterManager = () => props.tab.collection.filterManager
 const sha1Mode = computed(() => props.tab.getSha1Mode())
 
+// Icons that stay visible without hover. They overlay the name, so the name reserves
+// just enough room for them (19px per icon) and keeps the rest of the row.
+const pinnedCount = computed(() => [isInFilter.value, isInSort.value, isInGroups.value, valuesOpen.value].filter(v => v).length)
+
 function toggleVisible() {
+    if (editName.value) return
     if (propertyVisible.value) {
         props.tab.setVisibleProperty(props.property.id, false)
     } else {
@@ -52,27 +63,21 @@ function toggleVisible() {
     }
 }
 
-function toggleOptionsMenu() {
-    if (!props.open) return
-    if (optionsOpen.value) {
-        optionsOpen.value = false
-    } else {
-        optionsOpen.value = true
-        localName.value = props.property.name
-    }
-    valuesOpen.value = false
+function startRename() {
+    localName.value = props.property.name
+    editName.value = true
+    nextTick(() => nameInput.value?.focus())
+}
+
+function cancelRename() {
+    editName.value = false
 }
 
 function toggleValuesMenu() {
     if (props.property.type != PropertyType.tag && props.property.type != PropertyType.multi_tags) {
         return
     }
-    if (valuesOpen.value) {
-        valuesOpen.value = false
-    } else {
-        valuesOpen.value = true
-    }
-    optionsOpen.value = false
+    valuesOpen.value = !valuesOpen.value
 }
 
 function setSort() {
@@ -81,16 +86,14 @@ function setSort() {
     } else {
         props.tab.collection.sortManager.delSort(props.property.id)
     }
-    props.tab.collection.sortManager.update(true)
 }
 
 function setGroup() {
     if (!isInGroups.value) {
-        props.tab.collection.groupManager.setGroupOption(props.property.id)
+        props.tab.collection.setGroupOption(props.property.id)
     } else {
-        props.tab.collection.groupManager.delGroupOption(props.property.id)
+        props.tab.collection.delGroupOption(props.property.id)
     }
-    props.tab.collection.groupManager.update(true)
 }
 
 function deleteProperty() {
@@ -99,11 +102,12 @@ function deleteProperty() {
 }
 
 async function renameProperty() {
-    if (localName.value == '') {
+    if (localName.value == '' || localName.value == props.property.name) {
+        editName.value = false
         return
     }
     await data.updateProperty(props.property.id, localName.value)
-    toggleOptionsMenu()
+    editName.value = false
 }
 
 function setFilter() {
@@ -123,126 +127,221 @@ function setPropertyGroup(id: number) {
 }
 
 watch(() => props.property, () => {
-    optionsOpen.value = false
+    editName.value = false
+    valuesOpen.value = false
 })
 
 </script>
 
 <template>
-    <div :class="fullHover ? 'hover-light' : ''">
-        <div class="d-flex flex-row">
+    <div>
+        <div class="prop-row" :class="{ selected: propertyVisible, hovered: remoteHover, 'menu-open': menuOpen }"
+            @click="toggleVisible">
+            <span class="prop-caret"><i class="bi bi-dot" /></span>
+            <PropertyIcon :type="props.property.type" class="prop-icon" />
+
             <template v-if="props.open">
-                <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;"
-                    @click="toggleOptionsMenu">
-                    <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true"
-                        @mouseleave="fullHover = false" />
-                    <span>{{ props.property.name }}</span>
-                </div>
-            </template>
-            
-            <template v-else>
-                <PropertyIcon :type="props.property.type" class="me-2" style="position: relative; top: 2px;" />
-            </template>
-            <div v-if="optionsOpen && props.open" class="d-flex" style="width: 150px;">
-                <div><i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu"
-                        @mouseenter="fullHover = true" @mouseleave="fullHover = false" />
-                </div>
-                <div class="flex-grow-1">
-                    <input v-if="props.property.id >= 0" style="position: relative; top: 1px;" type="text"
-                        class="text-input" v-model="localName" @change="renameProperty" />
-                    <span v-else style="padding-top: 1px;">
-                        <PropertyIcon :type="props.property.type" class="me-2 btn-icon" />
-                        <span>{{ props.property.name }}</span>
-                    </span>
-                </div>
-            </div>
-            <template v-if="props.open">
-                <div v-if="isTag(props.property.type)" style="width: 20px; margin-top: 2px; cursor: pointer;"
-                    class="text-center" @click="panoptic.showModal(ModalId.TAG, { propId: props.property.id })">
-                    <wTT :click="false" message="main.nav.properties.open_tags">
-                        <i class="bi bi-arrows-fullscreen"></i>
-                    </wTT>
-                </div>
-            </template>
-            <template v-if="props.open">
-                <div class="text-center" style="width: 24px; margin-top: 2px;">
-                    <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
-                        @click="toggleValuesMenu" style="cursor: pointer;">
-                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
-                                class="bi bi-chevron-down"></i></wTT>
-                        <wTT v-else message="main.nav.properties.expand_property_tooltip"><i
-                                class="bi bi-chevron-right ms-1"></i>
-                        </wTT>
-                    </div>
-                </div>
-                <div style="width: 20px; margin-top: 2px; flex-shrink: 0;" class="text-center">
-                    <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
-                        message="main.nav.properties.linked_property_tooltip">
+                <input v-if="editName" ref="nameInput" type="text" class="prop-input" v-model="localName"
+                    @click.stop @keyup.enter="renameProperty" @keyup.esc="cancelRename" @blur="renameProperty" />
+                <span v-else class="prop-name" :style="{ paddingRight: (pinnedCount * 19) + 'px' }">{{
+                    props.property.name }}</span>
+
+                <span v-if="props.property.mode == PropertyMode.id" class="prop-indicator">
+                    <wTT :click="false" message="main.nav.properties.linked_property_tooltip">
                         <i class="bi bi-link-45deg"></i>
                     </wTT>
+                </span>
+
+                <div class="prop-actions" @click.stop>
+                    <span v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
+                        class="prop-act" :class="{ active: valuesOpen }" @click="toggleValuesMenu">
+                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip">
+                            <i class="bi bi-chevron-down"></i>
+                        </wTT>
+                        <wTT v-else message="main.nav.properties.expand_property_tooltip">
+                            <i class="bi bi-chevron-right"></i>
+                        </wTT>
+                    </span>
+                    <span v-if="isTag(props.property.type)" class="prop-act"
+                        @click="panoptic.showModal(ModalId.TAG, { propId: props.property.id })">
+                        <wTT :click="false" message="main.nav.properties.open_tags">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </wTT>
+                    </span>
+                    <span v-if="property.id != PropertyID.folders" class="prop-act" :class="{ active: isInFilter }"
+                        @click="setFilter">
+                        <wTT :click="false" message="main.menu.filters"><i class="bi bi-funnel-fill"></i></wTT>
+                    </span>
+                    <span class="prop-act" :class="{ active: isInSort }" @click="setSort">
+                        <wTT :click="false" message="main.menu.sort.title"><i class="bi bi-sort-down"></i></wTT>
+                    </span>
+                    <span class="prop-act" :class="{ active: isInGroups }" @click="setGroup">
+                        <wTT :click="false" message="main.menu.groupby"><i class="bi bi-collection"></i></wTT>
+                    </span>
+                    <Dropdown @click.prevent.stop="" @show="menuOpen = true" @hide="menuOpen = false">
+                        <template #button><span class="prop-act"><i class="bi bi-three-dots"></i></span></template>
+                        <template #popup="{ hide }">
+                            <div class="p-1">
+                                <div v-if="props.property.id >= 0" class="bb" @click="startRename(); hide();">
+                                    {{ $t('main.menu.editName') }}
+                                </div>
+                                <div v-if="props.property.id >= 0" class="bb" @click="deleteProperty(); hide();">
+                                    {{ $t("main.nav.properties.delete_property") }}
+                                </div>
+                            </div>
+                        </template>
+                    </Dropdown>
                 </div>
             </template>
-            <div style="width: 20px; margin-top: 2px; flex-shrink: 0;" @click="toggleVisible" class="btn-icon text-center">
-                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"
-                    message="main.nav.properties.hidden_property_tooltip">
-                    <span class="bi bi-eye-slash" @click.stop=""></span>
-                </wTT>
-                <wTT pos="right" message="main.nav.properties.hide_property_tooltip" v-else>
-                    <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
-                </wTT>
-            </div>
         </div>
-        <div v-if="props.open">
-            <div v-if="optionsOpen" class="ms-3 pt-1">
-                <div v-if="property.id != PropertyID.folders" class="options hover-light"
-                    :class="isInFilter ? ' text-primary' : ''" @click="setFilter">
-                    <div>
-                        <i class="bi bi-funnel-fill me-2"></i>{{ $t("main.menu.filters") }}
-                    </div>
-                </div>
-                <div class="options hover-light" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
-                        class="bi bi-filter me-2"></i>{{ $t("main.menu.sort.title") }}</div>
-                <div class="options hover-light" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
-                        class="bi bi-collection me-2"></i>{{ $t("main.menu.groupby") }}</div>
-                <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i
-                        class="bi bi-trash me-2"></i>{{ $t("main.nav.properties.delete_property") }}</div>
-                <!-- <Dropdown v-if="props.property.id >= 0 && data.propertyGroupsList.length" :teleport="true">
-                    <template #button>
-                        <div class="options hover-light">
-                            <i class="bi bi-folder me-1"></i>
-                            {{ $t("main.nav.properties.set_group") }}
-                        </div>
-                    </template>
-                    <template #popup>
-                        <div class="p-1" style="min-width: 100px;">
-                            <div v-if="props.property.propertyGroupId && data.propertyGroups[props.property.propertyGroupId]" class="bb" @click="setPropertyGroup(null)">None</div>
-                            <div v-if="props.property.propertyGroupId && data.propertyGroups[props.property.propertyGroupId]" class="custom-hr mt-1 mb-1" />
-                            <div v-for="group of data.propertyGroupsList" class="bb" @click="setPropertyGroup(group.id)">
-                                {{ group.name }}
-                            </div>
-                        </div>
-                    </template>
-                </Dropdown> -->
-
-            </div>
-            <div v-else-if="valuesOpen">
-                <!-- <TagProperty :data="props.property" /> -->
-                <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true"
-                    :can-link="true" />
-            </div>
+        <div v-if="props.open && valuesOpen">
+            <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true"
+                :can-link="true" />
         </div>
     </div>
 </template>
 
 <style scoped>
-.option-holder {
-    border-radius: 3px;
-    padding: 2px;
-
+.prop-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    padding: 0 var(--spacing-sm);
+    white-space: nowrap;
+    cursor: pointer;
 }
 
-.options {
-    padding: 3px;
+.prop-row:hover,
+.prop-row.menu-open {
+    background-color: var(--hover-bg);
+}
+
+.prop-row.selected {
+    background-color: rgba(38, 117, 191, 0.18);
+}
+
+/* A visible row already carries the blue fill, so the plain hover-bg never shows.
+   Lighten the fill instead, keeping the hover feedback in the same colour family. */
+.prop-row.selected:hover,
+.prop-row.selected.menu-open {
+    background-color: rgba(38, 117, 191, 0.10);
+}
+
+/* A dot, not a chevron: the group header's caret means open/close, and this marks the active
+   row. bi-dot is drawn small inside a wide, tall glyph box — hence the large font-size and the
+   zero line-height, which keep the row's height its own. */
+.prop-caret {
+    width: 8px;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+    color: var(--text-primary);
+    /* the row's 6px gap either side is too much air for a glyph this small */
+    margin: 0 -4px 0 -2px;
+    /* hidden rather than removed: the row must not shift when it appears */
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+/* .hovered means a cell of this property is pointed at or being edited in a scroller — the
+   panel's own :hover deliberately does NOT show it, so the marker only ever answers the
+   scroller. The row still gets its hover-bg, which is feedback enough for the panel itself. */
+.prop-row.hovered .prop-caret {
+    opacity: 1;
+}
+
+.prop-icon {
+    width: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    /* grown rather than resized: the row keeps its geometry, so nothing after it shifts */
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.prop-row.hovered .prop-icon {
+    transform: scale(1.2);
+    color: var(--text-primary);
+}
+
+.prop-name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prop-input {
+    flex: 1;
+    min-width: 0;
+    height: 18px;
+    padding: 0 4px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+}
+
+.prop-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+/* Lifted out of the flow so the name always gets the full row width: the icons are drawn on
+   top of its end on hover, over the row's own background, instead of shortening it by default. */
+.prop-actions {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+    background-color: inherit;
+}
+
+.prop-act {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
     cursor: pointer;
+    display: none;
+}
+
+/* Reveal action icons on row hover; keep active (filter/sort/group) ones pinned. */
+.prop-row:hover .prop-act,
+.prop-row.menu-open .prop-act,
+.prop-act.active {
+    display: inline-flex;
+}
+
+.prop-act.active {
+    color: var(--primary);
+}
+
+.prop-act:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 </style>

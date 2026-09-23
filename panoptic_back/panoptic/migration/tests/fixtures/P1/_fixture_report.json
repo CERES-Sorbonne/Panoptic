@@ -1,0 +1,156 @@
+{
+  "version": "0.2.1",
+  "shape": "P1",
+  "images": 12,
+  "folders": [
+    [
+      1,
+      "sample_images",
+      null
+    ],
+    [
+      2,
+      "sub",
+      1
+    ]
+  ],
+  "properties": {
+    "txt_id": [
+      1,
+      "PropertyType.string",
+      "id"
+    ],
+    "num_id": [
+      2,
+      "PropertyType.number",
+      "id"
+    ],
+    "tag_id": [
+      3,
+      "PropertyType.tag",
+      "id"
+    ],
+    "multi_id": [
+      4,
+      "PropertyType.multi_tags",
+      "id"
+    ],
+    "imglink_id": [
+      5,
+      "PropertyType.image_link",
+      "id"
+    ],
+    "url_id": [
+      6,
+      "PropertyType.url",
+      "id"
+    ],
+    "date_id": [
+      7,
+      "PropertyType.date",
+      "id"
+    ],
+    "path_id": [
+      8,
+      "PropertyType.path",
+      "id"
+    ],
+    "color_id": [
+      9,
+      "PropertyType.color",
+      "id"
+    ],
+    "check_id": [
+      10,
+      "PropertyType.checkbox",
+      "id"
+    ],
+    "txt_sha1": [
+      11,
+      "PropertyType.string",
+      "sha1"
+    ],
+    "num_sha1": [
+      12,
+      "PropertyType.number",
+      "sha1"
+    ],
+    "multi_sha1": [
+      13,
+      "PropertyType.multi_tags",
+      "sha1"
+    ],
+    "check_sha1": [
+      14,
+      "PropertyType.checkbox",
+      "sha1"
+    ]
+  },
+  "tags": {
+    "landscape": [
+      7,
+      [
+        0
+      ]
+    ],
+    "portrait": [
+      8,
+      [
+        0
+      ]
+    ],
+    "animal": [
+      1,
+      [
+        0
+      ]
+    ],
+    "mammal": [
+      2,
+      [
+        1
+      ]
+    ],
+    "cat": [
+      3,
+      [
+        2
+      ]
+    ],
+    "dog": [
+      4,
+      [
+        2
+      ]
+    ],
+    "bird": [
+      5,
+      [
+        1
+      ]
+    ],
+    "pet": [
+      6,
+      [
+        3,
+        4
+      ]
+    ],
+    "sha_alpha": [
+      9,
+      [
+        0
+      ]
+    ],
+    "sha_beta": [
+      10,
+      [
+        9
+      ]
+    ]
+  },
+  "values": 166,
+  "tabs": "tabs table (2)",
+  "vectors": "computed_values.vector (dim 16) for 12 sha1s",
+  "plugin_data": "n/a - no plugin system in this era"
+}

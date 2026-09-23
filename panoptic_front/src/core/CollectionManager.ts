@@ -1,15 +1,19 @@
 /**
  * CollectionManager
- * Is responsible to connect the different managers together for reactivity
+ * Connects FilterManager → SortManager → GroupManager.
+ * All three managers operate on Int32Array of column-store slot indices.
+ * Instance objects are never allocated in this pipeline.
  */
 
-import { CollectionState, InstanceIndex } from "@/data/models";
-import { FilterManager, FilterResult, FilterState } from "./FilterManager";
-import { SortManager, SortResult, SortState } from "./SortManager";
-import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
-import { EventEmitter, objValues } from "@/utils/utils";
-import { useDataStore } from "@/data/dataStore";
-import { Reactive, Ref, reactive } from "vue";
+import { CollectionState } from "@/data/models";
+import { FilterContext, FilterManager, FilterState } from "./FilterManager";
+import { SortManager, SortState } from "./SortManager";
+import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest, GroupInspector } from "./GroupManager";
+import { EventEmitter } from "@/utils/utils";
+import { useDataStore } from "@/data/stores/dataStore";
+import { useColumnStore } from "@/data/stores/columnStore";
+import { Reactive, reactive, watch, WatchStopHandle } from "vue";
+import { grpLog, grpDebugOn, few } from '@/utils/debugGroup';
 
 export interface RunCollectionState {
     isDirty: boolean
@@ -20,8 +24,19 @@ export function createCollectionState(): CollectionState {
     return { autoReload: true }
 }
 
-export class CollectionManager {
-    images: InstanceIndex
+// Recompute entrypoints, most → least expensive. A state change maps to one of
+// these; the CollectionManager coalesces concurrent requests to the most
+// expensive pending one (Pillar B).
+export type ReloadKind = 'filter' | 'sort' | 'group' | 'sortGroups'
+const RELOAD_PRIORITY: Record<ReloadKind, number> = { filter: 4, sort: 3, group: 2, sortGroups: 1 }
+const RELOAD_DEBOUNCE_MS = 50
+
+function maxReloadKind(a: ReloadKind | null, b: ReloadKind): ReloadKind {
+    if (!a) return b
+    return RELOAD_PRIORITY[a] >= RELOAD_PRIORITY[b] ? a : b
+}
+
+export class CollectionManager implements GroupInspector {
     state: CollectionState
     filterManager: FilterManager
     sortManager: SortManager
@@ -31,25 +46,70 @@ export class CollectionManager {
 
     onStateChange: EventEmitter
 
-    constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
-        this.filterManager = new FilterManager(filterState)
-        this.sortManager = new SortManager(sortState)
-        this.groupManager = new GroupManager(groupState, selectedImages)
-        this.state = reactive({ autoReload: true })
-        this.runState = reactive({ isDirty: false, active: true })
+    // Pillar B orchestration state
+    private runToken = 0
+    private pendingKind: ReloadKind | null = null
+    private reloadTimer: ReturnType<typeof setTimeout> | null = null
+    // In-flight data-driven reflow (see updateInstances / settle).
+    private pending: Promise<void> | null = null
+    // A state-driven reload that is armed (debounced) or running, so settle() can wait for it
+    // too, and the resolver that releases its waiters. Null when none is scheduled.
+    private reloadDone: Promise<void> | null = null
+    private releaseReload: (() => void) | null = null
 
+    // Lifecycle: stop handles for the config watches + the bound data listener,
+    // so a collection can be torn down when its last view stops referencing it
+    // (bind/unbind toggle in TabManager).
+    private stops: WatchStopHandle[] = []
+    private boundUpdateInstances = this.updateInstances.bind(this)
+
+    constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState) {
+        const data = useDataStore()
+        const col = useColumnStore()
+        const ctx: FilterContext = { properties: data.properties, tags: data.tags, folders: data.folders }
+        this.filterManager = new FilterManager(ctx, filterState)
+        this.sortManager = new SortManager(sortState)
+        this.groupManager = new GroupManager(groupState)
         if (state) {
-            Object.assign(this.state, state)
+            this.state = state as CollectionState
+        } else {
+            this.state = reactive({ autoReload: true })
         }
 
-        this.filterManager.onResultChange.addListener(this.onFilter.bind(this))
-        this.sortManager.onResultChange.addListener(this.onSort.bind(this))
-        this.groupManager.onResultChange.addListener(this.onGroup.bind(this))
+        this.runState = reactive({ isDirty: false, active: true })
 
-        this.filterManager.onStateChange.addListener(this.setDirty.bind(this))
+        // Pipeline ordering is inline in update()/runReload() (filter→sort→group);
+        // the old onResultChange cascade (onFilter/onSort/onGroup) is removed
+        // (note §6, P-A, step 3). filter()/sort() were only ever called with
+        // emit=false, so those listeners never fired.
+        data.onChange.addListener(this.boundUpdateInstances)
 
-        const data = useDataStore()
-        data.onChange.addListener(this.updateInstances.bind(this))
+        // Pillar B: the CollectionManager is the single orchestrator. It watches
+        // each persisted state slice and maps it to the right recompute
+        // entrypoint, coalesced + active/autoReload-gated + debounced. This
+        // generalises the old `filterManager.onStateChange -> setDirty` wiring
+        // (one slice) to all three managers. State mutations still go through the
+        // managers' setters (which keep id/index bookkeeping); only the recompute
+        // trigger moves here. `sha1Mode` is intentionally not watched — it does an
+        // incremental restructure inside `setSha1Mode`.
+        this.stops.push(watch(() => this.filterManager.state,        () => this.requestReload('filter'),     { deep: true }))
+        this.stops.push(watch(() => this.sortManager.state,          () => this.requestReload('sort'),       { deep: true }))
+        this.stops.push(watch(() => this.groupManager.state.groupBy, () => this.requestReload('group'),      { deep: true }))
+        this.stops.push(watch(() => this.groupManager.state.options, () => this.requestReload('sortGroups'), { deep: true }))
+        // stepSize/stepUnit changes require a full group rebuild (buckets change), not just a re-sort
+        this.stops.push(watch(
+            () => this.groupManager.state.groupBy.map(id => {
+                const o = this.groupManager.state.options[id]
+                return `${o?.stepSize}-${o?.stepUnit}`
+            }).join(','),
+            () => this.requestReload('group')
+        ))
+
+        // Trigger full update whenever the column store finishes (re)loading.
+        // immediate:true handles the case where a tab is created after init completes.
+        this.stops.push(watch(() => col.isReady, (ready) => {
+            if (ready) this.update()
+        }, { immediate: true }))
 
         this.onStateChange = new EventEmitter()
     }
@@ -61,6 +121,69 @@ export class CollectionManager {
         this.groupManager.verifyState(data.properties)
     }
 
+    // ── Inspection API ─────────────────────────────────────────────────────────
+    // CollectionManager is the object views use to inspect a collection. These delegate to the
+    // GroupManager / ClusterManager so components no longer reach through `.groupManager`.
+    // (`groupState` is named to avoid clashing with `this.state`, the CollectionState.)
+
+    get result() { return this.groupManager.result }
+    get clusters() { return this.groupManager.clusters }
+    get version() { return this.groupManager.version }
+    get groupState(): GroupState { return this.groupManager.state }
+    get selectionNamespace() { return this.groupManager.selectionNamespace }
+
+    hasResult() { return this.groupManager.hasResult() }
+    // Publish view-state changes made without `emit` (batched open/close in the group lines).
+    emitResult() { return this.groupManager.emitResult() }
+    getRequiredColumns() { return this.groupManager.getRequiredColumns() }
+
+    // Iteration
+    getGroupIterator(groupId?: number, options?: GroupIteratorOptions) { return this.groupManager.getGroupIterator(groupId, options) }
+    getImageIterator(groupId?: number, imageIdx?: number, options?: GroupIteratorOptions) { return this.groupManager.getImageIterator(groupId, imageIdx, options) }
+    findImageIterator(groupId: number, imageId: number) { return this.groupManager.findImageIterator(groupId, imageId) }
+
+    // Grouping state
+    setGroupOption(...args: Parameters<GroupManager['setGroupOption']>) { return this.groupManager.setGroupOption(...args) }
+    delGroupOption(...args: Parameters<GroupManager['delGroupOption']>) { return this.groupManager.delGroupOption(...args) }
+    setSha1Mode(value: boolean, emit?: boolean) { return this.groupManager.setSha1Mode(value, emit) }
+    sortGroups(emit?: boolean) { return this.groupManager.sortGroups(emit) }
+
+    // Open / close — completes the inspection API so views never need `.groupManager`.
+    toggleGroup(groupId: number, emit?: boolean) { return this.groupManager.toggleGroup(groupId, emit) }
+    openGroup(groupId: number, emit?: boolean) { return this.groupManager.openGroup(groupId, emit) }
+    closeGroup(groupId: number, emit?: boolean) { return this.groupManager.closeGroup(groupId, emit) }
+
+    // Selection
+    setSelectionNamespace(ns: string) { return this.groupManager.setSelectionNamespace(ns) }
+    clearSelection() { return this.groupManager.clearSelection() }
+    toggleAll() { return this.groupManager.toggleAll() }
+    toggleGroupIterator(...args: Parameters<GroupManager['toggleGroupIterator']>) { return this.groupManager.toggleGroupIterator(...args) }
+    toggleImageIterator(...args: Parameters<GroupManager['toggleImageIterator']>) { return this.groupManager.toggleImageIterator(...args) }
+    selectImages(imageIds: number[]) { return this.groupManager.selectImages(imageIds) }
+    unselectImages(imageIds: number[]) { return this.groupManager.unselectImages(imageIds) }
+    // Reactive in a template/computed (reads the namespace's selection tick internally).
+    isGroupSelected(group: Group) { return this.groupManager.isGroupSelected(group) }
+
+    // Cluster / custom-group ops (delegate through to ClusterManager)
+    addCustomGroups(targetGroupId: number, groups: Group[], emit?: boolean) { return this.groupManager.addCustomGroups(targetGroupId, groups, emit) }
+    moveImagesToGroup(fromGroupId: number, toGroupId: number, instanceIds: number[], emit = true) { return this.groupManager.moveImagesToGroup(fromGroupId, toGroupId, instanceIds, emit) }
+    renameGroup(groupId: number, name: string, emit = true) { return this.groupManager.renameGroup(groupId, name, emit) }
+    delCustomGroups(targetGroupId: number, emit?: boolean) { return this.groupManager.delCustomGroups(targetGroupId, emit) }
+    clearCustomGroups(emit?: boolean) { return this.groupManager.clearCustomGroups(emit) }
+    // Cluster a group. Fire-and-forget from the caller's point of view: the ClusterManager owns
+    // the run, so the result lands even if the button that started it is long unmounted.
+    cluster(targetGroupId: number, req: ClusterRequest) { return this.groupManager.cluster(targetGroupId, req) }
+    isClustering(groupId: number) { return this.groupManager.isClustering(groupId) }
+    clusterError(groupId: number) { return this.groupManager.clusterError(groupId) }
+    get onCluster() { return this.groupManager.clusters.onCluster }
+
+    split(groupId: number, groups: Group[], emit = true) { return this.groupManager.split(groupId, groups, emit) }
+    merge(groupIds: number[], emit = true) { return this.groupManager.merge(groupIds, emit) }
+    deletePile(groupId: number, emit = true) { return this.groupManager.deletePile(groupId, emit) }
+    // Cluster the empty bucket (adds a real leftover group) / drain an assigned pile — O(delta).
+    clusterEmptyBucket(bucketId: number, groups: Group[], emit = true) { return this.groupManager.clusters.clusterEmptyBucket(bucketId, groups, emit) }
+    drainCluster(groupId: number, instanceIds: number[], emit = true) { return this.groupManager.clusters.drain(groupId, instanceIds, emit) }
+
     setAutoReload(value: boolean) {
         this.state.autoReload = value
         this.onStateChange.emit()
@@ -68,75 +191,200 @@ export class CollectionManager {
 
     async setDirty(instanceIds?: Set<number>) {
         this.runState.isDirty = true
-        if (!this.runState.active) {
-            return
+        if (grpDebugOn()) {
+            grpLog('2 \u00b7 collection.setDirty', {
+                count: instanceIds?.size ?? 'all', instances: few(instanceIds),
+                active: this.runState.active, autoReload: this.state.autoReload,
+            })
         }
+        if (!this.runState.active) return
 
-        if(this.state.filterBySelection) {
-            let selected = this.groupManager.selectedImages
-            for(let id of Array.from(instanceIds)) {
-                if(!selected[id]) {
-                    instanceIds.delete(id)
-                }
-            }
+        // Narrow to the selection on a copy: the payload is shared with every other
+        // collection listening to the same data change, so it must never be mutated here.
+        let dirty = instanceIds
+        // Narrowing to the selection is one-way ON PURPOSE: a deselected image keeps its place
+        // instead of being filtered out mid-edit. This mode is the selection modal's, where the
+        // point is fine control over what is selected without the view moving under the cursor.
+        // The full path (update(), below) does filter it out, which is the intended catch-up.
+        if (dirty && this.state.filterBySelection) {
+            const col = useColumnStore()
+            const kept = new Set<number>()
+            for (const id of dirty) if (col.isSelectedId(id)) kept.add(id)
+            dirty = kept
         }
 
         if (this.state.autoReload) {
-            if (instanceIds) {
-                const filterUpdate = await this.filterManager.updateSelection(instanceIds)
+            if (dirty) {
+                const filterUpdate = await this.filterManager.updateSelection(dirty)
+                if (grpDebugOn()) {
+                    grpLog('3 \u00b7 filter.updateSelection', {
+                        updated: few(filterUpdate.updated), updatedCount: filterUpdate.updated.size,
+                        removed: few(filterUpdate.removed), removedCount: filterUpdate.removed.size,
+                    })
+                }
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
-                this.groupManager.lastOrder = this.sortManager.result.order
                 if (this.groupManager.result.root) {
                     this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 } else {
-                    this.groupManager.group(this.sortManager.result.images, this.sortManager.result.order, true)
+                    grpLog('3b \u00b7 no tree yet \u2014 full group()')
+                    await this.groupManager.group(this.sortManager.result.slots, true)
                 }
-
                 this.runState.isDirty = false
             } else {
-                this.update()
+                await this.update()
             }
-
         }
     }
 
     async update() {
-        const data = useDataStore()
-        if (this.state.instances) {
-            this.images = {}
-            this.state.instances.forEach(i => this.images[i] = data.instances[i])
-        } else {
-            this.images = data.instances
-        }
-        if (!this.images) return
+        const col = useColumnStore()
+        if (!col.isReady) return
 
-        
-        let images = objValues(this.images)
-        if(this.state.filterBySelection) {
-            let selected = this.groupManager.selectedImages.value
-            images = images.filter(i => selected[i.id])
+        // Latest-wins guard: if a newer recompute starts while this one is
+        // awaiting (slow column load / plugin query), the stale run bails before
+        // writing results.
+        const token = ++this.runToken
+
+        const count   = col.slotCount()
+        const deleted = col.deletedMask()
+
+        // Build Int32Array of active slots — no Instance objects created. Written straight
+        // into a pre-allocated typed array (slotCount is the exact upper bound) instead of a
+        // boxed number[] + copy, which doubled peak memory on large collections.
+        const buf = new Int32Array(count)
+        let n = 0
+        for (let s = 0; s < count; s++) {
+            if (!deleted[s]) buf[n++] = s
         }
 
-        const filterRes = await this.filterManager.filter(images)
-        const sortRes = this.sortManager.sort(filterRes.images)
-        this.groupManager.group(sortRes.images, sortRes.order, true)
+        if (this.state.filterBySelection) {
+            let k = 0
+            for (let i = 0; i < n; i++) {
+                if (col.isSelected(buf[i])) buf[k++] = buf[i]
+            }
+            n = k
+        }
+        // FilterManager retains this array (lastSlots), so hand it an exactly-sized one
+        // rather than a view that pins the full-slotCount buffer alive.
+        const slots = n === count ? buf : buf.slice(0, n)
+
+        const filterRes = await this.filterManager.filter(slots)
+        if (token !== this.runToken) return
+        const sortRes   = await this.sortManager.sort(filterRes.slots)
+        if (token !== this.runToken) return
+        // Awaited: group() loads any missing columns first, so leaving it dangling cleared
+        // isDirty (and resolved TabManager.update) before the tree actually existed.
+        await this.groupManager.group(sortRes.slots, true)
+        if (token !== this.runToken) return
         this.runState.isDirty = false
     }
 
-    private onFilter(result: FilterResult) {
-        const sortRes = this.sortManager.sort(result.images)
-        this.groupManager.group(sortRes.images, sortRes.order, true)
+    // Pillar B: single entry for state-driven recompute. Coalesces concurrent
+    // requests, gates on active + autoReload, and debounces hot paths (typing,
+    // slider drags). Background tabs only mark dirty and recompute on activate
+    // (via TabManager.update on selectMainTab).
+    requestReload(kind: ReloadKind) {
+        this.runState.isDirty = true
+        if (!this.runState.active || !this.state.autoReload) return
+        this.pendingKind = maxReloadKind(this.pendingKind, kind)
+        if (!this.reloadDone) this.reloadDone = new Promise(resolve => { this.releaseReload = resolve })
+        if (this.reloadTimer) clearTimeout(this.reloadTimer)
+        this.reloadTimer = setTimeout(async () => {
+            const kind = this.pendingKind
+            this.pendingKind = null
+            this.reloadTimer = null
+            try {
+                if (kind) await this.runReload(kind)
+            } catch (e) {
+                console.error('[collection] reload failed', e)
+            }
+            // A request that arrived while this one ran has armed the timer again: its run is
+            // the one the waiters are waiting for.
+            if (!this.reloadTimer) this.finishReload()
+        }, RELOAD_DEBOUNCE_MS)
     }
 
-    private onSort(result: SortResult) {
-        this.groupManager.sort(result.order, true)
+    private finishReload() {
+        const release = this.releaseReload
+        this.reloadDone = null
+        this.releaseReload = null
+        release?.()
     }
 
-    private onGroup() {
-
+    private async runReload(kind: ReloadKind) {
+        if (kind === 'filter') {
+            await this.update()
+            return
+        }
+        const token = ++this.runToken
+        if (kind === 'sort') {
+            const sortRes = await this.sortManager.sort(this.filterManager.result.slots)
+            if (token !== this.runToken) return
+            await this.groupManager.group(sortRes.slots, true)
+            if (token !== this.runToken) return
+            this.runState.isDirty = false
+            return
+        }
+        if (kind === 'group') {
+            await this.groupManager.group(this.sortManager.result.slots, true)
+            if (token !== this.runToken) return
+            this.runState.isDirty = false
+            return
+        }
+        if (kind === 'sortGroups') {
+            this.groupManager.sortGroups(true)
+            this.runState.isDirty = false
+        }
     }
 
     updateInstances(instanceIds: Set<number>) {
-        this.setDirty(instanceIds)
+        // Keep the in-flight reflow so callers that write a value and then act on the
+        // resulting tree (e.g. assign-then-drain in the group view) can await it.
+        this.pending = this.setDirty(instanceIds).catch(e => { console.error('[collection] update failed', e) })
+    }
+
+    // Resolve once no reflow is in flight: neither a data-driven one nor a state-driven reload
+    // (a grouping change, say) that is debounced or running. Chains rather than snapshots, so a
+    // reflow started while awaiting an earlier one is covered too. A state change is picked up
+    // by a watcher, so a caller that has just made one lets it run (nextTick) before settling.
+    async settle(): Promise<void> {
+        for (;;) {
+            if (this.reloadDone) {
+                await this.reloadDone
+                continue
+            }
+            if (!this.pending) return
+            const p = this.pending
+            await p
+            if (this.pending === p) this.pending = null
+        }
+    }
+
+    // Activate / deactivate. Going inactive must also drop any debounced reload, otherwise a
+    // timer armed while visible still fires (and recomputes) after the tab is hidden.
+    setActive(value: boolean) {
+        this.runState.active = value
+        if (!value && this.reloadTimer) {
+            clearTimeout(this.reloadTimer)
+            this.reloadTimer = null
+            this.pendingKind = null
+            this.finishReload()
+        }
+    }
+
+    // Tear down all reactive subscriptions. Called when the last view that
+    // referenced this collection stops doing so (TabManager.pruneCollections),
+    // and when the owning tab is deleted (TabManager.dispose).
+    dispose() {
+        this.stops.forEach(stop => stop())
+        this.stops = []
+        useDataStore().onChange.removeListener(this.boundUpdateInstances)
+        if (this.reloadTimer) { clearTimeout(this.reloadTimer); this.reloadTimer = null }
+        this.pendingKind = null
+        this.finishReload()
+        this.runState.active = false
+        // Bump the token so any run still awaiting a column load bails instead of writing
+        // results into a collection nobody references anymore.
+        this.runToken++
     }
 }

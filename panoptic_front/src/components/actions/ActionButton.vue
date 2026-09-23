@@ -1,32 +1,29 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { ActionContext, Instance, ParamDescription } from '@/data/models';
 import ParamInput from '../inputs/ParamInput.vue';
-import { useActionStore } from '@/data/actionStore';
-import { useDataStore } from '@/data/dataStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult, sourceFromFunction, objValues, fileToBase64 } from '@/utils/utils';
+import { sourceFromFunction, objValues } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
-const project = useProjectStore()
-const data = useDataStore()
 const actions = useActionStore()
 
 const props = defineProps<{
     action: string
-    images?: Instance[]
+    images?: Instance[] | (() => Instance[])
     propertyIds?: number[]
     groupName?: string
+    // See ActionButton2: hand the run off to its owner instead of awaiting it here.
+    defer?: boolean
+    busy?: boolean
 }>()
-const emits = defineEmits(['instances', 'groups'])
+const emits = defineEmits(['instances', 'groups', 'submit'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref<string>(null)
-const setDefault = ref(false)
 const loading = ref(false)
 const dropdownElem = ref(null)
 const showFunctionSelect = ref(false)
@@ -58,47 +55,26 @@ function loadInput() {
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
 
+const pending = computed(() => props.defer ? !!props.busy : loading.value)
+
 async function call() {
-    if (loading.value) return
+    if (pending.value) return
+
+    if (props.defer) {
+        emits('submit', { funcId: localFunction.value, inputs: localInputs.value, hook: props.action })
+        return
+    }
 
     loading.value = true
     try {
-        const uiInputs = {}
-        for (let input of localInputs.value) {
-            if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
-                input.defaultValue = data.propertyList[0].id
-            }
-            if (input.type == 'input_file' && input.defaultValue){
-                input.defaultValue = await fileToBase64(input.defaultValue)
-            }
-            uiInputs[input.name] = input.defaultValue
-        }
-        const imageIds = props.images.map(i => i.id)
-        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs, groupName: props.groupName }
-        const req: ExecuteActionPayload = { function: localFunction.value, context: context }
-        const res = await project.call(req)
-        console.log(context.groupName)
-        if (res.groups) {
-            const groups = convertClusterGroupResult(res.groups, context)
+        const imageIds = (typeof props.images === 'function' ? props.images() : (props.images ?? [])).map(i => i.id)
+        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, groupName: props.groupName }
+        const { groups } = await actions.executeAction(localFunction.value, props.action, context, localInputs.value)
+        if (groups) {
             emits('groups', groups)
         }
     } catch (e) {
         console.error(e)
-    }
-    try {
-        if (setDefault.value) {
-            const funcId = localFunction.value
-            for (let i in localInputs.value) {
-                actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
-            }
-            await actions.updateDefaultParams()
-
-            const update = {}
-            update[props.action] = localFunction.value
-            await actions.updateDefaultActions(update)
-        }
-    } catch (e) {
-
     }
 
     loading.value = false
@@ -128,15 +104,15 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div class="b-box sbb" v-if="localFunction" @click="call">
-        <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+    <div class="b-box sb" v-if="localFunction" @click="call">
+        <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
         <wTT :message="'dropdown.action.' + props.action" class="">
             <div v-if="props.action != 'group'" style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
-            <div v-else><img class="cluster-icon-sm" src="/icons/network2_white.svg" /> Clustering </div>
+            <div v-else><i class="bi bi-intersect" /></div>
         </wTT>
-        <div class="options" @click.stop.prevent="">
+        <div v-if="false" class="options" @click.stop.prevent="">
             <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
                 <template #button>
                     <wTT :message="'dropdown.action.' + props.action" style="font-size: 14px;">
@@ -180,10 +156,7 @@ watch(localFunction, loadInput)
                                 </div>
                                 
                                 <div class="d-flex flex-center p-1 bar" :class="{'no-shadow': localInputs.length == 0}">
-                                    <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                            style="position: relative; top: 2px" /></div>
-                                    <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
-                                    <div class="ms-2 flex-grow-1"></div>
+                                    <div class="flex-grow-1"></div>
                                     <div class="bb" @click="hide">{{ $t('cancel') }}</div>
                                     <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
                                 </div>

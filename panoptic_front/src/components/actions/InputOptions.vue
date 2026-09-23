@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useActionStore } from '@/data/actionStore';
+import { useActionStore } from '@/data/stores/actionStore';
 import { ParamDescription } from '@/data/models';
 import { computed, onMounted, ref } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
@@ -40,7 +40,7 @@ async function submit() {
     for (let i in localInputs.value) {
         actions.index[props.functionId].params[i].defaultValue = localInputs.value[i].defaultValue
     }
-    await actions.updateDefaultParams()
+    await actions.updateDefaultParams(props.functionId)
     emits('changed')
 }
 
@@ -58,7 +58,7 @@ onMounted(loadInput)
             <template #button>
                 <div>
                     <wTT message="Options">
-                        <span class="bbb"><i class="bi bi-gear" /></span>
+                        <span class="bb"><i class="bi bi-gear" /></span>
                     </wTT>
                 </div>
             </template>

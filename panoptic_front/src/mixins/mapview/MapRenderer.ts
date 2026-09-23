@@ -1,12 +1,14 @@
 import * as THREE from 'three'
-import { useDataStore } from '@/data/dataStore'
+import { useDataStore } from '@/data/stores/dataStore'
 import { MapControls } from './MapControl'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { SpatialIndex } from './SpatialIndex'
 import { HDLayer } from './HDLayer'
+import { HoverPointLayer } from './HoverPointLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
+import { useColumnStore } from '@/data/stores/columnStore'
 
 export class MapRenderer {
     private container: HTMLElement
@@ -22,6 +24,7 @@ export class MapRenderer {
 
     public atlasLayers: AtlasLayerManager
     private hdLayer: HDLayer
+    private hoverPointLayer: HoverPointLayer
     private lassoLayer: LassoLayer
     private spatialIndex = new SpatialIndex()
     
@@ -31,8 +34,13 @@ export class MapRenderer {
     }
 
     public onPointSelection: ((points: PointData[]) => void) | null = null
-    
+
     public onHover = new EventEmitter()
+
+    // In point mode, points are plain coloured dots with no detail to magnify — the side-panel
+    // inspector (fed by onHover below) already shows the hovered image, so the enlarged HD
+    // preview would just be a redundant floating photo. Suppress it there.
+    private showAsPoint = false
 
     constructor(container: HTMLElement, baseImgUrl: string) {
         this.container = container
@@ -49,6 +57,10 @@ export class MapRenderer {
         this.hdLayer.setZoomReference(this.globalUniforms.uZoom)
         this.hdLayer.setZoomParams(this.zoomParams)
 
+        this.hoverPointLayer = new HoverPointLayer(this.scene)
+        this.hoverPointLayer.setZoomReference(this.globalUniforms.uZoom)
+        this.hoverPointLayer.setZoomParams(this.zoomParams)
+
         this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points) => {
             if (this.onPointSelection) this.onPointSelection(points)
         })
@@ -57,8 +69,6 @@ export class MapRenderer {
 
         this.resizeObserver = new ResizeObserver(() => this.onResize())
         this.resizeObserver.observe(this.container)
-
-        this.animate()
     }
 
     private initCamera() {
@@ -93,6 +103,7 @@ export class MapRenderer {
     public async createMap(atlas: ImageAtlas, points: PointData[], showAsPoint: boolean) {
         const dataStore = useDataStore()
         this.spatialIndex.initTree(points)
+        this.showAsPoint = showAsPoint
 
         await this.atlasLayers.loadLayers(
             atlas,
@@ -112,8 +123,9 @@ export class MapRenderer {
 
         if (this.hdLayer) {
             this.hdLayer.updateAnimations()
-            this.hdLayer.show([])
+            this.hdLayer.tick()
         }
+        this.hoverPointLayer.updateAnimations()
 
         this.updateHoverState()
         // console.log(this.controls.getMouseWorldPos())
@@ -123,17 +135,20 @@ export class MapRenderer {
 
     private updateHoverState() {
         const foundPoint = this.controls.getHoveredPoint(this.zoomParams)
-        const foundId = foundPoint ? foundPoint.id! : null
 
-        if (foundId) {
-            this.hdLayer.hover(foundPoint)
-            this.onHover.emit(useDataStore().sha1Index[foundPoint.sha1][0].id)
+        if (foundPoint) {
+            const instanceId = useColumnStore().getInstancesBySha1(foundPoint.sha1)[0]
+            if (this.showAsPoint) {
+                this.hoverPointLayer.hover(foundPoint)
+            } else {
+                this.hdLayer.hover(foundPoint)
+            }
+            this.onHover.emit(instanceId)
         } else {
             this.hdLayer.unhover()
+            this.hoverPointLayer.unhover()
             this.onHover.emit()
         }
-
-        
     }
 
     public setMouseMode(mode: string) {
@@ -145,10 +160,18 @@ export class MapRenderer {
         this.hdLayer.updateTints()
     }
 
+    // Grid-thumbnail-only effect (the HD hover preview always shows a point in full colour).
+    public updateDesaturation() {
+        this.atlasLayers.updateDesaturation()
+    }
+
     public updateBorder() {
-        this.atlasLayers.updateBorderColors()
-        this.atlasLayers.updateBorderWidths()
+        this.atlasLayers.updateBorder()
         this.hdLayer.updateBorder()
+    }
+
+    public setHoverScale(scale: number) {
+        this.hdLayer.setHoverScale(scale)
     }
 
     public updatePosition() {
@@ -156,12 +179,18 @@ export class MapRenderer {
     }
 
     public setShowAsPoint(show: boolean) {
+        this.showAsPoint = show
+        // Toggled mid-hover: drop whatever preview is currently up for the mode we're leaving
+        // rather than leaving it stranded until the mouse moves off the point.
+        if (show) this.hdLayer.unhover()
+        else this.hoverPointLayer.unhover()
         this.atlasLayers.setShowAsPoint(show)
     }
 
     public setImageSize(imageSize: number) {
         this.zoomParams.h = imageSize / 50.0 * 1
         this.hdLayer.setZoomParams(this.zoomParams)
+        this.hoverPointLayer.setZoomParams(this.zoomParams)
         this.atlasLayers.setZoomParams(this.zoomParams)
     }
 
@@ -206,14 +235,17 @@ export class MapRenderer {
         }
     }
 
-    public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }) {
+    public lookAtRect(
+        rect: { minX: number, minY: number, maxX: number, maxY: number },
+        padding?: { left?: number, right?: number, top?: number, bottom?: number }
+    ) {
         let offset = this.getImageMaxSize()
         let finalRect = deepCopy(rect)
         finalRect.minX -= offset
         finalRect.minY -= offset
         finalRect.maxX += offset
         finalRect.maxY += offset
-        this.controls.lookAtRect(finalRect)
+        this.controls.lookAtRect(finalRect, 500, padding)
     }
 
     public dispose() {
@@ -223,6 +255,7 @@ export class MapRenderer {
         this.renderer.dispose()
         this.atlasLayers.dispose()
         this.hdLayer?.dispose()
+        this.hoverPointLayer?.dispose()
         this.scene.clear()
     }
 }
