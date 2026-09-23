@@ -6,6 +6,8 @@ import msgspec
 from pathlib import Path
 from typing import List, Type, TypeVar, Any, Iterable, Union
 
+import panoptic.core.databases.sqlite_types  # noqa: F401  registers the datetime adapter/converter
+
 # Generic type for msgspec Structs
 T = TypeVar("T", bound=msgspec.Struct)
 

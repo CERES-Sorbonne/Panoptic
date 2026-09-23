@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from panoptic.core.databases.db_description import DbDescription
+import panoptic.core.databases.sqlite_types  # noqa: F401  registers the datetime adapter/converter
 
 
 class SQLiteWriter:
