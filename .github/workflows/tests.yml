@@ -1,0 +1,70 @@
+name: Tests
+
+# Lancé sur chaque PR : le check « Tests OK » doit être vert pour merger
+on:
+  pull_request:
+  workflow_dispatch:
+  # Appelé par « Hatch Build and Publish » avant chaque publication
+  workflow_call:
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: panoptic_back
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: panoptic_back/pyproject.toml
+
+      - name: Installation des dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pytest
+
+      - name: Tests
+        run: python -m pytest test panoptic/core/task/tests --tb=short
+
+  frontend:
+    name: Frontend (node --test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: panoptic_front
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: panoptic_front/package-lock.json
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+  # Check unique à déclarer comme obligatoire dans la protection de branche
+  tests-ok:
+    name: Tests OK
+    if: always()
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tous les jobs sont verts
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1

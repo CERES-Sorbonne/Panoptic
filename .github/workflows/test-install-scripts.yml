@@ -7,6 +7,13 @@ on:
         description: "Branche de PanopticML à tester (vide = version par défaut de PyPI)"
         required: false
         default: ''
+  # Appelé par « Hatch Build and Publish » avant chaque publication
+  workflow_call:
+    inputs:
+      panopticml_branch:
+        type: string
+        required: false
+        default: ''
 
 jobs:
   test:

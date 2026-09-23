@@ -70,12 +70,21 @@ jobs:
     outputs:
       tag: ${{ env.TAG }}
 
+  # La publication n'a lieu que si les tests et les tests d'installation passent
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  install-tests:
+    uses: ./.github/workflows/test-install-scripts.yml
+
   deploy:
     runs-on: ubuntu-latest
     environment: release
     needs:
         - get-ref
         - get-tag
+        - tests
+        - install-tests
     steps:
       - name: Decode ref
         id: decode_ref
@@ -147,3 +156,22 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.REF }}
+
+  # Tests rouges : la release publiée qui a créé le tag repasse en brouillon
+  revert-release:
+    runs-on: ubuntu-latest
+    needs:
+        - tests
+        - install-tests
+    if: failure() && github.event_name == 'push'
+    steps:
+      - name: Release repassée en brouillon
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=true
+            echo "::error::Tests en échec : la release $GITHUB_REF_NAME est repassée en brouillon, rien n'a été publié."
+          else
+            echo "::error::Tests en échec : rien n'a été publié pour $GITHUB_REF_NAME."
+          fi

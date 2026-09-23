@@ -20,6 +20,8 @@ jobs:
   cpu_build_and_publish:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    # Pas d'image si la publication PyPI a échoué (ou a été bloquée par les tests)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
