@@ -28,6 +28,7 @@ import './specs/c_simFindings'
 import './specs/d1_tagRegistry'
 import './specs/d2_tagDeletion'
 import './specs/e1_appendLevel'
+import './specs/f1_scoreSort'
 
 import './specs/invariants'
 import './specs/sim_smoke'

@@ -10,7 +10,7 @@
 
 import { useDataStore } from "@/data/stores/dataStore"
 import { useColumnStore } from "@/data/stores/columnStore"
-import { deletedID, FolderIndex, PropertyIndex, Property } from "@/data/models"
+import { deletedID, FolderIndex, GroupScoreList, PropertyIndex, Property } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { EventEmitter } from "@/utils/utils"
 import { reactive } from "vue"
@@ -308,6 +308,19 @@ function mergeInsertSorted(
     return buf.slice(0, resLen)
 }
 
+// Slot-indexed score column for a search's scores. It sorts before every property, best
+// score first; images without a score go last.
+function buildScoreCol(slots: ArrayLike<number>, maxSlot: number, scores: GroupScoreList): Float64Array {
+    const ids = useColumnStore().instanceIds()
+    const missing = scores.maxIsBest ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY
+    const arr = new Float64Array(maxSlot + 1).fill(missing)
+    for (let i = 0; i < slots.length; i++) {
+        const v = scores.valueIndex[ids[slots[i]]]
+        if (v !== undefined && !isNaN(v)) arr[slots[i]] = v
+    }
+    return arr
+}
+
 // ── SortManager ────────────────────────────────────────────────────────────
 
 export class SortManager {
@@ -322,6 +335,20 @@ export class SortManager {
     // Refreshed incrementally by updateSortCols() on data changes.
     private _sortCols: SortCols | null = null
     private _sortColsMaxSlot = 0
+
+    // Scores that sort first when set (the collection points this at its active search's
+    // scores). A getter, not state: never reactive, never saved.
+    scoreSource: () => GroupScoreList | undefined = () => undefined
+
+    // Prepend the score column (and its direction) to the property columns when scores exist.
+    private withScores(slots: ArrayLike<number>, maxSlot: number, cols: SortCols, orders: number[]) {
+        const scores = this.scoreSource()
+        if (!scores) return { cols, orders }
+        return {
+            cols: [buildScoreCol(slots, maxSlot, scores), ...cols],
+            orders: [scores.maxIsBest ? -1 : 1, ...orders],
+        }
+    }
 
     constructor(state?: SortState) {
         this.onResultChange = new EventEmitter()
@@ -370,19 +397,19 @@ export class SortManager {
 
         // Sort using packed-key native sort (no JS comparator — pure C++ TimSort).
         // Falls back to comparison sort only when float64 range would overflow.
+        const { cols, orders: ords } = this.withScores(slots, maxSlot, this._sortCols, orders)
         let sorted: Int32Array
-        if (properties.length === 0) {
+        if (cols.length === 0) {
             sorted = slots.slice()
         } else {
-            sorted = sortByPackedKey(slots, this._sortCols, orders)
+            sorted = sortByPackedKey(slots, cols, ords)
             ?? (() => {
                 const s = slots.slice()
-                if (properties.length === 1) {
-                    const col0 = this._sortCols[0], ord0 = orders[0]
+                if (cols.length === 1) {
+                    const col0 = cols[0], ord0 = ords[0]
                     s.sort((a, b) => { const d = col0[a] < col0[b] ? -ord0 : col0[a] > col0[b] ? ord0 : 0; return d || a - b })
                 } else {
-                    const cols = this._sortCols
-                    s.sort((a, b) => compareSlotsByCols(a, b, cols, orders))
+                    s.sort((a, b) => compareSlotsByCols(a, b, cols, ords))
                 }
                 return s
             })()
@@ -438,15 +465,21 @@ export class SortManager {
             updateSortCols(this._sortCols, [...updatedSlots], properties, this._sortColsMaxSlot, data.folders)
         }
 
+        // Score column over the kept + updated slots (scores are per instance, so rebuilt whole).
+        let maxSlot = this._sortColsMaxSlot
+        for (const s of updatedSlots) if (s > maxSlot) maxSlot = s
+        for (let i = 0; i < this.result.slots.length; i++) if (this.result.slots[i] > maxSlot) maxSlot = this.result.slots[i]
+        const scoreSlots = [...this.result.slots, ...updatedSlots]
+        const { cols, orders: ords } = this.withScores(scoreSlots, maxSlot, this._sortCols, orders)
+
         // Sort the updated slots by current criteria, then merge-insert into result
-        const cols = this._sortCols
-        let insertArr = sortByPackedKey(Int32Array.from(updatedSlots), cols, orders)
+        let insertArr = sortByPackedKey(Int32Array.from(updatedSlots), cols, ords)
         if (!insertArr) {
             insertArr = Int32Array.from(updatedSlots)
-            insertArr.sort((a, b) => compareSlotsByCols(a, b, cols, orders))
+            insertArr.sort((a, b) => compareSlotsByCols(a, b, cols, ords))
         }
 
-        const res = mergeInsertSorted(this.result.slots, insertArr, removedSlots, updatedSlots, cols, orders)
+        const res = mergeInsertSorted(this.result.slots, insertArr, removedSlots, updatedSlots, cols, ords)
         this.result.slots = res
 
         return this.result

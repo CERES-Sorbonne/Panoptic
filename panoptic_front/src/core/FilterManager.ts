@@ -2,7 +2,7 @@ import { useActionStore } from "@/data/stores/actionStore";
 import { apiCallActions } from "@/data/api/projectApi";
 import { propertyDefault } from "@/data/lib/builders";
 import { useColumnStore } from "@/data/stores/columnStore";
-import { deletedID, ActionContext, ExecuteActionPayload, FolderIndex, PropertyIndex, PropertyType, TagIndex, TextQuery } from "@/data/models";
+import { deletedID, ActionContext, ExecuteActionPayload, FolderIndex, GroupScoreList, PropertyIndex, PropertyType, TagIndex, TextQuery } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
 import { reactive, toRefs } from "vue";
 
@@ -375,9 +375,10 @@ function filterByRegexMask(
     }
 }
 
+// Returns the result's scores (instanceId -> score) when the plugin sent any.
 async function filterByPluginMask(
     slots: Int32Array, mask: Uint8Array, fnc: string, ctx: ActionContext
-): Promise<void> {
+): Promise<GroupScoreList | undefined> {
     const col = useColumnStore()
     const sha1PropId = col.systemProps.SHA1
     const ids = col.instanceIds()
@@ -391,19 +392,42 @@ async function filterByPluginMask(
     const payloadCtx = { ...ctx, instanceIds: activeInstanceIds }
     const result = await apiCallActions({ function: fnc, context: payloadCtx } as ExecuteActionPayload)
     if (!result?.groups?.length) return
-    const filteredSet = new Set(result.groups[0].sha1s)
+    const group = result.groups[0]
+    const filteredSet = new Set(group.sha1s)
+    // sha1 -> score and id -> score, read from the plugin's parallel arrays.
+    const values = group.scores?.values
+    const sha1Score = new Map<string, number>()
+    const idScore = new Map<number, number>()
+    if (values) {
+        group.sha1s?.forEach((sha1, i) => sha1Score.set(sha1, values[i]))
+        group.ids?.forEach((id, i) => idScore.set(id, values[i]))
+    }
+    const valueIndex: { [instanceId: number]: number } = {}
     for (let i = 0; i < slots.length; i++) {
         if (!mask[i]) continue
         if (sha1PropId === null) { mask[i] = 0; continue }
         const sha1 = col.readSlot(sha1PropId, slots[i])
-        if (sha1 == null || !filteredSet.has(sha1)) mask[i] = 0
+        if (sha1 == null || !filteredSet.has(sha1)) { mask[i] = 0; continue }
+        if (values) {
+            const id = ids[slots[i]]
+            const v = idScore.get(id) ?? sha1Score.get(sha1)
+            if (v !== undefined) valueIndex[id] = v
+        }
+    }
+    if (!group.scores) return
+    return {
+        valueIndex,
+        min: group.scores.min,
+        max: group.scores.max,
+        maxIsBest: group.scores.maxIsBest,
+        description: group.scores.description,
     }
 }
 
 async function filterQueryMask(
     slots: Int32Array, mask: Uint8Array, query: TextQuery,
     properties: PropertyIndex, tags: TagIndex
-): Promise<void> {
+): Promise<GroupScoreList | undefined> {
     if (!query?.text) return
     const actions = useActionStore()
     const props = objValues(properties)
@@ -412,7 +436,7 @@ async function filterQueryMask(
 
     if (query.type === 'text')  { filterByTextMask(slots, mask, query.text, textProps, tagProps, tags); return }
     if (query.type === 'regex') { filterByRegexMask(slots, mask, query.text, textProps, tagProps, tags); return }
-    if (query.ctx && actions.index[query.type]) { await filterByPluginMask(slots, mask, query.type, query.ctx); return }
+    if (query.ctx && actions.index[query.type]) return await filterByPluginMask(slots, mask, query.type, query.ctx)
 }
 
 // ── FilterManager ──────────────────────────────────────────────────────────
@@ -426,6 +450,9 @@ export class FilterManager {
     filterIndex: { [filterId: number]: AFilter }
 
     lastSlots: Int32Array
+    // Scores of the active plugin text search (e.g. similarity), keyed by instance id.
+    // Derived from the query on every run: not reactive, never saved.
+    scores: GroupScoreList | undefined = undefined
     onResultChange: EventEmitter
     onStateChange: EventEmitter
 
@@ -493,7 +520,7 @@ export class FilterManager {
 
     async filter(slots: Int32Array, emit?: boolean) {
         this.lastSlots = slots
-        const res = await this.filterSlots(slots)
+        const res = await this.filterSlots(slots, true)
         this.result.slots = res.valid
         if (emit) this.onResultChange.emit(this.result)
         return this.result
@@ -543,7 +570,9 @@ export class FilterManager {
         }
     }
 
-    private async filterSlots(slots: Int32Array): Promise<{ valid: Int32Array; reject: Int32Array }> {
+    // `full` = a run over the whole slot set, which replaces the scores. An incremental run
+    // only re-queries the dirty slots, so their scores are merged into the existing ones.
+    private async filterSlots(slots: Int32Array, full = false): Promise<{ valid: Int32Array; reject: Int32Array }> {
         await this._ensureColumns()
         const col = useColumnStore()
 
@@ -551,9 +580,11 @@ export class FilterManager {
         const mask = new Uint8Array(n)
         mask.fill(1)
 
-        if (this.state.query?.text) {
-            await filterQueryMask(slots, mask, this.state.query, this.ctx.properties, this.ctx.tags)
-        }
+        const scores = this.state.query?.text
+            ? await filterQueryMask(slots, mask, this.state.query, this.ctx.properties, this.ctx.tags)
+            : undefined
+        if (full || !this.scores) this.scores = scores
+        else if (scores) Object.assign(this.scores.valueIndex, scores.valueIndex)
 
         if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)

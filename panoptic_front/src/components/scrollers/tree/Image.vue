@@ -70,7 +70,7 @@ const score = computed(() => {
             <div class="img-container" :style="`width: ${w + 2}px; height: ${props.size}px;`"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
                 @mouseleave="hover = false">
-                <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
+                <div v-if="score != undefined" class="simi-ratio">{{ score.toFixed(2) }}</div>
                 <CenteredImage :instance-id="instanceId" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 

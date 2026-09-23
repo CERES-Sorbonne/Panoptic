@@ -69,7 +69,10 @@ export class CollectionManager implements GroupInspector {
         const ctx: FilterContext = { properties: data.properties, tags: data.tags, folders: data.folders }
         this.filterManager = new FilterManager(ctx, filterState)
         this.sortManager = new SortManager(sortState)
+        // A similarity text search's scores sort first and are shown on each image.
+        this.sortManager.scoreSource = () => this.filterManager.scores
         this.groupManager = new GroupManager(groupState)
+        this.groupManager.scoreSource = () => this.filterManager.scores
         if (state) {
             this.state = state as CollectionState
         } else {

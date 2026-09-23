@@ -158,6 +158,11 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     display: flex;
     align-items: center;
     padding: 0 0px;
+    /* Long function labels shrink (with ellipsis) so the input keeps room */
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 50%;
+    overflow: hidden;
 }
 
 .divider {
@@ -169,6 +174,7 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 
 .options-wrapper {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
 }
 
@@ -182,7 +188,8 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 .input-field {
     padding: 0;
     position: relative;
-    flex-grow: 1;
+    flex: 1 1 0;
+    min-width: 40px;
 }
 
 .text-input2 {

@@ -12,7 +12,7 @@
  *  - Date bucketing uses epoch-ms integer arithmetic — zero Date allocations in scan loop
  */
 
-import { deletedID, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
+import { deletedID, GroupScoreList, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
 import { Ref, reactive } from "vue";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
@@ -75,6 +75,8 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
     // Leaf groups collected during computePropertySubGroup — avoids Object.values() in post-loop.
     private _leafGroups: Group[] = []
     onStateChange: EventEmitter
+    // Scores of the collection's active search (set by CollectionManager). Not reactive state.
+    scoreSource: () => GroupScoreList | undefined = () => undefined
 
     // Result-change signal + legacy event live on GroupResult now; expose delegating getters
     // so existing callers (`manager.version.value`, `manager.onResultChange`) keep working.
@@ -868,6 +870,12 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
 
     regsiterGroup(group: Group) {
         this.result.index[group.id] = group
+        // Every group gets the active search's scores, so each image can show its own
+        // (Image.vue reads group.scores). A group with scores of its own (a cluster) keeps them.
+        if (!group.scores) {
+            const scores = this.scoreSource()
+            if (scores) group.scores = scores
+        }
     }
 
     private computePropertySubGroup(group: Group, groupBy: number[], properties: PropertyIndex, tags: TagIndex) {
