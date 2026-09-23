@@ -4,7 +4,7 @@ Provides dataclasses that wrap the JSON metadata stored in FileSource.metadata,
 with validation and convenient access patterns.
 """
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 
@@ -134,7 +134,7 @@ class IIIFSourceConfig:
         total: int,
     ) -> None:
         """Update import history with latest result."""
-        self.import_history.last_import_at = datetime.utcnow().isoformat() + 'Z'
+        self.import_history.last_import_at = datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + 'Z'
         self.import_history.last_import_status = status
         self.import_history.last_import_count = count
         self.import_history.total_canvases = total

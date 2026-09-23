@@ -27,6 +27,7 @@ from pathlib import Path
 
 import msgspec
 
+import panoptic.core.databases.sqlite_types  # noqa: F401  registers the datetime adapter/converter
 from panoptic.core.databases.data.create import (
     datastore_desc, ALL_SCHEMAS, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
     INSTANCES_SCHEMA, PROPERTIES_SCHEMA, PROPERTY_GROUPS_SCHEMA, TAG_LISTS_SCHEMA, TAGS_SCHEMA,

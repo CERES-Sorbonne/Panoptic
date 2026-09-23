@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
 from panoptic.core.databases.data.models import File, FileSource, Folder, Instance, UpsertCommit
@@ -96,7 +96,7 @@ def update_sync_status(project, fs_id: int, done: int, failed: int, total: int, 
     file_count = len(project.get_files(folder_id=folder_ids)) if folder_ids else 0
 
     sync_status = {
-        'last_synced_at': datetime.utcnow().isoformat() + 'Z',
+        'last_synced_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + 'Z',
         'status': 'partial' if failed > 0 else 'success',
         'folder_count': len(folders),
         'file_count': file_count,
