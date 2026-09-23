@@ -20,11 +20,14 @@ if (isTauri) {
     launcher.start()
 }
 
-const stopInit = watch(backendReady, (ready) => {
+let stopInit: (() => void) | undefined
+stopInit = watch(backendReady, (ready) => {
     if (!ready) return
     panoptic.init()
-    stopInit()
+    stopInit?.()
 }, { immediate: true })
+// immediate: the callback may run before stopInit is assigned
+if (backendReady.value) stopInit()
 
 document.title = 'Panoptic'
 
