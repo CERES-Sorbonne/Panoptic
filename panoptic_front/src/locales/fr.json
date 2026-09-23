@@ -27,7 +27,18 @@
         },
         "error": "Une erreur est survenue pendant l'installation.",
         "retry": "Réessayer",
-        "logs": "Logs du backend"
+        "logs": "Logs du backend",
+        "versions": {
+            "link": "versions…",
+            "requested": "Le choix des versions sera proposé avant le lancement",
+            "loading": "Récupération des versions disponibles...",
+            "question": "Quelles versions installer ?",
+            "hint": "Les pré-versions (rc, dev) sont aussi listées et peuvent être instables.",
+            "latest": "Dernière version stable",
+            "keep": "Garder la version actuelle ({version})",
+            "confirm": "Installer",
+            "cancel": "Annuler"
+        }
     },
     "main": {
         "home": {

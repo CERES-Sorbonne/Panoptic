@@ -1,0 +1,118 @@
+name: Build Tauri installers
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'panoptic_front/src-tauri/**'
+      - 'panoptic_front/src/components/tauri/**'
+      - 'panoptic_front/src/data/tauriLauncherStore.ts'
+      - 'panoptic_front/.env.tauri'
+      - '.github/workflows/build-tauri-installers.yml'
+
+# Les installateurs sont publiés sur une release glissante (tag desktop-latest) :
+# trop lourds pour être commités comme panoptic.exe (AppImage > 100 Mo).
+env:
+  RELEASE_TAG: desktop-latest
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-22.04
+            bundles: appimage,deb
+            args: ''
+            bundle_dir: target/release/bundle
+          - name: windows
+            os: windows-latest
+            bundles: nsis
+            args: ''
+            bundle_dir: target/release/bundle
+          - name: macos
+            os: macos-latest
+            bundles: dmg
+            # binaire universel : Apple Silicon + Intel
+            args: --target universal-apple-darwin
+            bundle_dir: target/universal-apple-darwin/release/bundle
+    defaults:
+      run:
+        working-directory: panoptic_front
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: panoptic_front/package-lock.json
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: panoptic_front/src-tauri -> target
+
+      - name: Install front dependencies
+        run: npm ci
+
+      # beforeBuildCommand (tauri.conf.json) build le front en mode tauri
+      - name: Build installer
+        run: npx tauri build --bundles ${{ matrix.bundles }} ${{ matrix.args }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: panoptic-installer-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            panoptic_front/src-tauri/${{ matrix.bundle_dir }}/appimage/*.AppImage
+            panoptic_front/src-tauri/${{ matrix.bundle_dir }}/deb/*.deb
+            panoptic_front/src-tauri/${{ matrix.bundle_dir }}/nsis/*.exe
+            panoptic_front/src-tauri/${{ matrix.bundle_dir }}/dmg/*.dmg
+
+  publish:
+    name: Publish installers
+    needs: build
+    # une seule release glissante : seuls les builds de main la mettent à jour
+    # (sur les autres branches, les installateurs restent dans les artefacts du run)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: panoptic-installer-*
+          path: installers
+          merge-multiple: true
+
+      # Recrée la release pour que le tag pointe sur le commit qui a produit les installateurs
+      - name: Publish release ${{ env.RELEASE_TAG }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create "$RELEASE_TAG" installers/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Panoptic desktop (installateurs)" \
+            --notes "Installateurs de l'application de bureau Panoptic, construits depuis ${GITHUB_SHA::7} (${GITHUB_REF_NAME}). Non signés : autoriser l'ouverture dans les réglages de sécurité (macOS) ou « Informations complémentaires → Exécuter quand même » (Windows)."

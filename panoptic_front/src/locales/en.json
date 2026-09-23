@@ -27,7 +27,18 @@
         },
         "error": "An error occurred during installation.",
         "retry": "Retry",
-        "logs": "Backend logs"
+        "logs": "Backend logs",
+        "versions": {
+            "link": "versions…",
+            "requested": "Version choice will be offered before launch",
+            "loading": "Fetching available versions...",
+            "question": "Which versions should be installed?",
+            "hint": "Pre-releases (rc, dev) are listed too and may be unstable.",
+            "latest": "Latest stable",
+            "keep": "Keep current ({version})",
+            "confirm": "Install",
+            "cancel": "Cancel"
+        }
     },
     "main": {
         "home": {

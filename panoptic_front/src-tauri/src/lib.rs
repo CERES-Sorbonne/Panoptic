@@ -39,6 +39,14 @@ struct UpdateInfo {
     latest_is_dev: bool,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PackageVersions {
+    installed: Option<String>,
+    /// newest first, pre-releases included
+    available: Vec<String>,
+}
+
 #[derive(serde::Deserialize)]
 struct OutdatedEntry {
     name: String,
@@ -218,14 +226,18 @@ fn uv_available() -> bool {
     }
 }
 
-fn installed_panoptic_version() -> Option<String> {
-    let output = uv_command(&["pip", "show", "panoptic"]).ok()?.output().ok()?;
+fn installed_package_version(package: &str) -> Option<String> {
+    let output = uv_command(&["pip", "show", package]).ok()?.output().ok()?;
     if !output.status.success() {
         return None;
     }
     String::from_utf8_lossy(&output.stdout)
         .lines()
         .find_map(|l| l.strip_prefix("Version:").map(|v| v.trim().to_string()))
+}
+
+fn installed_panoptic_version() -> Option<String> {
+    installed_package_version("panoptic")
 }
 
 #[tauri::command]
@@ -252,12 +264,12 @@ fn is_prerelease(version: &str) -> bool {
     version.chars().any(|c| c.is_ascii_alphabetic())
 }
 
-/// Latest available version on PyPI via the venv's `pip index versions`
+/// Versions available on PyPI via the venv's `pip index versions`, newest first
 /// (the only pip/uv interface that can also list pre-releases for one package).
-fn latest_available_version(include_pre: bool) -> Option<String> {
+fn available_versions(package: &str, include_pre: bool) -> Option<Vec<String>> {
     let pip = venv_dir().ok()?.join(if cfg!(windows) { "Scripts/pip.exe" } else { "bin/pip" });
     let mut cmd = new_command(pip);
-    cmd.args(["index", "versions", "panoptic", "--disable-pip-version-check"]);
+    cmd.args(["index", "versions", package, "--disable-pip-version-check"]);
     if include_pre {
         cmd.arg("--pre");
     }
@@ -266,12 +278,57 @@ fn latest_available_version(include_pre: bool) -> Option<String> {
     if !output.status.success() {
         return None;
     }
-    // "Available versions: 0.4.2, 0.4.2.dev3, 0.4.1, ..." — newest first
+    // "Available versions: 0.4.2, 0.4.2.dev3, 0.4.1, ..."
     String::from_utf8_lossy(&output.stdout)
         .lines()
         .find_map(|l| l.strip_prefix("Available versions:").map(str::trim))
-        .and_then(|versions| versions.split(',').next().map(|v| v.trim().to_string()))
-        .filter(|v| !v.is_empty())
+        .map(|versions| {
+            versions
+                .split(',')
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty())
+                .collect()
+        })
+}
+
+/// Latest available version of panoptic on PyPI
+fn latest_available_version(include_pre: bool) -> Option<String> {
+    available_versions("panoptic", include_pre)?.into_iter().next()
+}
+
+/// Only the packages the launcher lets the user pin
+fn check_pinnable(package: &str) -> Result<(), String> {
+    match package {
+        "panoptic" | "panopticml" => Ok(()),
+        _ => Err(format!("unsupported package {package}")),
+    }
+}
+
+/// `package==version` requirement, rejecting anything that is not a plain PEP 440 version
+fn pinned_requirement(package: &str, version: &str) -> Result<String, String> {
+    let valid = !version.is_empty()
+        && version
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '+' | '!' | '-' | '_'));
+    if !valid {
+        return Err(format!("invalid version {version:?} for {package}"));
+    }
+    Ok(format!("{package}=={version}"))
+}
+
+#[tauri::command]
+async fn list_versions(package: String) -> Result<PackageVersions, String> {
+    check_pinnable(&package)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let available = available_versions(&package, true)
+            .ok_or_else(|| format!("could not list the versions of {package} on PyPI"))?;
+        Ok(PackageVersions {
+            installed: installed_package_version(&package),
+            available,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -363,9 +420,22 @@ async fn create_venv(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn install_panoptic(app: AppHandle, gpu_mode: String) -> Result<(), String> {
+async fn install_panoptic(
+    app: AppHandle,
+    gpu_mode: String,
+    panoptic_version: Option<String>,
+    panopticml_version: Option<String>,
+) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        run_streamed(&app, uv_command(&["pip", "install", "panoptic"])?, "install-log")?;
+        let panoptic = match &panoptic_version {
+            Some(v) => pinned_requirement("panoptic", v)?,
+            None => "panoptic".to_string(),
+        };
+        let panopticml = panopticml_version
+            .as_deref()
+            .map(|v| pinned_requirement("panopticml", v))
+            .transpose()?;
+        run_streamed(&app, uv_command(&["pip", "install", &panoptic])?, "install-log")?;
         match gpu_mode.as_str() {
             "cuda" => run_streamed(
                 &app,
@@ -389,7 +459,32 @@ async fn install_panoptic(app: AppHandle, gpu_mode: String) -> Result<(), String
         }
         let mut plugins = new_command(panoptic_bin()?);
         plugins.args(["plugins", "add", "vision"]).current_dir(panoptic_dir()?);
-        run_streamed(&app, plugins, "install-log")
+        run_streamed(&app, plugins, "install-log")?;
+        // pinned after `plugins add`, which always pulls the latest panopticml (`pip install -U`)
+        if let Some(panopticml) = panopticml {
+            run_streamed(&app, uv_command(&["pip", "install", &panopticml])?, "install-log")?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Install explicit versions on an existing install (hidden "versions" option of the launcher)
+#[tauri::command]
+async fn install_versions(
+    app: AppHandle,
+    panoptic_version: Option<String>,
+    panopticml_version: Option<String>,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        for (package, version) in [("panoptic", panoptic_version), ("panopticml", panopticml_version)] {
+            if let Some(version) = version {
+                let requirement = pinned_requirement(package, &version)?;
+                run_streamed(&app, uv_command(&["pip", "install", &requirement])?, "install-log")?;
+            }
+        }
+        Ok(())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -553,6 +648,8 @@ pub fn run() {
             create_venv,
             install_panoptic,
             update_panoptic,
+            list_versions,
+            install_versions,
             launch_backend,
             stop_backend,
             set_install_dir,

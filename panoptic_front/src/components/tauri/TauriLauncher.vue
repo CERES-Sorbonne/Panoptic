@@ -13,10 +13,14 @@ const stepLabel = computed(() => {
         case 'creating-venv': return 'launcher.creating_venv'
         case 'installing-panoptic': return 'launcher.installing_panoptic'
         case 'updating': return 'launcher.updating'
+        case 'loading-versions': return 'launcher.versions.loading'
         case 'launching': return 'launcher.launching'
         default: return null
     }
 })
+
+const showVersionsLink = computed(() =>
+    !['loading-versions', 'ask-versions', 'ready'].includes(launcher.phase) && !launcher.status?.backendRunning)
 
 watch(() => launcher.logs.length, async () => {
     await nextTick()
@@ -88,6 +92,32 @@ watch(() => launcher.logs.length, async () => {
                 </div>
             </div>
 
+            <div v-if="launcher.phase === 'ask-versions'" class="mb-2">
+                <p>{{ $t('launcher.versions.question') }}</p>
+                <p class="text-secondary small">{{ $t('launcher.versions.hint') }}</p>
+                <div v-for="pkg in (['panoptic', 'panopticml'] as const)" :key="pkg"
+                    class="d-flex gap-2 align-items-center mb-2">
+                    <label class="version-label small" :for="'version-' + pkg">{{ pkg }}</label>
+                    <select :id="'version-' + pkg" class="form-select form-select-sm"
+                        v-model="launcher.selectedVersions[pkg]">
+                        <option value="">
+                            {{ launcher.versions[pkg].installed
+                                ? $t('launcher.versions.keep', { version: launcher.versions[pkg].installed })
+                                : $t('launcher.versions.latest') }}
+                        </option>
+                        <option v-for="v in launcher.versions[pkg].available" :key="v" :value="v">{{ v }}</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-sm btn-primary" @click="launcher.answer(true)">
+                        {{ $t('launcher.versions.confirm') }}
+                    </button>
+                    <button class="btn btn-sm btn-secondary" @click="launcher.answer(false)">
+                        {{ $t('launcher.versions.cancel') }}
+                    </button>
+                </div>
+            </div>
+
             <div v-if="launcher.phase === 'error'" class="mb-2">
                 <p class="text-danger">{{ $t('launcher.error') }}</p>
                 <pre class="error-message">{{ launcher.error }}</pre>
@@ -105,6 +135,11 @@ watch(() => launcher.logs.length, async () => {
                 <span v-if="launcher.uiVersion">UI v{{ launcher.uiVersion }}</span>
                 <span v-if="launcher.status?.installedVersion"> — panoptic v{{ launcher.status.installedVersion }}</span>
                 <div v-if="launcher.status?.logPath">{{ $t('launcher.logs') }} : {{ launcher.status.logPath }}</div>
+                <!-- hidden option: pick the panoptic / panopticml versions (pre-releases included) -->
+                <div v-if="showVersionsLink" class="versions-link">
+                    <span v-if="launcher.versionsRequested">{{ $t('launcher.versions.requested') }}</span>
+                    <a v-else href="#" @click.prevent="launcher.requestVersions()">{{ $t('launcher.versions.link') }}</a>
+                </div>
             </div>
         </div>
     </div>
@@ -142,6 +177,23 @@ watch(() => launcher.logs.length, async () => {
 
 .log-stderr {
     color: #8a929a;
+}
+
+.version-label {
+    width: 6rem;
+}
+
+.versions-link {
+    margin-top: 0.25rem;
+    opacity: 0.35;
+}
+
+.versions-link:hover {
+    opacity: 1;
+}
+
+.versions-link a {
+    color: inherit;
 }
 
 .error-message {
