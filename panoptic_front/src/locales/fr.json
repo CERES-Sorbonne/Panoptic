@@ -79,6 +79,10 @@
                 "name_taken": "Ce nom est déjà utilisé"
             },
             "version_tooltip": "Afficher les informations de debug panoptic",
+            "backend": {
+                "connecting": "Connexion au backend Panoptic…",
+                "failed": "Impossible de joindre le backend Panoptic. Nouvelle tentative…"
+            },
             "convert": {
                 "outdated": "Créé avec une ancienne version de Panoptic",
                 "incompatible": "Ne peut pas être ouvert par cette version de Panoptic",

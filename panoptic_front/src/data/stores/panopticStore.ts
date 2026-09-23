@@ -199,6 +199,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     function updateConnectionState(state: ConnectionState | undefined) {
         console.log('[panopticStore] updateConnectionState called with:', state)
         connectionState.value = state
+        if (state) fetchVersion()
         const pendingReconnect = !hasAttemptedUserReconnect.value && !!localStorage.getItem(LAST_USER_KEY)
         if (state?.connectedProject) {
             console.log('[panopticStore] Project loaded, routing to /view')

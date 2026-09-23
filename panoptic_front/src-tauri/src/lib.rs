@@ -162,6 +162,9 @@ fn prepend_local_bin(cmd: &mut Command) {
 fn uv_command(args: &[&str]) -> Result<Command, String> {
     let mut cmd = new_command(uv_bin());
     cmd.args(args).current_dir(panoptic_dir()?);
+    // uv targets $VIRTUAL_ENV over ./.venv: an env inherited from the user's shell
+    // would receive the install instead of ours
+    cmd.env("VIRTUAL_ENV", venv_dir()?).env_remove("CONDA_PREFIX");
     prepend_local_bin(&mut cmd);
     Ok(cmd)
 }
@@ -294,10 +297,6 @@ fn available_versions(package: &str, include_pre: bool) -> Option<Vec<String>> {
         })
 }
 
-/// Latest available version of panoptic on PyPI
-fn latest_available_version(include_pre: bool) -> Option<String> {
-    available_versions("panoptic", include_pre)?.into_iter().next()
-}
 
 /// Only the packages the launcher lets the user pin
 fn check_pinnable(package: &str) -> Result<(), String> {
@@ -338,11 +337,22 @@ async fn list_versions(package: String) -> Result<PackageVersions, String> {
 async fn check_update() -> Result<UpdateInfo, String> {
     tauri::async_runtime::spawn_blocking(|| {
         let installed = installed_panoptic_version();
-        if let (Some(installed), Some(latest)) =
-            (&installed, latest_available_version(!dev_updates_skipped()))
-        {
+        let include_pre = !dev_updates_skipped();
+        // all versions (pre-releases too) so the installed one can be located even if it is a dev
+        let versions = available_versions("panoptic", true);
+        let latest = versions.as_ref().and_then(|vs| {
+            vs.iter().find(|v| include_pre || !is_prerelease(v)).cloned()
+        });
+        if let (Some(installed), Some(latest), Some(versions)) = (&installed, latest, &versions) {
+            // newest first: offer only a version above the installed one. An installed version
+            // missing from PyPI is a local build (editable dev install): never replace it
+            let pos = |v: &str| versions.iter().position(|x| x == v);
+            let update_available = match (pos(installed), pos(&latest)) {
+                (Some(i), Some(l)) => l < i,
+                _ => false,
+            };
             return Ok(UpdateInfo {
-                update_available: *installed != latest,
+                update_available,
                 latest_is_dev: is_prerelease(&latest),
                 installed_version: Some(installed.clone()),
                 latest_version: Some(latest),
@@ -522,6 +532,8 @@ async fn launch_backend(app: AppHandle) -> Result<(), String> {
         cmd.env("PANOPTIC_REMOTE", "1")
             // released versions default to port 8000: pin the port the embedded UI is built for
             .env("PANOPTIC_PORT", BACKEND_PORT.to_string())
+            // lets the backend stop itself if we die without running the exit handler (macOS)
+            .env("PANOPTIC_PARENT_PID", std::process::id().to_string())
             .current_dir(panoptic_dir()?)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());

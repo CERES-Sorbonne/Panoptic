@@ -6,6 +6,9 @@ if __name__ == '__main__':
     ensure_single_openmp()
 
 import os
+import signal
+import threading
+import time
 import traceback
 import webbrowser
 from contextlib import asynccontextmanager
@@ -37,6 +40,27 @@ from panoptic.routes.project_routes import project_router
 
 def get_db_path() -> str:
     return os.getenv('PANOPTIC_DB', os.path.expanduser('~/.panoptic/panoptic.db'))
+
+
+def _watch_parent():
+    """Stop when the launcher that spawned us dies without stopping us (Ctrl+C, crash).
+
+    The desktop app passes its pid in PANOPTIC_PARENT_PID. Linux kills us through
+    PDEATHSIG already; macOS has no equivalent, so we poll: an orphan gets a new parent.
+    Windows keeps the old ppid, so this does nothing there.
+    """
+    parent = os.getenv('PANOPTIC_PARENT_PID')
+    if not parent or os.name == 'nt':
+        return
+
+    def loop():
+        while os.getppid() == int(parent):
+            time.sleep(1)
+        print('launcher is gone, shutting down')
+        # uvicorn handles SIGTERM as a graceful shutdown (lifespan closes the DBs)
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    threading.Thread(target=loop, daemon=True, name='parent-watch').start()
 
 
 def start():
@@ -115,6 +139,7 @@ def start():
         )
         webbrowser.open(front_url)
 
+    _watch_parent()
     uvicorn.run(app, host=HOST, port=PORT)
 
 

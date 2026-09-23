@@ -99,3 +99,25 @@ artifacts = [
 exclude = [
     "panoptic/migration/tests",
 ]
+
+[dependency-groups]
+# PanopticML plugin deps, so `uv sync` doesn't remove them from the dev venv
+dev = [
+    "torch",
+    "torchvision",
+    "transformers>=4.56",
+    "accelerate",
+    "faiss-cpu<1.11.0",
+    "scikit-learn",
+    "scipy",
+    "fast_hdbscan",
+    "umap-learn",
+    "pacmap",
+    "timm",
+    "einops",
+    "open-clip-torch",
+]
+
+[tool.uv]
+# panopticml on PyPI (vision extra) pins old transformers; resolve it apart from dev
+conflicts = [[{ extra = "vision" }, { group = "dev" }]]

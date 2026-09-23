@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import FileResponse, Response
 
+from panoptic import __version__ as panoptic_version
 from panoptic.core.project.conversion import STATUS_OK, check_project
 from panoptic.routes.deps import get_panoptic, get_server, set_dependencies   # re-export
 
@@ -325,6 +326,11 @@ def filesystem_count(path: str = ''):
 # Packages info
 # ---------------------------------------------------------------------------
 
+@panoptic_router.get('/version')
+def get_version():
+    return {'version': panoptic_version}
+
+
 @panoptic_router.get('/packages')
 def get_packages():
     base_packages   = ['numpy', 'polars', 'pydantic']
@@ -333,6 +339,7 @@ def get_packages():
         'python': sys.version.split(' ')[0],
         'panopticPackages': {},
         'pluginPackages': {},
+        'panoptic': panoptic_version,
         'platform': sys.platform,
     }
     for pkg_list, key in [(base_packages, 'panopticPackages'), (plugin_packages, 'pluginPackages')]:

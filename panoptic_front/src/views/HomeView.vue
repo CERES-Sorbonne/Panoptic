@@ -19,6 +19,8 @@ import NotifModal from '@/components/modals/NotifModal.vue';
 import LegacyImportModal from '@/components/modals/LegacyImportModal.vue';
 
 const panoptic = usePanopticStore()
+// shown when the backend cannot be reached; empty means same origin
+const backendUrl = (import.meta as any).env.VITE_API_ROUTE || window.location.origin
 const { t } = useI18n()
 
 const menuMode = ref(0) // 0 options 1 create
@@ -36,13 +38,14 @@ const sortedProjects = computed(() => [
 ])
 // Projets 0.x trouvés par le scan: grisés eux aussi, convertis via LegacyImportModal
 const legacyProjects = computed(() => panoptic.hasLegacyProjects ? panoptic.legacyProjects : [])
-const showProjectMenu = computed(() => hasProjects.value || legacyProjects.value.length > 0)
+const showProjectMenu = computed(() => panoptic.isConnected && (hasProjects.value || legacyProjects.value.length > 0))
 
 // Cas classique de mise à jour: aucun projet récent mais plusieurs anciens.
 // La proposition de migration passe donc avant FirstModal et le tutoriel.
 const hasLegacyProjects = computed(() => panoptic.hasLegacyProjects)
 const showFirstModal = computed(() => !hasProjects.value && !hasLegacyProjects.value)
-const showTutorial = computed(() => !hasProjects.value && !hasLegacyProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
+// the backend must have answered first: before that "no project" only means "not loaded yet"
+const showTutorial = computed(() => panoptic.isConnected && panoptic.projectsLoaded && !hasProjects.value && !hasLegacyProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
 const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourceType == PluginType.PIP && p.sourcePath == 'panopticml'))
 
@@ -127,8 +130,8 @@ async function downloadPackagesInfos() {
 // Le scan des anciens projets arrive de façon asynchrone: on attend son résultat
 // avant de décider quelle intro afficher, sinon FirstModal gagne la course.
 // La modale de conversion ne s'ouvre jamais seule, uniquement via la bannière.
-watch(() => [panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjects.value], () => {
-    if (!panoptic.projectsLoaded || !panoptic.legacyScanLoaded) return
+watch(() => [panoptic.isConnected, panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjects.value], () => {
+    if (!panoptic.isConnected || !panoptic.projectsLoaded || !panoptic.legacyScanLoaded) return
     if (hasLegacyProjects.value) {
         if (panoptic.openModalId === ModalId.FIRSTMODAL) panoptic.hideModal(ModalId.FIRSTMODAL)
         panoptic.introShown = true
@@ -218,7 +221,7 @@ function openLegacyModal(legacyPath?: string) {
                 </div>
             </div>
             <div class="flex-grow-1 d-flex flex-column overflow-hidden">
-                <div v-if="hasLegacyProjects" class="legacy-banner" @click="openLegacyModal()">
+                <div v-if="panoptic.isConnected && hasLegacyProjects" class="legacy-banner" @click="openLegacyModal()">
                     <i class="bi bi-box-arrow-in-down me-1"></i>
                     <b>{{ $t('main.home.legacy.banner', { count: panoptic.legacyProjects.length }) }}</b>
                     <span class="legacy-banner-btn ms-2">{{ $t('main.home.legacy.banner_button') }}</span>
@@ -230,8 +233,8 @@ function openLegacyModal(legacyPath?: string) {
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
                         <div class="d-flex justify-content-center gap-1">
-                            <h6 class="dimmed-2 mt-1">Version {{ panoptic.version }} </h6>
-                            <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
+                            <h6 v-if="panoptic.isConnected" class="dimmed-2 mt-1">Version {{ panoptic.version }} </h6>
+                            <wTT v-if="panoptic.isConnected" message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
                                     @click="downloadPackagesInfos"></i></wTT>
                         </div>
                         <div class="lang">
@@ -243,10 +246,22 @@ function openLegacyModal(legacyPath?: string) {
                             </select>
                         </div>
                     </div>
-                    <div id="main-menu" class="create-menu mt-5 pt-5">
+                    <div v-if="!panoptic.isConnected" class="backend-status mt-5 pt-5 text-center">
+                        <template v-if="panoptic.failedConnected">
+                            <i class="bi bi-exclamation-triangle text-danger me-1"></i>
+                            {{ $t('main.home.backend.failed') }}
+                            <div class="dimmed-2 mt-1" style="font-size: 12px;">{{ backendUrl }}</div>
+                        </template>
+                        <template v-else>
+                            <span class="spinner-border spinner-border-sm text-secondary me-2" role="status" aria-hidden="true"></span>
+                            {{ $t('main.home.backend.connecting') }}
+                        </template>
+                    </div>
+                    <div v-else id="main-menu" class="create-menu mt-5 pt-5">
                         <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
                         <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
                     </div>
+                    <template v-if="panoptic.isConnected">
                     <div class="mt-5 plugin-preview ">
                         <h5 class="text-center">
                             Plugins
@@ -268,8 +283,9 @@ function openLegacyModal(legacyPath?: string) {
                             </div>
                         </div>
                     </div>
+                    </template>
                 </div>
-                <div class="user-section">
+                <div v-if="panoptic.isConnected" class="user-section">
                     <UserSelector />
                 </div>
             </div>
