@@ -5,7 +5,8 @@ import { ref } from "vue"
 export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
 export type LauncherPhase = 'checking' | 'installing-uv' | 'ask-install-dir' | 'creating-venv'
-    | 'ask-gpu' | 'installing-panoptic' | 'ask-update' | 'updating' | 'launching' | 'ready' | 'error'
+    | 'ask-gpu' | 'installing-panoptic' | 'ask-update' | 'updating' | 'loading-versions' | 'ask-versions'
+    | 'launching' | 'ready' | 'error'
 
 export interface SetupStatus {
     backendRunning: boolean
@@ -27,6 +28,20 @@ export interface UpdateInfo {
 
 export type UpdateAnswer = boolean | 'skip-dev'
 
+export interface PackageVersions {
+    installed?: string
+    // newest first, pre-releases included
+    available: string[]
+}
+
+export type PinnablePackage = 'panoptic' | 'panopticml'
+
+// explicit versions to install, null = default behaviour (latest stable / keep current)
+export interface PinnedVersions {
+    panopticVersion: string | null
+    panopticmlVersion: string | null
+}
+
 export interface LogLine {
     line: string
     stream: 'stdout' | 'stderr'
@@ -40,6 +55,11 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
     const updateInfo = ref<UpdateInfo>(null)
     const uiVersion = ref<string>('')
     const installDir = ref<string>('')
+    // hidden option: the user asked to pick the panoptic / panopticml versions
+    const versionsRequested = ref(false)
+    const versions = ref<Record<PinnablePackage, PackageVersions>>(null)
+    // '' = default (latest stable on first install, current version otherwise)
+    const selectedVersions = ref<Record<PinnablePackage, string>>({ panoptic: '', panopticml: '' })
 
     let listening = false
     let answerResolve: (value: UpdateAnswer) => void = null
@@ -54,6 +74,30 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
             answerResolve(value)
             answerResolve = null
         }
+    }
+
+    function requestVersions() {
+        versionsRequested.value = true
+        // nothing is running in the error phase: restart so the choice is offered right away
+        if (phase.value === 'error') retry()
+    }
+
+    async function askVersions(invoke: typeof import('@tauri-apps/api/core').invoke): Promise<PinnedVersions> {
+        versionsRequested.value = false
+        phase.value = 'loading-versions'
+        const [panoptic, panopticml] = await Promise.all([
+            invoke<PackageVersions>('list_versions', { package: 'panoptic' }),
+            invoke<PackageVersions>('list_versions', { package: 'panopticml' }),
+        ])
+        versions.value = { panoptic, panopticml }
+        selectedVersions.value = { panoptic: panoptic.installed ?? '', panopticml: panopticml.installed ?? '' }
+        phase.value = 'ask-versions'
+        const confirmed = await waitForAnswer()
+        const pick = (pkg: PinnablePackage) => {
+            const v = selectedVersions.value[pkg]
+            return confirmed && v && v !== versions.value[pkg].installed ? v : null
+        }
+        return { panopticVersion: pick('panoptic'), panopticmlVersion: pick('panopticml') }
     }
 
     // forward webview JS errors to the terminal (tauri dev / stderr) for debugging
@@ -106,8 +150,12 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
                     phase.value = 'ask-gpu'
                     gpuMode = (await waitForAnswer()) ? 'cuda' : 'cpu'
                 }
+                const pinned: PinnedVersions = versionsRequested.value
+                    ? await askVersions(invoke)
+                    : { panopticVersion: null, panopticmlVersion: null }
                 phase.value = 'installing-panoptic'
-                await invoke('install_panoptic', { gpuMode })
+                await invoke('install_panoptic', { gpuMode, ...pinned })
+                status.value = await invoke<SetupStatus>('check_status')
             } else {
                 phase.value = 'creating-venv'
                 await invoke('create_venv')
@@ -129,8 +177,21 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
                     break
                 }
             }
-            phase.value = 'launching'
-            await invoke('launch_backend')
+            while (true) {
+                if (versionsRequested.value) {
+                    const pinned = await askVersions(invoke)
+                    if (pinned.panopticVersion || pinned.panopticmlVersion) {
+                        phase.value = 'updating'
+                        await invoke('install_versions', { ...pinned })
+                        status.value = await invoke<SetupStatus>('check_status')
+                    }
+                }
+                phase.value = 'launching'
+                await invoke('launch_backend')
+                // versions requested while the backend was starting: stop it and offer the choice
+                if (!versionsRequested.value) break
+                await invoke('stop_backend')
+            }
             phase.value = 'ready'
         } catch (e) {
             error.value = String(e)
@@ -157,5 +218,8 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
         await start()
     }
 
-    return { phase, logs, error, status, updateInfo, uiVersion, installDir, start, retry, answer, browseInstallDir }
+    return {
+        phase, logs, error, status, updateInfo, uiVersion, installDir, versionsRequested, versions, selectedVersions,
+        start, retry, answer, browseInstallDir, requestVersions
+    }
 })
