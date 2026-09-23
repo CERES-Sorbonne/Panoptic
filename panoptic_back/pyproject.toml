@@ -4,9 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "panoptic"
-dynamic = ["version"]
+dynamic = ["version", "readme"]
 description = 'Explore and analyze large datasets of images'
-readme = "../README.md"
 requires-python = ">=3.10"
 license = "MPL-2.0"
 keywords = [
@@ -72,10 +71,13 @@ panoptic = "panoptic.cli:cli"
 [tool.hatch.version]
 path = "panoptic/__init__.py"
 
+# readme is injected by hatch_build.py (hatchling refuses a readme outside the project dir)
+[tool.hatch.metadata.hooks.custom]
+
 [tool.hatch.build.targets.sdist]
 include = [
     "/panoptic",
-    "../README*",
+    "/hatch_build.py",
 ]
 ignore-vcs = true
 
@@ -83,6 +85,9 @@ ignore-vcs = true
 exclude = [
     "panoptic/migration/tests",
 ]
+
+[tool.hatch.build.targets.sdist.force-include]
+"../README.md" = "README.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["panoptic"]
