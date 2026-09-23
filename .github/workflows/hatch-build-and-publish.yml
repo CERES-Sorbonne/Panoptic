@@ -100,6 +100,20 @@ jobs:
         with:
           ref: ${{ env.REF }}
 
+      # Le front est servi depuis panoptic_back/panoptic/html : on le rebuild à chaque release
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: panoptic_front/package-lock.json
+
+      - name: Build front
+        run: |
+          cd panoptic_front
+          npm ci
+          npm run build
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -144,11 +158,11 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }} # PYPI_API_TOKEN
 #          repository-url: https://test.pypi.org/legacy/ # uncomment for test.pypi.org
 
-      - name: Update the about.py file
+      - name: Commit version and front build
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update about.py file"
-          file_pattern: "panoptic_back/panoptic/__init__.py"
+          commit_message: "Update version and front build"
+          file_pattern: "panoptic_back/panoptic/__init__.py panoptic_back/panoptic/html"
           status_options: '--untracked-files=no'
 
       - name: Push changes

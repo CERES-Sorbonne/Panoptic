@@ -45,7 +45,9 @@ Lance le script d'installation de chaque OS (Linux, macOS, Windows), puis `insta
 
 Publier une release sur GitHub (pas un brouillon) crée le tag `v*.*.*`, qui lance « Hatch Build and
 Publish ». Ce workflow lance d'abord « Tests » et « Test Installation » sur le code du tag. La
-publication sur PyPI, puis l'image Docker, n'a lieu que si tout est vert.
+publication sur PyPI, puis l'image Docker, n'a lieu que si tout est vert. Le front est rebuildé
+(`npm run build` vers `panoptic_back/panoptic/html`) juste avant le build du paquet, et commité sur
+la branche avec la version.
 
 Si un test échoue, rien n'est publié et la release repasse en brouillon. Le tag reste : après
 correction, il faut en faire une nouvelle (ou supprimer le tag avant de republier).
