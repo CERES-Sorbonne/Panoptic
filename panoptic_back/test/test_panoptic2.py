@@ -5,6 +5,7 @@ from typing import Any, Generator
 
 import pytest
 
+from panoptic.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
 from panoptic.core.panoptic.panoptic import Panoptic
 from panoptic.core.project.project import Project
 
@@ -221,10 +222,10 @@ def test_create_user(panoptic: Panoptic):
 
 
 def test_get_users(panoptic: Panoptic):
-    assert panoptic.get_users() == []
+    assert [u.id for u in panoptic.get_users()] == [DEFAULT_USER_ID]  # seeded by PanopticDB
     panoptic.create_user('alice')
     panoptic.create_user('bob')
-    names = {u.name for u in panoptic.get_users()}
+    names = {u.name for u in panoptic.get_users() if u.id != DEFAULT_USER_ID}
     assert names == {'alice', 'bob'}
 
 
@@ -306,6 +307,6 @@ def test_get_state(panoptic: Panoptic, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
     panoptic.load_project(key.id)
 
-    state = panoptic.get_state()
-    assert any(p.id == key.id for p in state.projects)
-    assert key.id in state.loaded_project_ids
+    states = {s.id: s for s in panoptic.get_projects_state()}
+    assert key.id in states
+    assert states[key.id].loaded

@@ -135,9 +135,18 @@ def test_plugin_readonly_property_refused_by_routes(project):
             project)
     assert e.value.status_code == 403
 
+    # its values can't be cleared piecemeal...
     with pytest.raises(HTTPException) as e:
-        delete_commit_route(DeleteRequest(empty_properties=[prop.id]), project)
+        delete_commit_route(
+            DeleteRequest(empty_image_values=[{'property_id': prop.id, 'sha1': 'abc'}]), project)
     assert e.value.status_code == 403
+
+
+def test_plugin_readonly_property_can_be_deleted(project):
+    """...but unlike a system property, the whole property can be deleted."""
+    prop = _make_prop(project, name='cluster', access='read')
+    delete_commit_route(DeleteRequest(empty_properties=[prop.id]), project)
+    assert 'cluster' not in _props(project)
 
 
 def test_plugin_can_still_write_its_readonly_property(project):

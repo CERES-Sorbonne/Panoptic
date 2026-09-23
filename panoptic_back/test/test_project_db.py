@@ -3,8 +3,7 @@ from pathlib import Path
 from panoptic.core.databases.media.models import ImageType
 from panoptic.core.databases.project.models import TabData, UserDefaults
 from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic.models import Tag
-from panoptic.models.data import File
+from panoptic.core.databases.data.models import File, Tag
 
 project_db_path = Path("~/tmp/project.db").expanduser()
 
@@ -22,13 +21,12 @@ def _setup():
 
 
 def test_file_allocation_with_tracking():
-    """Ensures File objects are allocated correctly with their tracking fields."""
+    """Ensures File objects are allocated correctly."""
     db = _setup()
 
-    # File(id, name, folder_id, sha1, commit_id, operation)
     files = [
-        File(id=-1, name="photo.jpg", folder_id=10, sha1="abc", commit_id=1, operation=1),
-        File(id=-1, name="data.txt", folder_id=10, sha1="def", commit_id=1, operation=1)
+        File(id=-1, name="photo.jpg", folder_id=10, sha1="abc"),
+        File(id=-1, name="data.txt", folder_id=10, sha1="def")
     ]
 
     db.allocate_files(files)
@@ -80,10 +78,10 @@ def test_registry_increment_persistence():
     db = _setup()
 
     # First batch
-    db.allocate_tags([Tag(id=-1, property_id=1, value="A", parents=[], color=1), Tag(id=-1, property_id=1, value="B", parents=[], color=1)])
+    db.allocate_tags([Tag(id=-1, list_id=1, value="A", parents=[], color=1), Tag(id=-1, list_id=1, value="B", parents=[], color=1)])
 
     # Second batch
-    tags_batch_2 = [Tag(id=-1, property_id=1, value="C", parents=[], color=1)]
+    tags_batch_2 = [Tag(id=-1, list_id=1, value="C", parents=[], color=1)]
     db.allocate_tags(tags_batch_2)
 
     # Starts at 1, so C should be 3

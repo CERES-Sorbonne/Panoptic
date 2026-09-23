@@ -5,13 +5,15 @@
 ### Backend (`panoptic_back/test`, pytest)
 
 ```sh
-cd panoptic_back && pytest test
+cd panoptic_back && python -m pytest test panoptic/core/task/tests
 ```
 
-- `asyncio_mode = auto` (voir `test/pytest.ini`) : il faut `pytest-asyncio`.
+- `python -m pytest` (pas `pytest` seul) : c'est ce qui rend `panoptic` importable sans l'installer.
+- `panoptic/core/task/tests` contient les tests du cycle de vie des plugins.
+- Les bases (`*_db.py`), le modèle undo / redo (`test_undo_redo.py`), la migration des anciens
+  projets (`test_legacy_migration.py`, `test_conversion.py`), l'import de dossier et l'import / export
+  CSV (`test_import_export.py`, sur les images et CSV de `test/data`).
 - `test/scripts/` contient des benchmarks, ce ne sont pas des tests.
-- ⚠️ `test_media_db.py`, `test_project.py` et `test_project_db.py` ne se chargent plus
-  (ils importent des noms qui n'existent plus). Ajouter `--ignore=` pour chacun en attendant.
 
 ### Frontend (`panoptic_front/test/group`, node)
 

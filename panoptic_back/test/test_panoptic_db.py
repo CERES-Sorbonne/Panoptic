@@ -1,6 +1,6 @@
 import uuid
 from pathlib import Path
-from panoptic.core.databases.panoptic.panoptic_db import PanopticDB
+from panoptic.core.databases.panoptic.panoptic_db import PanopticDB, DEFAULT_USER_ID
 from panoptic.core.databases.panoptic.models import User, ProjectKey, PluginKey
 
 
@@ -13,6 +13,11 @@ def _setup():
 
     db = PanopticDB(str(db_path))
     return db
+
+
+def _users(db):
+    """Users other than the default one every PanopticDB seeds."""
+    return [u for u in db.get_users() if u.id != DEFAULT_USER_ID]
 
 
 def test_cycle_projects():
@@ -37,7 +42,7 @@ def test_cycle_projects():
     assert "plugin_v1" not in projects[0].excluded_plugins
 
     # DELETE
-    db.delete_project(path)
+    db.delete_project(uid)
     projects = db.get_projects()
     assert len(projects) == 0
 
@@ -53,7 +58,7 @@ def test_cycle_users():
         description="Admin User",
         password_hash="hash123"
     )
-    users = db.get_users()
+    users = _users(db)
     assert len(users) == 1
     assert users[0].name == "Alice"
     assert users[0].id == uid
@@ -63,13 +68,13 @@ def test_cycle_users():
     user.description = "Superuser"
     db.update_user(user)
 
-    users = db.get_users()
+    users = _users(db)
     assert users[0].name == "Alice Updated"
     assert users[0].description == "Superuser"
 
     # DELETE
     db.delete_user(uid)
-    users = db.get_users()
+    users = _users(db)
     assert len(users) == 0
 
 
@@ -112,6 +117,6 @@ def test_multiple_entities():
     db.add_project(puid, "/tmp/p1")
     db.add_plugin("p.id", "/path", "type", "src")
 
-    assert len(db.get_users()) == 1
+    assert len(_users(db)) == 1
     assert len(db.get_projects()) == 1
     assert len(db.get_plugins()) == 1

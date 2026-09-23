@@ -156,6 +156,11 @@ class Exporter:
                 continue
 
             is_tag = prop.dtype in _TAG_DTYPES
+            if not is_tag:
+                # stringify up front, like _write_chunked: a number column mixing ints and
+                # floats (1 and 1.1) can't be built as a single typed Series
+                values = pl.Series([str(v) if v is not None else None for v in values],
+                                   dtype=pl.String)
 
             sparse = pl.DataFrame({
                 '__id__': pl.Series(inst_ids, dtype=pl.Int64),
@@ -164,8 +169,10 @@ class Exporter:
             joined = id_series.to_frame().join(sparse, on='__id__', how='left')
 
             if is_tag:
+                # map_elements skips nulls and hands each list cell over as a pl.Series,
+                # whose truth value is ambiguous: iterate it directly
                 col_series = joined[col_name].map_elements(
-                    lambda ids: ','.join(tag_map[i] for i in (ids or []) if i in tag_map),
+                    lambda ids: ','.join(tag_map[i] for i in ids if i in tag_map),
                     return_dtype=pl.String,
                 )
             else:

@@ -2,9 +2,10 @@ from pathlib import Path
 
 import numpy as np
 
-from panoptic.core.databases.media.media_db import MediaDB, _DEFAULT_IMAGE_TYPES
+from panoptic.core.databases.media.media_db import MediaDB
 from panoptic.core.databases.media.models import ImageType, Image, VectorType, Vector, ImageAtlas, Map
 from panoptic.core.databases.media.create import datastore_desc
+from panoptic.core.project.project import Project
 
 media_db_path = Path("~/tmp/media.db").expanduser()
 
@@ -22,22 +23,25 @@ def _setup() -> MediaDB:
 # ImageType
 # ------------------------------------------------------------------
 
-def test_ensure_default_image_types_seeds_on_empty_db():
-    db = _setup()
-    assert db.get_image_types() == []
-    db.ensure_default_image_types()
-    types = db.get_image_types()
-    assert len(types) == len(_DEFAULT_IMAGE_TYPES)
-    names = {t.name for t in types}
-    assert 'small' in names
-    assert 'large' in names
+def test_project_seeds_default_image_types(tmp_path):
+    # the defaults are created by Project.start(), not by MediaDB itself
+    project = Project(tmp_path / 'proj')
+    project.start()
+    try:
+        types = project._media.get_image_types()
+        assert sorted(t.name for t in types) == ['large', 'small']
+        assert len({t.id for t in types}) == 2
+    finally:
+        project.close()
 
 
-def test_ensure_default_image_types_does_not_duplicate():
-    db = _setup()
-    db.ensure_default_image_types()
-    db.ensure_default_image_types()
-    assert len(db.get_image_types()) == len(_DEFAULT_IMAGE_TYPES)
+def test_project_restart_does_not_duplicate_image_types(tmp_path):
+    for _ in range(2):
+        project = Project(tmp_path / 'proj')
+        project.start()
+        types = project._media.get_image_types()
+        project.close()
+    assert sorted(t.name for t in types) == ['large', 'small']
 
 
 def test_upsert_image_type_adds_new():
