@@ -54,7 +54,8 @@ dependencies = [
     "pillow",
     "python-socketio",
     "watchfiles",
-    "msgspec"
+    "msgspec",
+    "click"
 ]
 
 [project.optional-dependencies]

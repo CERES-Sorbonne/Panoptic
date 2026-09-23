@@ -31,9 +31,13 @@ from panoptic.routes.panoptic_routes import panoptic_router
 from panoptic.routes.project_routes import project_router
 
 
+def get_db_path() -> str:
+    return os.getenv('PANOPTIC_DB', os.path.expanduser('~/.panoptic/panoptic.db'))
+
+
 def start():
-    db_path = os.getenv('PANOPTIC_DB', os.path.expanduser('~/.panoptic/panoptic.db'))
-    PORT    = int(os.getenv('PANOPTIC_PORT', 8001))
+    db_path = get_db_path()
+    PORT   = int(os.getenv('PANOPTIC_PORT', 8000))
     HOST    = os.getenv('PANOPTIC_HOST', None)
 
     panoptic = Panoptic(db_path)
