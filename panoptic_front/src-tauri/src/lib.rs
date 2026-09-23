@@ -135,6 +135,9 @@ fn panoptic_bin() -> Result<PathBuf, String> {
 fn new_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
     #[allow(unused_mut)]
     let mut cmd = Command::new(program);
+    // the venv's python must use its own stdlib: an inherited PYTHONHOME/PYTHONPATH
+    // (set e.g. by an AppImage runtime or the user's shell) breaks its startup
+    cmd.env_remove("PYTHONHOME").env_remove("PYTHONPATH");
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

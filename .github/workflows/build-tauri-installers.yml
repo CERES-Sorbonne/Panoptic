@@ -11,7 +11,7 @@ on:
       - '.github/workflows/build-tauri-installers.yml'
 
 # Les installateurs sont publiés sur une release glissante (tag desktop-latest) :
-# trop lourds pour être commités comme panoptic.exe (AppImage > 100 Mo).
+# trop lourds pour être commités comme panoptic.exe.
 env:
   RELEASE_TAG: desktop-latest
 
@@ -25,7 +25,9 @@ jobs:
         include:
           - name: linux
             os: ubuntu-22.04
-            bundles: appimage,deb
+            # paquets natifs plutôt qu'AppImage : ils utilisent le WebKitGTK du système
+            # au lieu de l'embarquer (quelques Mo au lieu de ~100)
+            bundles: deb,rpm
             args: ''
             bundle_dir: target/release/bundle
           - name: windows
@@ -82,8 +84,8 @@ jobs:
           name: panoptic-installer-${{ matrix.name }}
           if-no-files-found: error
           path: |
-            panoptic_front/src-tauri/${{ matrix.bundle_dir }}/appimage/*.AppImage
             panoptic_front/src-tauri/${{ matrix.bundle_dir }}/deb/*.deb
+            panoptic_front/src-tauri/${{ matrix.bundle_dir }}/rpm/*.rpm
             panoptic_front/src-tauri/${{ matrix.bundle_dir }}/nsis/*.exe
             panoptic_front/src-tauri/${{ matrix.bundle_dir }}/dmg/*.dmg
 
