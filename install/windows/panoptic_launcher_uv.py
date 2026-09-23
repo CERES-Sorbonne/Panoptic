@@ -52,6 +52,9 @@ if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
     if with_cuda == 'o':
         run_command("uv pip install torch torchvision --torch-backend=auto")
     print("Installation du plugin de similarité panopticml")
+    # PANOPTICML_PACKAGE permet d'installer une autre source de panopticml (ex. une branche git en CI).
+    if os.environ.get("PANOPTICML_PACKAGE"):
+        run_command(f'uv pip install "{os.environ["PANOPTICML_PACKAGE"]}"')
     run_command("uv run panoptic plugins add vision")
     with_clip = input("Voulez-vous télécharger le modèle CLIP maintenant ? (o/n) : ").strip().lower()
     if with_clip == 'o':

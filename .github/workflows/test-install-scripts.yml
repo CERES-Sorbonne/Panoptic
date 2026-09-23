@@ -2,6 +2,11 @@ name: Test Installation
 
 on:
   workflow_dispatch:
+    inputs:
+      panopticml_branch:
+        description: "Branche de PanopticML à tester (vide = version par défaut de PyPI)"
+        required: false
+        default: ''
 
 jobs:
   test:
@@ -15,6 +20,9 @@ jobs:
       # Force l'install depuis le checkout local pour tester le code de cette branche
       # (et notamment le flag --dry), au lieu de la version publiée sur PyPI.
       PANOPTIC_PACKAGE: ${{ github.workspace }}/panoptic_back
+      # Si une branche est renseignée, panopticml est installé depuis cette branche
+      # avant "panoptic plugins add vision" (qui ne le remplace pas s'il est déjà installé).
+      PANOPTICML_PACKAGE: ${{ inputs.panopticml_branch && format('git+https://github.com/CERES-Sorbonne/PanopticML.git@{0}', inputs.panopticml_branch) || '' }}
       # Les scripts s'arrêtent après la config (panoptic --dry) au lieu de lancer le serveur.
       PANOPTIC_INSTALL_TEST: '1'
     steps:

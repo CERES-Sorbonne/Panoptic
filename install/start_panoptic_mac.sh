@@ -92,6 +92,8 @@ if ! uv pip show panoptic &> /dev/null; then
     echo "Installation de Panoptic..."
     # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
     uv pip install "${PANOPTIC_PACKAGE:-panoptic}"
+    # PANOPTICML_PACKAGE permet d'installer une autre source de panopticml (ex. une branche git en CI).
+    [ -n "$PANOPTICML_PACKAGE" ] && uv pip install "$PANOPTICML_PACKAGE"
     uv run .venv/bin/panoptic plugins add vision
 
     # --- OPTION TELECHARGEMENT MODELE ---

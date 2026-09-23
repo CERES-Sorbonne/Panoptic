@@ -44,6 +44,8 @@ if ! uv pip show panoptic &> /dev/null; then
     fi
     
     # echo "Installation du plugin de similarité panopticml"
+    # PANOPTICML_PACKAGE permet d'installer une autre source de panopticml (ex. une branche git en CI).
+    [ -n "$PANOPTICML_PACKAGE" ] && uv pip install "$PANOPTICML_PACKAGE"
     uv run .venv/bin/panoptic plugins add vision
 
     read -p "Voulez-vous pré-télécharger le modèle CLIP (recommandé avant de venir à un atelier) ? (O/N) " download_clip
