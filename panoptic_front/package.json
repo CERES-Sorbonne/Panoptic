@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:tauri-front": "vite build --mode tauri",
+    "tauri": "tauri",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "test": "node test/group/build.mjs && node --test test/group/.build/suite.mjs",
@@ -12,6 +14,8 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
     "@types/kd-tree-javascript": "^1.0.3",
     "@types/kdbush": "^3.0.5",
     "@types/three": "^0.181.0",
@@ -48,6 +52,7 @@
   "devDependencies": {
     "@anilkumarthakur/vue3-json-viewer": "^0.1.2",
     "@rushstack/eslint-patch": "^1.1.4",
+    "@tauri-apps/cli": "^2",
     "@types/bootstrap": "^5.2.6",
     "@types/d3": "^7.4.3",
     "@vitejs/plugin-vue": "^6.0.0",

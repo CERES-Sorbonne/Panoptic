@@ -1,4 +1,34 @@
 {
+    "launcher": {
+        "checking": "Vérification de l'installation...",
+        "installing_uv": "Installation de uv...",
+        "creating_venv": "Préparation de l'environnement Python...",
+        "installing_panoptic": "Installation de Panoptic...",
+        "updating": "Mise à jour de Panoptic...",
+        "launching": "Démarrage de Panoptic...",
+        "folder": {
+            "question": "Où installer Panoptic ?",
+            "hint": "L'environnement Python et les logs seront placés dans ce dossier.",
+            "browse": "Parcourir…",
+            "confirm": "Installer ici"
+        },
+        "gpu": {
+            "question": "Possédez-vous une carte graphique NVIDIA ?",
+            "hint": "L'installation sera optimisée pour le GPU mais plus volumineuse.",
+            "yes": "Oui",
+            "no": "Non"
+        },
+        "update": {
+            "question": "Une mise à jour de Panoptic est disponible. L'installer ?",
+            "yes": "Mettre à jour",
+            "no": "Ignorer",
+            "dev_hint": "Il s'agit d'une version de développement, potentiellement instable.",
+            "skip_dev": "Ne plus proposer les versions de développement"
+        },
+        "error": "Une erreur est survenue pendant l'installation.",
+        "retry": "Réessayer",
+        "logs": "Logs du backend"
+    },
     "main": {
         "home": {
             "label": {
