@@ -16,6 +16,10 @@ SOURCE_PIP  = 'pip'
 SOURCE_GIT  = 'git'
 SOURCE_PATH = 'path'
 
+# Minimum versions for known pip plugins that work with this panoptic.
+# A pre-release bound also lets pip pick pre-releases, which it skips otherwise.
+PIP_MIN_VERSIONS = {'panopticml': '1.0.0rc2'}
+
 
 class PluginInstaller:
     """Handles filesystem operations for plugin install, reinstall, and removal.
@@ -34,7 +38,9 @@ class PluginInstaller:
 
     def install_from_pip(self, source: str) -> str:
         """pip install -U <source>, return the resolved install_path."""
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', source])
+        min_version = PIP_MIN_VERSIONS.get(source)
+        requirement = f'{source}>={min_version}' if min_version else source
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', requirement])
         dist = metadata.distribution(source)
         return str(Path(str(dist.locate_file(''))) / source)
 

@@ -282,15 +282,6 @@ wheels = [
 ]
 
 [[package]]
-name = "eval-type-backport"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1c/15/273a4baf8248d6d76220723c3caf039d283774b31a7c46ba686120145b76/eval_type_backport-0.4.0.tar.gz", hash = "sha256:8397d25e6524c2e67b9576bb0636be27dea2192017711220c534ec2de921e9b0", size = 10260, upload-time = "2026-06-02T13:22:06.059Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/a7/bb99bf5e6f78736ddb53480f2c3ff3702ffe2196a7c5e1661c03081d398e/eval_type_backport-0.4.0-py3-none-any.whl", hash = "sha256:ad5e2a8db71b6696a56eafb938b0f5a337d3217f256b8e158b469422b4772b20", size = 6432, upload-time = "2026-06-02T13:22:04.827Z" },
-]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -335,37 +326,13 @@ wheels = [
 
 [[package]]
 name = "fast-hdbscan"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and sys_platform == 'darwin'",
-]
-dependencies = [
-    { name = "numba", marker = "sys_platform == 'darwin'" },
-    { name = "numpy", marker = "sys_platform == 'darwin'" },
-    { name = "scikit-learn", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e5/57/7f9f311bf2ba48f8718952a8a4cf491aaee4b906220295fe1cf213359b4e/fast_hdbscan-0.2.0.tar.gz", hash = "sha256:002966c2adbac5170a6627ea2f685cdedcd2a1c2cb077401fba6748f0fbc39f0", size = 17876, upload-time = "2024-10-01T02:22:31.592Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/49/3593953dbe9b3826fe937b3741641fe3ecd4587f53bd5e5961406e1f4642/fast_hdbscan-0.2.0-py3-none-any.whl", hash = "sha256:7315af09f5b19a4f1a8d6113b90eb4e98813d3bc0d55f05c0f24984252e164f2", size = 17743, upload-time = "2024-10-01T02:22:29.912Z" },
-]
-
-[[package]]
-name = "fast-hdbscan"
 version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev'",
-    "python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev'",
-    "python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
-    "python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
-]
 dependencies = [
-    { name = "numba", marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "numpy", marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2b/3b/235c47dd8282610522f9fa6869ad8b896c2d5927f82039f66d547229fc07/fast_hdbscan-0.3.2.tar.gz", hash = "sha256:248e09202eda04da4b84dd819de3cc714469912205bb447ad4c7136db580f205", size = 59800, upload-time = "2026-04-07T16:43:33.12Z" }
 wheels = [
@@ -451,34 +418,6 @@ wheels = [
 ]
 
 [[package]]
-name = "httpcore"
-version = "1.0.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "certifi" },
-    { name = "h11" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55", size = 78784, upload-time = "2025-04-24T22:06:20.566Z" },
-]
-
-[[package]]
-name = "httpx"
-version = "0.28.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "certifi" },
-    { name = "httpcore" },
-    { name = "idna" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
-]
-
-[[package]]
 name = "huggingface-hub"
 version = "0.35.3"
 source = { registry = "https://pypi.org/simple" }
@@ -542,15 +481,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e8/5d/447af5ea094b9e4c4054f82e223ada074c552335b9b4b2d14bd9b35a67c4/joblib-1.5.2.tar.gz", hash = "sha256:3faa5c39054b2f03ca547da9b2f52fde67c06240c31853f306aea97f13647b55", size = 331077, upload-time = "2025-08-27T12:15:46.575Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/e8/685f47e0d754320684db4425a0967f7d3fa70126bffd76110b7009a0090f/joblib-1.5.2-py3-none-any.whl", hash = "sha256:4e1f0bdbb987e6d843c70cf43714cb276623def372df3c22fe5266b2670bc241", size = 308396, upload-time = "2025-08-27T12:15:45.188Z" },
-]
-
-[[package]]
-name = "jsonpath-python"
-version = "1.1.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/98/18/4ca8742534a5993ff383f7602e325ce2d5d7cc93d72ac5e1cdedbea8a458/jsonpath_python-1.1.6.tar.gz", hash = "sha256:dded9932b4ec41fb8726e09c83afa4e6be618f938c2db287cc2a81723c639671", size = 88178, upload-time = "2026-05-07T01:26:34.482Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/8a/1270a6803bd821cbfcdda387eaa13cb41a7b1f7b9bd145979b3bfb9d6cb7/jsonpath_python-1.1.6-py3-none-any.whl", hash = "sha256:a1c50afd8d3fbbaf47a4873bc890dcb3c15da96f5c020327977d844d8731a2d4", size = 14453, upload-time = "2026-05-07T01:26:33.306Z" },
 ]
 
 [[package]]
@@ -669,25 +599,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/df/5bd7a48c256faecd1d36edc13133e51397e41b73bb77e1a69deab746ebac/markupsafe-3.0.3-cp314-cp314t-win32.whl", hash = "sha256:915c04ba3851909ce68ccc2b8e2cd691618c4dc4c4232fb7982bca3f41fd8c3d", size = 14819, upload-time = "2025-09-27T18:37:26.285Z" },
     { url = "https://files.pythonhosted.org/packages/1a/8a/0402ba61a2f16038b48b39bccca271134be00c5c9f0f623208399333c448/markupsafe-3.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4faffd047e07c38848ce017e8725090413cd80cbc23d86e55c587bf979e579c9", size = 15426, upload-time = "2025-09-27T18:37:27.316Z" },
     { url = "https://files.pythonhosted.org/packages/70/bc/6f1c2f612465f5fa89b95bead1f44dcb607670fd42891d8fdcd5d039f4f4/markupsafe-3.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:32001d6a8fc98c8cb5c947787c5d08b0a50663d139f1305bac5885d98d9b40fa", size = 14146, upload-time = "2025-09-27T18:37:28.327Z" },
-]
-
-[[package]]
-name = "mistralai"
-version = "2.10.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "eval-type-backport" },
-    { name = "httpx" },
-    { name = "jsonpath-python" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-semantic-conventions" },
-    { name = "pydantic" },
-    { name = "python-dateutil" },
-    { name = "typing-inspection" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/db/a80c4ab96b1fec9529115dafaa3f14b28d0407fe1cb9b051ec2df9336fb7/mistralai-2.10.1.tar.gz", hash = "sha256:43b61643ba4f120463e5faf7305a6f40eb29f8e3a21321893969e56c20ed3fbc", size = 590127, upload-time = "2026-09-15T08:12:30.79Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/98/f64b54166a607ece4e5c8494c843ac1f9c7c0af6f1014272cc420fe1d519/mistralai-2.10.1-py3-none-any.whl", hash = "sha256:443b306392ae1e86edaec39dbafcf79deb735799a00abef4611531004e22b1b2", size = 1392946, upload-time = "2026-09-15T08:12:28.704Z" },
 ]
 
 [[package]]
@@ -1043,31 +954,6 @@ wheels = [
 ]
 
 [[package]]
-name = "opentelemetry-api"
-version = "1.44.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/8b/aa9e2d8b8dfa7c946f7dec5d1f8f6ba8eca062f43509a06bdb5ce93d26c0/opentelemetry_api-1.44.0.tar.gz", hash = "sha256:67647e5e9566edcf421166fdf022b3537f818635daa852b289e34604dc6fb33a", size = 72406, upload-time = "2026-07-16T15:25:32.678Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/6f/a04e900f465ff3221ccc395522503e2d10e79fa21f2723c8e177aae1e0d1/opentelemetry_api-1.44.0-py3-none-any.whl", hash = "sha256:94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef", size = 60018, upload-time = "2026-07-16T15:25:11.657Z" },
-]
-
-[[package]]
-name = "opentelemetry-semantic-conventions"
-version = "0.65b0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/73/0cbdebcb4cf545fdd328da14f5137e37d0770c3f26185e478b0d15d94f50/opentelemetry_semantic_conventions-0.65b0.tar.gz", hash = "sha256:f9b2b81e9d5b64f11bc952075e7e9c7fb0aab075c7fd1c46d597f1b919852d60", size = 148774, upload-time = "2026-07-16T15:25:46.902Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/0e/49df70d9b81fb5cbae4bbf2a49d865b09bcbcbc4eb53f5851b1027738d78/opentelemetry_semantic_conventions-0.65b0-py3-none-any.whl", hash = "sha256:1cacde7b0ad306f84c5ef08c3dbe1bbaf20165bba6f8bff43b670e555a086bcb", size = 204645, upload-time = "2026-07-16T15:25:30.688Z" },
-]
-
-[[package]]
 name = "orjson"
 version = "3.11.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1161,9 +1047,8 @@ dependencies = [
     { name = "faiss-cpu" },
     { name = "numba" },
     { name = "numpy" },
-    { name = "scikit-learn", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/88/5c/0b00087c7a7ee264e1e4ad6ddc6e38d9a55f29a05e17aa770d97dbdbaf77/pacmap-0.9.1.tar.gz", hash = "sha256:ec31ea3e316b9ad6294c5bc8a8e8b45a658b00d7f59799b960db16469095e35e", size = 24500, upload-time = "2026-03-02T21:34:46.876Z" }
 wheels = [
@@ -1208,7 +1093,7 @@ dev = [
     { name = "accelerate" },
     { name = "einops" },
     { name = "faiss-cpu" },
-    { name = "fast-hdbscan", version = "0.3.2", source = { registry = "https://pypi.org/simple" } },
+    { name = "fast-hdbscan" },
     { name = "open-clip-torch" },
     { name = "pacmap" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
@@ -1218,8 +1103,8 @@ dev = [
     { name = "timm" },
     { name = "torch" },
     { name = "torchvision" },
-    { name = "transformers", version = "4.57.6", source = { registry = "https://pypi.org/simple" } },
-    { name = "umap-learn", version = "0.5.12", source = { registry = "https://pypi.org/simple" } },
+    { name = "transformers" },
+    { name = "umap-learn" },
 ]
 
 [package.metadata]
@@ -1233,7 +1118,7 @@ requires-dist = [
     { name = "msgspec" },
     { name = "numpy" },
     { name = "orjson" },
-    { name = "panopticml", marker = "extra == 'vision'", specifier = ">=0.0.3" },
+    { name = "panopticml", marker = "extra == 'vision'", specifier = ">=1.0.0rc2" },
     { name = "pendulum" },
     { name = "pillow" },
     { name = "polars" },
@@ -1269,30 +1154,29 @@ dev = [
 
 [[package]]
 name = "panopticml"
-version = "0.0.11"
+version = "1.0.0rc2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
+    { name = "einops" },
     { name = "faiss-cpu" },
-    { name = "fast-hdbscan", version = "0.2.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "fast-hdbscan", version = "0.3.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "mistralai" },
+    { name = "fast-hdbscan" },
     { name = "numpy" },
+    { name = "open-clip-torch" },
     { name = "pacmap" },
-    { name = "scikit-learn", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
     { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "timm" },
     { name = "torch" },
     { name = "torchvision" },
-    { name = "transformers", version = "4.51.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "umap-learn", version = "0.5.7", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "umap-learn", version = "0.5.12", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "transformers" },
+    { name = "umap-learn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2d/d2/a81f6e7aaf6b759c74a1a7fb2d261f468e1fffff398495ac932a119eb43b/panopticml-0.0.11.tar.gz", hash = "sha256:c2397931a8c9894c5960b817181236bd40ab5015b4dd8438322819b7842fd60a", size = 3322850, upload-time = "2026-03-06T14:43:55.644Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/4e/7f5c9d8342ffe9d13ade32aadbcbde80acfacb45afa27dfc0686b15369ba/panopticml-1.0.0rc2.tar.gz", hash = "sha256:80c6033df69781e17e4b370552d6b6bc3d0e886e00fe285790c50888421f998d", size = 3446996, upload-time = "2026-09-24T13:01:32.27Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/4f/faa1f3ffd445c0bd0f32cc094012f70650ec7f608b5b4409a635c4abe5b3/panopticml-0.0.11-py3-none-any.whl", hash = "sha256:b84dd4c673d2ae73faa8bc908fbac82d13cb4a0d167749bc96f96f8187bd76eb", size = 16860, upload-time = "2026-03-06T14:43:54.367Z" },
+    { url = "https://files.pythonhosted.org/packages/be/0d/2640fa84cb9d898e24e188dcef0619e808a86941c7aecdf8093f17b6a1cb/panopticml-1.0.0rc2-py3-none-any.whl", hash = "sha256:5e923c715dd82edd48221cc7e16c8570317b5a42b6fdeb5fbdc2b3b1778537bb", size = 25634, upload-time = "2026-09-24T13:01:30.948Z" },
 ]
 
 [[package]]
@@ -1640,9 +1524,8 @@ dependencies = [
     { name = "joblib" },
     { name = "llvmlite" },
     { name = "numba" },
-    { name = "scikit-learn", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
     { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
 ]
@@ -2063,51 +1946,18 @@ wheels = [
 
 [[package]]
 name = "scikit-learn"
-version = "1.5.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and sys_platform == 'darwin'",
-]
-dependencies = [
-    { name = "joblib", marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "numpy", marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "threadpoolctl", marker = "(sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/bf/8a/06e499bca463905000f50e461c9445e949aafdd33ea3b62024aa2238b83d/scikit_learn-1.5.0.tar.gz", hash = "sha256:789e3db01c750ed6d496fa2db7d50637857b451e57bcae863bff707c1247bef7", size = 7820839, upload-time = "2024-05-21T16:34:07.711Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/d1/900698985c526e4c06c03028b9272993f248ae43a739a2f30a91d8f1a5af/scikit_learn-1.5.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:12e40ac48555e6b551f0a0a5743cc94cc5a765c9513fe708e01f0aa001da2801", size = 12096286, upload-time = "2024-05-21T16:33:03.119Z" },
-    { url = "https://files.pythonhosted.org/packages/91/e5/42e5bf73aeadc0f32152de33593f3f97ae8a59bb4c46d7725e7d3d76f4c4/scikit_learn-1.5.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:f405c4dae288f5f6553b10c4ac9ea7754d5180ec11e296464adb5d6ac68b6ef5", size = 10969691, upload-time = "2024-05-21T16:33:07.004Z" },
-    { url = "https://files.pythonhosted.org/packages/48/12/a31235236e7c62f5f7b68ea471fb82bac818be5b40f608a51a44fa8388bf/scikit_learn-1.5.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:df8ccabbf583315f13160a4bb06037bde99ea7d8211a69787a6b7c5d4ebb6fc3", size = 12490175, upload-time = "2024-05-21T16:33:10.22Z" },
-    { url = "https://files.pythonhosted.org/packages/1e/7d/1a2ea8eb5b4df373c30c7418cf26305a4a05e2a0e56c80a8043b791595f3/scikit_learn-1.5.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2c75ea812cd83b1385bbfa94ae971f0d80adb338a9523f6bbcb5e0b0381151d4", size = 13343697, upload-time = "2024-05-21T16:33:13.68Z" },
-    { url = "https://files.pythonhosted.org/packages/c9/1a/7313c0d70ec8bfcf83cdd49696679d54d9d1a062a60fba270e7b4fc457f2/scikit_learn-1.5.0-cp310-cp310-win_amd64.whl", hash = "sha256:a90c5da84829a0b9b4bf00daf62754b2be741e66b5946911f5bdfaa869fcedd6", size = 10962967, upload-time = "2024-05-21T16:33:16.646Z" },
-    { url = "https://files.pythonhosted.org/packages/50/d4/70a9393ab88862c070a263a464042ab4e572a1353b4c3c308bc72a5b68cf/scikit_learn-1.5.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:2a65af2d8a6cce4e163a7951a4cfbfa7fceb2d5c013a4b593686c7f16445cf9d", size = 12081437, upload-time = "2024-05-21T16:33:20.16Z" },
-    { url = "https://files.pythonhosted.org/packages/6c/97/dfc635bd435655c1216756b543e0427579df144914a055a188d3c0ffd52f/scikit_learn-1.5.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:4c0c56c3005f2ec1db3787aeaabefa96256580678cec783986836fc64f8ff622", size = 10973963, upload-time = "2024-05-21T16:33:22.801Z" },
-    { url = "https://files.pythonhosted.org/packages/61/f5/18dc69d22ec950225237d42b61d3338affc46e5ea63c27c6915f3678f5f2/scikit_learn-1.5.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1f77547165c00625551e5c250cefa3f03f2fc92c5e18668abd90bfc4be2e0bff", size = 12480861, upload-time = "2024-05-21T16:33:26.131Z" },
-    { url = "https://files.pythonhosted.org/packages/46/c0/63d3a8da39a2ee051df229111aa93f6dca2b56f8080abd34993938166455/scikit_learn-1.5.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:118a8d229a41158c9f90093e46b3737120a165181a1b58c03461447aa4657415", size = 13328661, upload-time = "2024-05-21T16:33:29.627Z" },
-    { url = "https://files.pythonhosted.org/packages/ae/20/6d1a0a61d468b37a142fd90bb93c73bc1c2205db4a69ac630ed218c31612/scikit_learn-1.5.0-cp311-cp311-win_amd64.whl", hash = "sha256:a03b09f9f7f09ffe8c5efffe2e9de1196c696d811be6798ad5eddf323c6f4d40", size = 10972963, upload-time = "2024-05-21T16:33:32.98Z" },
-    { url = "https://files.pythonhosted.org/packages/1e/21/fe8e90eb7dc796ed384daaf45a83e729a41fa7a9bf14bc1a0b69fd05b39a/scikit_learn-1.5.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:460806030c666addee1f074788b3978329a5bfdc9b7d63e7aad3f6d45c67a210", size = 12096541, upload-time = "2024-05-21T16:33:36.475Z" },
-    { url = "https://files.pythonhosted.org/packages/f9/4b/c035ce6771dd56283cd587e941054ebb38a14868729e28a0f7c6c9ff9ebd/scikit_learn-1.5.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:1b94d6440603752b27842eda97f6395f570941857456c606eb1d638efdb38184", size = 11031507, upload-time = "2024-05-21T16:33:39.896Z" },
-    { url = "https://files.pythonhosted.org/packages/66/a1/e64f125382f2fc46dd1f3a3c2d390f02db896e3803a3e7898c4ca48390e0/scikit_learn-1.5.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d82c2e573f0f2f2f0be897e7a31fcf4e73869247738ab8c3ce7245549af58ab8", size = 12082985, upload-time = "2024-05-21T16:33:42.807Z" },
-    { url = "https://files.pythonhosted.org/packages/ae/54/e70102a9c12d27d985ba659f336851732415e5a02864bef2ead36afaf15d/scikit_learn-1.5.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a3a10e1d9e834e84d05e468ec501a356226338778769317ee0b84043c0d8fb06", size = 13065320, upload-time = "2024-05-21T16:33:45.65Z" },
-    { url = "https://files.pythonhosted.org/packages/57/ed/f607ebf69f87bcce2e3fa329bd78da8cafd3d51190a19d58012d2d7f2252/scikit_learn-1.5.0-cp312-cp312-win_amd64.whl", hash = "sha256:855fc5fa8ed9e4f08291203af3d3e5fbdc4737bd617a371559aaa2088166046e", size = 10938084, upload-time = "2024-05-21T16:33:49.011Z" },
-]
-
-[[package]]
-name = "scikit-learn"
 version = "1.7.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev'",
+    "python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
     "python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
 ]
 dependencies = [
-    { name = "joblib", marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "numpy", marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "threadpoolctl", marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "joblib", marker = "python_full_version < '3.11'" },
+    { name = "numpy", marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "threadpoolctl", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/98/c2/a7855e41c9d285dfe86dc50b250978105dce513d6e459ea66a6aeb0e1e0c/scikit_learn-1.7.2.tar.gz", hash = "sha256:20e9e49ecd130598f1ca38a1d85090e1a600147b9c02fa6f15d69cb53d968fda", size = 7193136, upload-time = "2025-09-09T08:21:29.075Z" }
 wheels = [
@@ -2149,14 +1999,15 @@ version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev'",
+    "python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
     "python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
 ]
 dependencies = [
-    { name = "joblib", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "narwhals", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "numpy", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "threadpoolctl", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "joblib", marker = "python_full_version >= '3.11'" },
+    { name = "narwhals", marker = "python_full_version >= '3.11'" },
+    { name = "numpy", marker = "python_full_version >= '3.11'" },
+    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "threadpoolctl", marker = "python_full_version >= '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d2/eb/eaf5e07fcc0da7149b0e084f24e54edd7441b9a89ce7e034032ae97fe3a0/scikit_learn-1.9.1.tar.gz", hash = "sha256:629cada3e33e2b9bf376cdc7614a47a4140b8aedc1d836579e359736fbd82977", size = 7786908, upload-time = "2026-09-10T18:34:04.679Z" }
 wheels = [
@@ -2448,43 +2299,8 @@ wheels = [
 
 [[package]]
 name = "tokenizers"
-version = "0.21.4"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and sys_platform == 'darwin'",
-    "python_full_version >= '3.11' and sys_platform != 'darwin'",
-    "python_full_version < '3.11' and sys_platform != 'darwin'",
-]
-dependencies = [
-    { name = "huggingface-hub" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/2f/402986d0823f8d7ca139d969af2917fefaa9b947d1fb32f6168c509f2492/tokenizers-0.21.4.tar.gz", hash = "sha256:fa23f85fbc9a02ec5c6978da172cdcbac23498c3ca9f3645c5c68740ac007880", size = 351253, upload-time = "2025-07-28T15:48:54.325Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/c6/fdb6f72bf6454f52eb4a2510be7fb0f614e541a2554d6210e370d85efff4/tokenizers-0.21.4-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:2ccc10a7c3bcefe0f242867dc914fc1226ee44321eb618cfe3019b5df3400133", size = 2863987, upload-time = "2025-07-28T15:48:44.877Z" },
-    { url = "https://files.pythonhosted.org/packages/8d/a6/28975479e35ddc751dc1ddc97b9b69bf7fcf074db31548aab37f8116674c/tokenizers-0.21.4-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:5e2f601a8e0cd5be5cc7506b20a79112370b9b3e9cb5f13f68ab11acd6ca7d60", size = 2732457, upload-time = "2025-07-28T15:48:43.265Z" },
-    { url = "https://files.pythonhosted.org/packages/aa/8f/24f39d7b5c726b7b0be95dca04f344df278a3fe3a4deb15a975d194cbb32/tokenizers-0.21.4-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:39b376f5a1aee67b4d29032ee85511bbd1b99007ec735f7f35c8a2eb104eade5", size = 3012624, upload-time = "2025-07-28T13:22:43.895Z" },
-    { url = "https://files.pythonhosted.org/packages/58/47/26358925717687a58cb74d7a508de96649544fad5778f0cd9827398dc499/tokenizers-0.21.4-cp39-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:2107ad649e2cda4488d41dfd031469e9da3fcbfd6183e74e4958fa729ffbf9c6", size = 2939681, upload-time = "2025-07-28T13:22:47.499Z" },
-    { url = "https://files.pythonhosted.org/packages/99/6f/cc300fea5db2ab5ddc2c8aea5757a27b89c84469899710c3aeddc1d39801/tokenizers-0.21.4-cp39-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3c73012da95afafdf235ba80047699df4384fdc481527448a078ffd00e45a7d9", size = 3247445, upload-time = "2025-07-28T15:48:39.711Z" },
-    { url = "https://files.pythonhosted.org/packages/be/bf/98cb4b9c3c4afd8be89cfa6423704337dc20b73eb4180397a6e0d456c334/tokenizers-0.21.4-cp39-abi3-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:f23186c40395fc390d27f519679a58023f368a0aad234af145e0f39ad1212732", size = 3428014, upload-time = "2025-07-28T13:22:49.569Z" },
-    { url = "https://files.pythonhosted.org/packages/75/c7/96c1cc780e6ca7f01a57c13235dd05b7bc1c0f3588512ebe9d1331b5f5ae/tokenizers-0.21.4-cp39-abi3-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:cc88bb34e23a54cc42713d6d98af5f1bf79c07653d24fe984d2d695ba2c922a2", size = 3193197, upload-time = "2025-07-28T13:22:51.471Z" },
-    { url = "https://files.pythonhosted.org/packages/f2/90/273b6c7ec78af547694eddeea9e05de771278bd20476525ab930cecaf7d8/tokenizers-0.21.4-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:51b7eabb104f46c1c50b486520555715457ae833d5aee9ff6ae853d1130506ff", size = 3115426, upload-time = "2025-07-28T15:48:41.439Z" },
-    { url = "https://files.pythonhosted.org/packages/91/43/c640d5a07e95f1cf9d2c92501f20a25f179ac53a4f71e1489a3dcfcc67ee/tokenizers-0.21.4-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:714b05b2e1af1288bd1bc56ce496c4cebb64a20d158ee802887757791191e6e2", size = 9089127, upload-time = "2025-07-28T15:48:46.472Z" },
-    { url = "https://files.pythonhosted.org/packages/44/a1/dd23edd6271d4dca788e5200a807b49ec3e6987815cd9d0a07ad9c96c7c2/tokenizers-0.21.4-cp39-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:1340ff877ceedfa937544b7d79f5b7becf33a4cfb58f89b3b49927004ef66f78", size = 9055243, upload-time = "2025-07-28T15:48:48.539Z" },
-    { url = "https://files.pythonhosted.org/packages/21/2b/b410d6e9021c4b7ddb57248304dc817c4d4970b73b6ee343674914701197/tokenizers-0.21.4-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:3c1f4317576e465ac9ef0d165b247825a2a4078bcd01cba6b54b867bdf9fdd8b", size = 9298237, upload-time = "2025-07-28T15:48:50.443Z" },
-    { url = "https://files.pythonhosted.org/packages/b7/0a/42348c995c67e2e6e5c89ffb9cfd68507cbaeb84ff39c49ee6e0a6dd0fd2/tokenizers-0.21.4-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:c212aa4e45ec0bb5274b16b6f31dd3f1c41944025c2358faaa5782c754e84c24", size = 9461980, upload-time = "2025-07-28T15:48:52.325Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/d3/dacccd834404cd71b5c334882f3ba40331ad2120e69ded32cf5fda9a7436/tokenizers-0.21.4-cp39-abi3-win32.whl", hash = "sha256:6c42a930bc5f4c47f4ea775c91de47d27910881902b0f20e4990ebe045a415d0", size = 2329871, upload-time = "2025-07-28T15:48:56.841Z" },
-    { url = "https://files.pythonhosted.org/packages/41/f2/fd673d979185f5dcbac4be7d09461cbb99751554ffb6718d0013af8604cb/tokenizers-0.21.4-cp39-abi3-win_amd64.whl", hash = "sha256:475d807a5c3eb72c59ad9b5fcdb254f6e17f53dfcbb9903233b0dfa9c943b597", size = 2507568, upload-time = "2025-07-28T15:48:55.456Z" },
-]
-
-[[package]]
-name = "tokenizers"
 version = "0.22.2"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
     { name = "huggingface-hub" },
 ]
@@ -2609,39 +2425,8 @@ wheels = [
 
 [[package]]
 name = "transformers"
-version = "4.51.3"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and sys_platform == 'darwin'",
-    "python_full_version >= '3.11' and sys_platform != 'darwin'",
-    "python_full_version < '3.11' and sys_platform != 'darwin'",
-]
-dependencies = [
-    { name = "filelock" },
-    { name = "huggingface-hub" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pyyaml" },
-    { name = "regex" },
-    { name = "requests" },
-    { name = "safetensors" },
-    { name = "tokenizers", version = "0.21.4", source = { registry = "https://pypi.org/simple" } },
-    { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/11/7414d5bc07690002ce4d7553602107bf969af85144bbd02830f9fb471236/transformers-4.51.3.tar.gz", hash = "sha256:e292fcab3990c6defe6328f0f7d2004283ca81a7a07b2de9a46d67fd81ea1409", size = 8941266, upload-time = "2025-04-14T08:15:00.485Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/b6/5257d04ae327b44db31f15cce39e6020cc986333c715660b1315a9724d82/transformers-4.51.3-py3-none-any.whl", hash = "sha256:fd3279633ceb2b777013234bbf0b4f5c2d23c4626b05497691f00cfda55e8a83", size = 10383940, upload-time = "2025-04-14T08:13:43.023Z" },
-]
-
-[[package]]
-name = "transformers"
 version = "4.57.6"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
     { name = "filelock" },
     { name = "huggingface-hub" },
@@ -2651,7 +2436,7 @@ dependencies = [
     { name = "regex" },
     { name = "requests" },
     { name = "safetensors" },
-    { name = "tokenizers", version = "0.22.2", source = { registry = "https://pypi.org/simple" } },
+    { name = "tokenizers" },
     { name = "tqdm" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c4/35/67252acc1b929dc88b6602e8c4a982e64f31e733b804c14bc24b47da35e6/transformers-4.57.6.tar.gz", hash = "sha256:55e44126ece9dc0a291521b7e5492b572e6ef2766338a610b9ab5afbb70689d3", size = 10134912, upload-time = "2026-01-16T10:38:39.284Z" }
@@ -2710,45 +2495,17 @@ wheels = [
 
 [[package]]
 name = "umap-learn"
-version = "0.5.7"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and sys_platform == 'darwin'",
-]
-dependencies = [
-    { name = "numba", marker = "sys_platform == 'darwin'" },
-    { name = "numpy", marker = "sys_platform == 'darwin'" },
-    { name = "pynndescent", marker = "sys_platform == 'darwin'" },
-    { name = "scikit-learn", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "tqdm", marker = "sys_platform == 'darwin'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6f/d4/9ed627905f7993349671283b3c5bf2d9f543ef79229fa1c7e01324eb900c/umap-learn-0.5.7.tar.gz", hash = "sha256:b2a97973e4c6ffcebf241100a8de589a4c84126a832ab40f296c6d9fcc5eb19e", size = 92680, upload-time = "2024-10-28T18:05:57.093Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/8f/671c0e1f2572ba625cbcc1faeba9435e00330c3d6962858711445cf1e817/umap_learn-0.5.7-py3-none-any.whl", hash = "sha256:6a7e0be2facfa365a5ed6588447102bdbef32a0ef449535c25c97ea7e680073c", size = 88815, upload-time = "2024-10-28T18:05:55.333Z" },
-]
-
-[[package]]
-name = "umap-learn"
 version = "0.5.12"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev'",
-    "python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev'",
-    "python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
-    "python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision' and extra != 'group-8-panoptic-dev'",
-]
 dependencies = [
-    { name = "numba", marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "numpy", marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "pynndescent", marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (python_full_version >= '3.11' and extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev') or (python_full_version < '3.11' and extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
-    { name = "tqdm", marker = "(sys_platform != 'darwin' and extra == 'extra-8-panoptic-vision') or (sys_platform == 'darwin' and extra == 'group-8-panoptic-dev') or (extra != 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "pynndescent" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version < '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-8-panoptic-vision') or (python_full_version >= '3.11' and extra == 'group-8-panoptic-dev') or (extra == 'extra-8-panoptic-vision' and extra == 'group-8-panoptic-dev')" },
+    { name = "tqdm" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/02/ee/af4171241117f85c74b5ca6448ea1033cc28d599c13651d67289bacd4083/umap_learn-0.5.12.tar.gz", hash = "sha256:6aff02ecac5f2aad9f3c65ee518d7ae93e1a985ae38721fdcffceee4232c33c7", size = 96672, upload-time = "2026-04-08T20:03:54.012Z" }
 wheels = [
