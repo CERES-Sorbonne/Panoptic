@@ -57,20 +57,27 @@ if ! uv pip show panoptic &> /dev/null; then
     fi
 fi
 # Vérifier si panoptic est obsolète
-echo "Vérification des mises à jour..."
-
-OUTDATED=$(uv pip list --outdated)
-
-if echo "$OUTDATED" | grep -q "panoptic"; then
-    read -p "Mise à jour trouvée, voulez-vous l'installer ? (O/N) " user_input
-    user_input=$(echo "$user_input" | tr '[:upper:]' '[:lower]')
-    
-    if [ "$user_input" = "o" ]; then
-        echo "Mise à jour de panoptic..."
-        uv pip install -U panoptic
-    fi
+# En CI/test, panoptic vient du checkout local : le comparer à PyPI n'a pas de sens.
+if [ "$PANOPTIC_INSTALL_TEST" = "1" ]; then
+    echo "Vérification des mises à jour ignorée (mode test)."
 else
-    echo "La dernière version de panoptic est déjà installée."
+    echo "Vérification des mises à jour..."
+
+    OUTDATED=$(uv pip list --outdated)
+
+    # Nom exact : ne pas confondre avec panopticml.
+    if echo "$OUTDATED" | grep -qE '^panoptic[[:space:]]'; then
+        # Sans réponse (stdin fermé), on considère "non" au lieu d'arrêter le script.
+        read -p "Mise à jour trouvée, voulez-vous l'installer ? (O/N) " user_input || user_input=n
+        user_input=$(echo "$user_input" | tr '[:upper:]' '[:lower:]')
+
+        if [ "$user_input" = "o" ]; then
+            echo "Mise à jour de panoptic..."
+            uv pip install -U panoptic
+        fi
+    else
+        echo "La dernière version de panoptic est déjà installée."
+    fi
 fi
 echo "Lancement de panoptic..."
 # En CI/test (PANOPTIC_INSTALL_TEST=1), on vérifie l'installation sans démarrer le serveur.

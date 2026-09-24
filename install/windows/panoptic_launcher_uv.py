@@ -16,6 +16,14 @@ def run_command(command, check=False, capture_output=False, shell=True):
         raise RuntimeError(f"Command failed: {command}")
     return result
 
+def ask(prompt):
+    # Sans réponse (stdin fermé, ex. en CI), on renvoie "" au lieu de planter.
+    try:
+        return input(prompt).strip().lower()
+    except EOFError:
+        print()
+        return ""
+
 # Ajouter .local/bin au PATH
 local_bin = Path.home() / ".local" / "bin"
 os.environ["PATH"] = f"{local_bin}{os.pathsep}{os.environ.get('PATH', '')}"
@@ -47,8 +55,8 @@ run_command("uv pip install pip")
 if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
     # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
     run_command(f'uv pip install "{os.environ.get("PANOPTIC_PACKAGE", "panoptic")}"')
-    with_cuda = input(
-        "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme : (o/n) : ").strip().lower()
+    with_cuda = ask(
+        "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme : (o/n) : ")
     if with_cuda == 'o':
         run_command("uv pip install torch torchvision --torch-backend=auto")
     print("Installation du plugin de similarité panopticml")
@@ -56,19 +64,24 @@ if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
     if os.environ.get("PANOPTICML_PACKAGE"):
         run_command(f'uv pip install "{os.environ["PANOPTICML_PACKAGE"]}"')
     run_command("uv run panoptic plugins add vision")
-    with_clip = input("Voulez-vous télécharger le modèle CLIP maintenant ? (o/n) : ").strip().lower()
+    with_clip = ask("Voulez-vous télécharger le modèle CLIP maintenant ? (o/n) : ")
     if with_clip == 'o':
         print("Téléchargement du modèle CLIP (openai/clip-vit-base-patch32)...")
         run_command("uvx --from huggingface_hub hf download openai/clip-vit-base-patch32")
 
 # Vérifier si panoptic est obsolète
-outdated = run_command("uv pip list --outdated", capture_output=True).stdout
-if "panoptic" in outdated:
-    user_input = input("Mise à jour trouvée, voulez-vous l'installer ? (o/n) ").strip().lower()
-    if user_input == "o":
-        run_command("uv pip install -U panoptic")
+# En CI/test, panoptic vient du checkout local : le comparer à PyPI n'a pas de sens.
+if os.environ.get("PANOPTIC_INSTALL_TEST") == "1":
+    print("Vérification des mises à jour ignorée (mode test).")
 else:
-    print("La dernière version de panoptic est déjà installée.")
+    outdated = run_command("uv pip list --outdated", capture_output=True).stdout or ""
+    # Nom exact : ne pas confondre avec panopticml.
+    if any(line.split()[:1] == ["panoptic"] for line in outdated.splitlines()):
+        user_input = ask("Mise à jour trouvée, voulez-vous l'installer ? (o/n) ")
+        if user_input == "o":
+            run_command("uv pip install -U panoptic")
+    else:
+        print("La dernière version de panoptic est déjà installée.")
 
 
 # En CI/test (PANOPTIC_INSTALL_TEST=1), on vérifie l'installation sans démarrer le serveur.
