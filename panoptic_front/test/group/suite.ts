@@ -29,6 +29,7 @@ import './specs/d1_tagRegistry'
 import './specs/d2_tagDeletion'
 import './specs/e1_appendLevel'
 import './specs/f1_scoreSort'
+import './specs/g1_scrollPager'
 
 import './specs/invariants'
 import './specs/sim_smoke'

@@ -93,11 +93,23 @@ export class MapRenderer {
             alpha: false,
             powerPreference: "high-performance",
         })
+        this.renderer.setPixelRatio(this.targetPixelRatio())
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         this.renderer.outputColorSpace = THREE.SRGBColorSpace
         this.renderer.setClearColor(0xffffff, 1)
         this.container.appendChild(this.renderer.domElement)
+    }
+
+    private targetPixelRatio() {
+        return Math.min(window.devicePixelRatio, 2)
+    }
+
+    // devicePixelRatio changes when the window moves between screens (e.g. FHD -> 4K) or the
+    // browser zoom changes, without the container resizing. A stale ratio makes the browser
+    // upscale the canvas, which blurs everything, so re-check it every frame (cheap read).
+    private syncPixelRatio() {
+        const ratio = this.targetPixelRatio()
+        if (this.renderer.getPixelRatio() !== ratio) this.renderer.setPixelRatio(ratio)
     }
 
     public async createMap(atlas: ImageAtlas, points: PointData[], showAsPoint: boolean) {
@@ -128,6 +140,7 @@ export class MapRenderer {
         this.hoverPointLayer.updateAnimations()
 
         this.updateHoverState()
+        this.syncPixelRatio()
         // console.log(this.controls.getMouseWorldPos())
         // console.log(this.camera.zoom)
         this.renderer.render(this.scene, this.camera)

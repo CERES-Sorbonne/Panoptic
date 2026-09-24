@@ -20,7 +20,11 @@ const props = defineProps({
 // data.instances only holds instances registered by a visible component, while a selection
 // can span instances that were never rendered. Fall back to a minimal stub so consumers
 // (stamping, actions) still get every selected id.
-const images = computed(() => (props.selectedImagesIds ?? []).map(id => data.instances[id] ?? ({ id } as any)))
+// A function, not a computed: the list is only needed when a stamp or action runs. A
+// computed would read data.instances for every selected id and re-run each time a scroller
+// adds an entry there (~300ms per scroll step with 500k selected).
+const images = () => (props.selectedImagesIds ?? []).map(id => data.instances[id] ?? ({ id } as any))
+const count = computed(() => props.selectedImagesIds?.length ?? 0)
 
 const emits = defineEmits(['remove:selected', 'stamped'])
 
@@ -39,7 +43,7 @@ function openSelectionModal() {
         <div class="seg count-seg" @click="emits('remove:selected')">
             <WithToolTip message="main.menu.remove_selection_tooltip">
                 <i class="bi bi-x clear-icon" />
-                <span class="count">{{ images.length }}</span>
+                <span class="count">{{ count }}</span>
             </WithToolTip>
         </div>
         <div class="seg" @click="openSelectionModal">

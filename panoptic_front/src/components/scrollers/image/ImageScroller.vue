@@ -17,6 +17,7 @@ import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
 import { keyState } from '@/data/composables/keyState';
+import { usePagedLines } from '@/components/scrollers/usePagedLines';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
@@ -82,6 +83,12 @@ provide('selectNamespace', selectNs)
 const imageLines = shallowRef([]) as Ref<ImgLine[]>
 const scroller = ref(null)
 
+// The scroller only gets the lines around the viewport plus padding (see usePagedLines), so
+// a huge list does not go past the browser's height limit. imageLines stays the full list.
+const paged = usePagedLines<ImgLine>({ scroller, viewportHeight: () => props.height })
+const windowLines = paged.windowLines
+watch(imageLines, lines => paged.setLines(lines), { flush: 'sync' })
+
 const GAP = 8 // must match the "me-2" margin applied to cells
 const BORDER = 2 // ImageCell's 1px border on each side, added on top of its width style
 const WIDTH_OFFSET = 32 // trim off the width prop (vertical scrollbar + a little breathing room)
@@ -103,21 +110,14 @@ const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId 
 provide('hideImg', hideFromModal)
 
 // ── Window-level batch registration ──────────────────────────────────────────
-const windowStart = ref(0)
-const windowEnd   = ref(0)
-
-function onScrollerUpdate(startIndex: number, endIndex: number) {
-    windowStart.value = startIndex
-    windowEnd.value   = endIndex
-}
-
 const windowIds = computed(() => {
     const ids: number[] = []
     const lines = imageLines.value
     if (!lines.length) return ids
-    // Clamp reported indices and expand ±5 lines to prefetch just off-screen rows.
-    const start = Math.max(0, Math.min(windowStart.value, lines.length - 1) - 5)
-    const end   = Math.min(lines.length - 1, Math.max(0, windowEnd.value) + 5)
+    // Clamp the rendered window and expand it ±5 lines to prefetch just off-screen rows.
+    const range = paged.windowRange.value
+    const start = Math.max(0, Math.min(range.start, lines.length - 1) - 5)
+    const end   = Math.min(lines.length - 1, Math.max(0, range.end) + 5)
     for (let i = start; i <= end; i++) {
         for (const inst of lines[i].data) ids.push(inst.id)
     }
@@ -128,7 +128,7 @@ const windowPropIds = computed(() => props.properties?.map(p => p.id) ?? [])
 defineExpose({ computeLines, clear, scrollToTop })
 
 function scrollToTop() {
-    scroller.value?.scrollToItem(0)
+    paged.scrollToPosition(0)
 }
 
 function clear() {
@@ -308,7 +308,7 @@ watch(visiblePropertiesNb, () => {
 
     // Snapshot scroll position and preserve the item at the viewport top across the
     // line-height change (same technique as TreeScroller).
-    const scrollPos = scroller.value.getScroll().start + margin_scroll_offset
+    const scrollPos = paged.getScrollTop() + margin_scroll_offset
     let topItemIdx = lines.length - 1
     let cumSize = 0
     for (let i = 0; i < lines.length; i++) {
@@ -325,7 +325,6 @@ watch(visiblePropertiesNb, () => {
     const newTopSize = newSizeOf(lines[topItemIdx])
     newScrollPos += oldTopSize > 0 ? delta * (newTopSize / oldTopSize) : delta
 
-    scroller.value.$el.scrollTop = newScrollPos - margin_scroll_offset
     let imgHeight = 0
     for (const l of lines) {
         if (l.type === 'images') { l.size = imageLineSizeFor(l.imageSize); imgHeight += l.size }
@@ -334,6 +333,7 @@ watch(visiblePropertiesNb, () => {
     const filler = lines.find(l => l.type === 'filler')
     if (filler) filler.size = Math.max(0, props.height - imgHeight)
     imageLines.value = [...lines]
+    paged.scrollToPosition(newScrollPos - margin_scroll_offset)
 })
 
 let resizeWidthHandler: ReturnType<typeof setTimeout> | undefined
@@ -345,8 +345,8 @@ watch(contentWidth, () => {
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
-    <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">
+    <RecycleScroller :items="windowLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
+        :buffer="400" :min-item-size="0" :page-mode="false" :prerender="0">
         <template v-slot="{ item }">
             <!-- Drag disabled: a plain row, so no SortableJS instance per visible line. -->
             <div v-if="!dragEnabled && item.type == 'images'" class="d-flex flex-row image-drop"

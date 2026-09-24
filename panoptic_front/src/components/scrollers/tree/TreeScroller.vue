@@ -12,6 +12,7 @@ import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore'; // <-- Imported columnStore
 import InstanceData from '@/components/data/InstanceData.vue';
+import { usePagedLines } from '@/components/scrollers/usePagedLines';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore() // <-- Initialized store to map slots to IDs
@@ -43,6 +44,13 @@ const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
 const hoverGroupBorder = ref(-1)
 
 const scroller = ref(null)
+
+// The scroller only gets the lines around the viewport plus padding (see usePagedLines), so
+// a huge tree does not go past the browser's height limit. imageLines stays the full list.
+const paged = usePagedLines<ScrollerLine>({ scroller, viewportHeight: () => props.height })
+const windowLines = paged.windowLines
+watch(imageLines, lines => paged.setLines(lines), { flush: 'sync' })
+
 // One indent column as ImageLine/PileLine actually render it: .ps-2 (8) + .image-line's
 // border-left (1) + its padding-left (10). Must match that CSS or the lines overflow.
 const MARGIN_STEP = 19
@@ -101,26 +109,18 @@ const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId 
 provide('hideImg', hideFromModal)
 
 // ── Window-level batch registration ──────────────────────────────────────────
-// RecycleScroller reports which items are active via @update(startIndex, endIndex).
-// We derive all instance IDs in that window and register them in one shot so the
+// All instance IDs of the rendered window are registered in one shot so the
 // backend is hit with a single batched request instead of one per image cell.
-
-const windowStart = ref(0)
-const windowEnd = ref(0)
-
-function onScrollerUpdate(startIndex: number, endIndex: number) {
-    windowStart.value = startIndex
-    windowEnd.value = endIndex
-}
 
 const windowIds = computed(() => {
     const ids: number[] = []
     const lines = imageLines.value
     if (!lines.length) return ids
 
-    // Clamp reported indices to valid range
-    let start = Math.max(0, Math.min(windowStart.value, lines.length - 1))
-    let end = Math.max(0, Math.min(windowEnd.value, lines.length - 1))
+    // Clamp the window to the valid range
+    const range = paged.windowRange.value
+    let start = Math.max(0, Math.min(range.start, lines.length - 1))
+    let end = Math.max(0, Math.min(range.end, lines.length - 1))
 
     // Expand backwards until 5 image/pile lines before the visible window
     let preCount = 0
@@ -353,9 +353,7 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
 }
 
 function scrollTo(groupId) {
-    const idx = groupIdx[groupId]
-    scroller.value.scrollToItem(idx)
-    nextTick(() => scroller.value.updateVisibleItems(true))
+    paged.scrollToIndex(groupIdx[groupId])
 }
 
 function updateHoverBorder(value) {
@@ -425,7 +423,7 @@ watch(visiblePropertiesNb, () => {
     if (!lines.length) return
 
     // Snapshot current scroll position before any layout change
-    const scrollPos = scroller.value.getScroll().start + margin_scroll_offset
+    const scrollPos = paged.getScrollTop() + margin_scroll_offset
 
     // Find the index of the item sitting at the top of the viewport
     let topItemIdx = lines.length - 1
@@ -457,21 +455,15 @@ watch(visiblePropertiesNb, () => {
     const newTopSize = newSizeOf(lines[topItemIdx])
     newScrollPos += oldTopSize > 0 ? delta * (newTopSize / oldTopSize) : delta
 
-    // Set scroll first so that when z's watcher fires pe(false) it reads the
-    // correct scrollTop and positions items at the right offset immediately.
-    scroller.value.$el.scrollTop = newScrollPos - margin_scroll_offset
-
-    // Mutate sizes on the reactive line objects. Because RecycleScroller's
-    // accumulator (z) is a computed that reads item.size, these mutations mark
-    // z dirty. RecycleScroller's own q(z, ...) watcher then calls pe(false).
-    // pe(false) skips Oe() when the visible range is stable — no full pool
-    // reset, no LIFO slot scramble, no sha1 changes, no blank flash.
+    // Mutate sizes on the line objects, and keep them: the line components are not
+    // re-created (no blank flash). The new list re-measures the window synchronously.
     for (const l of lines) {
         if (l.type === 'images') l.size = imageLineSizeFor((l as ImageLine).imageSize)
         else if (l.type === 'piles') l.size = pileLineSizeFor((l as ScrollerPileLine).imageSize)
     }
 
     imageLines.value = [...lines]
+    paged.scrollToPosition(newScrollPos - margin_scroll_offset)
 })
 
 // Width drives per-line/per-cell sizing — recompute when it changes. The width prop is the
@@ -490,8 +482,8 @@ watch(() => props.manager.version.value, triggerUpdate)
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
-        <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-            :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false"
+        <RecycleScroller :items="windowLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
+            :buffer="400" :min-item-size="0" :page-mode="false"
             :prerender="0">
             <template v-slot="{ item, index, active }">
                 <template v-if="true">
@@ -504,14 +496,14 @@ watch(() => props.manager.version.value, triggerUpdate)
                             @reco="emit('reco', $event)" />
                     </div>
                     <div v-else-if="item.type == 'images'">
-                        <ImageLineVue :image-size="(item as ImageLine).imageSize" :input-index="index * maxPerLine" :item="(item as ImageLine)"
+                        <ImageLineVue :image-size="(item as ImageLine).imageSize" :input-index="paged.lineIndex(index) * maxPerLine" :item="(item as ImageLine)"
                             :index="props.manager.result.index" :hover-border="hoverGroupBorder"
                             :parent-ids="getImageLineParents(item)" :properties="props.properties"
                             @update:selected-image="e => updateImageSelection(e, (item as ImageLine))" @scroll="scrollTo"
                             @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                     </div>
                     <div v-else-if="item.type == 'piles'">
-                        <PileLine :image-size="(item as ScrollerPileLine).imageSize" :input-index="index * maxPerLine" :item="(item as ScrollerPileLine)"
+                        <PileLine :image-size="(item as ScrollerPileLine).imageSize" :input-index="paged.lineIndex(index) * maxPerLine" :item="(item as ScrollerPileLine)"
                             :index="props.manager.result.index" :hover-border="hoverGroupBorder"
                             :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                             :sha1-scores="props.sha1Scores" :preview="props.preview"

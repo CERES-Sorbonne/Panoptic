@@ -10,6 +10,7 @@ import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
+import { usePagedLines } from '@/components/scrollers/usePagedLines';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
@@ -49,6 +50,12 @@ const hoverGroupBorder = ref(-1)
 const scroller = ref(null)
 const MARGIN_STEP = 20
 
+// The scroller only gets the lines around the viewport plus padding (see usePagedLines), so
+// a huge list does not go past the browser's height limit. clusterLines stays the full list.
+const paged = usePagedLines<ClusterLine>({ scroller, viewportHeight: () => props.height })
+const windowLines = paged.windowLines
+watch(clusterLines, lines => paged.setLines(lines), { flush: 'sync' })
+
 const GAP = 8 // must match the .cluster-card "me-2" margin in ClusterLine.vue
 const BORDER = 2 // .cluster-card's 1px border on each side, added on top of its width style
 const INPUT_ROW = 26 // .cc-input-row height below each card's image (must match ClusterLine.vue)
@@ -73,21 +80,14 @@ const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId 
 
 provide('hideImg', hideFromModal)
 
-const windowStart = ref(0)
-const windowEnd   = ref(0)
-
-function onScrollerUpdate(startIndex: number, endIndex: number) {
-    windowStart.value = startIndex
-    windowEnd.value   = endIndex
-}
-
 const windowIds = computed(() => {
     const ids: number[] = []
     const lines = clusterLines.value
     if (!lines.length) return ids
 
-    let start = Math.max(0, Math.min(windowStart.value, lines.length - 1))
-    let end   = Math.max(0, Math.min(windowEnd.value, lines.length - 1))
+    const range = paged.windowRange.value
+    let start = Math.max(0, Math.min(range.start, lines.length - 1))
+    let end   = Math.max(0, Math.min(range.end, lines.length - 1))
 
     let preCount = 0
     while (start > 0 && preCount < 5) {
@@ -256,10 +256,7 @@ function computeLines() {
 
 function scrollTo(groupId) {
     const idx = clusterLines.value.findIndex(l => l.groupId === groupId)
-    if (idx >= 0) {
-        scroller.value.scrollToItem(idx)
-        nextTick(() => scroller.value.updateVisibleItems(true))
-    }
+    if (idx >= 0) paged.scrollToIndex(idx)
 }
 
 function updateHoverBorder(value) {
@@ -320,11 +317,11 @@ watch(() => props.manager.version.value, triggerUpdate)
     <div style="width: 100%; min-width: 0;">
         <div v-if="clusterLines.length === 0" class="p-3 text-secondary">{{ $t('main.group.no_lines') }}</div>
         <InstanceData v-else :instance-ids="windowIds" :prop-ids="windowPropIds">
-        <RecycleScroller :items="clusterLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-            :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">
+        <RecycleScroller :items="windowLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
+            :buffer="400" :min-item-size="0" :page-mode="false" :prerender="0">
             <template v-slot="{ item, index, active }">
                 <div v-if="item.type == 'cluster'">
-                    <ClusterLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
+                    <ClusterLineVue :image-size="item.imageSize" :input-index="paged.lineIndex(index) * maxPerLine" :item="item"
                         :parent-ids="getClusterLineParents(item)"
                         :hover-border="hoverGroupBorder"
                         :manager="props.manager"

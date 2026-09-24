@@ -128,11 +128,12 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
 
     // Use a larger radius (0.5 fills the square) to ensure visibility
     float pointRadius = 0.45;
-    // Antialias over roughly one screen pixel (fwidth) rather than a fixed slice of the quad:
-    // a constant uv-space width is a large fraction of the dot's radius, so the fade read as a
-    // pale halo where the dot blended into the white background.
-    float aa = fwidth(dist);
-    float pointMask = smoothstep(pointRadius + aa, pointRadius - aa, dist);
+    // Antialias over exactly one screen pixel: aa is the uv distance one pixel covers. A
+    // constant uv-space width was a large fraction of the dot's radius (pale halo), and
+    // smoothstep(r ± fwidth) spread the fade over 2-3 pixels (fwidth = |dx|+|dy|), so the
+    // dots looked soft — worst at 1x DPR where they are only a few pixels wide.
+    float aa = max(length(vec2(dFdx(dist), dFdy(dist))), 1e-6);
+    float pointMask = clamp((pointRadius - dist) / aa + 0.5, 0.0, 1.0);
 
     // Instead of multiplying, use the logic from your image mode:
     // This ensures that if it's visible in image mode, it's visible here.

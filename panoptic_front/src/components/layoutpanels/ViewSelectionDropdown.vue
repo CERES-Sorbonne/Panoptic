@@ -14,16 +14,17 @@ const tab = useCurrentTab()
 interface ViewOption {
     id: ViewType
     icon: string
+    label: string
     tooltip: string
 }
 
 const viewOptions: ViewOption[] = [
-    { id: 'tree', icon: 'grid-3x3-gap-fill', tooltip: 'main.menu.grid_tooltip' },
-    { id: 'grid', icon: 'table', tooltip: 'main.menu.table_tooltip' },
-    { id: 'graph', icon: 'bar-chart', tooltip: 'main.menu.graph_tooltip' },
-    { id: 'map', icon: 'map', tooltip: 'main.menu.map_tooltip' },
-    { id: 'reco', icon: 'magic', tooltip: 'main.menu.reco_tooltip' },
-    { id: 'group', icon: 'intersect', tooltip: 'main.menu.cluster_tooltip' },
+    { id: 'tree', icon: 'grid-3x3-gap-fill', label: 'main.menu.grid_view', tooltip: 'main.menu.grid_tooltip' },
+    { id: 'grid', icon: 'table', label: 'main.menu.table_view', tooltip: 'main.menu.table_tooltip' },
+    { id: 'graph', icon: 'bar-chart', label: 'main.menu.graph_view', tooltip: 'main.menu.graph_tooltip' },
+    { id: 'map', icon: 'map', label: 'main.menu.map_view', tooltip: 'main.menu.map_tooltip' },
+    { id: 'reco', icon: 'magic', label: 'main.menu.reco_view', tooltip: 'main.menu.reco_tooltip' },
+    { id: 'group', icon: 'intersect', label: 'main.menu.group_view', tooltip: 'main.menu.cluster_tooltip' },
 ]
 
 const currentView = computed(() => {
@@ -48,7 +49,7 @@ function selectView(viewId: ViewType) {
             <div class="view-button" :class="{ active: currentView === activeOption.id }">
                 <wTT :message="activeOption.tooltip">
                     <i :class="'bi bi-' + activeOption.icon"></i>
-                    <span class="view-label">{{ activeOption.id.charAt(0).toUpperCase() + activeOption.id.slice(1) }}</span>
+                    <span class="view-label">{{ $t(activeOption.label) }}</span>
                 </wTT>
             </div>
         </template>
@@ -64,7 +65,7 @@ function selectView(viewId: ViewType) {
                 >
                     <span v-if="opt.icon" :class="'bi bi-' + opt.icon" class="me-2"></span>
                     <wTT :message="opt.tooltip">
-                        {{ opt.id.charAt(0).toUpperCase() + opt.id.slice(1) }}
+                        {{ $t(opt.label) }}
                     </wTT>
                 </div>
             </div>

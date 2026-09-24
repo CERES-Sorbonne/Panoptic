@@ -14,6 +14,7 @@ import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import { TabManager } from '@/core/TabManager';
 import InstanceData from '@/components/data/InstanceData.vue';
+import { usePagedLines } from '@/components/scrollers/usePagedLines';
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
@@ -45,8 +46,6 @@ const hearderHeight = ref(30)
 // Width eaten by the scroller's vertical scrollbar. The header sits outside the
 // scrolling element, so without subtracting it the header is wider than the rows.
 const scrollbarWidth = ref(0)
-// Only the visible window slice + at most two spacers — never the full dataset.
-const rowLines = ref([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
@@ -74,6 +73,12 @@ const missingWidth = computed(() => contentWidth.value - totalPropWidth.value)
 
 const scrollerHeight = computed(() => props.height - hearderHeight.value)
 
+// The full line list stays here; the scroller only gets the lines around the viewport plus
+// padding (see usePagedLines), so a huge list does not go past the browser's height limit.
+// Deep: resizeHeight changes line sizes through the rendered items.
+const paged = usePagedLines<ScrollerLine>({ scroller, viewportHeight: () => scrollerHeight.value, deep: true })
+const rowLines = paged.windowLines
+
 // The scrolling element itself must also cover the scrollbar gutter, otherwise
 // measuring it would shrink the content on every pass.
 const scrollerStyle = computed(() => ({
@@ -100,62 +105,8 @@ const windowIds = computed(() => {
 
 const windowPropIds = computed(() => visibleProperties.value.map(p => p.id))
 
-// ── non-reactive master list + cumulative-size index ──────────────────────────
+// Non-reactive master list.
 let dataLines: ScrollerLine[] = []
-let cumSizes: number[] = []   // cumSizes[i] = total height of dataLines[0..i-1]
-
-function buildCumSizes() {
-    const n = dataLines.length
-    cumSizes = new Array(n + 1)
-    cumSizes[0] = 0
-    for (let i = 0; i < n; i++) cumSizes[i + 1] = cumSizes[i] + dataLines[i].size
-}
-
-// Binary search: index of the item whose row contains pixel offset `px`.
-function itemAtPixel(px: number): number {
-    if (px <= 0 || !dataLines.length) return 0
-    let lo = 0, hi = dataLines.length - 1
-    while (lo < hi) {
-        const mid = (lo + hi) >> 1
-        if (cumSizes[mid + 1] <= px) lo = mid + 1
-        else hi = mid
-    }
-    return lo
-}
-
-// Extra pixels rendered above and below the viewport.
-const BUFFER_PX = 800
-
-let _winStart = -1
-let _winEnd   = -1
-let currentScrollTop = 0
-
-function rebuildWindow() {
-    if (!dataLines.length) { rowLines.value = []; return }
-
-    const start = Math.max(0, itemAtPixel(currentScrollTop - BUFFER_PX))
-    const end   = Math.min(dataLines.length - 1, itemAtPixel(currentScrollTop + scrollerHeight.value + BUFFER_PX))
-
-    if (start === _winStart && end === _winEnd) return
-    _winStart = start
-    _winEnd   = end
-
-    const topH    = cumSizes[start]
-    const totalH  = cumSizes[dataLines.length]
-    const bottomH = totalH - cumSizes[end + 1]
-
-    const items: ScrollerLine[] = []
-    if (topH    > 0) items.push({ id: '__top__',    type: 'fillter', size: topH, data: null })
-    for (let i = start; i <= end; i++) items.push(dataLines[i])
-    if (bottomH > 0) items.push({ id: '__bottom__', type: 'fillter', size: bottomH, data: null })
-
-    rowLines.value = items
-}
-
-function onScroll(event: Event) {
-    currentScrollTop = (event.target as HTMLElement).scrollTop
-    rebuildWindow()
-}
 
 // ── line construction ─────────────────────────────────────────────────────────
 
@@ -218,14 +169,9 @@ function computeLines() {
     visit(props.manager.result.root)
     lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length, data: null })
 
+    // Keeps the scroll position.
     dataLines = lines
-    buildCumSizes()
-
-    // Preserve current scroll position across rebuilds.
-    currentScrollTop = scroller.value?.getScroll()?.start ?? 0
-    _winStart = -1
-    _winEnd   = -1
-    rebuildWindow()
+    paged.setLines(lines)
 }
 
 function resizeHeight(item: ScrollerLine, h: number) {
@@ -237,8 +183,8 @@ function resizeHeight(item: ScrollerLine, h: number) {
         const firstId = columnStore.instanceIds()[(item as PileRowLine).data.slots[0]]
         if (firstId !== undefined) lineSizes[firstId] = h
     }
-    // Cumulative sizes changed; update lookup for the next scroll event.
-    buildCumSizes()
+    // Cumulative sizes changed.
+    paged.refreshSoon()
 }
 
 
@@ -265,10 +211,7 @@ function selectGroup(groupId: number) {
 
 function clear() {
     dataLines = []
-    cumSizes  = []
-    _winStart = -1
-    _winEnd   = -1
-    rowLines.value = []
+    paged.setLines([])
 }
 
 function changeHandler(){
@@ -298,7 +241,6 @@ onMounted(() => {
     // the other pane just to draw itself.
     computeLines()
     const el = scroller.value?.$el as HTMLElement | undefined
-    el?.addEventListener('scroll', onScroll, { passive: true })
     if (el) {
         scrollbarObserver = new ResizeObserver(measureScrollbar)
         scrollbarObserver.observe(el)
@@ -307,7 +249,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-    scroller.value?.$el?.removeEventListener('scroll', onScroll)
     scrollbarObserver?.disconnect()
 })
 
@@ -316,15 +257,8 @@ watch(rowLines, () => nextTick(measureScrollbar))
 
 watch(() => props.imageSize, (now) => {
     if (!dataLines.length) return
-    const scrollPos = scroller.value?.getScroll()?.start ?? 0
-
-    // Find the item at the top of the viewport so we can restore position.
-    let topIdx = 0
-    let acc = 0
-    for (let i = 0; i < dataLines.length; i++) {
-        if (acc + dataLines[i].size > scrollPos) { topIdx = i; break }
-        acc += dataLines[i].size
-    }
+    // Keep the line at the top of the viewport.
+    const topIdx = paged.lineAt(paged.getScrollTop())
 
     // Resize all non-visible items (visible ones will be resized via resizeHeight events).
     const visibleIds = new Set(rowLines.value.map((l: any) => l.id))
@@ -332,16 +266,8 @@ watch(() => props.imageSize, (now) => {
         if (!visibleIds.has(l.id) && (l.type === 'image' || l.type === 'pile')) l.size = now + 4
     })
 
-    buildCumSizes()
-
-    let newScrollPos = 0
-    for (let i = 0; i < topIdx; i++) newScrollPos += dataLines[i].size
-    scroller.value?.scrollToPosition(newScrollPos)
-
-    currentScrollTop = newScrollPos
-    _winStart = -1
-    _winEnd   = -1
-    rebuildWindow()
+    paged.refresh()
+    paged.scrollToPosition(paged.lineOffset(topIdx))
 })
 
 </script>

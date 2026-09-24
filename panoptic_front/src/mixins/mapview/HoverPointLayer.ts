@@ -16,7 +16,7 @@ const Z_OFFSET = 1.5
 
 export class HoverPointLayer {
     private scene: THREE.Scene
-    private geometry = new THREE.CircleGeometry(DOT_RADIUS, 24)
+    private geometry = new THREE.CircleGeometry(DOT_RADIUS, 64)
     private material: THREE.MeshBasicMaterial
     private mesh: THREE.Mesh
     private colorHelper = new THREE.Color()

@@ -4,7 +4,7 @@
 // the *global* selection namespace — the one every SelectionStamp caller reads — so cells
 // render as selected and unchecking one really removes it from the selection. The id list
 // itself is snapshotted on show, so deselecting doesn't make images vanish under the cursor.
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import Modal2 from './Modal2.vue'
 import ImageScroller from '@/components/scrollers/image/ImageScroller.vue'
 import RangeInput from '@/components/inputs/RangeInput.vue'
@@ -13,7 +13,9 @@ import { useDataStore } from '@/data/stores/dataStore'
 
 const data = useDataStore()
 
-const instances = ref<Instance[]>([])
+// shallowRef: a deep ref would wrap each of the (possibly 100k+) instances in a reactive
+// proxy. The list is only ever replaced whole, never mutated in place.
+const instances = shallowRef<Instance[]>([])
 const imageSize = ref(100)
 
 // Same fallback as SelectionStamp: a selection can hold instances no visible component

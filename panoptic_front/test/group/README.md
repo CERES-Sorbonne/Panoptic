@@ -71,6 +71,7 @@ invariant report, so every cluster test carries the I1–I5 checks for free.
 | **D1** an unregistered tag id is not a value | `specs/d1_tagRegistry.ts` | `D1: ...` |
 | **D2** a tag deletion the view survives | `specs/d2_tagDeletion.ts` | `D2: ...` |
 | **E1** appending a level moves the clusters down | `specs/e1_appendLevel.ts` | `E1: ...` |
+| **G1** a list past the browser's height limit scrolls in a bounded area | `specs/g1_scrollPager.ts` | `G1: ...` |
 | DEV invariants I1–I5 | `specs/invariants.ts` + `harness/hooks.ts` | `invariants: ...` |
 | the simulation, smoke-sized | `specs/sim_smoke.ts` | `sim: 3 runs x 50 ops ...` |
 
