@@ -136,10 +136,17 @@ jobs:
         if : ${{ github.event_name == 'push' }}
         run: |
           TAG=${{ needs.get-tag.outputs.tag }}
-          echo "TAG=$TAG"
+          VERSION=${TAG#v}
+          echo "TAG=$TAG VERSION=$VERSION"
           cd panoptic_back
-          hatch version $TAG 
-          # && echo "Version set to $TAG" || echo "Version already exists" && exit 1
+          # hatch refuse une version égale à l'actuelle : si __init__.py est déjà
+          # à la version du tag (mise à jour à la main), on la garde telle quelle.
+          CURRENT=$(hatch version)
+          if [ "$CURRENT" = "$VERSION" ]; then
+            echo "Version déjà à $VERSION"
+          else
+            hatch version "$VERSION"
+          fi
 
       - name: Build package
         run: |
