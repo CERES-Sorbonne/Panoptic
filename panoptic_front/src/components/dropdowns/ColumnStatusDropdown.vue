@@ -108,7 +108,7 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
         <template #button>
             <button class="col-status-btn" :class="{ active: open, loading: isLoading }" :title="$t('dropdown.property_status.title')">
                 <i class="bi bi-database-fill-gear" />
-                <span class="col-status-summary">
+                <span class="col-status-summary tabular-nums">
                     <span class="instance-count">{{ instanceCount.toLocaleString() }}</span>
                     <span class="separator">|</span>
                     <span class="dot dot-loaded" />{{ loadedCount }}
@@ -150,7 +150,7 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
                 </div>
 
                 <!-- Counts and legend -->
-                <div class="col-status-header">
+                <div class="col-status-header tabular-nums">
                     <div class="stat-row">
                         <i class="bi bi-images me-1 text-secondary" />
                         <span class="text-secondary">{{ $t('dropdown.property_status.images_loaded') }}</span>

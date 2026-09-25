@@ -31,6 +31,11 @@
   user-select: none;
 }
 
+/* Equal-width digits so stacked or changing numbers line up */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 .clickable:hover {
   cursor: pointer;
 }

@@ -107,7 +107,7 @@ const rowClass = (index: number) => props.selectedIndex == index ? 'bg-selected'
                             :can-delete="props.canDelete" :can-customize="props.canCustomize"
                             @delete="id => emits('delete', id)" @hide="emits('hide')" />
                     </div>
-                    <div class="text-secondary" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
+                    <div class="text-secondary tabular-nums" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
                         {{ totalCounts[item.id] }}
                     </div>
                 </div>

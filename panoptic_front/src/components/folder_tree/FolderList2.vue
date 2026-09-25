@@ -90,7 +90,7 @@ function toggleFolderSelect(folderId: number) {
                         <FolderOptionDropdown :folder="folder"/>
                     </span>
                     {{ folder.name }}
-                    <span class="text-secondary">{{ data.folders[folder.id].count }}</span>
+                    <span class="text-secondary tabular-nums">{{ data.folders[folder.id].count }}</span>
                 </summary>
             </div>
             <i v-if="folder.children && folder.children.length > 0" @click="toggleFolderVisible(folder.id)"

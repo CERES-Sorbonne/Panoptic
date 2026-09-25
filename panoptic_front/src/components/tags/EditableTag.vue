@@ -55,7 +55,7 @@ async function updateTagColor(color: number) {
             <div class="ms-1" style="padding-top: 2px;">
                 <ColorDropdown :model-value="tag.color" @update:model-value="updateTagColor" />
             </div>
-            <div class="ms-2 me-2 text-secondary">
+            <div class="ms-2 me-2 text-secondary tabular-nums">
                 {{ tag.count + sum(tag.allChildren.map(c => data.tags[c].count)) }}
             </div>
             <div class="flex-grow-1"></div>

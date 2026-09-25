@@ -505,7 +505,7 @@ onMounted(async () => {
                             :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                             <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                             <span class="group-name">{{ leaf.name }}</span>
-                            <span class="group-count">{{ leaf.points.length }}</span>
+                            <span class="group-count tabular-nums">{{ leaf.points.length }}</span>
                             <div class="group-actions" @click.stop>
                                 <WithToolTip message="btn.goto-group">
                                     <div class="group-action-btn" @click="focusGroup(leaf)">

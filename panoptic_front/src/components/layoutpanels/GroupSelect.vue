@@ -48,7 +48,7 @@ function groupLabel(g: Group) {
                         <PropertyValue :value="value" />
                         <div v-if="index < groupLabel(g).length - 1" class="separator"></div>
                     </template>
-                    <span class="text-secondary ms-1">({{ g.slots.length }})</span>
+                    <span class="text-secondary ms-1 tabular-nums">({{ g.slots.length }})</span>
                 </div>
             </div>
         </template>

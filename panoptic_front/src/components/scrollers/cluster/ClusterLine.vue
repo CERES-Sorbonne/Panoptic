@@ -340,7 +340,7 @@ function groupScore(group: Group): number | null {
 
                 <!-- Bottom-left counts: self-contained chips, so no full-width scrim is needed.
                      Images, then the sub-group count on a card that holds a (closed) subtree. -->
-                <div class="cc-counts">
+                <div class="cc-counts tabular-nums">
                     <span class="cc-chip">
                         <i class="bi bi-images me-1" />{{ imageCount(entry.group) }}<span
                             v-if="entry.group.meta?.maskedCount" class="cc-masked"

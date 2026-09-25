@@ -286,7 +286,7 @@ watch(tags, () => {
                 <div v-for="prop in properties" class="property-option bnr" @click="propId = prop.id"
                     :class="property?.id == prop.id ? 'selected-property' : ''">
                     <span>{{ prop.name }}</span>
-                    <span class="ms-1 text-secondary">{{ propertyCounts[prop.id] }}</span>
+                    <span class="ms-1 text-secondary tabular-nums">{{ propertyCounts[prop.id] }}</span>
                 </div>
             </div>
         </template>

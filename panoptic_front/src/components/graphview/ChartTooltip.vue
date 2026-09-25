@@ -24,7 +24,7 @@ const props = defineProps<{
     <div class="chart-tooltip">
         <div class="tt-head">
             <span class="tt-title">{{ props.title }}</span>
-            <span class="tt-total">{{ props.total.toLocaleString() }}</span>
+            <span class="tt-total tabular-nums">{{ props.total.toLocaleString() }}</span>
         </div>
 
         <!-- Values lead, labels follow: the reader already knows the series and wants the number. -->
@@ -32,7 +32,7 @@ const props = defineProps<{
             <div v-for="row in props.rows" :key="row.name" class="tt-row">
                 <span class="tt-key" :style="{ background: row.color }"></span>
                 <span class="tt-name">{{ row.name }}</span>
-                <span class="tt-value">{{ row.count.toLocaleString() }}</span>
+                <span class="tt-value tabular-nums">{{ row.count.toLocaleString() }}</span>
             </div>
         </div>
 
