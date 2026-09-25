@@ -526,11 +526,12 @@ export const useColumnStore = defineStore('columnStore', () => {
     }
 
     // Lazily create a namespace's mask (sized to the current slot count).
-    function ensureNamespace(ns: string): void {
-        if (!selectionMasks.has(ns)) {
-            selectionMasks.set(ns, new Uint8Array(slotCount))
-            selectionVersions[ns] = 0
-        }
+    // Returns true when the mask was created by this call, false when it already existed.
+    function ensureNamespace(ns: string): boolean {
+        if (selectionMasks.has(ns)) return false
+        selectionMasks.set(ns, new Uint8Array(slotCount))
+        selectionVersions[ns] = 0
+        return true
     }
 
     // Free a custom namespace. 'global' is permanent and never disposed.

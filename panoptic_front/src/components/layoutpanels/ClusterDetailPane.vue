@@ -19,6 +19,8 @@ const props = defineProps<{
     properties: Property[]
     // Shared vuedraggable group so images can be dragged between the two stacked panes.
     dragGroup?: string
+    // Selection namespace of the main view, so selecting here selects there too.
+    selectNamespace?: string
     // Which touching corners round: single pane, or the top / bottom of a stack.
     position: 'solo' | 'top' | 'bottom'
     // The leaf grouping property (the assignment target), and this group's value on it — same
@@ -80,7 +82,7 @@ const BODY_PADDING = 4
         <div class="cluster-body">
             <ImageScroller
                 :input-key="inputKey"
-                :select-namespace="inputKey"
+                :select-namespace="selectNamespace"
                 :instances="instances"
                 :drag-group="dragGroup"
                 :image-size="imageSize"

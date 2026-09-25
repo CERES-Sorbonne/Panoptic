@@ -151,6 +151,7 @@ function handleExpand(e: MouseEvent) {
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
     margin-left: auto;
+    font-variant-numeric: tabular-nums;
 }
 
 .tree-label {

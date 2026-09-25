@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Instance, ModalId, Tag } from '@/data/models';
+import { Instance, Tag } from '@/data/models';
 import { computed, getCurrentInstance, onUnmounted, ref, watch } from 'vue'
 import { useElementSize } from '@vueuse/core';
 import ImageScroller from '@/components/scrollers/image/ImageScroller.vue';
@@ -52,12 +52,6 @@ const instances = computed<Instance[]>(() => {
 const box = ref<HTMLElement | null>(null)
 const { width, height } = useElementSize(box)
 
-function openImage(instance: Instance) {
-    const slot = columnStore.slotMap.get(instance.id)
-    if (slot === undefined) return
-    panoptic.showModal(ModalId.IMAGE, { slot })
-}
-
 function mergeSelected() {
     emits('merge')
 }
@@ -80,7 +74,7 @@ function mergeSelected() {
         <div class="flex-shrink-0" style="height: 4px;"></div>
         <div ref="box" class="flex-grow-1 overflow-hidden ms-2">
             <ImageScroller input-key="tag-images" :image-size="100" :height="height" :width="width"
-                :instances="instances" :properties="[]" :no-drag="true" @open="openImage" />
+                :instances="instances" :properties="[]" :no-drag="true" />
         </div>
     </div>
 </template>

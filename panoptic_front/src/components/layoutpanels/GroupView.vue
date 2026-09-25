@@ -268,7 +268,7 @@ function createTarget(groupId: number) {
 // second one below. Once both slots are full, further shift-clicks replace them
 // alternately (top, then bottom, then top…).
 
-const DETAIL_NAMESPACES = ['cluster-detail-0', 'cluster-detail-1']
+const DETAIL_INPUT_KEYS = ['cluster-detail-0', 'cluster-detail-1']
 // Shared vuedraggable group: every visible line in both stacked inspectors joins it, so an
 // image can be dragged from one open cluster into the other.
 const DRAG_GROUP = 'cluster-inspector'
@@ -394,8 +394,8 @@ function inheritedValue(g?: Group): any {
     return undefined
 }
 
-// One inspector descriptor per open cluster, each with its own instance list and
-// selection namespace so the two inspectors select (and drag) independently.
+// One inspector descriptor per open cluster, each with its own instance list. Both
+// inspectors use the view's selection namespace, so selecting there selects in the view too.
 const detailPanes = computed(() =>
     detailGroupIds.value.map((gid, idx) => {
         props.collection.version.value // reactive dep, for the inherited value
@@ -404,7 +404,7 @@ const detailPanes = computed(() =>
             id: gid,
             instances: paneInstances.value[idx] ?? [],
             name: g ? (g.name ?? ('Cluster ' + g.parentIdx)) : '',
-            inputKey: DETAIL_NAMESPACES[idx],
+            inputKey: DETAIL_INPUT_KEYS[idx],
             targetValue: inheritedValue(g)
         }
     })
@@ -467,9 +467,6 @@ function closeDetail(idx: number) {
     nextReplace.value = 0
 }
 
-onUnmounted(() => {
-    DETAIL_NAMESPACES.forEach(ns => col.disposeNamespace(ns))
-})
 </script>
 
 <template>
@@ -549,6 +546,7 @@ onUnmounted(() => {
                 <ClusterDetailPane
                     v-if="detailPanes.length === 1"
                     :input-key="detailPanes[0].inputKey"
+                    :select-namespace="props.collection.selectionNamespace"
                     :instances="detailPanes[0].instances"
                     :drag-group="DRAG_GROUP"
                     :name="detailPanes[0].name"
@@ -579,6 +577,7 @@ onUnmounted(() => {
                     <template #primary>
                         <ClusterDetailPane
                             :input-key="detailPanes[0].inputKey"
+                            :select-namespace="props.collection.selectionNamespace"
                             :instances="detailPanes[0].instances"
                             :drag-group="DRAG_GROUP"
                             :name="detailPanes[0].name"
@@ -600,6 +599,7 @@ onUnmounted(() => {
                     <template #secondary>
                         <ClusterDetailPane
                             :input-key="detailPanes[1].inputKey"
+                            :select-namespace="props.collection.selectionNamespace"
                             :instances="detailPanes[1].instances"
                             :drag-group="DRAG_GROUP"
                             :name="detailPanes[1].name"

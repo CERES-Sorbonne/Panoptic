@@ -48,15 +48,25 @@ const props = defineProps<{
     // (e.g. all instances sharing a sha1). Drives the count badge, and makes selecting a
     // cell select the whole pile. Absent => each cell is exactly one instance.
     piles?: Record<number, number[]>,
+    // A cell's image was clicked. Declared as a prop (not an emit) so the scroller can tell
+    // whether the parent handles `@open`; without a handler it opens the image modal itself.
+    onOpen?: (instance: Instance) => void,
 }>()
 
 const emit = defineEmits<{
     // The moved Instance object is passed so the receiving parent can insert it directly.
     (e: 'instance-added', payload: { instance: Instance, index: number }): void
     (e: 'instance-removed', payload: { instance: Instance }): void
-    // A cell's image was clicked.
-    (e: 'open', instance: Instance): void
 }>()
+
+// A click on a cell's image: the parent's `@open` handler when given, otherwise the image modal.
+// A flat list has no tree position, so the modal gets a bare slot (no prev/next arrows).
+function openInstance(instance: Instance) {
+    if (props.onOpen) return props.onOpen(instance)
+    const slot = columnStore.slotMap.get(instance.id)
+    if (slot === undefined) return
+    panoptic.showModal(ModalId.IMAGE, { slot })
+}
 
 // Drag is live only when a group to exchange with was named AND the consumer didn't opt out.
 const dragEnabled = computed(() => !!props.dragGroup && !props.noDrag)
@@ -285,13 +295,16 @@ function triggerUpdate() {
     _triggerHandle = setTimeout(computeLines, 50)
 }
 
+// Only a namespace this scroller created is disposed on unmount. A namespace that already
+// existed (e.g. the main view's selection) belongs to someone else and must survive.
+let ownsNs = false
 onMounted(() => {
-    if (selectNs.value !== 'global') columnStore.ensureNamespace(selectNs.value)
+    if (selectNs.value !== 'global') ownsNs = columnStore.ensureNamespace(selectNs.value)
     computeLines()
 })
 
 onUnmounted(() => {
-    if (selectNs.value !== 'global') columnStore.disposeNamespace(selectNs.value)
+    if (ownsNs) columnStore.disposeNamespace(selectNs.value)
 })
 
 // Follow the input list itself (reference or contents) — the parent mutates it on a move.
@@ -355,7 +368,7 @@ watch(contentWidth, () => {
                     :size="item.imageSize" :width="item.cardWidths[i]" :properties="props.properties"
                     :selected="isSelectedId(element.id)" :selected-preview="props.preview?.[element.id]"
                     :score="props.scores?.[element.id]" :count="props.piles?.[element.id]?.length"
-                    :idx="item.startIndex + i" @open="e => emit('open', e)"
+                    :idx="item.startIndex + i" @open="openInstance"
                     @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
             </div>
 
@@ -371,7 +384,7 @@ watch(contentWidth, () => {
                         :properties="props.properties" :selected="isSelectedId(element.id)"
                         :selected-preview="props.preview?.[element.id]" :score="props.scores?.[element.id]"
                         :count="props.piles?.[element.id]?.length"
-                        :idx="item.startIndex + i" @open="e => emit('open', e)"
+                        :idx="item.startIndex + i" @open="openInstance"
                         @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
                 </template>
             </draggable-component>
