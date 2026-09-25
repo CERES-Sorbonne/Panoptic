@@ -49,6 +49,12 @@ publication sur PyPI, puis l'image Docker, n'a lieu que si tout est vert. Le fro
 (`npm run build` vers `panoptic_back/panoptic/html`) juste avant le build du paquet, et commité sur
 la branche avec la version.
 
+Le commit visé par le tag ne doit pas contenir `[skip ci]` dans son message : GitHub ignore alors
+aussi le push du tag, et aucun workflow ne se lance.
+
+Lancement à la main (onglet Actions) : l'option `version` fixe la version publiée. Vide, la version
+est incrémentée (`1.0.0rc3` → `1.0.0rc4` pour une pré-version, sinon `1.0.0` → `1.0.1`).
+
 Si un test échoue, rien n'est publié et la release repasse en brouillon. Le tag reste : après
 correction, il faut en faire une nouvelle (ou supprimer le tag avant de republier).
 

@@ -43,5 +43,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add panoptic.exe
-          git commit -m "Build panoptic.exe [skip ci]"
+          # pas de [skip ci] : un push fait avec GITHUB_TOKEN ne déclenche déjà aucun workflow,
+          # et le marqueur bloquerait aussi les tags/releases créés ensuite sur ce commit
+          git commit -m "Build panoptic.exe"
           git push

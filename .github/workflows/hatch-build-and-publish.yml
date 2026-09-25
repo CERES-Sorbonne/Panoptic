@@ -3,6 +3,11 @@ run-name: HATCH to PyPI by @${{ github.actor }}
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à publier (ex. 1.0.0rc6). Vide = incrément auto (rcN+1 si pré-version, sinon patch)"
+        required: false
+        default: ''
   push:
     tags:
       - 'v*.*.*'
@@ -127,9 +132,19 @@ jobs:
 
       - name: Version bump
         if : ${{ github.event_name != 'push' }}
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           cd panoptic_back
-          hatch version fix
+          CURRENT=$(hatch version)
+          if [ -n "$VERSION" ]; then
+            hatch version "${VERSION#v}"
+          elif [[ "$CURRENT" =~ (a|b|rc)[0-9]+$ ]]; then
+            # « fix » sur une pré-version sort de la série (1.0.0rc3 -> 1.0.1) : on reste en rc
+            hatch version rc
+          else
+            hatch version fix
+          fi
           echo "Version bumped"
 
       - name: Version from tag
