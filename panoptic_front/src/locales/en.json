@@ -723,7 +723,20 @@
     "map": {
         "groups": "Groups",
         "border_width": "Border width",
-        "hover_scale": "Hover zoom size"
+        "hover_scale": "Hover zoom size",
+        "atlas": "Thumbnail atlas",
+        "atlas_none": "The map needs an atlas to draw images.",
+        "atlas_generate": "Generate atlas",
+        "atlas_regenerate": "Regenerate atlas",
+        "atlas_generating": "Generating…",
+        "atlas_images": "Images in atlas",
+        "atlas_missing": "Not in atlas",
+        "atlas_map_missing": "Not drawn on this map",
+        "atlas_loading": "Loading sheets",
+        "atlas_loaded": "Sheets loaded",
+        "atlas_failed": "Sheets failed to load",
+        "atlas_none_title": "No thumbnail atlas",
+        "atlas_empty": "The atlas holds none of this project's images"
     },
     "confirm": "Confirm",
     "cancel": "Cancel",

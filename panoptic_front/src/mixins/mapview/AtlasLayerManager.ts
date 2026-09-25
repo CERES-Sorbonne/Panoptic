@@ -2,11 +2,21 @@ import * as THREE from 'three'
 import { AtlasLayer } from './AtlasLayer'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 
+export interface AtlasLoadProgress {
+    loaded: number
+    failed: number
+    total: number
+}
+
 export class AtlasLayerManager {
     private scene: THREE.Scene
     private layers: AtlasLayer[] = []
     private _isVisible: boolean = true
     private _zoomParams: ZoomParams
+    // Current display mode, read when each sheet's layer is built rather than captured once at
+    // loadLayers() entry: sheets load one await at a time, so a point/image toggle mid-load must
+    // reach the layers that don't exist yet, not just the ones already built.
+    private _showAsPoint = false
     
     // Cache for loaded textures, keyed by atlas ID and sheet index
     private static textureCache = new Map<string, THREE.Texture>()
@@ -20,6 +30,10 @@ export class AtlasLayerManager {
     // invoked (e.g. still ungrouped/default-coloured on a fresh reload), sitting at the same
     // positions as the correct, current layers.
     private loadToken = 0
+
+    // Sheet-load progress of the current loadLayers() call, reported once when it starts and after
+    // every sheet. A superseded call stops reporting, so the numbers always describe the newest load.
+    public onProgress: ((progress: AtlasLoadProgress) => void) | null = null
 
     constructor(scene: THREE.Scene) {
         this.scene = scene
@@ -44,6 +58,7 @@ export class AtlasLayerManager {
         showAsPoint: boolean
     ) {
         const token = ++this.loadToken
+        this._showAsPoint = showAsPoint
 
         // Only dispose layers, not textures (they're cached)
         this.disposeLayers()
@@ -70,6 +85,14 @@ export class AtlasLayerManager {
         }
 
         const maxPerSheet = Math.max(...sheetPointsMap.map(v => v.length))
+
+        const progress: AtlasLoadProgress = {
+            loaded: 0,
+            failed: 0,
+            total: sheetPointsMap.filter(v => v.length > 0).length,
+        }
+        const report = () => { if (token === this.loadToken) this.onProgress?.({ ...progress }) }
+        report()
 
         // Process each sheet
         for (let s = 0; s < atlas.atlasNb; s++) {
@@ -115,13 +138,16 @@ export class AtlasLayerManager {
                 // Set initial visibility state
                 layer.mesh.visible = this._isVisible
                 layer.setZoomParams(this._zoomParams)
-                layer.setShowAsPoint(showAsPoint)
+                layer.setShowAsPoint(this._showAsPoint)
                 this.layers.push(layer)
 
                 this.scene.add(layer.mesh)
+                progress.loaded++
             } catch (error) {
                 console.error(`Failed to load atlas sheet ${s}:`, error)
+                progress.failed++
             }
+            report()
         }
     }
 
@@ -204,6 +230,7 @@ export class AtlasLayerManager {
     }
 
     public setShowAsPoint(show: boolean) {
+        this._showAsPoint = show
         this.layers.forEach(l => l.setShowAsPoint(show))
     }
 }

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Instance } from '@/data/models'
 import PointMapSelection from './PointMapSelection.vue'
+import AtlasDropdown from './AtlasDropdown.vue'
+import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import RangeInput from '../inputs/RangeInput.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
@@ -18,6 +20,9 @@ const props = defineProps<{
     borderWidth: number
     // How much the HD preview grows over the hovered image, same slider treatment.
     hoverScale: number
+    // Atlas status, shown by the atlas dropdown.
+    atlasLoad: AtlasLoadProgress | null
+    mapMissing: number
 }>()
 
 const emits = defineEmits([
@@ -44,6 +49,8 @@ async function updateMap(event) {
         <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @call="updateMap" :images="props.images">
             <i class="bi bi-boxes me-1" /> {{ $t('map.create') }}
         </ActionButton2>
+
+        <AtlasDropdown :load="props.atlasLoad" :map-missing="props.mapMissing" />
 
         <div v-if="props.hasMaps" style="min-width: 150px;" class="map-select">
             <PointMapSelection :model-value="props.selectedMap"

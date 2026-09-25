@@ -10,6 +10,7 @@ import { isNoValue } from '@/core/group/valueParser'
 import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
+import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
 
 // Components
 import Toolbar from './Toolbar.vue'
@@ -99,10 +100,25 @@ let sha1ToPoint: { [sha1: string]: PointData } = {}
 const leaves = shallowRef<{ id: number, name: string, color: string, points: PointData[] }[]>([])
 const points = shallowRef<PointData[]>([])
 
+// ── Atlas status ──────────────────────────────────────────────────────────────
+
+// Sheet-load progress of the renderer's latest atlas load (null until a load starts).
+const atlasLoad = ref<AtlasLoadProgress | null>(null)
+// Points on the current map whose sha1 has no atlas cell. The atlas layers skip them, so they
+// are not drawn at all — in image mode or point mode.
+const mapMissingCount = ref(0)
+
+// Nothing on the map can be drawn: no atlas, or one holding none of the project's images.
+// Shown as a message in the middle of the map instead of an empty canvas. Waits for the atlas
+// fetch and for the project to have images, so it neither flashes on load nor asks an empty
+// project to build an atlas.
+const atlasUnusable = computed(() => media.atlasFetched && media.atlasCoverage.total > 0
+    && (!media.hasAtlas || media.atlasCoverage.inAtlas === 0))
+
 // Tracks the latest showMap call to cancel stale concurrent invocations
 let showMapToken = 0
 // Stores args needed to call createMap once the renderer is ready
-let pendingCreateMap: { atlas: any; points: PointData[]; showAsPoint: boolean } | null = null
+let pendingCreateMap: { atlas: any; points: PointData[] } | null = null
 
 // Geometry cache: what the current `points` array was built from. A point can only move when
 // the map changes or the root's membership changes — every other tree tick (open/close, sort,
@@ -366,13 +382,20 @@ async function showMap(mapId: number, force = false) {
     buildLeaves()
 
     const atlas = media.atlas
-    if (!atlas) return
+    if (!atlas) {
+        mapMissingCount.value = 0
+        atlasLoad.value = null
+        return
+    }
+    let missing = 0
+    for (const p of res) if (!atlas.sha1Mapping[p.sha1]) missing++
+    mapMissingCount.value = missing
 
     // If the renderer isn't ready yet, store args so the renderer watcher can call createMap
     if (renderer.value) {
         renderer.value.createMap(atlas, points.value, props.mapOptions.showPoints)
     } else {
-        pendingCreateMap = { atlas, points: points.value, showAsPoint: props.mapOptions.showPoints }
+        pendingCreateMap = { atlas, points: points.value }
     }
 }
 
@@ -429,11 +452,13 @@ watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
+        r.atlasLayers.onProgress = (p) => { atlasLoad.value = p }
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
-        // Flush a createMap call that arrived before the renderer was ready
+        // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
+        // not when it was queued: the showPoints watcher had no renderer to reach in between.
         if (pendingCreateMap) {
-            r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, pendingCreateMap.showAsPoint)
+            r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, props.mapOptions.showPoints)
             pendingCreateMap = null
         } else if (points.value.length > 0 && r.atlasLayers) {
             updateColors()
@@ -459,7 +484,8 @@ onMounted(async () => {
             @update:selected-map="id => props.mapOptions.selectedMap = id" :has-maps="media.hasMaps"
             :images="getRootInstances" :border-width="borderWidth"
             @update:border-width="props.mapOptions.borderWidth = $event" :hover-scale="hoverScale"
-            @update:hover-scale="props.mapOptions.hoverScale = $event" @delete:map="deleteMap" />
+            @update:hover-scale="props.mapOptions.hoverScale = $event" @delete:map="deleteMap"
+            :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
 
         <div class="map-view-container">
             <div class="map-container"
@@ -483,6 +509,24 @@ onMounted(async () => {
                     title="Lasso Remove">
                     <i class="bi bi-dash-circle-dotted"></i>
                 </div>
+            </div>
+
+            <div v-if="atlasUnusable" class="atlas-empty">
+                <i class="bi bi-grid-3x3-gap atlas-empty-icon"></i>
+                <div class="atlas-empty-title">
+                    {{ media.hasAtlas ? $t('map.atlas_empty') : $t('map.atlas_none_title') }}
+                </div>
+                <div class="atlas-empty-text">{{ $t('map.atlas_none') }}</div>
+                <template v-if="media.atlasTask">
+                    <div class="atlas-empty-progress">
+                        <span>{{ $t('map.atlas_generating') }}</span>
+                        <span class="tabular-nums">{{ media.atlasTaskPercent }}%</span>
+                    </div>
+                    <div class="atlas-bar"><div :style="{ width: media.atlasTaskPercent + '%' }"></div></div>
+                </template>
+                <button v-else class="atlas-generate" :disabled="media.atlasRequested" @click="media.generateAtlas()">
+                    {{ media.hasAtlas ? $t('map.atlas_regenerate') : $t('map.atlas_generate') }}
+                </button>
             </div>
 
             <div v-if="hoverImage || leaves.length" ref="groupListIslandRef" class="group-list-island">
@@ -710,6 +754,77 @@ onMounted(async () => {
 .cluster-btn :deep(.b-box) {
     padding: 3px;
     margin: 0;
+}
+
+.atlas-empty {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 280px;
+    padding: 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--island-surface);
+    border: 1px solid var(--island-border);
+    border-radius: var(--island-radius);
+    box-shadow: var(--island-shadow);
+}
+
+.atlas-empty-icon {
+    font-size: 24px;
+    color: var(--text-tertiary);
+}
+
+.atlas-empty-title {
+    font-weight: var(--font-weight-semibold);
+}
+
+.atlas-empty-text {
+    color: var(--text-secondary);
+}
+
+.atlas-empty-progress {
+    display: flex;
+    justify-content: space-between;
+    align-self: stretch;
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+.atlas-bar {
+    align-self: stretch;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-color);
+    overflow: hidden;
+}
+
+.atlas-bar > div {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.2s ease;
+}
+
+.atlas-generate {
+    margin-top: 8px;
+    padding: 5px 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-inverse);
+    background: var(--primary);
+    cursor: pointer;
+}
+
+.atlas-generate:disabled {
+    opacity: 0.6;
+    cursor: default;
 }
 
 .cursor-grab {

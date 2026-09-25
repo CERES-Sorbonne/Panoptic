@@ -1565,6 +1565,14 @@ def get_atlas(atlas_id: int, project: Project = Depends(_dep)):
     }), media_type='application/json')
 
 
+@project_router.post('/atlas/generate')
+def generate_atlas(project: Project = Depends(_dep)):
+    """(Re)build the thumbnail atlas from every image's small rendition."""
+    from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
+    project.add_task(GenerateAtlasTask(project))
+    return {'ok': True}
+
+
 @project_router.get('/atlas_sheet/{atlas_id}/{sheet_nb}')
 def get_atlas_sheet(atlas_id: int, sheet_nb: int, project: Project = Depends(_dep)):
     path = project.folder / 'atlas' / f'{atlas_id}_{sheet_nb}.png'

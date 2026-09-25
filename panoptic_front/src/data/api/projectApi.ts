@@ -595,6 +595,10 @@ export async function apiGetAtlas(atlasId: number) {
     return keysToCamel(res.data) as ImageAtlas
 }
 
+export async function apiGenerateAtlas() {
+    await projectApi.post('/atlas/generate')
+}
+
 export async function apiGetDelta(
     since: number,
     opts?: { fullPropIds?: number[]; pointPropIds?: number[]; instanceIds?: number[] }
