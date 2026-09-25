@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue'
+import { computed, inject } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import { ImageIterator } from '@/core/GroupManager'
@@ -52,7 +52,6 @@ const inst = computed(() => {
 
 const isSelected = computed(() => props.selected ?? false)
 
-const hover = ref(false)
 const hideImg = inject('hideImg')
 const inputKey = inject('inputKey') as string
 
@@ -68,16 +67,18 @@ const score = computed(() => {
         :style="`width: ${w + 2}px;`">
         <Zoomable v-if="!hideImg && instanceId !== undefined" :image="inst">
             <div class="img-container" :style="`width: ${w + 2}px; height: ${props.size}px;`"
-                @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
-                @mouseleave="hover = false">
+                @click="panoptic.showModal(ModalId.IMAGE, props.image)">
                 <div v-if="score != undefined" class="simi-ratio">{{ score.toFixed(2) }}</div>
                 <CenteredImage :instance-id="instanceId" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 
                 <!-- overlay follows the container instead of being sized in px, so it can
-                     never exceed the clipped (and rounded) image area -->
-                <div v-if="hover || isSelected" class="box-shadow" />
-                <SelectCircle v-if="hover || isSelected" :model-value="isSelected"
+                     never exceed the clipped (and rounded) image area.
+                     Shown on CSS :hover, not a mouseenter flag: the scroller recycles cells to
+                     other lines when it rebuilds (e.g. during an import), and a flag set on the
+                     cell under the cursor then shows up on whatever image the cell moved to. -->
+                <div class="box-shadow" :class="{ 'hover-only': !isSelected }" />
+                <SelectCircle :model-value="isSelected" :class="{ 'hover-only': !isSelected }"
                     @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
             </div>
         </Zoomable>
@@ -225,6 +226,10 @@ const score = computed(() => {
     position: absolute;
     top: 0;
     left: 5px;
+}
+
+.img-container:not(:hover) .hover-only {
+    visibility: hidden;
 }
 
 .box-shadow {

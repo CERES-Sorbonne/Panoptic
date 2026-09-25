@@ -2,7 +2,7 @@
 // Instance-based image cell. Unlike tree/Image.vue (which is hard-coupled to the
 // ImageIterator class and its GroupManager), this takes a plain Instance so it can be
 // used by ImageScroller.vue, which renders a flat instance list with no groups.
-import { computed, inject, ref } from 'vue'
+import { computed, inject } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import { Property } from '@/data/models'
 import Zoomable from '@/components/Zoomable.vue'
@@ -46,7 +46,6 @@ const inst = computed(() => {
 
 const isSelected = computed(() => props.selected ?? false)
 
-const hover    = ref(false)
 const hideImg  = inject('hideImg')
 const inputKey = inject('inputKey') as string
 </script>
@@ -55,14 +54,16 @@ const inputKey = inject('inputKey') as string
     <div class="full-container img-border" :style="`width: ${w + 2}px;`">
         <Zoomable v-if="!hideImg" :image="inst">
             <div class="img-container image-drag-handle" :style="`width: ${w + 2}px; height: ${props.size}px;`"
-                @mouseenter="hover = true" @mouseleave="hover = false" @click="emits('open', props.instance)">
+                @click="emits('open', props.instance)">
                 <div v-if="props.score != undefined" class="simi-ratio">{{ props.score }}</div>
                 <CenteredImage :instance-id="props.instance.id" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 
-                <div v-if="hover || isSelected" class="w-100 box-shadow"
+                <!-- Shown on CSS :hover rather than a mouseenter flag, which goes stale when the
+                     scroller recycles this cell to another line (see tree/Image.vue). -->
+                <div class="w-100 box-shadow" :class="{ 'hover-only': !isSelected }"
                     :style="`width: ${w + 2}px; height: ${props.size}px;`" />
-                <SelectCircle v-if="hover || isSelected" :model-value="isSelected"
+                <SelectCircle :model-value="isSelected" :class="{ 'hover-only': !isSelected }"
                     @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
             </div>
         </Zoomable>
@@ -164,6 +165,10 @@ const inputKey = inject('inputKey') as string
     position: absolute;
     top: 0;
     left: 5px;
+}
+
+.img-container:not(:hover) .hover-only {
+    visibility: hidden;
 }
 
 .box-shadow {

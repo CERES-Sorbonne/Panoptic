@@ -36,7 +36,6 @@ const emits = defineEmits({
 })
 
 const inputElems = ref([])
-const hover = ref(false)
 
 
 
@@ -200,12 +199,14 @@ watch(() => props.properties, () => {
         <!-- <div class="left-border" :style="{ height: props.item.size + 'px' }"></div> -->
         <div v-if="showImage" :class="classes" :style="{
             width: (props.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
-        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
+        }" class="p-0 m-0 image-cell" @click="showModal">
             <Zoomable :image="image">
                 <CenteredImage :instance-id="image.id" :width="props.imageSize - 1" :height="rowHeight - 2" />
-                <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: props.imageSize + 'px' }"
+                <!-- Shown on CSS :hover rather than a mouseenter flag, which goes stale when the
+                     scroller recycles this row (see tree/Image.vue). -->
+                <div class="h-100 box-shadow" :class="{ 'hover-only': !props.selected }" :style="{ width: props.imageSize + 'px' }"
                     style="position: absolute; top:0; left:0; right: 0px; bottom: 0px;"></div>
-                <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
+                <SelectCircle :model-value="props.selected" :class="{ 'hover-only': !props.selected }"
                     @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
                     class="select" :light-mode="true" />
                 <div class="image-count" v-if="pile?.slots.length > 1">{{ pile.slots.length }}</div>
@@ -290,6 +291,10 @@ watch(() => props.properties, () => {
     border-top: none;
 }
 
+
+.image-cell:not(:hover) .hover-only {
+    visibility: hidden;
+}
 
 .box-shadow {
     position: relative;
