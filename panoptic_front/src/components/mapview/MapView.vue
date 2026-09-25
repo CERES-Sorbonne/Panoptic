@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, watch, computed } from 'vue'
+import { ref, shallowRef, onMounted, onUnmounted, watch, computed } from 'vue'
 import { Colors, greyColor, Instance, MapOptions, PointData } from '@/data/models'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useMediaStore } from '@/data/stores/mediaStore'
@@ -10,6 +10,8 @@ import { isNoValue } from '@/core/group/valueParser'
 import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
+import { keyState } from '@/data/composables/keyState'
+import { newZoomOwner, zoomModal } from '../modals/zoomModal'
 import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
 
 // Components
@@ -92,6 +94,23 @@ let hadSelected = false
 const lastHoverId = ref<number | null>(null)
 watch(hoverInstanceId, (v) => { if (v) lastHoverId.value = v })
 const hoverImage = computed<Instance | null>(() => lastHoverId.value != null ? ({ id: lastHoverId.value } as Instance) : null)
+
+// Holding Ctrl over a point opens the full-screen zoom view, like Zoomable does for the
+// scrollers' images (keyState.ctrl also covers Option on mac). It follows the hovered point
+// and closes on release or once the cursor is off every point.
+const zoomOwner = newZoomOwner()
+watch([() => keyState.ctrl, hoverInstanceId], ([held, id]) => {
+    const ours = zoomModal.open && zoomModal.owner === zoomOwner
+    if (held && id != null) {
+        if (!zoomModal.open || (ours && zoomModal.image?.id !== id)) {
+            zoomModal.show({ id } as Instance, zoomOwner)
+        }
+    } else if (ours) {
+        zoomModal.hide(zoomOwner)
+    }
+    renderer.value?.setHoverThroughOverlays(zoomModal.open && zoomModal.owner === zoomOwner)
+})
+onUnmounted(() => zoomModal.hide(zoomOwner))
 
 // The map is keyed by sha1 (one point per sha1); the tree by slot.
 let sha1ToPoint: { [sha1: string]: PointData } = {}

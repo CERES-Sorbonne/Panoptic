@@ -77,11 +77,18 @@ export class MapControls {
         }
     }
 
+    // When set, hover keeps following the cursor while something covers the canvas (the Ctrl
+    // zoom overlay): that overlay fires the canvas's mouseleave, which would otherwise drop the
+    // hovered point and with it the overlay itself. The cursor still has to be over the canvas.
+    public hoverThroughOverlays = false
+
     public getHoveredPoint(zoomParams: ZoomParams): PointData | null {
         if (this.mode.startsWith('lasso')) return null
         
         // Return null if mouse is outside the canvas
-        if (!this.isMouseInCanvas) return null
+        const overCanvas = this.isMouseInCanvas || (this.hoverThroughOverlays
+            && Math.abs(this.mouse.x) <= 1 && Math.abs(this.mouse.y) <= 1)
+        if (!overCanvas) return null
 
         const worldPos = this.getMouseWorldPos()
         const currentZoom = this.camera.zoom

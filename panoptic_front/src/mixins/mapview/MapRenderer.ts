@@ -164,6 +164,10 @@ export class MapRenderer {
         }
     }
 
+    public setHoverThroughOverlays(value: boolean) {
+        this.controls.hoverThroughOverlays = value
+    }
+
     public setMouseMode(mode: string) {
         this.controls.setMode(mode)
     }

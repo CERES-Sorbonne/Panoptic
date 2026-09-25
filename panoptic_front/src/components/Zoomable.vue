@@ -1,11 +1,7 @@
-<script lang="ts">
-let nextId = 0
-</script>
-
 <script setup lang="ts">
 import { keyState } from '@/data/composables/keyState';
 import { onUnmounted, ref, watch } from 'vue';
-import { zoomModal } from './modals/zoomModal';
+import { newZoomOwner, zoomModal } from './modals/zoomModal';
 import { Instance } from '@/data/models';
 
 const props = defineProps<{
@@ -13,7 +9,7 @@ const props = defineProps<{
 }>()
 
 // Identifies this component, not its image: see zoomModal.owner.
-const id = nextId++
+const id = newZoomOwner()
 const hover = ref(false)
 const elem = ref(null)
 
