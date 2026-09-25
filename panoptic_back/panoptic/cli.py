@@ -1,4 +1,5 @@
-import sys
+from panoptic.console_encoding import force_utf8_output
+force_utf8_output()
 
 from panoptic.macos_openmp import ensure_single_openmp
 ensure_single_openmp()
@@ -16,18 +17,6 @@ VISION_NAME = 'PanopticML'
 VISION_SOURCE = 'panopticml'
 
 
-def _force_utf8_output():
-    """Force l'UTF-8 sur stdout/stderr.
-    Sur une console Windows non-UTF-8 (cp1252), l'affichage de caractères comme
-    "✓" lève sinon une UnicodeEncodeError.
-    """
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
-
-
 def _open_panoptic() -> Panoptic:
     panoptic = Panoptic(get_db_path())
     panoptic.start()
@@ -43,7 +32,6 @@ def cli(ctx, dry):
     Sans arguments, lance l'API Panoptic.
     Avec des commandes, utilise le CLI.
     """
-    _force_utf8_output()
     if ctx.invoked_subcommand is not None:
         return
     if dry:

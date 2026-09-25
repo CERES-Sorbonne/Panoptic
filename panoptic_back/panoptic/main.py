@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 if __name__ == '__main__':
+    from panoptic.console_encoding import force_utf8_output
+    force_utf8_output()
     from panoptic.macos_openmp import ensure_single_openmp
     ensure_single_openmp()
 
