@@ -28,6 +28,11 @@ struct SetupStatus {
     os: &'static str,
     log_path: Option<String>,
     install_dir: Option<String>,
+    /// main Panoptic database the backend opens (the chosen one or the default)
+    db_path: Option<String>,
+    db_is_default: bool,
+    /// running backend not spawned by the app (e.g. dev backend): its database cannot be switched
+    backend_external: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -71,6 +76,22 @@ fn install_dir_config_path() -> Result<PathBuf, String> {
 /// Flag file: when present, development pre-releases are not offered as updates
 fn skip_dev_updates_path() -> Result<PathBuf, String> {
     Ok(launcher_config_dir()?.join("skip_dev_updates"))
+}
+
+/// File persisting the main database chosen by the user (absent = backend default)
+fn db_path_config_path() -> Result<PathBuf, String> {
+    Ok(launcher_config_dir()?.join("db_path"))
+}
+
+/// Same default as the backend (panoptic.main.get_db_path)
+fn default_db_path() -> Result<PathBuf, String> {
+    Ok(home_dir()?.join(".panoptic").join("panoptic.db"))
+}
+
+fn chosen_db_path() -> Option<PathBuf> {
+    let content = std::fs::read_to_string(db_path_config_path().ok()?).ok()?;
+    let path = content.trim();
+    (!path.is_empty()).then(|| PathBuf::from(path))
 }
 
 fn dev_updates_skipped() -> bool {
@@ -246,13 +267,21 @@ fn installed_panoptic_version() -> Option<String> {
     installed_package_version("panoptic")
 }
 
+fn backend_owned(app: &AppHandle) -> bool {
+    app.try_state::<BackendProcess>()
+        .map(|state| state.0.lock().unwrap().is_some())
+        .unwrap_or(false)
+}
+
 #[tauri::command]
-async fn check_status() -> Result<SetupStatus, String> {
-    tauri::async_runtime::spawn_blocking(|| {
+async fn check_status(app: AppHandle) -> Result<SetupStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
         let venv_exists = venv_dir()?.is_dir();
         let installed_version = if venv_exists { installed_panoptic_version() } else { None };
+        let backend_running = port_open(BACKEND_PORT);
+        let chosen_db = chosen_db_path();
         Ok(SetupStatus {
-            backend_running: port_open(BACKEND_PORT),
+            backend_running,
             uv_installed: uv_available(),
             venv_exists,
             panoptic_installed: installed_version.is_some(),
@@ -260,6 +289,11 @@ async fn check_status() -> Result<SetupStatus, String> {
             os: std::env::consts::OS,
             log_path: backend_log_path().ok().map(|p| p.display().to_string()),
             install_dir: panoptic_dir().ok().map(|p| p.display().to_string()),
+            db_is_default: chosen_db.is_none(),
+            db_path: chosen_db
+                .or_else(|| default_db_path().ok())
+                .map(|p| p.display().to_string()),
+            backend_external: backend_running && !backend_owned(&app),
         })
     })
     .await
@@ -537,6 +571,9 @@ async fn launch_backend(app: AppHandle) -> Result<(), String> {
             .current_dir(panoptic_dir()?)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        if let Some(db) = chosen_db_path() {
+            cmd.env("PANOPTIC_DB", db);
+        }
         #[cfg(target_os = "linux")]
         {
             use std::os::unix::process::CommandExt;
@@ -624,6 +661,42 @@ async fn set_install_dir(path: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
+/// Choose the main database (None = back to the default) and stop the backend we spawned:
+/// the UI then reloads and the launcher starts a backend on the new database.
+#[tauri::command]
+async fn switch_db(app: AppHandle, path: Option<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if port_open(BACKEND_PORT) && !backend_owned(&app) {
+            return Err("the running backend was not started by the app: its database cannot be switched".to_string());
+        }
+        let config = db_path_config_path()?;
+        match path.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+            Some(path) => {
+                let db = PathBuf::from(path);
+                if !db.is_absolute() {
+                    return Err("database path must be absolute".to_string());
+                }
+                if db.is_dir() {
+                    return Err(format!("{} is a folder, not a database file", db.display()));
+                }
+                if let Some(parent) = config.parent() {
+                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                }
+                std::fs::write(&config, db.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
+            }
+            None => {
+                if config.exists() {
+                    std::fs::remove_file(&config).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+        kill_backend(&app);
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 fn frontend_log(message: String) {
     eprintln!("[webview] {message}");
@@ -669,6 +742,7 @@ pub fn run() {
             stop_backend,
             set_install_dir,
             set_skip_dev_updates,
+            switch_db,
             frontend_log
         ])
         .setup(|app| {

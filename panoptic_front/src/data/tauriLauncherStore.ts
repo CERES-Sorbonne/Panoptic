@@ -17,6 +17,11 @@ export interface SetupStatus {
     os: string
     logPath?: string
     installDir?: string
+    // main database opened by the backend (chosen one or default)
+    dbPath?: string
+    dbIsDefault: boolean
+    // backend already running but not started by the app (dev): its database cannot be switched
+    backendExternal: boolean
 }
 
 export interface UpdateInfo {
@@ -210,6 +215,24 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
         }
     }
 
+    // pick an existing database ('open') or where to create a new one ('new'); null if cancelled
+    async function browseDb(mode: 'open' | 'new'): Promise<string | null> {
+        const dialog = await import('@tauri-apps/plugin-dialog')
+        const filters = [{ name: 'Panoptic', extensions: ['db'] }]
+        const picked = mode === 'open'
+            ? await dialog.open({ filters, defaultPath: status.value?.dbPath })
+            : await dialog.save({ filters, defaultPath: 'panoptic.db' })
+        return typeof picked === 'string' && picked ? picked : null
+    }
+
+    // null = back to the default database. Restarts the backend on the new database.
+    async function switchDb(path: string | null) {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('switch_db', { path })
+        // the reloaded UI goes through the launcher again, which starts the backend on the new db
+        window.location.reload()
+    }
+
     async function retry() {
         const { invoke } = await import('@tauri-apps/api/core')
         error.value = null
@@ -220,6 +243,6 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
 
     return {
         phase, logs, error, status, updateInfo, uiVersion, installDir, versionsRequested, versions, selectedVersions,
-        start, retry, answer, browseInstallDir, requestVersions
+        start, retry, answer, browseInstallDir, requestVersions, browseDb, switchDb
     }
 })

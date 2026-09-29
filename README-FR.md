@@ -45,6 +45,8 @@ Normalement il suffit d'ouvrir un terminal et de lancer les commandes suivantes 
 - `pip3 install panoptic`
 - `panoptic`
 
+Lancer `panoptic --db chemin/vers/panoptic.db` (ou un dossier) pour utiliser une autre base que celle par défaut, `~/.panoptic/panoptic.db`.
+
 ### Scripts d'installation automatique et de lancement (recommandé)
 <p style="color: red;">
 Il se peut que le script vous demande votre mot de passe pour installer les dépendances, cela est nécessaire dans le cas où il vous manquerait des dépendances système pour installer Panoptic (python, pip et/ou venv).

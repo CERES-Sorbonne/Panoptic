@@ -4,6 +4,8 @@ force_utf8_output()
 from panoptic.macos_openmp import ensure_single_openmp
 ensure_single_openmp()
 
+import os
+
 import click
 
 from panoptic.core.panoptic.panoptic import Panoptic
@@ -23,23 +25,37 @@ def _open_panoptic() -> Panoptic:
     return panoptic
 
 
+def _resolve_db(path: str) -> str:
+    """Absolute database path; a folder means <folder>/panoptic.db (its plugins go next to it)."""
+    path = os.path.abspath(os.path.expanduser(path))
+    if os.path.isdir(path):
+        path = os.path.join(path, 'panoptic.db')
+    return path
+
+
 @click.group(invoke_without_command=True)
+@click.option('--db', 'db_path', metavar='CHEMIN',
+              help='Base Panoptic principale (fichier .db ou dossier). Par défaut : ~/.panoptic/panoptic.db')
 @click.option('--dry', is_flag=True, help='Run setup then exit without starting the server (CI checks)')
 @click.pass_context
-def cli(ctx, dry):
+def cli(ctx, db_path, dry):
     """Panoptic CLI
 
     Sans arguments, lance l'API Panoptic.
     Avec des commandes, utilise le CLI.
     """
+    if db_path:
+        # through the env so subcommands and child processes use it too
+        os.environ['PANOPTIC_DB'] = _resolve_db(db_path)
     if ctx.invoked_subcommand is not None:
         return
     if dry:
         click.echo("Mode dry : configuration puis arrêt sans démarrer le serveur")
+        click.echo(f"Base : {get_db_path()}")
         _open_panoptic().close()
         click.secho("✓ Panoptic est correctement installé", fg='green')
         return
-    click.echo("Lancement de Panoptic...")
+    click.echo(f"Lancement de Panoptic (base : {get_db_path()})...")
     start()
 
 

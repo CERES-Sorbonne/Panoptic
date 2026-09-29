@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { useTauriLauncherStore } from '@/data/tauriLauncherStore'
+import TauriDbSelector from './TauriDbSelector.vue'
 
 const launcher = useTauriLauncherStore()
 
@@ -126,6 +127,8 @@ watch(() => launcher.logs.length, async () => {
                         {{ $t('launcher.retry') }}
                     </button>
                 </div>
+                <!-- a database that fails to open must not lock the user out: switch it from here -->
+                <TauriDbSelector class="mt-2" />
             </div>
 
             <pre v-if="launcher.logs.length" ref="logPanel" class="log-panel"><span v-for="(log, i) in launcher.logs"

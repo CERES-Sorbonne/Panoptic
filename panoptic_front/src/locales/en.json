@@ -38,6 +38,15 @@
             "keep": "Keep current ({version})",
             "confirm": "Install",
             "cancel": "Cancel"
+        },
+        "db": {
+            "current": "Panoptic database",
+            "default": "default",
+            "open": "Open another database…",
+            "new": "New database…",
+            "use_default": "Back to the default database",
+            "external": "Backend started outside the app: the database cannot be switched.",
+            "confirm": "Panoptic will restart on this database. Running tasks will be stopped. Continue?"
         }
     },
     "main": {

@@ -38,6 +38,15 @@
             "keep": "Garder la version actuelle ({version})",
             "confirm": "Installer",
             "cancel": "Annuler"
+        },
+        "db": {
+            "current": "Base Panoptic",
+            "default": "par défaut",
+            "open": "Ouvrir une autre base…",
+            "new": "Nouvelle base…",
+            "use_default": "Revenir à la base par défaut",
+            "external": "Backend lancé hors de l'application : impossible de changer de base.",
+            "confirm": "Panoptic va redémarrer sur cette base. Les tâches en cours seront interrompues. Continuer ?"
         }
     },
     "main": {

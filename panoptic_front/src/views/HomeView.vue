@@ -17,6 +17,8 @@ import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
 import FirstModal from '@/components/modals/FirstModal.vue';
 import NotifModal from '@/components/modals/NotifModal.vue';
 import LegacyImportModal from '@/components/modals/LegacyImportModal.vue';
+import TauriDbSelector from '@/components/tauri/TauriDbSelector.vue';
+import { isTauri } from '@/data/tauriLauncherStore';
 
 const panoptic = usePanopticStore()
 // shown when the backend cannot be reached; empty means same origin
@@ -237,6 +239,7 @@ function openLegacyModal(legacyPath?: string) {
                             <wTT v-if="panoptic.isConnected" message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
                                     @click="downloadPackagesInfos"></i></wTT>
                         </div>
+                        <TauriDbSelector v-if="isTauri && panoptic.isConnected" confirm class="mt-2" />
                         <div class="lang">
                             <i class="bi bi-translate" style="margin-right:0.5rem"></i>
                             <select v-model="$i18n.locale" @change="rerender">
