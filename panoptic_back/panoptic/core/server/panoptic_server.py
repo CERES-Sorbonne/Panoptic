@@ -27,7 +27,8 @@ from panoptic.models.models import TaskState
 from panoptic.core.panoptic.panoptic import Panoptic
 from panoptic.core.databases.data.data_reader import DataReader
 from panoptic.core.watcher.db_watcher import DbWatcher, WATCH_PANOPTIC_DB
-from panoptic.core.plugin.plugin_watcher import PluginWatcher, WATCH_PLUGINS
+from panoptic.config import get_config
+from panoptic.core.plugin.plugin_watcher import PluginWatcher
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +73,7 @@ class PanopticServer:
         self._watchers:      dict[str, DbWatcher]          = {}
         self._watcher_tasks: dict[str, asyncio.Task]       = {}
 
-        # PluginWatcher per loaded project (only active when PANOPTIC_WATCH_PLUGINS=1)
+        # PluginWatcher per loaded project (only active with watch_plugins)
         self._plugin_watchers:      dict[str, PluginWatcher] = {}
         self._plugin_watcher_tasks: dict[str, asyncio.Task]  = {}
 
@@ -263,7 +264,7 @@ class PanopticServer:
             self._attach_watcher(id_, project.data_db_path)
 
         # Start PluginWatcher if hot-reload is enabled
-        if WATCH_PLUGINS and id_ not in self._plugin_watchers:
+        if get_config().watch_plugins and id_ not in self._plugin_watchers:
             self._attach_plugin_watcher(id_, project)
 
         # Wire task callback if not yet wired

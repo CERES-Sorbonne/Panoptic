@@ -1,13 +1,12 @@
 """PluginWatcher — hot-reloads plugins when their source files change.
 
-Enabled by setting the PANOPTIC_WATCH_PLUGINS=1 environment variable.
+Enabled by `watch_plugins` in the config (or PANOPTIC_WATCH_PLUGINS=1).
 Each changed plugin is cleared from the Python module cache, removed from
 the project's plugin list, and re-loaded via a fresh LoadPluginTask.
 """
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,10 +17,6 @@ from panoptic.core.databases.panoptic.models import PluginKey
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-
-WATCH_PLUGINS: bool = os.getenv('PANOPTIC_WATCH_PLUGINS', '0') == '1'
-
-print(f'[PluginWatcher] PANOPTIC_WATCH_PLUGINS={os.getenv("PANOPTIC_WATCH_PLUGINS")!r} → WATCH_PLUGINS={WATCH_PLUGINS}')
 
 _IGNORE = ('__pycache__', '.pyc', '.pyo', '.pyd', '.swp', '.tmp', '~', '.git', '.DS_Store')
 

@@ -44,7 +44,7 @@ panopticApi.interceptors.response.use(response => response, (error) => {
 
 export async function apiGetFilesystemInfo() {
     let res = await panopticApi.get('/filesystem/info')
-    return res.data as { partitions: DirInfo[], fast: DirInfo[] }
+    return res.data as { partitions: DirInfo[], fast: DirInfo[], restricted: boolean }
 }
 
 export async function apiGetFilesystemLs(path: string) {

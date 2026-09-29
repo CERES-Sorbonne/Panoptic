@@ -47,6 +47,8 @@ Normalement il suffit d'ouvrir un terminal et de lancer les commandes suivantes 
 
 Lancer `panoptic --db chemin/vers/panoptic.db` (ou un dossier) pour utiliser une autre base que celle par défaut, `~/.panoptic/panoptic.db`.
 
+Les réglages (base, port, plugins installés au démarrage, dossiers visibles dans l'explorateur de fichiers…) peuvent aussi venir d'un fichier TOML : `panoptic --config panoptic.toml` ou `PANOPTIC_CONFIG=panoptic.toml`. Voir [panoptic.example.toml](panoptic_back/panoptic.example.toml).
+
 ### Scripts d'installation automatique et de lancement (recommandé)
 <p style="color: red;">
 Il se peut que le script vous demande votre mot de passe pour installer les dépendances, cela est nécessaire dans le cas où il vous manquerait des dépendances système pour installer Panoptic (python, pip et/ou venv).

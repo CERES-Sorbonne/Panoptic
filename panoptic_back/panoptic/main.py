@@ -33,6 +33,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from panoptic.config import get_config
 from panoptic.core.panoptic.panoptic import Panoptic
 from panoptic.core.server.panoptic_server import PanopticServer
 from panoptic.routes.deps import set_dependencies
@@ -41,7 +42,7 @@ from panoptic.routes.project_routes import project_router
 
 
 def get_db_path() -> str:
-    return os.getenv('PANOPTIC_DB', os.path.expanduser('~/.panoptic/panoptic.db'))
+    return get_config().db
 
 
 def _watch_parent():
@@ -66,12 +67,13 @@ def _watch_parent():
 
 
 def start():
-    db_path = get_db_path()
-    PORT   = int(os.getenv('PANOPTIC_PORT', 8000))
-    HOST    = os.getenv('PANOPTIC_HOST', None)
+    config = get_config()
+    PORT = config.port
+    HOST = config.host
 
-    panoptic = Panoptic(db_path)
+    panoptic = Panoptic(config.db)
     panoptic.start()
+    panoptic.ensure_plugins(config.plugins)
 
     sio    = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
     server = PanopticServer(panoptic, sio)
@@ -93,7 +95,7 @@ def start():
         allow_headers=['*'],
     )
 
-    if os.environ.get('PANOPTIC_REMOTE'):
+    if config.gzip:
         from starlette.middleware.gzip import GZipMiddleware
         app.add_middleware(GZipMiddleware, minimum_size=1_000_000, compresslevel=4)
 

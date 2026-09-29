@@ -25,6 +25,14 @@ const selectedFolder = ref({ path: "" } as DirInfo)
 const selectedFullCount = ref(null)
 const scrollerElem = ref(null)
 const isCounting = ref(false)
+const restricted = ref(false)
+
+const displayPath = computed(() => {
+    const path = selectedFolder.value.path
+    if (!restricted.value) return path
+    const root = fastList.find(r => path == r.path || path.startsWith(r.path + '/'))
+    return root ? root.name + path.slice(root.path.length) : path
+})
 
 const baseRoot = computed(() => {
     if (openFolders.length == 0 || openFolders[0].length == 0) return '/'
@@ -62,7 +70,8 @@ const isValidPath = computed(() => {
 })
 
 async function updateInfo() {
-    let { fast, partitions } = await apiGetFilesystemInfo()
+    let { fast, partitions, restricted: isRestricted } = await apiGetFilesystemInfo()
+    restricted.value = isRestricted
 
     fastList.length = 0
     fastList.push(...fast)
@@ -128,7 +137,8 @@ async function count() {
 
 onMounted(async () => {
     await updateInfo()
-    setOpenFolder(fastList.filter(d => d.name == 'Home')[0])
+    const start = restricted.value ? fastList[0] : fastList.find(d => d.name == 'Home')
+    if (start) setOpenFolder(start)
 });
 
 </script>
@@ -142,10 +152,12 @@ onMounted(async () => {
                 <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
             </div>
 
-            <div class="fs-title fs-title-spaced">{{ $t('modals.fs.partitions') }}</div>
-            <div v-for="dir in partitionList" :key="dir.path">
-                <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
-            </div>
+            <template v-if="!restricted">
+                <div class="fs-title fs-title-spaced">{{ $t('modals.fs.partitions') }}</div>
+                <div v-for="dir in partitionList" :key="dir.path">
+                    <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
+                </div>
+            </template>
         </div>
 
         <!-- Right: folder columns + image preview + pinned action bar -->
@@ -165,7 +177,7 @@ onMounted(async () => {
             </div>
 
             <div class="action-bar">
-                <div class="path-string">{{ selectedFolder.path }}</div>
+                <div class="path-string">{{ displayPath }}</div>
                 <div class="count" @click="count">
                     <span v-if="selectedFullCount != null">{{ selectedFullCount }} images</span>
                     <span v-else-if="!isCounting">Count</span>
