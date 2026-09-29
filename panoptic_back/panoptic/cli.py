@@ -28,7 +28,7 @@ def _open_panoptic() -> Panoptic:
 
 @click.group(invoke_without_command=True)
 @click.option('--config', 'config_path', metavar='FICHIER', type=click.Path(dir_okay=False),
-              help='Fichier de configuration TOML (sinon PANOPTIC_CONFIG)')
+              help='Fichier de configuration TOML (sinon PANOPTIC_CONFIG, sinon ~/.panoptic/panoptic_config.toml)')
 @click.option('--db', 'db_path', metavar='CHEMIN',
               help='Base Panoptic principale (fichier .db ou dossier). Par défaut : ~/.panoptic/panoptic.db')
 @click.option('--dry', is_flag=True, help='Run setup then exit without starting the server (CI checks)')

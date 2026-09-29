@@ -50,7 +50,7 @@ Generally, you just need to open a terminal and run the following commands to in
 
 Run `panoptic --db path/to/panoptic.db` (or a folder) to use another database than the default `~/.panoptic/panoptic.db`.
 
-Settings (database, port, plugins installed at startup, folders visible in the file explorer…) can also come from a TOML file: `panoptic --config panoptic.toml` or `PANOPTIC_CONFIG=panoptic.toml`. See [panoptic.example.toml](panoptic_back/panoptic.example.toml).
+Settings (database, port, plugins installed at startup, folders visible in the file explorer…) can also come from a TOML file: `panoptic --config panoptic.toml` or `PANOPTIC_CONFIG=panoptic.toml`, otherwise `~/.panoptic/panoptic_config.toml` when it exists. See [panoptic.example.toml](panoptic_back/panoptic.example.toml).
 
 ### 2.2 Automatic Installation and Launch Scripts (recommended) <a id="automatic-installation-and-launch-scripts-recommended"></a>
 <p style="color: red;">

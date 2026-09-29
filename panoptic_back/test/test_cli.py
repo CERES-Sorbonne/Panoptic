@@ -4,16 +4,13 @@ import pytest
 from click.testing import CliRunner
 
 from panoptic.cli import cli
-from panoptic.config import get_config, set_config
+from panoptic.config import get_config
 
 
 @pytest.fixture(autouse=True)
-def isolate_config(monkeypatch):
-    # the CLI writes PANOPTIC_DB / PANOPTIC_CONFIG and the global config: keep them from leaking
+def restore_db_env(monkeypatch):
+    # the CLI writes PANOPTIC_DB: keep it from leaking into the other tests
     monkeypatch.delenv('PANOPTIC_DB', raising=False)
-    monkeypatch.delenv('PANOPTIC_CONFIG', raising=False)
-    yield
-    set_config(None)
 
 
 def test_db_option_opens_given_file(tmp_path):

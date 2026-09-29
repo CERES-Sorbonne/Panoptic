@@ -1,4 +1,5 @@
-# Panoptic configuration: panoptic --config panoptic.toml (or PANOPTIC_CONFIG=panoptic.toml)
+# Panoptic configuration: panoptic --config panoptic.toml (or PANOPTIC_CONFIG=panoptic.toml).
+# Without either, ~/.panoptic/panoptic_config.toml is used when it exists.
 # Priority: CLI options > environment variables > this file > defaults.
 # Relative paths are relative to this file.
 

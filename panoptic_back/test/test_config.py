@@ -3,16 +3,11 @@ import os
 import pytest
 from fastapi import HTTPException
 
+from panoptic import config as config_module
 from panoptic.config import (ConfigError, DataPath, PanopticConfig, PluginSpec, is_allowed_path, load_config,
                              set_config)
 from panoptic.core.panoptic.panoptic import Panoptic
 from panoptic.routes import panoptic_routes
-
-
-@pytest.fixture(autouse=True)
-def reset_config():
-    yield
-    set_config(None)
 
 
 def write(path, text):
@@ -59,6 +54,17 @@ def test_precedence_cli_over_env_over_file(tmp_path):
 def test_config_path_from_env(tmp_path):
     path = write(tmp_path / 'c.toml', 'port = 4242')
     assert load_config(env={'PANOPTIC_CONFIG': path}).port == 4242
+
+
+def test_default_config_file_used_only_as_last_resort(tmp_path, monkeypatch):
+    default = write(tmp_path / 'panoptic_config.toml', 'port = 1111\ndb = "main"')
+    monkeypatch.setattr(config_module, 'DEFAULT_CONFIG', default)
+    config = load_config(env={})
+    assert config.port == 1111
+    assert config.db == str(tmp_path / 'main')
+    other = write(tmp_path / 'other.toml', 'port = 2222')
+    assert load_config(env={'PANOPTIC_CONFIG': other}).port == 2222
+    assert load_config(other, env={}).port == 2222
 
 
 def test_gzip_defaults_to_remote_mode_unless_set(tmp_path):

@@ -1,4 +1,4 @@
-"""Panoptic configuration: TOML file (--config / PANOPTIC_CONFIG), then env vars, then CLI options."""
+"""Panoptic configuration: TOML file (--config, PANOPTIC_CONFIG or DEFAULT_CONFIG), then env vars, then CLI options."""
 from __future__ import annotations
 
 import os
@@ -8,6 +8,7 @@ import msgspec
 import msgspec.toml
 
 DEFAULT_DB = os.path.join('~', '.panoptic', 'panoptic.db')
+DEFAULT_CONFIG = os.path.join('~', '.panoptic', 'panoptic_config.toml')
 DEFAULT_PORT = 8000
 
 
@@ -80,6 +81,8 @@ def _apply_env(config: PanopticConfig, env) -> None:
 def load_config(path: str | None = None, db: str | None = None, env=None) -> PanopticConfig:
     env = os.environ if env is None else env
     path = path or env.get('PANOPTIC_CONFIG')
+    if not path and os.path.isfile(os.path.expanduser(DEFAULT_CONFIG)):
+        path = DEFAULT_CONFIG
     config = _read_file(os.path.abspath(os.path.expanduser(path))) if path else PanopticConfig()
     if not path:
         config.db = resolve_db(config.db)
