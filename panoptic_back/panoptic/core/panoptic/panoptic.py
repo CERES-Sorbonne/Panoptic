@@ -278,6 +278,11 @@ class Panoptic:
             source_path=source_path,
         )
 
+    def find_plugin(self, name: str, source_path: str, source_type: str) -> PluginKey | None:
+        # also matches the same source under another name (e.g. imported from an old database)
+        return next((p for p in self.db.get_plugins()
+                     if p.id == name or (p.source_type == source_type and p.source_path == source_path)), None)
+
     def reinstall_plugin(self, plugin_id: str) -> None:
         plugin = next((p for p in self.db.get_plugins() if p.id == plugin_id), None)
         if not plugin:

@@ -8,6 +8,7 @@ import os
 
 import click
 
+from panoptic.config import ConfigError, load_config, set_config
 from panoptic.core.panoptic.panoptic import Panoptic
 from panoptic.core.plugin.plugin_installer import SOURCE_GIT, SOURCE_PATH, SOURCE_PIP
 from panoptic.main import get_db_path, start
@@ -25,28 +26,28 @@ def _open_panoptic() -> Panoptic:
     return panoptic
 
 
-def _resolve_db(path: str) -> str:
-    """Absolute database path; a folder means <folder>/panoptic.db (its plugins go next to it)."""
-    path = os.path.abspath(os.path.expanduser(path))
-    if os.path.isdir(path):
-        path = os.path.join(path, 'panoptic.db')
-    return path
-
-
 @click.group(invoke_without_command=True)
+@click.option('--config', 'config_path', metavar='FICHIER', type=click.Path(dir_okay=False),
+              help='Fichier de configuration TOML (sinon PANOPTIC_CONFIG, sinon ~/.panoptic/panoptic_config.toml)')
 @click.option('--db', 'db_path', metavar='CHEMIN',
               help='Base Panoptic principale (fichier .db ou dossier). Par défaut : ~/.panoptic/panoptic.db')
 @click.option('--dry', is_flag=True, help='Run setup then exit without starting the server (CI checks)')
 @click.pass_context
-def cli(ctx, db_path, dry):
+def cli(ctx, config_path, db_path, dry):
     """Panoptic CLI
 
     Sans arguments, lance l'API Panoptic.
     Avec des commandes, utilise le CLI.
     """
-    if db_path:
-        # through the env so subcommands and child processes use it too
-        os.environ['PANOPTIC_DB'] = _resolve_db(db_path)
+    try:
+        config = load_config(config_path, db=db_path)
+    except ConfigError as e:
+        raise click.ClickException(str(e))
+    set_config(config)
+    # through the env so child processes (plugins, migration tool) use the same settings
+    if config_path:
+        os.environ['PANOPTIC_CONFIG'] = os.path.abspath(config_path)
+    os.environ['PANOPTIC_DB'] = config.db
     if ctx.invoked_subcommand is not None:
         return
     if dry:
@@ -86,10 +87,7 @@ def add(name: str, source: str | None, source_type: str | None):
 
     panoptic = _open_panoptic()
     try:
-        # idempotent : relancer l'installateur ne doit pas échouer si le plugin est déjà là
-        # (y compris sous un autre nom, ex. "PanopticVision" importé d'une ancienne base)
-        existing = next((p for p in panoptic.get_plugins()
-                         if p.id == name or (p.source_type == source_type and p.source_path == source)), None)
+        existing = panoptic.find_plugin(name, source, source_type.lower())
         if existing:
             click.secho(f"✓ Plugin {existing.id} déjà installé", fg='green')
             return

@@ -1,0 +1,24 @@
+# Panoptic configuration: panoptic --config panoptic.toml (or PANOPTIC_CONFIG=panoptic.toml).
+# Without either, ~/.panoptic/panoptic_config.toml is used when it exists.
+# Priority: CLI options > environment variables > this file > defaults.
+# Relative paths are relative to this file.
+
+# Main database (projects and plugins registry): a .db file or a folder (then <folder>/panoptic.db).
+# Plugins are installed next to it, in <folder>/plugins. Env: PANOPTIC_DB, CLI: --db
+db = "~/.panoptic/panoptic.db"
+
+# Env: PANOPTIC_PORT / PANOPTIC_HOST (host "0.0.0.0" to accept remote connections)
+port = 8000
+# host = "0.0.0.0"
+
+# Gzip large responses (project properties). Default: on when PANOPTIC_REMOTE is set.
+# gzip = true
+
+# Reload plugins when their source files change (plugin development). Env: PANOPTIC_WATCH_PLUGINS=1
+watch_plugins = false
+
+# When set, only these folders can be browsed, served or used for projects (everything else gets 403).
+# data_paths = [
+#     { path = "/mnt/data/panoptic/images", alias = "images" },
+#     { path = "/mnt/data/archives" },  # alias defaults to the folder name
+# ]

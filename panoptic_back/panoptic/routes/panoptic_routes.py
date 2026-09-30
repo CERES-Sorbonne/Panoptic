@@ -17,6 +17,7 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, Response
 
 from panoptic import __version__ as panoptic_version
+from panoptic.config import get_config, is_allowed_path
 from panoptic.core.project.conversion import STATUS_OK, check_project
 from panoptic.routes.deps import get_panoptic, get_server, set_dependencies   # re-export
 
@@ -28,6 +29,11 @@ panoptic_router = APIRouter()
 
 def _json(obj) -> Response:
     return Response(msgspec.json.encode(obj), media_type='application/json')
+
+
+def require_allowed_path(path: str) -> None:
+    if not is_allowed_path(path):
+        raise HTTPException(403, f'{path} is outside the allowed data paths')
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +143,7 @@ class ProjectCloseRequest(BaseModel):
 
 @panoptic_router.post('/create_project')
 async def create_project_route(req: ProjectCreateRequest, request: Request):
+    require_allowed_path(req.path)
     connection_id = request.query_params.get('connection_id')
     try:
         key = await anyio.to_thread.run_sync(
@@ -150,6 +157,7 @@ async def create_project_route(req: ProjectCreateRequest, request: Request):
 
 @panoptic_router.post('/import_project')
 async def import_project_route(req: ProjectImportRequest, request: Request):
+    require_allowed_path(req.path)
     connection_id = request.query_params.get('connection_id')
     try:
         key = await anyio.to_thread.run_sync(
@@ -254,6 +262,7 @@ def del_plugin_route(plugin_id: str):
 def get_image_file(file_path: str):
     if platform in ('linux', 'linux2', 'darwin') and not file_path.startswith('/'):
         file_path = '/' + file_path
+    require_allowed_path(file_path)
     return FileResponse(path=file_path)
 
 
@@ -290,11 +299,19 @@ def _list_contents(full_path: str = '/') -> dict:
 def filesystem_ls(path: str = ''):
     if platform in ('linux', 'linux2', 'darwin') and not path.startswith('/'):
         path = '/' + path
+    require_allowed_path(path)
     return _list_contents(path)
 
 
 @panoptic_router.get('/filesystem/info')
 def filesystem_info():
+    data_paths = get_config().data_paths
+    if data_paths:
+        roots = [
+            {'path': d.path, 'name': d.alias, 'images': len(_images_in_folder(d.path))}
+            for d in data_paths if os.path.isdir(d.path)
+        ]
+        return {'partitions': [], 'fast': roots, 'restricted': True}
     partitions = [
         p for p in psutil.disk_partitions()
         if not p.mountpoint.startswith('/System')
@@ -307,13 +324,14 @@ def filesystem_info():
     fast = [{'path': home, 'name': 'Home', 'images': len(_images_in_folder(home))}]
     home_dirs = _list_contents(home)['directories']
     fast.extend(d for d in home_dirs if d['name'] in ('Documents', 'Downloads', 'Desktop', 'Images', 'Pictures'))
-    return {'partitions': mounted, 'fast': fast}
+    return {'partitions': mounted, 'fast': fast, 'restricted': False}
 
 
 @panoptic_router.get('/filesystem/count/{path:path}')
 def filesystem_count(path: str = ''):
     if platform in ('linux', 'linux2', 'darwin') and not path.startswith('/'):
         path = '/' + path
+    require_allowed_path(path)
     folder = os.path.normpath(path)
     count = sum(
         1 for _, _, files in os.walk(folder)

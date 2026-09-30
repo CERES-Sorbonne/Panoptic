@@ -31,6 +31,7 @@ from panoptic.core.databases.data.create import (
     INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
 )
 from panoptic.routes.deps import get_project
+from panoptic.routes.panoptic_routes import require_allowed_path
 
 project_router = APIRouter(prefix='/projects/{project_id}')
 
@@ -502,6 +503,7 @@ class _IdRequest(BaseModel):
 
 @project_router.post('/folders')
 def add_folder(req: _PathRequest, project: Project = Depends(_dep)):
+    require_allowed_path(req.path)
     project.import_folder(req.path)
     return _json(project.get_folders())
 
