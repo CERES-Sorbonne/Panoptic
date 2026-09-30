@@ -15,7 +15,7 @@ cd panoptic_back && python -m pytest test panoptic/core/task/tests
   CSV (`test_import_export.py`, sur les images et CSV de `test/data`).
 - L'option `--db` du CLI (`test_cli.py`) : fichier ou dossier, appliquée aussi aux sous-commandes.
 - Le fichier de configuration (`test_config.py`, `test_cli.py`) : priorités CLI > env > fichier, chemins
-  relatifs au fichier, erreurs de validation, plugins installés au démarrage, restriction `data_paths`
+  relatifs au fichier, erreurs de validation, restriction `data_paths`
   des routes filesystem / images (y compris `..` et liens symboliques).
 - `test/scripts/` contient des benchmarks, ce ne sont pas des tests.
 

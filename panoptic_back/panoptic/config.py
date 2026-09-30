@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import os
-from typing import Literal
-
 import msgspec
 import msgspec.toml
 
@@ -14,12 +12,6 @@ DEFAULT_PORT = 8000
 
 class ConfigError(Exception):
     pass
-
-
-class PluginSpec(msgspec.Struct, forbid_unknown_fields=True):
-    name: str
-    source: str
-    type: Literal['pip', 'git', 'path']
 
 
 class DataPath(msgspec.Struct, forbid_unknown_fields=True):
@@ -33,7 +25,6 @@ class PanopticConfig(msgspec.Struct, forbid_unknown_fields=True, kw_only=True):
     host: str | None = None
     gzip: bool | None = None
     watch_plugins: bool = False
-    plugins: list[PluginSpec] = []
     data_paths: list[DataPath] = []
 
 

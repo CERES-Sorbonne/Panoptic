@@ -17,12 +17,6 @@ port = 8000
 # Reload plugins when their source files change (plugin development). Env: PANOPTIC_WATCH_PLUGINS=1
 watch_plugins = false
 
-# Installed at startup when missing, never uninstalled. type: pip, git or path
-plugins = [
-    { name = "PanopticML", source = "panopticml", type = "pip" },
-    # { name = "MyPlugin", source = "https://github.com/me/MyPlugin.git", type = "git" },
-]
-
 # When set, only these folders can be browsed, served or used for projects (everything else gets 403).
 # data_paths = [
 #     { path = "/mnt/data/panoptic/images", alias = "images" },

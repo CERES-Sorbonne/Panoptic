@@ -283,13 +283,6 @@ class Panoptic:
         return next((p for p in self.db.get_plugins()
                      if p.id == name or (p.source_type == source_type and p.source_path == source_path)), None)
 
-    def ensure_plugins(self, specs) -> None:
-        for spec in specs:
-            if self.find_plugin(spec.name, spec.source, spec.type):
-                continue
-            print(f'Installing plugin {spec.name} ({spec.type}: {spec.source})...')
-            self.add_plugin(spec.name, spec.source, spec.type)
-
     def reinstall_plugin(self, plugin_id: str) -> None:
         plugin = next((p for p in self.db.get_plugins() if p.id == plugin_id), None)
         if not plugin:

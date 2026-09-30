@@ -73,7 +73,6 @@ def start():
 
     panoptic = Panoptic(config.db)
     panoptic.start()
-    panoptic.ensure_plugins(config.plugins)
 
     sio    = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
     server = PanopticServer(panoptic, sio)

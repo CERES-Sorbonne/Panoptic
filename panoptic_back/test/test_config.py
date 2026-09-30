@@ -4,9 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from panoptic import config as config_module
-from panoptic.config import (ConfigError, DataPath, PanopticConfig, PluginSpec, is_allowed_path, load_config,
-                             set_config)
-from panoptic.core.panoptic.panoptic import Panoptic
+from panoptic.config import ConfigError, DataPath, PanopticConfig, is_allowed_path, load_config, set_config
 from panoptic.routes import panoptic_routes
 
 
@@ -21,7 +19,7 @@ def test_defaults_without_file():
     assert config.port == 8000
     assert config.gzip is False
     assert not config.watch_plugins
-    assert config.plugins == [] and config.data_paths == []
+    assert config.data_paths == []
 
 
 def test_file_paths_are_relative_to_the_file(tmp_path):
@@ -76,7 +74,7 @@ def test_gzip_defaults_to_remote_mode_unless_set(tmp_path):
 @pytest.mark.parametrize('content, message', [
     ('prot = 1', 'unknown field `prot`'),
     ('port = "x"', 'Expected `int`'),
-    ('plugins = [{ name = "a", source = "b", type = "svn" }]', "'svn'"),
+    ('plugins = [{ name = "a", source = "b", type = "pip" }]', 'unknown field `plugins`'),
     ('port =', 'invalid config file'),
 ])
 def test_invalid_file(tmp_path, content, message):
@@ -88,34 +86,6 @@ def test_invalid_file(tmp_path, content, message):
 def test_missing_file(tmp_path):
     with pytest.raises(ConfigError, match='cannot read'):
         load_config(str(tmp_path / 'nope.toml'), env={})
-
-
-def test_plugins_must_be_full_specs(tmp_path):
-    path = write(tmp_path / 'c.toml', 'plugins = [{ name = "PanopticML", source = "panopticml", type = "pip" }]')
-    assert load_config(path, env={}).plugins == [PluginSpec('PanopticML', 'panopticml', 'pip')]
-    path = write(tmp_path / 'c.toml', 'plugins = ["vision"]')
-    with pytest.raises(ConfigError, match='Expected `object`'):
-        load_config(path, env={})
-
-
-def test_ensure_plugins_installs_only_missing(tmp_path, monkeypatch):
-    panoptic = Panoptic(tmp_path / 'panoptic.db')
-    panoptic.start()
-    installed = []
-
-    def fake_add(name, source, source_type):
-        installed.append(name)
-        return panoptic.db.add_plugin(id_=name, install_path='/x', source_type=source_type, source_path=source)
-    monkeypatch.setattr(panoptic, 'add_plugin', fake_add)
-    try:
-        specs = [PluginSpec('PanopticML', 'panopticml', 'pip'), PluginSpec('G', 'https://x/g.git', 'git')]
-        panoptic.ensure_plugins(specs)
-        panoptic.ensure_plugins(specs)
-        # same source registered under another name counts as installed
-        panoptic.ensure_plugins([PluginSpec('Vision2', 'panopticml', 'pip')])
-    finally:
-        panoptic.close()
-    assert installed == ['PanopticML', 'G']
 
 
 @pytest.fixture
