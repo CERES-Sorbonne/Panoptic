@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User, PluginType, LegacyScan, LegacyMigrationRun, PluginKey } from '../models'
+import { DirInfo, FileInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User, PluginType, LegacyScan, LegacyMigrationRun, PluginKey } from '../models'
 import { usePanopticStore } from '../stores/panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -49,7 +49,7 @@ export async function apiGetFilesystemInfo() {
 
 export async function apiGetFilesystemLs(path: string) {
     let res = await panopticApi.get('/filesystem/ls' + '/' + path)
-    return res.data as { directories: DirInfo[], images: [] }
+    return res.data as { directories: DirInfo[], images: [], files?: FileInfo[] }
 }
 
 export async function apiGetFilesystemCount(path: string) {

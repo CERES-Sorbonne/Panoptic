@@ -52,7 +52,7 @@ class MesParamsPlugin(BaseModel):
     batch_size: int = 32
     threshold: float = 0.75
 ```
-Types UI supportés : `int`, `float`, `str`, `bool`, `PropertyId`, `Enum`, `VectorType`, `OwnVectorType`
+Types UI supportés : `int`, `float`, `str`, `bool`, `PropertyId`, `Enum`, `VectorType`, `OwnVectorType`, `FolderPath`, `FilePath`
 
 ## Actions et Fonctions
 

@@ -64,7 +64,7 @@ self.add_action_easy(self.my_function, hooks=['execute', 'similar', 'group'])
 Function signature requirements:
 - Must be `async def`
 - First arg: `context: ActionContext` (carries `instance_ids`, `group_name`, `ui_inputs`)
-- Other args: typed with allowed types: `int`, `float`, `str`, `bool`, `Path`, `PropertyId`, `Enum`, `VectorType`, `OwnVectorType`, `InputFile`
+- Other args: typed with allowed types: `int`, `float`, `str`, `bool`, `Path`, `PropertyId`, `Enum`, `VectorType`, `OwnVectorType`, `InputFile`, `FolderPath`, `FilePath`
 - Returns: `ActionResult`
 
 ```python

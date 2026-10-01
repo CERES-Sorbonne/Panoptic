@@ -698,6 +698,11 @@ a:focus {
 }
 
 /* Vue Popper overrides */
+/* Dropdown popup put aside while a modal opened from it is on top (see Dropdown.vue). */
+.v-popper__popper.dropdown-suspended {
+  visibility: hidden !important;
+}
+
 .v-popper__arrow-container {
   box-shadow: none !important;
   display: none !important;

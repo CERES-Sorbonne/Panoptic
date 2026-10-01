@@ -283,7 +283,10 @@
             "images": "Choisir un dossier d'images à ajouter",
             "import": "Choisir un projet à importer",
             "create": "Choisir l'emplacement où créer",
-            "open": "Sélectionner"
+            "open": "Sélectionner",
+            "folder": "Choisir un dossier",
+            "file": "Choisir un fichier",
+            "browse": "Parcourir"
         },
         "image": {
             "properties": "Propriétés",

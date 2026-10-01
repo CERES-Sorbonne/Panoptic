@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
+from pydantic_core import core_schema
 
 
 # ---------------------------------------------------------------------------
@@ -21,6 +22,19 @@ class OwnVectorType(str):
 
 class InputFile(str):
     """Marks a parameter as a file upload input in the UI."""
+
+class _ServerPath(str):
+    """A path string that can also be used as a field of a plugin params model."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source, handler):
+        return core_schema.no_info_after_validator_function(cls, core_schema.str_schema())
+
+class FolderPath(_ServerPath):
+    """Marks a parameter as a server folder path, picked with the file explorer."""
+
+class FilePath(_ServerPath):
+    """Marks a parameter as a server file path, picked with the file explorer."""
 
 
 # ---------------------------------------------------------------------------

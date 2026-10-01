@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { inject, InjectionKey, nextTick, onUnmounted, provide, ref } from 'vue';
+import { computed, inject, InjectionKey, nextTick, onUnmounted, provide, ref } from 'vue';
 import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
 import { useProjectStore } from '@/data/stores/projectStore';
+import { useModalStore } from '@/data/stores/modalStore';
 
 const props = withDefaults(defineProps<{
     offset?: number
@@ -29,6 +30,15 @@ const globalElem = ref(null)
 const boudaryElem = ref(document.getElementsByTagName('body')[0])
 
 const visible = ref(false)
+
+// A modal opened from this dropdown (e.g. the file explorer of a path input) sits on a higher
+// modal layer than the dropdown did when it opened. While such a modal is open the dropdown is
+// suspended: its popup is hidden so it cannot cover the modal, and clicks do not close it.
+// It comes back unchanged when the modal closes.
+const modal = useModalStore()
+const topModalLayer = computed(() => Math.max(-1, ...Object.keys(modal.layerOpen).map(Number)))
+const layerAtShow = ref(-1)
+const suspended = computed(() => visible.value && topModalLayer.value > layerAtShow.value)
 
 // Nested dropdowns may render their popup elsewhere (teleport). Each one registers its popup
 // with every ancestor dropdown, so a click inside it does not count as an outside click.
@@ -65,6 +75,7 @@ async function onShow() {
         popupWidth.value = `${width}px`
     }
 
+    layerAtShow.value = topModalLayer.value
     visible.value = true
     if (props.autoFocus) {
         await nextTick()
@@ -84,6 +95,7 @@ function onHide() {
 }
 
 function clickHandler(e: Event) {
+    if (suspended.value) return
     const target = e.target as Node
     if (popupElem.value?.contains(target) || buttonElem.value?.contains(target)) return
     for (const getNested of nestedPopups) {
@@ -118,7 +130,7 @@ export const dropdownRegistryKey: InjectionKey<{
     <div class="p-0 m-0" ref="globalElem">
         <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" :skidding="props.skidding" no-auto-focus
             :boundary="boudaryElem" :auto-hide="false" :prevent-overflow="true" :placement="props.placement"
-            :container="props.teleport ? '#popup' : globalElem">
+            :container="props.teleport ? '#popup' : globalElem" :popper-class="suspended ? 'dropdown-suspended' : ''">
             <div class="m-0 p-0" ref="buttonElem">
                 <slot name="button"></slot>
             </div>

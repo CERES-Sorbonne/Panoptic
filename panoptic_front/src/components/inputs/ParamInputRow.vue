@@ -6,6 +6,7 @@ import { useDataStore } from '@/data/stores/dataStore';
 import { useMediaStore } from '@/data/stores/mediaStore';
 import { ParamDescription, VectorType } from '@/data/models';
 import { useActionStore } from '@/data/stores/actionStore';
+import PathInput from './PathInput.vue';
 
 const data = useDataStore()
 const media = useMediaStore()
@@ -103,6 +104,9 @@ onMounted(initValues)
                         vector_name(v) }}</option>
                 </select>
             </span>
+
+            <PathInput v-if="props.input.type == 'folder_path'" v-model="localValue" mode="folder" />
+            <PathInput v-if="props.input.type == 'file_path'" v-model="localValue" mode="file" />
         </td>
     </tr>
 </template>

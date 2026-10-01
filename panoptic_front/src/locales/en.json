@@ -278,7 +278,10 @@
             "images": "Select the folder you want to add images from",
             "import": "Select the project folder to import",
             "create": "Where should project folder be created ?",
-            "open": "Select"
+            "open": "Select",
+            "folder": "Select a folder",
+            "file": "Select a file",
+            "browse": "Browse"
         },
         "image": {
             "properties": "Properties",

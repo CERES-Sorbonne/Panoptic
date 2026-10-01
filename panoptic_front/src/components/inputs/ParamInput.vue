@@ -6,6 +6,7 @@ import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import { useDataStore } from '@/data/stores/dataStore';
 import { ParamDescription, VectorType } from '@/data/models';
 import VectorTypeDropdown from '../dropdowns/VectorTypeDropdown.vue';
+import PathInput from './PathInput.vue';
 
 const data = useDataStore()
 
@@ -108,6 +109,11 @@ onMounted(initValues)
         <div v-if="props.input.type == 'input_file'">
             <input type="file" @change="setFile" ref="elem" />
         </div>
+
+        <PathInput v-if="props.input.type == 'folder_path'" v-model="localValue" mode="folder"
+            :width="props.maxWidth" />
+        <PathInput v-if="props.input.type == 'file_path'" v-model="localValue" mode="file"
+            :width="props.maxWidth" />
     </div>
 </template>
 

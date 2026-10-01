@@ -9,8 +9,8 @@ from typing import Callable
 
 from panoptic.core.databases.media.models import VectorType
 from panoptic.models.action_models import (
-    ActionContext, ActionResult, FunctionDescription, OwnVectorType,
-    ParamDescription, PropertyId, InputFile,
+    ActionContext, ActionResult, FilePath, FolderPath, FunctionDescription,
+    OwnVectorType, ParamDescription, PropertyId, InputFile,
 )
 
 # String type tags understood by the UI
@@ -24,6 +24,8 @@ _TYPE_MAP: dict = {
     OwnVectorType: 'own_vector_type',
     VectorType:    'vector_type',
     InputFile:     'input_file',
+    FolderPath:    'folder_path',
+    FilePath:      'file_path',
 }
 
 POSSIBLE_INPUT_TYPES = set(_TYPE_MAP.values()) | {'enum', 'vector_type'}
@@ -111,6 +113,8 @@ class Action:
             elif desc.type in ('own_vector_type', 'vector_type'):
                 if isinstance(raw, dict):
                     raw = VectorType(**raw)
+            elif desc.type in ('folder_path', 'file_path'):
+                raw = param_type(raw)
             kwargs[desc.name] = raw
         return self._fn(ctx, **kwargs)
 

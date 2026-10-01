@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, reactive, nextTick } from 'vue';
 
 import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, SERVER_PREFIX } from '@/data/api/panopticApi';
-import { DirInfo } from '@/data/models';
+import { DirInfo, FileInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';
 
@@ -22,13 +22,18 @@ const partitionList = reactive([] as DirInfo[])
 const imageList = reactive([] as string[])
 const openFolders = reactive([] as DirInfo[][])
 const selectedFolder = ref({ path: "" } as DirInfo)
+// Files of the selected folder; only filled and shown in "file" mode.
+const fileList = reactive([] as FileInfo[])
+const selectedFile = ref(null as FileInfo)
 const selectedFullCount = ref(null)
 const scrollerElem = ref(null)
 const isCounting = ref(false)
 const restricted = ref(false)
 
+const selectedPath = computed(() => selectedFile.value ? selectedFile.value.path : selectedFolder.value.path)
+
 const displayPath = computed(() => {
-    const path = selectedFolder.value.path
+    const path = selectedPath.value
     if (!restricted.value) return path
     const root = fastList.find(r => path == r.path || path.startsWith(r.path + '/'))
     return root ? root.name + path.slice(root.path.length) : path
@@ -57,8 +62,11 @@ const parents = computed(() => {
 })
 
 const isValidPath = computed(() => {
-    if (props.mode === "images") {
+    if (props.mode === "images" || props.mode === "folder") {
         return true
+    }
+    else if (props.mode === "file") {
+        return selectedFile.value != null
     }
     else if (props.mode === "import" && selectedFolder.value.isProject) {
         return true
@@ -87,6 +95,13 @@ function scrollToEnd() {
     })
 }
 
+function setFiles(files: FileInfo[]) {
+    selectedFile.value = null
+    fileList.length = 0
+    if (props.mode !== "file" || !files) return
+    fileList.push(...files.filter(f => !f.name.startsWith('.')).sort((a, b) => a.name.localeCompare(b.name)))
+}
+
 async function setOpenFolder(folder: DirInfo) {
     let res = await apiGetFilesystemLs(folder.path)
     res.directories.sort((a, b) => a.name.localeCompare(b.name))
@@ -96,6 +111,7 @@ async function setOpenFolder(folder: DirInfo) {
     selectedFolder.value = folder
     imageList.length = 0
     imageList.push(...res.images)
+    setFiles(res.files)
     selectedFullCount.value = null
     isCounting.value = false
     scrollToEnd()
@@ -111,6 +127,7 @@ async function openSubFolder(folder: DirInfo, folderIndex: number) {
     selectedFolder.value = folder
     imageList.length = 0
     imageList.push(...res.images)
+    setFiles(res.files)
     selectedFullCount.value = null
     isCounting.value = false
     scrollToEnd()
@@ -120,7 +137,7 @@ async function open() {
     if (!isValidPath.value) {
         return false
     }
-    emits('select', selectedFolder.value.path)
+    emits('select', selectedPath.value)
     goNext()
 }
 
@@ -168,6 +185,12 @@ onMounted(async () => {
                         <div v-for="folder in folders" :key="folder.path" class="folder-row">
                             <FolderItem :dir="folder" :is-parent="parents.includes(folder.path)" :light="true"
                                 :selected="folder == selectedFolder" @click="openSubFolder(folder, index)" />
+                        </div>
+                    </div>
+                    <div class="folder-list" v-if="fileList.length">
+                        <div v-for="file in fileList" :key="file.path" class="folder-row file-name"
+                            :class="{ 'is-select': file == selectedFile }" @click="selectedFile = file">
+                            <i class="bi bi-file-earmark" /> {{ file.name }}
                         </div>
                     </div>
                 </div>
@@ -264,6 +287,22 @@ onMounted(async () => {
 
 .folder-row {
     margin-bottom: 2px;
+}
+
+.file-name {
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+}
+
+.file-name:hover {
+    background-color: var(--hover-bg);
+}
+
+.file-name.is-select {
+    background-color: var(--primary);
+    color: var(--text-inverse);
 }
 
 .image-list {

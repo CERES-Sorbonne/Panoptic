@@ -59,3 +59,8 @@ export interface DirInfo {
     images_url?: string,
     isProject: boolean
 }
+
+export interface FileInfo {
+    path: string,
+    name: string
+}

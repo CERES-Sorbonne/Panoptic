@@ -292,7 +292,11 @@ def _list_contents(full_path: str = '/') -> dict:
         }
         for p in paths if os.path.isdir(p)
     ]
-    return {'images': _images_in_folder(full_path)[:40], 'directories': directories}
+    files = [
+        {'path': p, 'name': pathlib.Path(p).name}
+        for p in paths if os.path.isfile(p)
+    ]
+    return {'images': _images_in_folder(full_path)[:40], 'directories': directories, 'files': files}
 
 
 @panoptic_router.get('/filesystem/ls/{path:path}')

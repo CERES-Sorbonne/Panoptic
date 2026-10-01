@@ -140,6 +140,8 @@ def my_action(self, context: ActionContext, param1: int, param2: MyEnum) -> Acti
 | `OwnVectorType` | selector for THIS plugin's vector types |
 | `VectorType` | selector for ALL vector types |
 | `InputFile` | file upload (base64 encoded) |
+| `FolderPath` | folder path on the server, picked with the file explorer |
+| `FilePath` | file path on the server, picked with the file explorer |
 
 ```python
 from enum import Enum
