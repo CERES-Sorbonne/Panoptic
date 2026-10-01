@@ -115,6 +115,35 @@ async def disconnect_user_route(request: Request):
 
 
 # ---------------------------------------------------------------------------
+# User data  (per-user key/value store, shared by all projects)
+# ---------------------------------------------------------------------------
+
+class UserDataRequest(BaseModel):
+    key: str
+    data: object
+
+
+def _request_user_id(request: Request) -> str:
+    """Id of the user behind the request's connection, the default user otherwise."""
+    from panoptic.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
+    state = get_server()._connection_states.get(request.query_params.get('connection_id'))
+    return state.user.id if state and state.user else DEFAULT_USER_ID
+
+
+@panoptic_router.get('/user_data/{key:path}')
+def get_user_data_route(key: str, request: Request):
+    row = get_panoptic().db.get_user_data(_request_user_id(request), key)
+    return _json(row.data if row else None)
+
+
+@panoptic_router.post('/user_data')
+def set_user_data_route(req: UserDataRequest, request: Request):
+    from panoptic.core.databases.panoptic.models import UserData
+    get_panoptic().db.set_user_data(UserData(user_id=_request_user_id(request), key=req.key, data=req.data))
+    return {'ok': True}
+
+
+# ---------------------------------------------------------------------------
 # Project management
 # ---------------------------------------------------------------------------
 

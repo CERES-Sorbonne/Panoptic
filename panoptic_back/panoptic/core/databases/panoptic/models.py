@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 import msgspec
 
@@ -17,6 +17,12 @@ class User(msgspec.Struct, array_like=True):
     name: Annotated[str, Index(unique=True)]
     description: Optional[str]
     password_hash: Optional[str]
+
+class UserData(msgspec.Struct, array_like=True):
+    """One key/value entry of a user, shared by all projects (e.g. the file explorer history)."""
+    user_id: Annotated[str, PrimaryKey]
+    key: Annotated[str, PrimaryKey]
+    data: Any
 
 class ProjectKey(msgspec.Struct, array_like=True):
     id: Annotated[str, PrimaryKey]

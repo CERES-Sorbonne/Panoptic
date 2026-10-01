@@ -58,6 +58,16 @@ export async function apiGetFilesystemCount(path: string) {
 }
 
 
+// Per-user key/value store of the panoptic server, available without an open project.
+export async function apiGetUserData(key: string) {
+    const res = await panopticApi.get('/user_data/' + key)
+    return res.data
+}
+
+export async function apiSetUserData(key: string, data: any) {
+    await panopticApi.post('/user_data', { key, data })
+}
+
 export async function apiGetProjects() {
     const res = await panopticApi.get('/projects')
     return keysToCamel(res.data) as ProjectRef[]

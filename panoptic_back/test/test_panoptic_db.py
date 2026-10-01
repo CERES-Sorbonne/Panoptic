@@ -1,7 +1,7 @@
 import uuid
 from pathlib import Path
 from panoptic.core.databases.panoptic.panoptic_db import PanopticDB, DEFAULT_USER_ID
-from panoptic.core.databases.panoptic.models import User, ProjectKey, PluginKey
+from panoptic.core.databases.panoptic.models import User, UserData, ProjectKey, PluginKey
 
 
 def _setup():
@@ -76,6 +76,27 @@ def test_cycle_users():
     db.delete_user(uid)
     users = _users(db)
     assert len(users) == 0
+
+
+def test_cycle_user_data():
+    db = _setup()
+    db.add_user(id_="u1", name="alice", description="")
+
+    assert db.get_user_data("u1", "explorer") is None
+
+    db.set_user_data(UserData(user_id="u1", key="explorer", data=["/a", "/b"]))
+    db.set_user_data(UserData(user_id=DEFAULT_USER_ID, key="explorer", data=["/c"]))
+    assert db.get_user_data("u1", "explorer").data == ["/a", "/b"]
+    assert db.get_user_data(DEFAULT_USER_ID, "explorer").data == ["/c"]
+
+    # UPDATE
+    db.set_user_data(UserData(user_id="u1", key="explorer", data=["/b"]))
+    assert db.get_user_data("u1", "explorer").data == ["/b"]
+
+    # Deleting a user drops its data, not the data of the others
+    db.delete_user("u1")
+    assert db.get_user_data("u1", "explorer") is None
+    assert db.get_user_data(DEFAULT_USER_ID, "explorer").data == ["/c"]
 
 
 def test_cycle_plugins():

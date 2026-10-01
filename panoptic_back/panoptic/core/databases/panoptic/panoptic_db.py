@@ -8,9 +8,10 @@ from panoptic.core.databases.panoptic.create import (
     PROJECTS_SCHEMA,
     PLUGINS_SCHEMA,
     LEGACY_MIGRATIONS_SCHEMA,
+    USER_DATA_SCHEMA,
 )
 from panoptic.core.databases.panoptic.models import (
-    PanopticConfig, User, ProjectKey, PluginKey, LegacyMigration,
+    PanopticConfig, User, UserData, ProjectKey, PluginKey, LegacyMigration,
 )
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 
@@ -94,6 +95,19 @@ class PanopticDB(SQLiteWriter):
     def delete_user(self, user_id: str) -> None:
         with self.transaction() as tx:
             USERS_SCHEMA.delete(tx, id=user_id)
+            USER_DATA_SCHEMA.delete(tx, user_id=user_id)
+
+    # ------------------------------------------------------------------
+    # User data  (per-user key/value store, shared by all projects)
+    # ------------------------------------------------------------------
+
+    def get_user_data(self, user_id: str, key: str) -> UserData | None:
+        rows = USER_DATA_SCHEMA.get(self.conn, user_id=user_id, key=key)
+        return rows[0] if rows else None
+
+    def set_user_data(self, data: UserData) -> None:
+        with self.transaction() as tx:
+            USER_DATA_SCHEMA.upsert(tx, data)
 
     # ------------------------------------------------------------------
     # Plugins

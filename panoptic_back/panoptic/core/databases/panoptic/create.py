@@ -1,13 +1,14 @@
 from panoptic.core.databases.entity_schema import EntitySchema
 from panoptic.core.databases.db_description import DbDescription
 from panoptic.core.databases.key_value_shema import KeyValueSchema
-from panoptic.core.databases.panoptic.models import PanopticConfig, User, ProjectKey, PluginKey, LegacyMigration
+from panoptic.core.databases.panoptic.models import PanopticConfig, User, UserData, ProjectKey, PluginKey, LegacyMigration
 
 PANOPTIC_CONFIG_SCHEMA = KeyValueSchema(PanopticConfig, 'panoptic_config')
 USERS_SCHEMA           = EntitySchema(User,            'users')
 PROJECTS_SCHEMA        = EntitySchema(ProjectKey,         'projects')
 PLUGINS_SCHEMA         = EntitySchema(PluginKey,          'plugins')
 LEGACY_MIGRATIONS_SCHEMA = EntitySchema(LegacyMigration, 'legacy_migrations')
+USER_DATA_SCHEMA       = EntitySchema(UserData,        'user_data')
 
 ALL_SCHEMAS = [
     PANOPTIC_CONFIG_SCHEMA,
@@ -15,6 +16,7 @@ ALL_SCHEMAS = [
     PROJECTS_SCHEMA,
     PLUGINS_SCHEMA,
     LEGACY_MIGRATIONS_SCHEMA,
+    USER_DATA_SCHEMA,
 ]
 
 tables_config = {}
@@ -33,8 +35,13 @@ def _migrate_1_to_2(db):
     db.conn.executescript(LEGACY_MIGRATIONS_SCHEMA.create_table_sql())
 
 
+def _migrate_2_to_3(db):
+    """v2 -> v3: add `user_data` (per-user key/value store, outside any project)."""
+    db.conn.executescript(USER_DATA_SCHEMA.create_table_sql())
+
+
 panoptic_db_desc = DbDescription(
-    version=2,
+    version=3,
     tables=tables_config,
-    migrations={1: _migrate_1_to_2}
+    migrations={1: _migrate_1_to_2, 2: _migrate_2_to_3}
 )

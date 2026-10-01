@@ -286,12 +286,17 @@
             "open": "Sélectionner",
             "folder": "Choisir un dossier",
             "file": "Choisir un fichier",
-            "browse": "Parcourir"
+            "browse": "Parcourir",
+            "recent": "Récents",
+            "recent_remove": "Retirer des récents"
         },
         "image": {
             "properties": "Propriétés",
             "properties_tooltip": "Afficher / Masquer le panneau des propriétés",
             "history_tooltip": "Afficher / Masquer l'historique de navigation",
+            "zoom_in_tooltip": "Zoomer",
+            "zoom_out_tooltip": "Dézoomer",
+            "zoom_reset_tooltip": "Réinitialiser le zoom",
             "similar_images": "Images similaires",
             "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",
             "unique_properties": "Propriétés des instances",
@@ -339,6 +344,7 @@
             "where": "Conditions:",
             "new_filter": "Filtre",
             "new_group": "Groupe de filtres",
+            "apply": "Appliquer",
             "operators": {
                 "isSet": "n'est pas vide",
                 "notSet": "est vide",

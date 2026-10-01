@@ -281,12 +281,17 @@
             "open": "Select",
             "folder": "Select a folder",
             "file": "Select a file",
-            "browse": "Browse"
+            "browse": "Browse",
+            "recent": "Recent",
+            "recent_remove": "Remove from recent"
         },
         "image": {
             "properties": "Properties",
             "properties_tooltip": "Show / Hide the properties panel",
             "history_tooltip": "Show / Hide the navigation history",
+            "zoom_in_tooltip": "Zoom in",
+            "zoom_out_tooltip": "Zoom out",
+            "zoom_reset_tooltip": "Reset zoom",
             "similar_images": "Similar images",
             "similar_images_tooltip": "Images considered to be visually and/or semantically close to the current image using the KDTree algorithm and image vectors",
             "unique_properties": "Unique properties",
@@ -334,6 +339,7 @@
             "where": "Where:",
             "new_filter": "Filter",
             "new_group": "Filter group",
+            "apply": "Apply",
             "operators": {
                 "isSet": "is not empty",
                 "notSet": "is empty",

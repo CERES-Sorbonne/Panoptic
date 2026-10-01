@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive, nextTick } from 'vue';
 
-import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, SERVER_PREFIX } from '@/data/api/panopticApi';
+import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, apiGetUserData, apiSetUserData, SERVER_PREFIX } from '@/data/api/panopticApi';
 import { DirInfo, FileInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';
@@ -16,6 +16,11 @@ const props = defineProps({
 const emits = defineEmits({
     select: String
 })
+
+// Last selected paths, newest first. Files and folders are kept in separate lists.
+const HISTORY_SIZE = 10
+const historyKey = computed(() => props.mode === "file" ? 'file_explorer.recent_files' : 'file_explorer.recent_folders')
+const historyList = reactive([] as string[])
 
 const fastList = reactive([] as DirInfo[])
 const partitionList = reactive([] as DirInfo[])
@@ -32,12 +37,18 @@ const restricted = ref(false)
 
 const selectedPath = computed(() => selectedFile.value ? selectedFile.value.path : selectedFolder.value.path)
 
-const displayPath = computed(() => {
-    const path = selectedPath.value
+const displayPath = computed(() => toDisplayPath(selectedPath.value))
+
+// In restricted mode the real root is hidden behind its alias.
+function toDisplayPath(path: string) {
     if (!restricted.value) return path
     const root = fastList.find(r => path == r.path || path.startsWith(r.path + '/'))
     return root ? root.name + path.slice(root.path.length) : path
-})
+}
+
+function pathName(path: string) {
+    return path.split(/[\\/]/).filter(p => p).pop() ?? path
+}
 
 const baseRoot = computed(() => {
     if (openFolders.length == 0 || openFolders[0].length == 0) return '/'
@@ -133,10 +144,52 @@ async function openSubFolder(folder: DirInfo, folderIndex: number) {
     scrollToEnd()
 }
 
+async function loadHistory() {
+    const saved = await apiGetUserData(historyKey.value)
+    historyList.length = 0
+    if (Array.isArray(saved)) historyList.push(...saved)
+}
+
+function saveHistory() {
+    apiSetUserData(historyKey.value, [...historyList]) // fire-and-forget
+}
+
+function addToHistory(path: string) {
+    const rest = historyList.filter(p => p != path)
+    historyList.length = 0
+    historyList.push(path, ...rest.slice(0, HISTORY_SIZE - 1))
+    saveHistory()
+}
+
+function removeFromHistory(path: string) {
+    const index = historyList.indexOf(path)
+    if (index < 0) return
+    historyList.splice(index, 1)
+    saveHistory()
+}
+
+// Jump to a path of the history. In "file" mode the path is a file: open its folder and select it.
+async function openHistory(path: string) {
+    const isFile = props.mode === "file"
+    const folderPath = isFile ? path.slice(0, path.lastIndexOf('/')) || '/' : path
+    try {
+        await setOpenFolder({ path: folderPath, name: pathName(folderPath), isProject: false })
+    } catch {
+        // The path is gone or no longer allowed.
+        removeFromHistory(path)
+        return
+    }
+    if (!isFile) return
+    const file = fileList.find(f => f.path == path)
+    if (file) selectedFile.value = file
+    else removeFromHistory(path)
+}
+
 async function open() {
     if (!isValidPath.value) {
         return false
     }
+    addToHistory(selectedPath.value)
     emits('select', selectedPath.value)
     goNext()
 }
@@ -154,6 +207,7 @@ async function count() {
 
 onMounted(async () => {
     await updateInfo()
+    loadHistory()
     const start = restricted.value ? fastList[0] : fastList.find(d => d.name == 'Home')
     if (start) setOpenFolder(start)
 });
@@ -173,6 +227,18 @@ onMounted(async () => {
                 <div class="fs-title fs-title-spaced">{{ $t('modals.fs.partitions') }}</div>
                 <div v-for="dir in partitionList" :key="dir.path">
                     <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
+                </div>
+            </template>
+
+            <template v-if="historyList.length">
+                <div class="fs-title fs-title-spaced">{{ $t('modals.fs.recent') }}</div>
+                <div v-for="path in historyList" :key="path" class="recent-row"
+                    :class="{ 'is-select': path == selectedPath }" :title="toDisplayPath(path)"
+                    @click="openHistory(path)">
+                    <i :class="props.mode === 'file' ? 'bi bi-file-earmark' : 'bi bi-clock-history'" />
+                    <div class="recent-name">{{ pathName(path) }}</div>
+                    <i class="bi bi-x recent-remove" :title="$t('modals.fs.recent_remove')"
+                        @click.stop="removeFromHistory(path)" />
                 </div>
             </template>
         </div>
@@ -250,6 +316,43 @@ onMounted(async () => {
 
 .fs-title-spaced {
     margin-top: var(--spacing-md);
+}
+
+.recent-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.recent-row:hover {
+    background-color: var(--hover-bg);
+}
+
+.recent-row.is-select {
+    background-color: var(--primary);
+    color: var(--text-inverse);
+}
+
+.recent-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-remove {
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    opacity: 0.6;
+}
+
+.recent-remove:hover {
+    opacity: 1;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 /* ── Right main area: body (scrolls) + pinned action bar ─────────────── */

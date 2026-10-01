@@ -84,13 +84,16 @@ onMounted(async () => {
                 </div>
             </div>
         </template>
-        <template #popup>
+        <template #popup="{ hide }">
             <div class="m-0 p-0" ref="popupElem">
                 <div class="m-1 p-1" v-if="Object.keys(data.properties).length > 0">
                     <div class="d-flex align-items-center">
                         <TextSearchInput :tab="props.tab" :size="24" class="flex-grow-1" />
                     </div>
                     <FilterGroupVue :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
+                    <div class="d-flex justify-content-end mt-1">
+                        <div class="bbb" @click="hide()">{{ $t('modals.filters.apply') }}</div>
+                    </div>
                 </div>
             </div>
         </template>
