@@ -311,7 +311,7 @@ function groupScore(group: Group): number | null {
                     <span v-if="isClusterCard(entry.group)" class="cc-name"
                         :class="{ 'cc-name-leftover': isLeftoverCard(entry.group) }">{{ clusterName(entry.group) }}</span>
                     <ClusterBadge v-if="groupScore(entry.group) != null" class="cc-score"
-                        :value="groupScore(entry.group)" />
+                        :value="groupScore(entry.group)" :score="entry.group.score" />
                 </div>
 
                 <!-- Hover action pill, centered over the image: subdivide · inspect · clear. -->

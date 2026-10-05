@@ -251,7 +251,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
         <div v-if="groupType == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
-            <ClusterBadge v-if="score != undefined" :value="Math.round(score)" />
+            <ClusterBadge v-if="score != undefined" :value="Math.round(score)" :score="props.item.data.score" />
         </div>
 
         <div class="align-self-center me-2 text-secondary tabular-nums" style="font-size: 11px;">{{ slotCount }} Images
