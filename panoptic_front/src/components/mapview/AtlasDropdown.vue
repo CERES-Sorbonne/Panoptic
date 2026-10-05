@@ -46,34 +46,34 @@ const fmt = (n: number) => n.toLocaleString()
                 <div class="title">{{ $t('map.atlas') }}</div>
 
                 <template v-if="media.atlasTask">
-                    <div class="row">
+                    <div class="atlas-row">
                         <span class="grow">{{ $t('map.atlas_generating') }}</span>
                         <span class="tabular-nums">{{ media.atlasTaskPercent }}%</span>
                     </div>
                     <div class="bar"><div :style="{ width: media.atlasTaskPercent + '%' }"></div></div>
                 </template>
 
-                <div v-if="!media.hasAtlas" class="row muted">{{ $t('map.atlas_none_title') }}</div>
+                <div v-if="!media.hasAtlas" class="atlas-row muted">{{ $t('map.atlas_none_title') }}</div>
                 <template v-else>
-                    <div class="row">
+                    <div class="atlas-row">
                         <span class="grow">{{ $t('map.atlas_images') }}</span>
                         <span class="tabular-nums">{{ fmt(coverage.inAtlas) }} / {{ fmt(coverage.total) }}</span>
                     </div>
-                    <div v-if="coverage.missing > 0" class="row warn">
+                    <div v-if="coverage.missing > 0" class="atlas-row warn">
                         <span class="grow">{{ $t('map.atlas_missing') }}</span>
                         <span class="tabular-nums">{{ fmt(coverage.missing) }}</span>
                     </div>
-                    <div v-if="props.mapMissing > 0" class="row warn">
+                    <div v-if="props.mapMissing > 0" class="atlas-row warn">
                         <span class="grow">{{ $t('map.atlas_map_missing') }}</span>
                         <span class="tabular-nums">{{ fmt(props.mapMissing) }}</span>
                     </div>
                     <template v-if="props.load">
-                        <div class="row" :class="{ muted: !loading }">
+                        <div class="atlas-row" :class="{ muted: !loading }">
                             <span class="grow">{{ loading ? $t('map.atlas_loading') : $t('map.atlas_loaded') }}</span>
                             <span class="tabular-nums">{{ props.load.loaded }} / {{ props.load.total }}</span>
                         </div>
                         <div v-if="loading" class="bar"><div :style="{ width: loadPercent + '%' }"></div></div>
-                        <div v-if="props.load.failed > 0" class="row warn">
+                        <div v-if="props.load.failed > 0" class="atlas-row warn">
                             <span class="grow">{{ $t('map.atlas_failed') }}</span>
                             <span class="tabular-nums">{{ props.load.failed }}</span>
                         </div>
@@ -126,7 +126,7 @@ const fmt = (n: number) => n.toLocaleString()
     margin-bottom: 2px;
 }
 
-.row {
+.atlas-row {
     display: flex;
     align-items: center;
     gap: 8px;

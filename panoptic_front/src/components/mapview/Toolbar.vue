@@ -57,7 +57,7 @@ async function updateMap(event) {
                 @update:model-value="emits('update:selectedMap', $event)" />
         </div>
 
-        <WithToolTip v-if="props.hasMaps" message="Delete map">
+        <WithToolTip v-if="props.hasMaps" message="map.delete_map">
             <div class="tool sb" @click="deleteMap">
                 <i class="bi bi-trash" style="opacity: 0.8;"></i>
             </div>

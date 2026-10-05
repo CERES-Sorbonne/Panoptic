@@ -513,23 +513,23 @@ onMounted(async () => {
             </div>
 
             <div class="floating-toolbar">
-                <WithToolTip message="Show Points">
+                <WithToolTip message="map.show_points">
                     <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
                         @click="props.mapOptions.showPoints = !props.mapOptions.showPoints">
                         <i class="bi bi-dot"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="Pan">
+                <WithToolTip message="map.pan">
                     <div class="tool" :class="{ selected: mouseMode == 'pan' }" @click="mouseMode = 'pan'">
                         <i class="bi bi-hand-index-thumb"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="Lasso Add">
+                <WithToolTip message="map.lasso_add">
                     <div class="tool" :class="{ selected: mouseMode == 'lasso-plus' }" @click="mouseMode = 'lasso-plus'">
                         <i class="bi bi-plus-circle-dotted"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="Lasso Remove">
+                <WithToolTip message="map.lasso_remove">
                     <div class="tool" :class="{ selected: mouseMode == 'lasso-minus' }" @click="mouseMode = 'lasso-minus'">
                         <i class="bi bi-dash-circle-dotted"></i>
                     </div>

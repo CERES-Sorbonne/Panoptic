@@ -764,8 +764,8 @@
         "source": "Source"
     },
     "map": {
-        "select_map": "Selectionez vos points",
-        "create": "Creer",
+        "select_map": "Sélectionnez vos points",
+        "create": "Créer",
         "no_map": "Aucune carte disponible",
         "no_map_help": "Veuillez creer une carte a visualiser pour pouvoir utiliser cette vue. Les fonctions de creation de carte sont mise a disposition par les plugins",
         "no_action": "Aucune fonction de creation de carte a été trouvé.",
@@ -777,6 +777,10 @@
         "show_image": "Afficher les images",
         "show_points": "Afficher les points",
         "show_boxes": "Afficher les boites",
+        "pan": "Déplacer",
+        "lasso_add": "Ajouter au lasso",
+        "lasso_remove": "Retirer au lasso",
+        "delete_map": "Supprimer la carte",
         "display": "Affichage",
         "group_property": "Groupes",
         "group_cluster": "Clusters",
