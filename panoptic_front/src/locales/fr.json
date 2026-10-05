@@ -1,4 +1,6 @@
 {
+    "filter_by_value": "Filtrer sur cette valeur",
+    "copy": "Copier",
     "launcher": {
         "checking": "Vérification de l'installation...",
         "installing_uv": "Installation de uv...",
@@ -111,6 +113,7 @@
             "hide_panel": "Masquer le panneau",
             "split_view": "Diviser à droite",
             "unsplit_view": "Fusionner la vue",
+            "toggle_properties": "Afficher ou masquer les propriétés",
             "folders": {
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images",
@@ -162,6 +165,7 @@
             }
         },
         "menu": {
+            "image_instance_mode_tooltip": "Sélection mode image ou mode instance",
             "new_tab": "Nouvel onglet",
             "add_tab_tooltip": "Créer un nouvel onglet",
             "rename_tab_tooltip": "Renommer l'onglet",
@@ -274,6 +278,16 @@
             "folded": "{count} valeurs plus petites regroupées dans « Autres »",
             "ignored_levels": "Seuls les deux premiers niveaux de groupes sont représentés",
             "skipped_no_value": "{count} images sans valeur ne sont pas affichées"
+        },
+        "toolbar": {
+            "all_tabs": "Tous les onglets",
+            "new_tab": "Nouvel onglet",
+            "profile": "Profil utilisateur",
+            "language": "Langue",
+            "folders": "Dossiers",
+            "properties": "Propriétés",
+            "import": "Importer",
+            "export": "Exporter"
         }
     },
     "modals": {
@@ -661,6 +675,7 @@
         },
         "tasks": {
             "title": "Tâches",
+            "info": "Tâches en cours et récentes",
             "running": "En cours",
             "pending": "En attente",
             "past": "Terminées",
@@ -749,8 +764,8 @@
         "source": "Source"
     },
     "map": {
-        "select_map": "Selectionez vos points",
-        "create": "Creer",
+        "select_map": "Sélectionnez vos points",
+        "create": "Créer",
         "no_map": "Aucune carte disponible",
         "no_map_help": "Veuillez creer une carte a visualiser pour pouvoir utiliser cette vue. Les fonctions de creation de carte sont mise a disposition par les plugins",
         "no_action": "Aucune fonction de creation de carte a été trouvé.",
@@ -762,6 +777,10 @@
         "show_image": "Afficher les images",
         "show_points": "Afficher les points",
         "show_boxes": "Afficher les boites",
+        "pan": "Déplacer",
+        "lasso_add": "Ajouter au lasso",
+        "lasso_remove": "Retirer au lasso",
+        "delete_map": "Supprimer la carte",
         "display": "Affichage",
         "group_property": "Groupes",
         "group_cluster": "Clusters",

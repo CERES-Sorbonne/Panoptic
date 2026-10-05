@@ -1,4 +1,6 @@
 {
+    "filter_by_value": "Filter by this value",
+    "copy": "Copy",
     "launcher": {
         "checking": "Checking installation...",
         "installing_uv": "Installing uv...",
@@ -111,6 +113,7 @@
             "hide_panel": "Hide panel",
             "split_view": "Split right",
             "unsplit_view": "Unsplit",
+            "toggle_properties": "Show / hide properties",
             "folders": {
                 "title": "Folders",
                 "add": "Add an images folder",
@@ -162,6 +165,7 @@
             }
         },
         "menu": {
+            "image_instance_mode_tooltip": "Select image mode or instance mode",
             "new_tab": "New Tab",
             "add_tab_tooltip": "Create a new tab",
             "rename_tab_tooltip": "Rename tab",
@@ -269,6 +273,16 @@
             "folded": "{count} smaller values grouped as \"Other\"",
             "ignored_levels": "Only the first two grouping levels are charted",
             "skipped_no_value": "{count} images without a value are not shown"
+        },
+        "toolbar": {
+            "all_tabs": "All tabs",
+            "new_tab": "New tab",
+            "profile": "User profile",
+            "language": "Language",
+            "folders": "Folders",
+            "properties": "Properties",
+            "import": "Import",
+            "export": "Export"
         }
     },
     "modals": {
@@ -645,6 +659,7 @@
         },
         "tasks": {
             "title": "Tasks",
+            "info": "Running and recent tasks",
             "running": "Running",
             "pending": "Pending",
             "past": "Past",
@@ -739,6 +754,26 @@
         "source": "Source"
     },
     "map": {
+        "select_map": "Select your points",
+        "create": "Create",
+        "no_map": "No map available",
+        "no_map_help": "Create a map to use this view. Map creation functions are provided by plugins",
+        "no_action": "No map creation function was found.",
+        "color_prop": "Color by property",
+        "color_cluster": "Color by clustering",
+        "action_cluster": "Create clusters",
+        "main_menu": "Visualization",
+        "data": "Data",
+        "show_image": "Show images",
+        "show_points": "Show points",
+        "show_boxes": "Show boxes",
+        "pan": "Pan",
+        "lasso_add": "Lasso add",
+        "lasso_remove": "Lasso remove",
+        "delete_map": "Delete map",
+        "display": "Display",
+        "group_property": "Groups",
+        "group_cluster": "Clusters",
         "groups": "Groups",
         "border_width": "Border width",
         "hover_scale": "Hover zoom size",

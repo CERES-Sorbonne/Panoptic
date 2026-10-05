@@ -92,10 +92,11 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Toggle properties visibility -->
-                <button class="tab-tool" :title="view.showProperties ? 'Hide properties' : 'Show properties'"
-                    @click="toggleProperties">
-                    <i :class="view.showProperties ? 'bi bi-eye' : 'bi bi-eye-slash'"></i>
-                </button>
+                <wTT :message="'main.nav.toggle_properties'" pos="bottom">
+                    <button class="tab-tool" @click="toggleProperties">
+                        <i :class="view.showProperties ? 'bi bi-eye' : 'bi bi-eye-slash'"></i>
+                    </button>
+                </wTT>
 
                 <div class="flex-grow-1"></div>
 

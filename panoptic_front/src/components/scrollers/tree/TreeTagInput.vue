@@ -13,6 +13,9 @@ import TagBadge from '@/components/tagtree/TagBadge.vue'
 import TagInput from '@/components/property_inputs/TagInput.vue'
 import { useCellPopup } from './cellPopup'
 import { Property, PropertyType } from '@/data/models'
+import { useDataStore } from '@/data/stores/dataStore'
+
+const data = useDataStore()
 
 const props = defineProps<{
     modelValue?: any
@@ -46,6 +49,9 @@ const PICKER_WIDTH = 200
 const OFFSET = { x: -4, y: -2 }
 
 const tags = () => (props.modelValue ?? []) as number[]
+
+// the row's hover tooltip: every tag, including those the cell cuts off
+const tagNames = () => tags().map(id => data.tags[id]?.value).filter(Boolean).join(', ')
 
 // Mono when the property is single-tag, or when the caller forces it: a pick replaces the value
 // and closes, as in CellTagInput.
@@ -127,10 +133,12 @@ defineExpose({ focus })
 </script>
 
 <template>
-    <TreeCellFrame ref="frame" :type="props.property.type" :active="editing" :empty="!tags().length" @click="onClick"
-        @icon-click="onClick">
+    <TreeCellFrame ref="frame" :type="props.property.type" :active="editing" :empty="!tags().length"
+        :tooltip="tagNames()" @click="onClick" @icon-click="onClick">
+        <!-- title="": the row's tooltip already lists the tags, the badge's own native one would
+             pop up on top of it -->
         <div class="badges">
-            <TagBadge v-for="id in tags()" :key="id" :id="id" class="me-1" />
+            <TagBadge v-for="id in tags()" :key="id" :id="id" class="me-1" title="" />
         </div>
     </TreeCellFrame>
 

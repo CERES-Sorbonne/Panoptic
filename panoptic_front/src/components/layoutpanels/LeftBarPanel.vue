@@ -1,23 +1,30 @@
 <script setup lang="ts">
 // Left activity bar root node — inserted into AppShellLayout's #activity slot.
-// Toggles the folder panel and the bottom (properties / export) panels.
+// Closes the project, and toggles the folder panel and the bottom (properties / export) panels.
 import { useUiStore, type BottomPanel } from '@/data/stores/uiStore'
 import { usePanopticStore } from '@/data/stores/panopticStore'
 import { ModalId } from '@/data/models'
+import { useProjectStore } from '@/data/stores/projectStore'
+import wTT from '@/components/tooltips/withToolTip.vue'
 
 const uiStore = useUiStore()
 const panoptic = usePanopticStore()
+const project = useProjectStore()
+
+function closeProject() {
+    panoptic.closeProject(project.state.id)
+}
 
 // Activity-bar panel toggles: Folders, separated from Properties + Import/Export.
 // Import and Export are modals, not panels — they only borrow the same bar.
 const folderPanels = [
-    { id: 'folders', icon: 'bi-folder2-open', title: 'Folders' },
+    { id: 'folders', icon: 'bi-folder2-open', title: 'main.toolbar.folders' },
 ]
 
 const bottomPanels = [
-    { id: 'properties', icon: 'bi-list-ul', title: 'Properties' },
-    { id: 'import', icon: 'bi-box-arrow-in-up', title: 'Import' },
-    { id: 'export', icon: 'bi-download', title: 'Export' },
+    { id: 'properties', icon: 'bi-list-ul', title: 'main.toolbar.properties' },
+    { id: 'import', icon: 'bi-box-arrow-in-up', title: 'main.toolbar.import' },
+    { id: 'export', icon: 'bi-download', title: 'main.toolbar.export' },
 ]
 
 function togglePanel(id: string) {
@@ -45,23 +52,17 @@ function isPanelActive(id: string) {
 <template>
     <div class="activity">
         <div class="activity-group">
-            <button
-                v-for="t in folderPanels"
-                :key="t.id"
-                class="activity-btn"
-                :class="{ active: isPanelActive(t.id) }"
-                :title="t.title"
-                @click="togglePanel(t.id)"
-            ><i :class="'bi ' + t.icon"></i></button>
-            <div class="activity-sep"></div>
-            <button
-                v-for="t in bottomPanels"
-                :key="t.id"
-                class="activity-btn"
-                :class="{ active: isPanelActive(t.id) }"
-                :title="t.title"
-                @click="togglePanel(t.id)"
-            ><i :class="'bi ' + t.icon"></i></button>
+            <wTT message="main.menu.close_project" class="activity-tt">
+                <button class="activity-btn close-btn" @click="closeProject"><i class="bi bi-arrow-left"></i></button>
+            </wTT>
+            <wTT v-for="t in folderPanels" :key="t.id" :message="t.title" class="activity-tt">
+                <button class="activity-btn" :class="{ active: isPanelActive(t.id) }" @click="togglePanel(t.id)"><i
+                        :class="'bi ' + t.icon"></i></button>
+            </wTT>
+            <wTT v-for="t in bottomPanels" :key="t.id" :message="t.title" class="activity-tt">
+                <button class="activity-btn" :class="{ active: isPanelActive(t.id) }" @click="togglePanel(t.id)"><i
+                        :class="'bi ' + t.icon"></i></button>
+            </wTT>
         </div>
     </div>
 </template>
@@ -83,10 +84,16 @@ function isPanelActive(id: string) {
     padding-top: var(--spacing-xs);
 }
 
+/* Tooltip wrapper is an inline span: make it a tight box so it adds no line-height gap. */
+.activity-tt {
+    display: flex !important;
+    line-height: 0;
+}
+
 .activity-sep {
     width: 20px;
     height: 1px;
-    margin: var(--spacing-xs) 0;
+    margin: 2px 0;
     background-color: var(--border-light);
 }
 
@@ -102,6 +109,13 @@ function isPanelActive(id: string) {
     color: var(--text-secondary);
     font-size: 18px;
     transition: background-color var(--transition-fast);
+}
+
+/* Lift the close arrow so it centers on the toolbar row (the project name).
+   The buttons below keep their place, level with the panel tops. */
+.close-btn {
+    position: relative;
+    top: -2px;
 }
 
 .activity-btn:hover {

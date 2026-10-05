@@ -3,7 +3,7 @@ import { computed, markRaw, nextTick, reactive, ref } from 'vue'
 import { LoadResult, PropertyType } from '../models'
 import { apiStreamColumn, apiStreamInstanceBase, projectApi } from '../api/projectApi'
 import { EventEmitter } from '@/utils/utils'
-import { ColumnData, buildCSR, growColumn, makeColumn, propertyKind, stripTagIds } from '../lib/columns'
+import { ColumnData, DerivedColumn, buildCSR, growColumn, makeColumn, propertyKind, slotsWithTagIds, stripTagIds } from '../lib/columns'
 
 export const useColumnStore = defineStore('columnStore', () => {
 
@@ -32,6 +32,8 @@ export const useColumnStore = defineStore('columnStore', () => {
     const columnData: Record<number, ColumnData> = markRaw({})
     const columnFetched: Record<number, Uint8Array> = markRaw({})
     const _propTypes: Record<number, PropertyType> = markRaw({})
+    // Columns filled locally from their dependencies rather than streamed from the backend.
+    const derivedColumns: Record<number, DerivedColumn> = markRaw({})
 
     const fullColumnStatus = reactive<Record<number, 'empty' | 'loading' | 'loaded'>>({})
     const _fullColumnPromise: Record<number, Promise<void>> = {}
@@ -221,6 +223,26 @@ export const useColumnStore = defineStore('columnStore', () => {
         }
     }
 
+    function registerDerived(propId: number, deps: number[], build: DerivedColumn['build']) {
+        derivedColumns[propId] = { deps, build }
+    }
+
+    function fillDerived(propId: number) {
+        const read = derivedColumns[propId].build()
+        for (let s = 0; s < slotCount; s++) writeSlot(propId, s, read(s))
+    }
+
+    // Rebuild the loaded derived columns. Without `changed`, all of them; with it, only the
+    // ones that depend on a changed column.
+    function refreshDerived(changed?: Set<number>) {
+        for (const key of Object.keys(derivedColumns)) {
+            const propId = Number(key)
+            if (fullColumnStatus[propId] !== 'loaded') continue
+            if (changed && !derivedColumns[propId].deps.some(d => changed.has(d))) continue
+            fillDerived(propId)
+        }
+    }
+
     function addInstances(newIds: number[], newSha1s: string[], newFileIds: number[]) {
         if (_instanceIdPropId === null || _sha1PropId === null || _fileIdPropId === null) return
 
@@ -314,6 +336,15 @@ export const useColumnStore = defineStore('columnStore', () => {
         
         _fullColumnPromise[propId] = (async () => {
             try {
+                const derived = derivedColumns[propId]
+                if (derived) {
+                    await Promise.all(derived.deps.map(id => requireFullColumn(id)))
+                    fillDerived(propId)
+                    columnProgress[propId] = { counter: slotCount, max: slotCount }
+                    fullColumnStatus[propId] = 'loaded'
+                    return
+                }
+
                 let csrBuilt = false
 
                 await apiStreamColumn(propId, async (data: LoadResult) => {
@@ -404,6 +435,23 @@ export const useColumnStore = defineStore('columnStore', () => {
         }
         for (const id of drop) delete tagInverted[id]
         return touched
+    }
+
+    /**
+     * Instance ids whose value in a loaded tag column names any of `tagIds`. Scans the columns
+     * instead of reading tagInverted, which is built once and not kept up to date by writes.
+     * A column that is not loaded holds no value the filter / sort / group pipeline reads.
+     */
+    function instancesWithTagIds(tagIds: Iterable<number>): number[] {
+        const want = new Set(tagIds)
+        if (!want.size) return []
+        const ids: number[] = []
+        for (const propIdStr of Object.keys(columnData)) {
+            const col = columnData[Number(propIdStr)]
+            if (col?.kind !== 'tag') continue
+            for (const s of slotsWithTagIds(col.sparse, slotCount, want)) ids.push(instanceIds[s])
+        }
+        return ids
     }
 
     function getFullyLoadedPropIds(): number[] {
@@ -523,6 +571,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         }
 
         await Promise.all(tasks)
+        refreshDerived(targetPropIds)
     }
 
     // Lazily create a namespace's mask (sized to the current slot count).
@@ -634,6 +683,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         for (const k of Object.keys(columnData)) delete columnData[Number(k)]
         for (const k of Object.keys(columnFetched)) delete columnFetched[Number(k)]
         for (const k of Object.keys(_propTypes)) delete _propTypes[Number(k)]
+        for (const k of Object.keys(derivedColumns)) delete derivedColumns[Number(k)]
         for (const k of Object.keys(fullColumnStatus)) delete fullColumnStatus[Number(k)]
         for (const k of Object.keys(columnProgress)) delete columnProgress[Number(k)]
         for (const k of Object.keys(_fullColumnPromise)) delete _fullColumnPromise[Number(k)]
@@ -664,7 +714,8 @@ export const useColumnStore = defineStore('columnStore', () => {
 
         init, getRawBuffer, readSlot, writeSlot, isFetched, ensureColumn,
         addInstances, markSlotDeleted, clearCell, registerProperty,
-        requireFullColumn, requireTagInverted, getFullyLoadedPropIds, removeTagIds,
+        registerDerived, refreshDerived,
+        requireFullColumn, requireTagInverted, getFullyLoadedPropIds, removeTagIds, instancesWithTagIds,
         isSelected, isSelectedId, select, deselect, selectIds, deselectIds,
         clearSelection, getSelectedIds, selectedCount,
         ensureNamespace, disposeNamespace, selectionTick,

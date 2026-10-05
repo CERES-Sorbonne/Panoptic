@@ -162,12 +162,4 @@ onMounted(() => {
 .hidden {
     visibility: hidden;
 }
-
-.lang {
-    margin-left: auto;
-    order: 2;
-    margin-top: 0.1em;
-    margin-right: 0.5em;
-    font-size: 16px
-}
 </style>

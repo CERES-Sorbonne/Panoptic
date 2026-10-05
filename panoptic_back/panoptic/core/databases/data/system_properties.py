@@ -8,7 +8,7 @@ class SystemProperty(NamedTuple):
     dtype: str   # property dtype ('id', 'sha1', 'text', 'number', 'date', 'folder')
     mode: str    # property mode: 'id' | 'sha1' | 'file'
     source: str  # DB lookup source: 'instance' | 'file'
-    col: str     # column name in that source table
+    col: str     # column name in that source table ('path' is built, see DataReader._file_system_values)
 
 
 SYSTEM_PROPERTIES: list[SystemProperty] = [
@@ -17,6 +17,7 @@ SYSTEM_PROPERTIES: list[SystemProperty] = [
     SystemProperty('file_id',    'number', 'id',   'instance', 'file_id'),
     SystemProperty('folder',     'folder', 'sha1', 'file',     'folder_id'),
     SystemProperty('name',       'text',   'file', 'file',     'name'),
+    SystemProperty('path',       'path',   'file', 'file',     'path'),
     SystemProperty('format',     'text',   'sha1', 'file',     'format'),
     SystemProperty('width',      'number', 'sha1', 'file',     'width'),
     SystemProperty('height',     'number', 'sha1', 'file',     'height'),

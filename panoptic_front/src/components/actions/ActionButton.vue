@@ -17,7 +17,9 @@ const props = defineProps<{
     groupName?: string
     // See ActionButton2: hand the run off to its owner instead of awaiting it here.
     defer?: boolean
-    busy?: boolean
+    busy?: boolean,
+    // Replaces the default tooltip, e.g. to say why the last run failed.
+    message?: string
 }>()
 const emits = defineEmits(['instances', 'groups', 'submit'])
 
@@ -108,7 +110,7 @@ watch(localFunction, loadInput)
         <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <wTT :message="'dropdown.action.' + props.action" class="">
+        <wTT :message="props.message ?? 'dropdown.action.' + props.action" class="">
             <div v-if="props.action != 'group'" style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
             <div v-else><i class="bi bi-intersect" /></div>
         </wTT>

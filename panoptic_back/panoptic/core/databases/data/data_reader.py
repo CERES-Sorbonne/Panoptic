@@ -471,8 +471,7 @@ class DataReader(SQLiteReader):
         file_ids = [r[1] for r in inst_rows if r[1] is not None]
         if not file_ids:
             return {}
-        file_rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
-        file_to_val = {r[0]: r[1] for r in file_rows}
+        file_to_val = self._file_system_values(defn, file_ids)
         return {r[0]: file_to_val[r[1]] for r in inst_rows if r[1] in file_to_val}
 
     def _system_full_column(self, system_key: str) -> tuple[list[int], list[Any]]:
@@ -485,11 +484,37 @@ class DataReader(SQLiteReader):
         file_ids = [r[1] for r in inst_rows if r[1] is not None]
         if not file_ids:
             return [r[0] for r in inst_rows], [None] * len(inst_rows)
-        file_rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
-        file_to_val = {r[0]: r[1] for r in file_rows}
+        file_to_val = self._file_system_values(defn, file_ids)
         ids = [r[0] for r in inst_rows]
         values = [file_to_val.get(r[1]) for r in inst_rows]
         return ids, values
+
+    def _file_system_values(self, defn, file_ids: list[int]) -> dict[int, Any]:
+        """{file_id: value} of a file-sourced system property."""
+        if defn.key == 'path':
+            return self._file_paths(file_ids)
+        rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
+        return {r[0]: r[1] for r in rows}
+
+    def _file_paths(self, file_ids: list[int]) -> dict[int, Any]:
+        """{file_id: full path}, combined like resolve_image_ref: folder path + name
+        for a local file, the name alone for IIIF (it already holds the full URL).
+
+        The frontend builds the same value from its folder index and the name column
+        (folderPathPrefixes): keep the two in step.
+        """
+        iiif = {r[0] for r in FILE_SOURCES_SCHEMA.select(self.conn, ['id', 'dtype']) if r[1] == 'iiif'}
+        prefixes: dict[int, str] = {}
+        for folder_id, path, source_id in FOLDERS_SCHEMA.select(self.conn, ['id', 'path', 'source_id']):
+            if source_id in iiif:
+                prefixes[folder_id] = ''
+            elif path is not None:
+                prefixes[folder_id] = f"{path}/"
+        rows = FILES_SCHEMA.select(self.conn, ['id', 'folder_id', 'name'], id=file_ids)
+        return {
+            file_id: prefixes[folder_id] + name if name is not None and folder_id in prefixes else None
+            for file_id, folder_id, name in rows
+        }
 
     def get_file_path_for_sha1(self, sha1: str) -> str | None:
         """Return the local filesystem path for the first local file matching sha1.

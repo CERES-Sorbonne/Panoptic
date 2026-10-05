@@ -19,6 +19,7 @@ import { isTag } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useModalStore } from '@/data/stores/modalStore'
+import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const col = useColumnStore()
 const data = useDataStore()
@@ -474,11 +475,11 @@ function closeDetail(idx: number) {
         <div v-if="!hasImages" class="cluster-primary-pane">
             <div class="group-toolbar" :style="{ height: TOOLBAR_PX + 'px' }">
                 <div class="group-toolbar-modes">
-                    <div v-for="m in VIEW_MODES" :key="m.mode" class="group-mode-btn"
-                        :class="{ active: viewMode === m.mode }" :title="$t('main.group.' + m.label)"
-                        @click="viewMode = m.mode">
-                        <i class="bi" :class="m.icon" />
-                    </div>
+                    <WithToolTip v-for="m in VIEW_MODES" :key="m.mode" :message="'main.group.' + m.label">
+                        <div class="group-mode-btn" :class="{ active: viewMode === m.mode }" @click="viewMode = m.mode">
+                            <i class="bi" :class="m.icon" />
+                        </div>
+                    </WithToolTip>
                 </div>
                 <div class="group-toolbar-counts">
                     <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
@@ -505,11 +506,11 @@ function closeDetail(idx: number) {
                 <div class="cluster-primary-pane" :class="{ split: isSplit }">
                     <div class="group-toolbar" :style="{ height: TOOLBAR_PX + 'px' }">
                         <div class="group-toolbar-modes">
-                            <div v-for="m in VIEW_MODES" :key="m.mode" class="group-mode-btn"
-                                :class="{ active: viewMode === m.mode }" :title="$t('main.group.' + m.label)"
-                                @click="viewMode = m.mode">
-                                <i class="bi" :class="m.icon" />
-                            </div>
+                            <WithToolTip v-for="m in VIEW_MODES" :key="m.mode" :message="'main.group.' + m.label">
+                                <div class="group-mode-btn" :class="{ active: viewMode === m.mode }" @click="viewMode = m.mode">
+                                    <i class="bi" :class="m.icon" />
+                                </div>
+                            </WithToolTip>
                         </div>
                         <div class="group-toolbar-counts">
                             <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>

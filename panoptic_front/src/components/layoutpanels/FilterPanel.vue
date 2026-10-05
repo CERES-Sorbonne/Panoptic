@@ -10,6 +10,7 @@ import GroupForm from '@/components/forms/GroupForm.vue'
 import SortForm from '@/components/forms/SortForm.vue'
 import ImageInstanceDropdown from '@/components/layoutpanels/ImageInstanceDropdown.vue'
 import { useCurrentTab } from '@/data/composables/useCurrentTab'
+import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const props = defineProps<{ viewIndex: number }>()
 
@@ -27,11 +28,12 @@ function toggleBind() {
     <div class="filter-row" v-if="tab && collection">
         <!-- Bind / unbind the two views' filters. Only meaningful when split. -->
         
-        <div v-if="splitView" class="bb" :class="{ bound }"
-            :title="bound ? 'Views share one filter — click to give each its own' : 'Views filter independently — click to bind them'"
-            @click="toggleBind">
-            <i :class="bound ? 'bi bi-link-45deg' : 'bi bi-unlock'"></i>
-        </div>
+        <WithToolTip v-if="splitView"
+            :message="bound ? 'Views share one filter — click to give each its own' : 'Views filter independently — click to bind them'">
+            <div class="bb" :class="{ bound }" @click="toggleBind">
+                <i :class="bound ? 'bi bi-link-45deg' : 'bi bi-unlock'"></i>
+            </div>
+        </WithToolTip>
 
         <ImageInstanceDropdown :tab="tab" :collection="collection" />
         <TextSearchInput :tab="tab" :collection="collection" />

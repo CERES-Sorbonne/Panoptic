@@ -3,6 +3,7 @@
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import TabButton from '@/components/mainview/TabButton.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { useTabStore } from '@/data/stores/tabStore'
 import { useI18n } from 'vue-i18n'
 
@@ -29,9 +30,11 @@ function selectTab(tabId: string) {
 
             <Dropdown placement="bottom-end" class="tab-picker">
                 <template #button>
-                    <div class="tab-tool" title="All tabs">
-                        <span class="bi bi-chevron-down"></span>
-                    </div>
+                    <wTT message="main.toolbar.all_tabs">
+                        <div class="tab-tool">
+                            <span class="bi bi-chevron-down"></span>
+                        </div>
+                    </wTT>
                 </template>
                 <template #popup="{ hide }">
                     <div class="tab-picker-popup">
@@ -48,9 +51,11 @@ function selectTab(tabId: string) {
                 </template>
             </Dropdown>
 
-            <button class="tab-tool" @click="addTab" id="add-tab-button" title="New tab">
-                <span class="bi bi-plus"></span>
-            </button>
+            <wTT message="main.toolbar.new_tab">
+                <button class="tab-tool" @click="addTab" id="add-tab-button">
+                    <span class="bi bi-plus"></span>
+                </button>
+            </wTT>
         </div>
     </IslandPanel>
 </template>
@@ -233,6 +238,18 @@ function selectTab(tabId: string) {
 .tab-tool.active {
     background-color: var(--primary-light);
     color: var(--primary);
+}
+
+/* Center the icon's 1em box. By default Bootstrap Icons shift the glyph down
+   to sit on the text baseline. */
+.tab-tool > .bi {
+    display: inline-flex;
+}
+
+/* The Dropdown's trigger wrapper is a plain block, so the trigger sits on a
+   text line and drops below center. A flex wrapper removes that line. */
+.tab-picker > :deep(.v-popper > div) {
+    display: flex;
 }
 
 </style>

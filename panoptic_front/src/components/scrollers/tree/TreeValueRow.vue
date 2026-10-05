@@ -20,6 +20,11 @@ const props = defineProps<{
 // only without the picker. Without this they fall through to the plain branch and print the
 // raw array.
 const tags = computed(() => isTag(props.property.type) ? (props.value ?? []) as number[] : [])
+// badges carry no text separator, so the hover tooltip spells the list out; other values use
+// the frame's default (the text shown)
+const tagNames = computed(() => isTag(props.property.type)
+    ? tags.value.map(id => data.tags[id]?.value).filter(Boolean).join(', ')
+    : undefined)
 const isEmpty = computed(() => {
     if (isTag(props.property.type)) return !tags.value.length
     return props.value === undefined || props.value === ''
@@ -27,11 +32,12 @@ const isEmpty = computed(() => {
 </script>
 
 <template>
-    <TreeCellFrame :type="props.property.type" :empty="isEmpty">
+    <!-- title="" on the badges: the row's own tooltip covers them, a native one would double it -->
+    <TreeCellFrame :type="props.property.type" :empty="isEmpty" :tooltip="tagNames">
         <TagBadge v-if="props.property.type == PropertyType._folders && props.value !== undefined"
-            :name="data.folders[props.value]?.name" :color="-1" />
+            :name="data.folders[props.value]?.name" :color="-1" title="" />
         <div v-else-if="isTag(props.property.type)" class="badges">
-            <TagBadge v-for="id in tags" :key="id" :id="id" class="me-1" />
+            <TagBadge v-for="id in tags" :key="id" :id="id" class="me-1" title="" />
         </div>
         <span v-else-if="props.value !== undefined && props.value !== ''" class="value">{{ props.value }}</span>
     </TreeCellFrame>

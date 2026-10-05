@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
-import { SelectedImages } from '@/core/GroupManager';
+import { Group, GroupType, SelectedImages } from '@/core/GroupManager';
 import { GroupLine } from '@/components/scrollers/types';
 import { getGroupParents } from '@/utils/utils';
 import { Ref, computed } from 'vue';
@@ -34,12 +34,19 @@ const selected = computed(() => {
     return !props.item.data.slots.some(s => !columnStore.isSelected(s))
 })
 
-const propertyValues = computed(() => {
-    const res = []
+// A cluster group has no property values, so it is labelled by its name instead.
+type Label = { value?: Group['meta']['propertyValues'][number], name?: string }
+
+const labels = computed(() => {
+    const res: Label[] = []
     if (props.item.data.id != undefined) {
-        res.push(...props.item.data.meta.propertyValues)
-        const parents = getGroupParents(props.item.data)
-        parents.forEach(p => res.push(...p.meta.propertyValues))
+        for (const group of [props.item.data, ...getGroupParents(props.item.data)]) {
+            if (group.meta.propertyValues.length) {
+                group.meta.propertyValues.forEach(value => res.push({ value }))
+            } else if (group.type == GroupType.Cluster) {
+                res.push({ name: group.name ?? ('Cluster ' + group.parentIdx) })
+            }
+        }
     }
     return res
 })
@@ -54,9 +61,10 @@ const propertyValues = computed(() => {
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="ms-1 me-2"><SelectCircle :model-value="selected" @update:model-value="emits('toggle:group', props.item.data.id)"/></div>
-        <template v-for="value, index in propertyValues">
-            <PropertyValueVue class="" :value="value" />
-            <div v-if="index < propertyValues.length - 1" class="separator">&</div>
+        <template v-for="label, index in labels">
+            <PropertyValueVue v-if="label.value" class="" :value="label.value" />
+            <b v-else>{{ label.name }}</b>
+            <div v-if="index < labels.length - 1" class="separator">&</div>
         </template>
     </div>
 </template>
