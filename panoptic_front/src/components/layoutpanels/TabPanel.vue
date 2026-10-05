@@ -235,4 +235,16 @@ function selectTab(tabId: string) {
     color: var(--primary);
 }
 
+/* Center the icon's 1em box. By default Bootstrap Icons shift the glyph down
+   to sit on the text baseline. */
+.tab-tool > .bi {
+    display: inline-flex;
+}
+
+/* The Dropdown's trigger wrapper is a plain block, so the trigger sits on a
+   text line and drops below center. A flex wrapper removes that line. */
+.tab-picker > :deep(.v-popper > div) {
+    display: flex;
+}
+
 </style>

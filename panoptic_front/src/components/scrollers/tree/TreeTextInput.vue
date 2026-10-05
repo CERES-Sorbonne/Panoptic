@@ -120,8 +120,9 @@ defineExpose({ focus })
 
 <template>
     <!-- the icon stops the cell's click, so it needs the same handler to open the editor too -->
+    <!-- the raw value as tooltip, so its line breaks show as line breaks rather than ⏎ -->
     <TreeCellFrame ref="frame" :type="props.type" :empty="!editing && !props.modelValue" :active="editing"
-        @click="onClick" @icon-click="onClick">
+        :tooltip="props.modelValue" @click="onClick" @icon-click="onClick">
         <span v-if="props.modelValue && !editing" class="value" :class="{ url: props.type == PropertyType.url }">
             <template v-for="(line, i) in lines" :key="i"><i v-if="i > 0"
                     class="bi bi-arrow-return-left return-icon" />{{ line }}</template>

@@ -17,21 +17,21 @@ withDefaults(defineProps<Props>(), {
 
 <template>
     <div class="shell">
-        <div class="shell-toolbar" :style="{ height: toolbarHeight + 'px' }">
-            <slot name="toolbar"></slot>
+        <!-- The activity bar takes the full height; the toolbar starts to its right. -->
+        <div class="shell-activity" :style="{ width: activityWidth + 'px' }">
+            <slot name="activity"></slot>
         </div>
 
-        <div class="shell-body">
-            <div class="shell-activity" :style="{ width: activityWidth + 'px' }">
-                <slot name="activity"></slot>
+        <div class="shell-main">
+            <div class="shell-toolbar" :style="{ height: toolbarHeight + 'px' }">
+                <slot name="toolbar"></slot>
             </div>
             <div class="shell-content" :style="{ padding: gap + 'px' }">
                 <slot></slot>
             </div>
-        </div>
-
-        <div class="shell-status" :style="{ height: statusHeight + 'px' }">
-            <slot name="statusbar"></slot>
+            <div class="shell-status" :style="{ height: statusHeight + 'px' }">
+                <slot name="statusbar"></slot>
+            </div>
         </div>
     </div>
 </template>
@@ -39,7 +39,6 @@ withDefaults(defineProps<Props>(), {
 <style scoped>
 .shell {
     display: flex;
-    flex-direction: column;
     width: 100%;
     height: 100%;
     background-color: var(--island-canvas);
@@ -52,9 +51,11 @@ withDefaults(defineProps<Props>(), {
     flex-shrink: 0;
 }
 
-.shell-body {
+.shell-main {
     display: flex;
+    flex-direction: column;
     flex: 1;
+    min-width: 0;
     min-height: 0;
     overflow: hidden;
 }

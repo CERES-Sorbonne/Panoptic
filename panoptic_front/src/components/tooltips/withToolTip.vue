@@ -6,7 +6,7 @@ const active: { close: (() => void) | null } = { close: null }
 </script>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue';
+import { computed, onUnmounted, PropType, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
 
 // This component has two root nodes (the trigger + the teleported popup), so
@@ -38,10 +38,18 @@ const props = defineProps({
     delay: {
         type: Number,
         default: 200
-    }
+    },
+    // Replaces `message` for text that only makes sense at the moment the tooltip shows (e.g. a
+    // value that is only worth showing if its cell clips it). Called once the delay has passed;
+    // nothing shows if it returns no text. The result is shown verbatim, never translated.
+    getMessage: Function as PropType<() => string | undefined>
 })
 
+// last result of getMessage()
+const resolved = ref<string>()
+
 const realMessage = computed(() => {
+    if (props.getMessage) return resolved.value?.split('\n')
     if (!props.message) return
     let res = ''
     if (['main', 'modals', 'dropdown', 'btn', 'map'].indexOf(props.message.split('.')[0]) > -1) {
@@ -138,9 +146,13 @@ function tick() {
 }
 
 function show() {
-    if (!props.message) return
+    if (!props.message && !props.getMessage) return
     clearTimeout(showTimer)
     showTimer = setTimeout(() => {
+        if (props.getMessage) {
+            resolved.value = props.getMessage()
+            if (!resolved.value) return
+        }
         if (active.close && active.close !== hide) active.close()
         active.close = hide
         placed.value = false
@@ -163,6 +175,9 @@ function hide() {
 }
 
 onUnmounted(hide)
+
+// so a trigger can close its tooltip itself, e.g. when a click on it opens an editor
+defineExpose({ hide })
 </script>
 
 <template>

@@ -1,12 +1,19 @@
 <script setup lang="ts">
 // Left activity bar root node — inserted into AppShellLayout's #activity slot.
-// Toggles the folder panel and the bottom (properties / export) panels.
+// Closes the project, and toggles the folder panel and the bottom (properties / export) panels.
 import { useUiStore, type BottomPanel } from '@/data/stores/uiStore'
 import { usePanopticStore } from '@/data/stores/panopticStore'
 import { ModalId } from '@/data/models'
+import { useProjectStore } from '@/data/stores/projectStore'
+import wTT from '@/components/tooltips/withToolTip.vue'
 
 const uiStore = useUiStore()
 const panoptic = usePanopticStore()
+const project = useProjectStore()
+
+function closeProject() {
+    panoptic.closeProject(project.state.id)
+}
 
 // Activity-bar panel toggles: Folders, separated from Properties + Import/Export.
 // Import and Export are modals, not panels — they only borrow the same bar.
@@ -45,6 +52,10 @@ function isPanelActive(id: string) {
 <template>
     <div class="activity">
         <div class="activity-group">
+            <wTT message="main.menu.close_project">
+                <button class="activity-btn close-btn" @click="closeProject"><i class="bi bi-arrow-left"></i></button>
+            </wTT>
+            <!-- <div class="activity-sep"></div> -->
             <button
                 v-for="t in folderPanels"
                 :key="t.id"
@@ -102,6 +113,13 @@ function isPanelActive(id: string) {
     color: var(--text-secondary);
     font-size: 18px;
     transition: background-color var(--transition-fast);
+}
+
+/* Lift the close arrow so it centers on the toolbar row (the project name).
+   The buttons below keep their place, level with the panel tops. */
+.close-btn {
+    position: relative;
+    top: -2px;
 }
 
 .activity-btn:hover {

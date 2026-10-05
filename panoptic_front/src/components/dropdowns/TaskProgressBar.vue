@@ -6,6 +6,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/data/stores/projectStore'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import type { TaskState } from '@/data/models'
 
 const project = useProjectStore()
@@ -83,16 +84,17 @@ function formatEta(seconds: number) {
 <template>
     <Dropdown v-if="showAny" placement="bottom" :offset="6">
         <template #button>
-            <div class="task-progress-btn" :title="activePrimary ? taskSubtitle(activePrimary) || taskLabel(activePrimary) : ''">
-                <i class="bi bi-cpu me-1" style="color: black;" />
-                <span v-if="activePrimary" class="task-progress-name">{{ taskLabel(activePrimary) }}</span>
-                <span v-else class="task-progress-name">{{ $t('dropdown.tasks.title') }}</span>
-                <span v-if="remainingCount > 0" class="task-progress-queue">+{{ remainingCount }}</span>
-                <div v-if="activePrimary" class="task-progress-track">
-                    <div class="task-progress-fill" :style="{ width: primaryPct + '%' }" />
+            <wTT message="dropdown.tasks.info">
+                <div class="task-progress-btn">
+                    <i class="bi bi-cpu" />
+                    <span v-if="activePrimary" class="task-progress-name">{{ taskLabel(activePrimary) }}</span>
+                    <span v-if="remainingCount > 0" class="task-progress-queue">+{{ remainingCount }}</span>
+                    <div v-if="activePrimary" class="task-progress-track">
+                        <div class="task-progress-fill" :style="{ width: primaryPct + '%' }" />
+                    </div>
+                    <span v-if="activePrimary" class="task-progress-pct">{{ primaryPct }}%</span>
                 </div>
-                <span v-if="activePrimary" class="task-progress-pct">{{ primaryPct }}%</span>
-            </div>
+            </wTT>
         </template>
         <template #popup>
             <div class="task-dropdown">
@@ -156,7 +158,6 @@ function formatEta(seconds: number) {
     align-items: center;
     gap: 5px;
     padding: 4px 8px;
-    border: 1px solid var(--border-color, #dee2e6);
     border-radius: 5px;
     font-size: 12px;
     color: var(--text-color, #444);

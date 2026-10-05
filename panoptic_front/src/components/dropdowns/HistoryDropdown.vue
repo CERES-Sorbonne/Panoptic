@@ -271,7 +271,6 @@ watch(() => data.onUndo, () => {
     width: 28px;
     height: 28px;
     box-sizing: border-box;
-    border: 1px solid var(--border-color, #dee2e6);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     cursor: pointer;

@@ -645,6 +645,7 @@
         },
         "tasks": {
             "title": "Tasks",
+            "info": "Running and recent tasks",
             "running": "Running",
             "pending": "Pending",
             "past": "Past",

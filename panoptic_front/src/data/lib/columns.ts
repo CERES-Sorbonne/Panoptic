@@ -1,4 +1,4 @@
-import { PropertyType } from '@/data/models'
+import { FileSourceIndex, FolderIndex, PropertyType } from '@/data/models'
 
 export type TagSparse = (number[] | null)[]
 export type TagCSR = { offsets: Int32Array; values: Int32Array }
@@ -99,4 +99,29 @@ export function stripTagIds(sparse: TagSparse, count: number, drop: Set<number>)
         changed.push(s)
     }
     return changed
+}
+
+/**
+ * A column built in the browser from columns that are already loaded, instead of streamed.
+ * `build` runs once per fill and returns the per-slot reader, so it can prepare lookups first.
+ */
+export interface DerivedColumn {
+    deps: number[]
+    build: () => (slot: number) => any
+}
+
+/**
+ * Per-folder prefix of the `path` metadata: a file path is `prefix + file name`. An IIIF file
+ * name is already the full URL, so its prefix is empty. A folder with no path gets no prefix.
+ *
+ * Mirrors DataReader._file_paths on the backend: keep the two in step.
+ */
+export function folderPathPrefixes(folders: FolderIndex, sources: FileSourceIndex): Map<number, string> {
+    const prefixes = new Map<number, string>()
+    for (const key in folders) {
+        const folder = folders[key]
+        if (folder.sourceId != null && sources[folder.sourceId]?.dtype === 'iiif') prefixes.set(folder.id, '')
+        else if (folder.path != null) prefixes.set(folder.id, folder.path + '/')
+    }
+    return prefixes
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Toolbar button that shows which property values are loaded in the browser.
-// The button shows short counts and a progress bar. The panel lists every
+// Toolbar icon button that shows which property values are loaded in the browser.
+// The icon turns amber while something loads. The panel lists every
 // property with its load state and marks the ones the current tab needs.
 import { computed, ref } from 'vue'
 import Dropdown from './Dropdown.vue'
@@ -56,8 +56,6 @@ const otherPct = computed(() => {
 })
 
 const isLoading = computed(() => columnStore.baseProgress.loading || !!otherCurrent.value)
-// Progress on the button: the first load if it is running, else the current property.
-const primaryPct = computed(() => columnStore.baseProgress.loading ? basePct.value : otherPct.value)
 
 // Properties the tab needs now: the ones shown under the images, and the ones
 // used by the active filter, sort and grouping.
@@ -96,35 +94,15 @@ const columns = computed(() =>
         })
 )
 
-const loadedCount   = computed(() => columns.value.filter(c => c.status === 'loaded').length)
-const loadingCount  = computed(() => columns.value.filter(c => c.status === 'loading').length)
-const emptyCount    = computed(() => columns.value.filter(c => c.status === 'empty').length)
 const requestedCount    = computed(() => requestedIds.value.size)
 const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 </script>
 
 <template>
-    <Dropdown class="me-1" :offset="4" placement="bottom-start" @show="open = true" @hide="open = false">
+    <Dropdown :offset="4" placement="bottom-end" @show="open = true" @hide="open = false">
         <template #button>
             <button class="col-status-btn" :class="{ active: open, loading: isLoading }" :title="$t('dropdown.property_status.title')">
                 <i class="bi bi-database-fill-gear" />
-                <span class="col-status-summary tabular-nums">
-                    <span class="instance-count">{{ instanceCount.toLocaleString() }}</span>
-                    <span class="separator">|</span>
-                    <span class="dot dot-loaded" />{{ loadedCount }}
-                    <span v-if="loadingCount" class="dot dot-loading ms-1" />
-                    <span v-if="loadingCount">{{ loadingCount }}</span>
-                    <span v-if="emptyCount" class="dot dot-empty ms-1" />
-                    <span v-if="emptyCount">{{ emptyCount }}</span>
-                </span>
-                <!-- Load progress, only while something is loading -->
-                <span v-if="isLoading" class="trigger-progress">
-                    <span class="separator">|</span>
-                    <span class="trigger-progress-track">
-                        <span class="trigger-progress-fill" :style="{ width: (primaryPct ?? 0) + '%' }" />
-                    </span>
-                    <span v-if="primaryPct !== null" class="trigger-progress-pct">{{ primaryPct }}%</span>
-                </span>
             </button>
         </template>
 
@@ -199,72 +177,26 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 <style scoped>
 /* ── Trigger ─────────────────────────────────────────────────────────── */
 .col-status-btn {
-    position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
-    border: 1px solid var(--border-color, #dee2e6);
-    border-radius: 5px;
-    background: transparent;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    font-size: 12px;
-    color: var(--text-primary, #1a1a1a);
-    white-space: nowrap;
-    transition: background 0.15s;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: background-color var(--transition-fast);
 }
 .col-status-btn:hover,
 .col-status-btn.active {
-    background: rgba(137, 176, 205, 0.25);
+    background-color: var(--hover-bg);
 }
-
-/* Progress bar inside the button */
-.trigger-progress {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-}
-.trigger-progress-track {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 5px;
-    background: var(--border-light, #e9ecef);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.trigger-progress-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0;
-    background: #f0a500;
-    transition: width 0.2s linear;
-}
-.trigger-progress-pct {
-    color: var(--text-secondary, #888);
-    min-width: 30px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-.col-status-summary {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 11px;
-    color: var(--text-secondary, #666);
-}
-.instance-count {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    color: var(--text-primary, #444);
-}
-.separator {
-    margin: 0 3px;
-    color: #ccc;
+.col-status-btn.loading {
+    color: #f0a500;
 }
 
 /* ── Panel ───────────────────────────────────────────────────────────── */

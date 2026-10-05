@@ -5,6 +5,7 @@
 // what to render inside. Nothing is sized in pixels here: the frame is width:100% of whatever
 // the cell gives it, so it can never be wider or narrower than its slot.
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { PropertyType } from '@/data/models'
 import { ref, watch } from 'vue'
 import { useHoverSource } from '@/data/stores/hoverStore'
@@ -20,6 +21,9 @@ const props = defineProps<{
     noIcon?: boolean
     // Overrides the icon colour, for rows that paint their own background behind it.
     iconColor?: string
+    // Full value for the hover tooltip, for rows whose rendering loses part of it (line breaks
+    // drawn as icons, tags drawn as badges). Defaults to the text the value zone shows.
+    tooltip?: string
 }>()
 
 const emits = defineEmits(['click', 'iconClick'])
@@ -53,11 +57,31 @@ function onFocusOut(e: FocusEvent) {
 }
 
 watch(() => props.active, on => setFocus(on))
+
+// Hovering a row shows its full value, but only when the row actually cuts it: a tooltip
+// repeating what is already readable would pop up on every cell the pointer crosses. Never while
+// an editor is open on the row, since the editor already shows the whole value.
+const tip = ref(null)
+
+function tooltipText() {
+    const zone = valueZone.value
+    if (!zone || props.empty || props.active || root.value?.matches(':focus-within')) return undefined
+    if (!isClipped(zone)) return undefined
+    return props.tooltip ?? zone.innerText.trim()
+}
+
+// The value zone and the values inside it each cut their own overflow with an ellipsis, so the
+// cut can be on any of them.
+function isClipped(zone: HTMLElement) {
+    return [zone, ...Array.from(zone.querySelectorAll<HTMLElement>('*'))].some(e => e.scrollWidth > e.clientWidth)
+}
 </script>
 
 <template>
+    <!-- pointerdown closes the tooltip: the click it starts opens an editor over the row -->
     <div class="tree-cell" ref="root" :class="{ active: props.active }" @click="emits('click')"
-        @pointerenter="enter" @pointerleave="leave" @focusin="onFocusIn" @focusout="onFocusOut">
+        @pointerenter="enter" @pointerleave="leave" @pointerdown="tip?.hide()" @focusin="onFocusIn"
+        @focusout="onFocusOut">
         <!-- full-bleed layer under the icon and the value (colour fill) -->
         <!-- the icon's mousedown.prevent above keeps an open inline editor focused until its own
              click handler runs, so that click reads as a toggle rather than a blur then reopen -->
@@ -67,11 +91,16 @@ watch(() => props.active, on => setFocus(on))
             @mousedown.prevent @click.stop="emits('iconClick')">
             <PropertyIcon :type="props.type" />
         </div>
-        <div class="value-zone" ref="valueZone">
-            <slot />
-            <!-- same "Vide..." the property previews show -->
-            <span v-if="props.empty" class="empty">{{ $t('none') }}</span>
-        </div>
+        <!-- wTT has two root nodes, so this file's scoped styles can't reach its trigger span: the
+             flex sizing that lets the value zone fill the row goes inline instead. A longer delay
+             than wTT's default, since the pointer crosses rows constantly on its way elsewhere. -->
+        <wTT ref="tip" :get-message="tooltipText" :delay="400" style="flex: 1 1 auto; min-width: 0;">
+            <div class="value-zone" ref="valueZone">
+                <slot />
+                <!-- same "Vide..." the property previews show -->
+                <span v-if="props.empty" class="empty">{{ $t('none') }}</span>
+            </div>
+        </wTT>
     </div>
 </template>
 

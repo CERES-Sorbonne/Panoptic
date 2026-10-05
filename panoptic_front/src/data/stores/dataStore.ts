@@ -15,6 +15,7 @@ import {
     apiUndo,
 } from '../api/projectApi'
 import { buildFolderNodes, buildTagTree, wouldCreateTagCycle } from '../lib/tree'
+import { folderPathPrefixes } from '../lib/columns'
 import {
     EventEmitter, deepCopy, getTagChildren, getTagParents,
     hasPropertyChanges, isTag,
@@ -109,6 +110,7 @@ export const useDataStore = defineStore('dataStore', () => {
             if (f.id in folders.value) f.count = folders.value[f.id].count
         }
         folders.value = updatedNodes
+        columnStore.refreshDerived()
     }
 
     function importFileSources(sourceList: FileSource[]) {
@@ -124,6 +126,26 @@ export const useDataStore = defineStore('dataStore', () => {
             properties.value[property.id] = property
             columnStore.registerProperty(property.id, property.type)
         }
+        _registerPathColumn()
+    }
+
+    // The path column is not streamed: every path is a folder path plus a file name, and both
+    // are already in the browser (folder index, name column).
+    function _registerPathColumn() {
+        const sysKeys = _systemKeyIndex()
+        const pathId = sysKeys['path'], folderId = sysKeys['folder'], nameId = sysKeys['name']
+        if (pathId === undefined || folderId === undefined || nameId === undefined) return
+        columnStore.registerDerived(pathId, [folderId, nameId], () => {
+            const folderIds = columnStore.getRawBuffer(folderId)
+            const names = columnStore.getRawBuffer(nameId)
+            if (!folderIds || !names) return () => null
+            const prefixes = folderPathPrefixes(folders.value, fileSources.value)
+            return (slot: number) => {
+                const name = names[slot]
+                const prefix = prefixes.get(folderIds[slot])
+                return name == null || prefix === undefined ? null : prefix + name
+            }
+        })
     }
 
     function _initColumnStore() {

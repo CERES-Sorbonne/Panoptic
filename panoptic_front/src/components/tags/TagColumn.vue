@@ -230,7 +230,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
                             :can-customize="true"
                             @show="optionsTag = element.id" @hide="optionsTag = -1" />
                     </div>
-                    <div class="me-2 text-secondary" style="font-size: 13px;">{{ element.count +
+                    <div class="me-2 text-secondary" style="font-size: 13px; font-family: var(--font-mono);">{{ element.count +
                         sum(element.allChildren.map(c => data.tags[c].count)) }}</div>
                 </div>
             </template>

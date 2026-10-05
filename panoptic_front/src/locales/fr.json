@@ -661,6 +661,7 @@
         },
         "tasks": {
             "title": "Tâches",
+            "info": "Tâches en cours et récentes",
             "running": "En cours",
             "pending": "En attente",
             "past": "Terminées",
