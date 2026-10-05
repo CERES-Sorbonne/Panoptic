@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanopticStore } from '@/data/stores/panopticStore'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const DEFAULT_USER_ID = 'default'
 
@@ -77,8 +78,9 @@ async function removeUser(userId: string) {
                         @click="selectUser(user.id, hide)">
                         <i class="bi bi-person me-2"></i>
                         <span class="flex-grow-1 text-truncate">{{ user.name }}</span>
-                        <i class="bi bi-trash ms-2 delete-btn" :title="$t('main.home.user.delete')"
-                            @click.stop="removeUser(user.id)"></i>
+                        <WithToolTip message="main.home.user.delete">
+                            <i class="bi bi-trash ms-2 delete-btn" @click.stop="removeUser(user.id)"></i>
+                        </WithToolTip>
                     </div>
 
                     <div v-if="!isDefault || selectableUsers.length" class="custom-hr mt-1 mb-1" />

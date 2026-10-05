@@ -4,6 +4,7 @@
 // property with its load state and marks the ones the current tab needs.
 import { computed, ref } from 'vue'
 import Dropdown from './Dropdown.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { useInstanceStore } from '@/data/stores/instanceStore'
@@ -101,9 +102,11 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 <template>
     <Dropdown :offset="4" placement="bottom-end" @show="open = true" @hide="open = false">
         <template #button>
-            <button class="col-status-btn" :class="{ active: open, loading: isLoading }" :title="$t('dropdown.property_status.title')">
+            <wTT message="dropdown.property_status.title">
+            <button class="col-status-btn" :class="{ active: open, loading: isLoading }">
                 <i class="bi bi-database-fill-gear" />
             </button>
+            </wTT>
         </template>
 
         <template #popup>

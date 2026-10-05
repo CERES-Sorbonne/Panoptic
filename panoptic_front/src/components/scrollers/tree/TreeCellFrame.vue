@@ -7,7 +7,10 @@
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { PropertyType } from '@/data/models'
-import { ref, watch } from 'vue'
+import { Filter, FilterGroup, FilterOperator } from '@/core/FilterManager'
+import { computed, inject, ref, watch } from 'vue'
+import { useTabStore } from '@/data/stores/tabStore'
+import { cellValueKey } from './cellValue'
 import { useHoverSource } from '@/data/stores/hoverStore'
 
 const props = defineProps<{
@@ -75,6 +78,57 @@ function tooltipText() {
 function isClipped(zone: HTMLElement) {
     return [zone, ...Array.from(zone.querySelectorAll<HTMLElement>('*'))].some(e => e.scrollWidth > e.clientWidth)
 }
+
+// Copies the row's full value: the same text the tooltip would show, cut or not.
+const copied = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout>
+
+// Toggles "property = this value" ("contains" for tags) on the current tab's filters.
+const cellValue = inject(cellValueKey, null)
+const tabStore = useTabStore()
+const filterManager = () => tabStore.getMainTab().collection.filterManager
+
+// every filter of the tab on this row's property, nested groups included
+function propertyFilters(): Filter[] {
+    const propertyId = cellValue().propertyId
+    const found: Filter[] = []
+    const visit = (group: FilterGroup) => group.filters.forEach(f => {
+        if (f.isGroup) visit(f as FilterGroup)
+        else if ((f as Filter).propertyId == propertyId) found.push(f as Filter)
+    })
+    visit(filterManager().state.filter)
+    return found
+}
+
+// Filled blue, as in the property panel, while any filter of the tab is on this property
+const isFiltered = computed(() => !!cellValue && propertyFilters().length > 0)
+
+// A second click removes the property's filters, matching the blue state above.
+function filterValue() {
+    const manager = filterManager()
+    const existing = propertyFilters()
+    if (existing.length) {
+        existing.forEach(f => manager.deleteFilter(f.id))
+        return
+    }
+    const { propertyId, value } = cellValue()
+    const filter = manager.addNewFilter(propertyId)
+    // tag properties have no "equal": match images that have all of the row's tags
+    // (a single-tag property only offers "any", which is the same thing for one tag)
+    const operator = props.type == PropertyType.multi_tags ? FilterOperator.containsAll
+        : props.type == PropertyType.tag ? FilterOperator.containsAny
+        : FilterOperator.equal
+    manager.updateFilter(filter.id, { operator, value })
+}
+
+async function copyValue() {
+    const text = props.tooltip ?? valueZone.value?.innerText.trim()
+    if (!text) return
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => copied.value = false, 1000)
+}
 </script>
 
 <template>
@@ -101,6 +155,20 @@ function isClipped(zone: HTMLElement) {
                 <span v-if="props.empty" class="empty">{{ $t('none') }}</span>
             </div>
         </wTT>
+        <!-- mousedown.prevent keeps an open editor focused; click.stop keeps the row from opening one -->
+        <span v-if="!props.empty && !props.active" class="row-actions">
+            <!-- the styled span sits inside wTT: scoped styles can't reach wTT's own trigger span -->
+            <wTT v-if="cellValue" message=".filter_by_value" :click="false">
+                <span class="row-btn" @mousedown.prevent @click.stop="filterValue">
+                    <i :class="isFiltered ? 'bi bi-funnel-fill text-primary' : 'bi bi-funnel'" />
+                </span>
+            </wTT>
+            <wTT message=".copy" :click="false">
+                <span class="row-btn" @mousedown.prevent @click.stop="copyValue">
+                    <i :class="copied ? 'bi bi-check2' : 'bi bi-copy'" />
+                </span>
+            </wTT>
+        </span>
     </div>
 </template>
 
@@ -183,6 +251,33 @@ function isClipped(zone: HTMLElement) {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+
+.row-actions {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    display: none;
+    background-color: white;
+    border-radius: 3px;
+}
+
+.row-btn {
+    padding: 0 3px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--grey-text);
+}
+
+.row-btn:hover {
+    color: black;
+}
+
+/* only on hover, and never while the row is being edited */
+.tree-cell:hover:not(:focus-within) .row-actions {
+    display: inline-flex;
 }
 
 .empty {

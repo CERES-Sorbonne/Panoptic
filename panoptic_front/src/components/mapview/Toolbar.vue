@@ -57,9 +57,11 @@ async function updateMap(event) {
                 @update:model-value="emits('update:selectedMap', $event)" />
         </div>
 
-        <div v-if="props.hasMaps" class="tool sb" @click="deleteMap" title="Delete map">
-            <i class="bi bi-trash" style="opacity: 0.8;"></i>
-        </div>
+        <WithToolTip v-if="props.hasMaps" message="Delete map">
+            <div class="tool sb" @click="deleteMap">
+                <i class="bi bi-trash" style="opacity: 0.8;"></i>
+            </div>
+        </WithToolTip>
 
         <WithToolTip v-if="props.hasMaps" message="map.border_width" class="border-width-control d-flex align-items-center">
             <i class="bi bi-border-outer me-1" style="font-size: 13px;"></i>

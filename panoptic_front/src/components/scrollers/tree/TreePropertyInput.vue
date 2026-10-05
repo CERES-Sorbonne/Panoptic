@@ -13,6 +13,7 @@ import TreeColorInput from './TreeColorInput.vue';
 import TreeDateInput from './TreeDateInput.vue';
 import TreeValueRow from './TreeValueRow.vue';
 import { InputKey, useInputStore } from '@/data/stores/inputStore';
+import { cellValueKey } from './cellValue';
 
 const inputs = useInputStore()
 
@@ -26,6 +27,8 @@ const props = defineProps<{
 
 // so the frame below can report hover/focus on this property to the hover store
 provide(hoverPropertyKey, () => props.property.id)
+// and so it can filter the tab on this row's value
+provide(cellValueKey, () => ({ propertyId: props.property.id, value: props.instance.properties[props.property.id] }))
 
 const focusElem = ref(null)
 const key = computed(() => props.inputKey + '.' + props.property.id)

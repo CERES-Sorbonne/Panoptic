@@ -315,12 +315,12 @@ function groupScore(group: Group): number | null {
                 </div>
 
                 <!-- Hover action pill, centered over the image: subdivide · inspect · clear. -->
-                <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop
-                    :title="clusterFailed(entry.group.id)">
+                <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop>
                     <ActionButton2 action="group" :no-border="true" :defer="true"
+                        :message="clusterFailed(entry.group.id)"
                         :busy="props.manager.isClustering(entry.group.id)"
                         @submit="req => cluster(entry.group.id, req)">
-                        <!-- ActionButton2 wraps its slot in its own wTT ('dropdown.action.group'). -->
+                        <!-- ActionButton2 wraps its slot in its own wTT ('dropdown.action.group', or the failure). -->
                         <div class="cc-btn">
                             <i class="bi bi-intersect" />
                         </div>
@@ -342,10 +342,10 @@ function groupScore(group: Group): number | null {
                      Images, then the sub-group count on a card that holds a (closed) subtree. -->
                 <div class="cc-counts tabular-nums">
                     <span class="cc-chip">
-                        <i class="bi bi-images me-1" />{{ imageCount(entry.group) }}<span
-                            v-if="entry.group.meta?.maskedCount" class="cc-masked"
-                            :title="`${entry.group.meta.maskedCount} more in this pile, hidden by the filter`"
-                        >+{{ entry.group.meta.maskedCount }}</span>
+                        <i class="bi bi-images me-1" />{{ imageCount(entry.group) }}<wTT
+                            v-if="entry.group.meta?.maskedCount"
+                            :message="`${entry.group.meta.maskedCount} more in this pile, hidden by the filter`"
+                        ><span class="cc-masked">+{{ entry.group.meta.maskedCount }}</span></wTT>
                     </span>
                     <span v-if="isCollapsed(entry.group)" class="cc-chip">
                         <i class="bi bi-intersect me-1" />{{ entry.group.children.length }}

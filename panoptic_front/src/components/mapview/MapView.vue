@@ -513,21 +513,27 @@ onMounted(async () => {
             </div>
 
             <div class="floating-toolbar">
-                <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
-                    @click="props.mapOptions.showPoints = !props.mapOptions.showPoints" title="Show Points">
-                    <i class="bi bi-dot"></i>
-                </div>
-                <div class="tool" :class="{ selected: mouseMode == 'pan' }" @click="mouseMode = 'pan'" title="Pan">
-                    <i class="bi bi-hand-index-thumb"></i>
-                </div>
-                <div class="tool" :class="{ selected: mouseMode == 'lasso-plus' }" @click="mouseMode = 'lasso-plus'"
-                    title="Lasso Add">
-                    <i class="bi bi-plus-circle-dotted"></i>
-                </div>
-                <div class="tool" :class="{ selected: mouseMode == 'lasso-minus' }" @click="mouseMode = 'lasso-minus'"
-                    title="Lasso Remove">
-                    <i class="bi bi-dash-circle-dotted"></i>
-                </div>
+                <WithToolTip message="Show Points">
+                    <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
+                        @click="props.mapOptions.showPoints = !props.mapOptions.showPoints">
+                        <i class="bi bi-dot"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip message="Pan">
+                    <div class="tool" :class="{ selected: mouseMode == 'pan' }" @click="mouseMode = 'pan'">
+                        <i class="bi bi-hand-index-thumb"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip message="Lasso Add">
+                    <div class="tool" :class="{ selected: mouseMode == 'lasso-plus' }" @click="mouseMode = 'lasso-plus'">
+                        <i class="bi bi-plus-circle-dotted"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip message="Lasso Remove">
+                    <div class="tool" :class="{ selected: mouseMode == 'lasso-minus' }" @click="mouseMode = 'lasso-minus'">
+                        <i class="bi bi-dash-circle-dotted"></i>
+                    </div>
+                </WithToolTip>
             </div>
 
             <div v-if="atlasUnusable" class="atlas-empty">

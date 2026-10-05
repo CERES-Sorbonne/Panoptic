@@ -21,7 +21,9 @@ const props = defineProps<{
     // it, so the result no longer depends on this button still being mounted. `busy` is then the
     // pending state read back from that owner.
     defer?: boolean,
-    busy?: boolean
+    busy?: boolean,
+    // Replaces the default tooltip, e.g. to say why the last run failed.
+    message?: string
 }>()
 const emits = defineEmits(['instances', 'groups', 'call', 'submit', 'show', 'hide'])
 
@@ -125,7 +127,7 @@ watch(localFunction, loadInput)
                 <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <wTT :message="'dropdown.action.' + props.action" class="slot-wrap">
+                <wTT :message="props.message ?? 'dropdown.action.' + props.action" class="slot-wrap">
                     <div class="slot-inner">
                         <slot></slot>
                     </div>

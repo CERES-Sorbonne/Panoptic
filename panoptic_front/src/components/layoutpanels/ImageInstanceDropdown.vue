@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
 import { CollectionManager } from '@/core/CollectionManager';
 
@@ -20,12 +21,11 @@ function updateSha1Mode(value: boolean) {
 <template>
     <Dropdown placement="bottom-start">
         <template #button>
-            <div
-                class="bb"
-                :title="collection.groupState.sha1Mode ? 'Image mode' : 'Instance mode'"
-            >
-                <i :class="collection.groupState.sha1Mode ? 'bi bi-images' : 'bi bi-image'"></i>
-        </div>
+            <wTT message="main.menu.image_instance_mode_tooltip">
+                <div class="bb">
+                    <i :class="collection.groupState.sha1Mode ? 'bi bi-images' : 'bi bi-image'"></i>
+                </div>
+            </wTT>
         </template>
         <template #popup="{ hide }">
             <div class="mode-menu">

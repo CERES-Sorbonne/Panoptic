@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ImageType } from '@/data/models'
 import { apiGetImageTypes, apiUpsertImageType, apiDeleteImageType, apiGetImageStats, apiGenerateImages } from '@/data/api/projectApi'
 import SectionDivider from '../utils/SectionDivider.vue'
+import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const FORMATS = ['jpeg', 'webp', 'png']
 
@@ -73,7 +74,7 @@ onMounted(load)
                     <th>Name</th>
                     <th>Format</th>
                     <th>Size</th>
-                    <th title="Generate on import">Auto</th>
+                    <th><WithToolTip message="Generate on import">Auto</WithToolTip></th>
                     <th>Stored</th>
                 </tr>
             </thead>

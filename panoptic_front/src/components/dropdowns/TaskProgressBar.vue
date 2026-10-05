@@ -104,8 +104,9 @@ function formatEta(seconds: number) {
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
                         <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
-                        <i v-if="!t.cancelled" class="bi bi-stop-circle task-row-action"
-                            :title="$t('dropdown.tasks.stop')" @click.stop="stop(t)" />
+                        <wTT v-if="!t.cancelled" message="dropdown.tasks.stop">
+                            <i class="bi bi-stop-circle task-row-action" @click.stop="stop(t)" />
+                        </wTT>
                         <span v-else class="spinner-border task-row-spinner" />
                     </div>
                     <div v-if="taskSubtitle(t)" class="task-row-subtitle">{{ taskSubtitle(t) }}</div>
@@ -124,8 +125,9 @@ function formatEta(seconds: number) {
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
                         <span v-if="t.total" class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
-                        <i class="bi bi-x-circle task-row-action" :title="$t('dropdown.tasks.cancel')"
-                            @click.stop="stop(t)" />
+                        <wTT message="dropdown.tasks.cancel">
+                            <i class="bi bi-x-circle task-row-action" @click.stop="stop(t)" />
+                        </wTT>
                     </div>
                     <div class="task-row-subtitle">{{ taskSubtitle(t) || $t('dropdown.tasks.waiting') }}</div>
                 </div>
@@ -142,8 +144,9 @@ function formatEta(seconds: number) {
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
                         <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
-                        <i class="bi bi-x task-row-action" :title="$t('dropdown.tasks.dismiss')"
-                            @click.stop="project.dismissTask(t.id)" />
+                        <wTT message="dropdown.tasks.dismiss">
+                            <i class="bi bi-x task-row-action" @click.stop="project.dismissTask(t.id)" />
+                        </wTT>
                     </div>
                     <div class="task-row-subtitle">{{ finishedMessage(t) }}</div>
                 </div>

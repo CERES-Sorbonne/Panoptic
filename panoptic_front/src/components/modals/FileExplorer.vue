@@ -5,6 +5,7 @@ import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, apiGet
 import { DirInfo, FileInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';
+import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const props = defineProps({
     mode: {
@@ -237,8 +238,9 @@ onMounted(async () => {
                     @click="openHistory(path)">
                     <i :class="props.mode === 'file' ? 'bi bi-file-earmark' : 'bi bi-clock-history'" />
                     <div class="recent-name">{{ pathName(path) }}</div>
-                    <i class="bi bi-x recent-remove" :title="$t('modals.fs.recent_remove')"
-                        @click.stop="removeFromHistory(path)" />
+                    <WithToolTip message="modals.fs.recent_remove">
+                        <i class="bi bi-x recent-remove" @click.stop="removeFromHistory(path)" />
+                    </WithToolTip>
                 </div>
             </template>
         </div>

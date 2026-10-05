@@ -6,6 +6,7 @@ import { computed } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue'
 import { useMediaStore } from '@/data/stores/mediaStore'
 import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
+import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const media = useMediaStore()
 
@@ -31,12 +32,14 @@ const fmt = (n: number) => n.toLocaleString()
 <template>
     <Dropdown :auto-focus="false">
         <template #button>
-            <div class="atlas-btn" :title="$t('map.atlas')">
-                <i class="bi bi-grid-3x3-gap"></i>
-                <span v-if="media.atlasTask" class="status tabular-nums">{{ media.atlasTaskPercent }}%</span>
-                <span v-else-if="loading" class="status tabular-nums">{{ loadPercent }}%</span>
-                <i v-else-if="needsAttention" class="bi bi-exclamation-triangle-fill warn"></i>
-            </div>
+            <WithToolTip message="map.atlas">
+                <div class="atlas-btn">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span v-if="media.atlasTask" class="status tabular-nums">{{ media.atlasTaskPercent }}%</span>
+                    <span v-else-if="loading" class="status tabular-nums">{{ loadPercent }}%</span>
+                    <i v-else-if="needsAttention" class="bi bi-exclamation-triangle-fill warn"></i>
+                </div>
+            </WithToolTip>
         </template>
         <template #popup>
             <div class="atlas-popup">

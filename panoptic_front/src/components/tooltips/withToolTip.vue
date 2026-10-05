@@ -174,6 +174,8 @@ function hide() {
     if (active.close === hide) active.close = null
 }
 
+// A click on the trigger closes the tooltip (capture, so it runs even when the button stops
+// propagation). It stays closed until the pointer leaves and enters again.
 onUnmounted(hide)
 
 // so a trigger can close its tooltip itself, e.g. when a click on it opens an editor
@@ -181,7 +183,7 @@ defineExpose({ hide })
 </script>
 
 <template>
-    <span ref="triggerElem" v-bind="$attrs" class="wtt-trigger text-nowrap m-0 p-0" @mouseenter="show" @mouseleave="hide">
+    <span ref="triggerElem" v-bind="$attrs" class="wtt-trigger text-nowrap m-0 p-0" @mouseenter="show" @mouseleave="hide" @pointerdown.capture="hide">
         <span v-if="props.icon && props.iconPos === 'left'" style="cursor: pointer;" class="flex-center">
             <i class="bi bi-question-circle small-icon"></i>
         </span>

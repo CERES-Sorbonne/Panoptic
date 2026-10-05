@@ -71,6 +71,7 @@ function onChangeLang(event: Event) {
                     <i class="bi bi-bell"></i>
                 </button>
             </wTT>
+            <wTT message="main.toolbar.language">
             <div class="lang">
                 <i class="bi bi-translate"></i>
                 <select :value="locale" @change="onChangeLang">
@@ -79,6 +80,7 @@ function onChangeLang(event: Event) {
                     </option>
                 </select>
             </div>
+            </wTT>
         </div>
     </div>
 </template>

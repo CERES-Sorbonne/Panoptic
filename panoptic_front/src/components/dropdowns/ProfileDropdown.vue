@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanopticStore } from '@/data/stores/panopticStore'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 
 const DEFAULT_USER_ID = 'default'
 
@@ -33,11 +34,13 @@ function useDefault(hide: () => void) {
 <template>
     <Dropdown placement="bottom-end" :offset="6" @show="panoptic.fetchUsers()">
         <template #button>
-            <div class="profile-btn" :title="displayName">
+            <wTT message="main.toolbar.profile">
+            <div class="profile-btn">
                 <i class="bi bi-person-circle"></i>
                 <span class="profile-name">{{ displayName }}</span>
                 <i class="bi bi-chevron-down profile-chevron"></i>
             </div>
+            </wTT>
         </template>
         <template #popup="{ hide }">
             <div class="profile-panel">

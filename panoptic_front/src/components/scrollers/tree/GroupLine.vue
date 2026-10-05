@@ -337,8 +337,9 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                     </WithToolTip>
                 </div>
 
-                <div class="ms-1" v-if="!hasSubgroups" :title="clusterFailed">
+                <div class="ms-1" v-if="!hasSubgroups">
                     <ActionButton action="group" :defer="true" :busy="props.manager.isClustering(props.item.data.id)"
+                        :message="clusterFailed"
                         @submit="cluster" />
                 </div>
                 <div class="ms-1">
