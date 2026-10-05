@@ -9,8 +9,9 @@
     "tauri": "tauri",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
-    "test": "node test/group/build.mjs && node --test test/group/.build/suite.mjs",
+    "test": "node test/group/build.mjs && node test/map/build.mjs && node --test test/group/.build/suite.mjs test/map/.build/suite.mjs",
     "test:sim": "node test/group/build.mjs && node test/group/.build/sim.mjs",
+    "bench:grid": "node test/map/build.mjs && node test/map/.build/bench.mjs",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {

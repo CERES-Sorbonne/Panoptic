@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, shallowRef, onMounted, onUnmounted, watch, computed, toRaw } from 'vue'
 import { Colors, greyColor, Instance, MapOptions, PointData } from '@/data/models'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useMediaStore } from '@/data/stores/mediaStore'
@@ -10,6 +10,8 @@ import { isNoValue } from '@/core/group/valueParser'
 import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
+import { imageWorldSize } from '@/mixins/mapview/MapRenderer'
+import { cellCenter, DEFAULT_GRID_DENSITY, mapGrid } from '@/mixins/mapview/GridLayout'
 import { keyState } from '@/data/composables/keyState'
 import { newZoomOwner, zoomModal } from '../modals/zoomModal'
 import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
@@ -71,9 +73,14 @@ const defaultColor = '#777777'
 const borderWidth = computed(() => props.mapOptions.borderWidth ?? DEFAULT_BORDER_WIDTH)
 // Same story for how much the HD preview grows on hover.
 const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_SCALE)
+const layout = computed(() => props.mapOptions.layout ?? 'scatter')
+const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_DENSITY)
+const fillCells = computed(() => layout.value === 'grid' && !!props.mapOptions.fillCells)
 watch(() => props.mapOptions, (opts) => {
     if (opts && opts.borderWidth == null) opts.borderWidth = DEFAULT_BORDER_WIDTH
     if (opts && opts.hoverScale == null) opts.hoverScale = DEFAULT_HOVER_SCALE
+    if (opts && opts.layout == null) opts.layout = 'scatter'
+    if (opts && opts.gridDensity == null) opts.gridDensity = DEFAULT_GRID_DENSITY
 }, { immediate: true })
 
 // The group clicked in the group-list island — its points render at full strength while every
@@ -313,6 +320,40 @@ function updateColors() {
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
 
+// Sets x/y for the current layout. The grid spans the whole map (computed once per map), so a
+// filtered-out image leaves its cell empty and every image keeps its cell across filters.
+function applyLayout(pts: PointData[], mapId: number) {
+    const data = media.maps[mapId]?.data
+    if (layout.value === 'grid' && data) {
+        const grid = mapGrid(toRaw(data), gridDensity.value)
+        const size = imageWorldSize(props.imageSize)
+        for (const p of pts) [p.x, p.y] = cellCenter(grid, grid.cells.get(p.sha1)!, size)
+    } else {
+        for (const p of pts) {
+            p.x = p.sx
+            p.y = p.sy
+        }
+    }
+}
+
+// Re-places the points after a layout or density change, framing the images that were on screen.
+function relayout() {
+    if (builtMapId == null || !points.value.length) return
+    const inView = renderer.value?.getPointsInView() ?? []
+    applyLayout(points.value, builtMapId)
+    if (!renderer.value) return
+    renderer.value.updateLayout(points.value)
+    lookAtPoints(inView.length ? inView : points.value)
+}
+
+function rescaleGrid(imageSize: number, previous: number) {
+    if (layout.value !== 'grid' || builtMapId == null || !points.value.length) return
+    applyLayout(points.value, builtMapId)
+    if (!renderer.value) return
+    renderer.value.updateLayout(points.value)
+    renderer.value.scaleCameraPosition(imageWorldSize(imageSize) / imageWorldSize(previous))
+}
+
 async function showMap(mapId: number, force = false) {
     if (mapId == null || !media.maps[mapId]) return
 
@@ -328,6 +369,7 @@ async function showMap(mapId: number, force = false) {
 
     // Cancel any stale concurrent call
     const token = ++showMapToken
+    const mapChanged = mapId !== builtMapId
 
     // Points need real width/height to get their true aspect ratio — the column store only
     // holds a property's data once something requires it (registering a single hovered instance
@@ -378,6 +420,8 @@ async function showMap(mapId: number, force = false) {
             id: instanceId,
             x: values[i + 1],
             y: values[i + 2],
+            sx: values[i + 1],
+            sy: values[i + 2],
             z: BASE_Z,
             color: defaultColor,
             sha1: sha1,
@@ -392,6 +436,7 @@ async function showMap(mapId: number, force = false) {
         newSha1ToPoint[sha1] = p
     }
 
+    applyLayout(res, mapId)
     sha1ToPoint = newSha1ToPoint
     points.value = res
     builtMapId = mapId
@@ -413,6 +458,8 @@ async function showMap(mapId: number, force = false) {
     // If the renderer isn't ready yet, store args so the renderer watcher can call createMap
     if (renderer.value) {
         renderer.value.createMap(atlas, points.value, props.mapOptions.showPoints)
+        // The grid's extent depends on the map's size, unlike the projection's fixed range.
+        if (mapChanged && layout.value === 'grid') lookAtPoints(res)
     } else {
         pendingCreateMap = { atlas, points: points.value }
     }
@@ -440,9 +487,13 @@ async function deleteMap(mapId: number) {
 // group that still needs a second click to stand out from the rest.
 function focusGroup(leaf: { id: number, points: PointData[] }) {
     selectedGroupId.value = leaf.id
-    if (!renderer.value || !leaf.points.length) return
-    let minX = leaf.points[0].x, minY = leaf.points[0].y, maxX = minX, maxY = minY
-    for (const p of leaf.points) {
+    lookAtPoints(leaf.points)
+}
+
+function lookAtPoints(pts: PointData[]) {
+    if (!renderer.value || !pts.length) return
+    let minX = pts[0].x, minY = pts[0].y, maxX = minX, maxY = minY
+    for (const p of pts) {
         minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
         maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
     }
@@ -464,7 +515,13 @@ watch(() => columnStore.selectionTick(selectNamespace.value), () => updateColors
 watch(selectedGroupId, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
-watch(() => props.imageSize, (val) => renderer.value?.setImageSize(val))
+watch(() => props.imageSize, (val, old) => {
+    renderer.value?.setImageSize(val)
+    rescaleGrid(val, old)
+})
+watch(layout, relayout)
+watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
+watch(fillCells, (val) => renderer.value?.setFillCells(val))
 watch(borderWidth, () => updateColors())
 watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 
@@ -474,6 +531,7 @@ watch(renderer, (r) => {
         r.atlasLayers.onProgress = (p) => { atlasLoad.value = p }
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
+        r.setFillCells(fillCells.value)
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
         // not when it was queued: the showPoints watcher had no renderer to reach in between.
         if (pendingCreateMap) {
@@ -503,7 +561,9 @@ onMounted(async () => {
             @update:selected-map="id => props.mapOptions.selectedMap = id" :has-maps="media.hasMaps"
             :images="getRootInstances" :border-width="borderWidth"
             @update:border-width="props.mapOptions.borderWidth = $event" :hover-scale="hoverScale"
-            @update:hover-scale="props.mapOptions.hoverScale = $event" @delete:map="deleteMap"
+            @update:hover-scale="props.mapOptions.hoverScale = $event"
+            :grid-density="layout == 'grid' ? gridDensity : null"
+            @update:grid-density="props.mapOptions.gridDensity = $event" @delete:map="deleteMap"
             :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
 
         <div class="map-view-container">
@@ -517,6 +577,18 @@ onMounted(async () => {
                     <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
                         @click="props.mapOptions.showPoints = !props.mapOptions.showPoints">
                         <i class="bi bi-dot"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip message="map.grid_layout">
+                    <div class="tool" :class="{ selected: layout == 'grid' }"
+                        @click="props.mapOptions.layout = layout == 'grid' ? 'scatter' : 'grid'">
+                        <i class="bi bi-grid-3x3"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip v-if="layout == 'grid'" message="map.fill_cells">
+                    <div class="tool" :class="{ selected: fillCells }"
+                        @click="props.mapOptions.fillCells = !props.mapOptions.fillCells">
+                        <i class="bi bi-aspect-ratio"></i>
                     </div>
                 </WithToolTip>
                 <WithToolTip message="map.pan">

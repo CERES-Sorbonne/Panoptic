@@ -17,6 +17,7 @@ export class AtlasLayerManager {
     // loadLayers() entry: sheets load one await at a time, so a point/image toggle mid-load must
     // reach the layers that don't exist yet, not just the ones already built.
     private _showAsPoint = false
+    private _fill = false
     
     // Cache for loaded textures, keyed by atlas ID and sheet index
     private static textureCache = new Map<string, THREE.Texture>()
@@ -139,6 +140,7 @@ export class AtlasLayerManager {
                 layer.mesh.visible = this._isVisible
                 layer.setZoomParams(this._zoomParams)
                 layer.setShowAsPoint(this._showAsPoint)
+                layer.setFill(this._fill)
                 this.layers.push(layer)
 
                 this.scene.add(layer.mesh)
@@ -232,5 +234,10 @@ export class AtlasLayerManager {
     public setShowAsPoint(show: boolean) {
         this._showAsPoint = show
         this.layers.forEach(l => l.setShowAsPoint(show))
+    }
+
+    public setFill(fill: boolean) {
+        this._fill = fill
+        this.layers.forEach(l => l.setFill(fill))
     }
 }

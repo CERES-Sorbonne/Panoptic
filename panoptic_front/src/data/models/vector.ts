@@ -100,6 +100,9 @@ export interface PointData {
     // separate from tint so "dim this group" and "tint this selection" can compose independently.
     desaturate?: number
     sha1: string
+    // Position in the projection; x/y are where the current layout draws the point.
+    sx: number
+    sy: number
     ratio: number,
     id?: number,
     border?: number

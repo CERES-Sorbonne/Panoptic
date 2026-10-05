@@ -10,6 +10,11 @@ import { LassoLayer } from './LassoLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 
+// Side of the square a thumbnail always fits in, in world units (its largest size, at low zoom).
+export function imageWorldSize(imageSize: number) {
+    return imageSize / 50.0
+}
+
 export class MapRenderer {
     private container: HTMLElement
     private scene: THREE.Scene
@@ -195,6 +200,29 @@ export class MapRenderer {
         this.atlasLayers.updatePositions()
     }
 
+    // Points moved (layout switch, grid rescale): re-index them and re-upload their positions.
+    public updateLayout(points: PointData[]) {
+        this.spatialIndex.initTree(points)
+        this.atlasLayers.updatePositions()
+        this.hdLayer.updatePositions()
+    }
+
+    public getPointsInView(): PointData[] {
+        return this.spatialIndex.getPointsInRect(this.getCameraRect())
+    }
+
+    // Keeps the same world point under the screen centre when the whole layout is scaled about
+    // the origin.
+    public scaleCameraPosition(factor: number) {
+        this.camera.position.x *= factor
+        this.camera.position.y *= factor
+    }
+
+    public setFillCells(fill: boolean) {
+        this.atlasLayers.setFill(fill)
+        this.controls.fillCells = fill
+    }
+
     public setShowAsPoint(show: boolean) {
         this.showAsPoint = show
         // Toggled mid-hover: drop whatever preview is currently up for the mode we're leaving
@@ -205,7 +233,7 @@ export class MapRenderer {
     }
 
     public setImageSize(imageSize: number) {
-        this.zoomParams.h = imageSize / 50.0 * 1
+        this.zoomParams.h = imageWorldSize(imageSize)
         this.hdLayer.setZoomParams(this.zoomParams)
         this.hoverPointLayer.setZoomParams(this.zoomParams)
         this.atlasLayers.setZoomParams(this.zoomParams)

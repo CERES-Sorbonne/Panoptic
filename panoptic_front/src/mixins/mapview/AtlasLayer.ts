@@ -18,6 +18,8 @@ export class AtlasLayer {
     // Store references to points and atlas for subsequent updates
     private points: PointData[]
     private atlas: ImageAtlas
+    // Square thumbnails showing a centred crop of the image, instead of the whole image letterboxed.
+    private fill = false
     private matrixHelper = new THREE.Matrix4()
     private colorHelper = new THREE.Color()
 
@@ -90,7 +92,7 @@ export class AtlasLayer {
         const array = attr.array as Float32Array
 
         this.points.forEach((p, i) => {
-            array[i] = p.ratio // Pass the raw ratio (e.g., 1.5 for landscape)
+            array[i] = this.fill ? 1.0 : p.ratio // Pass the raw ratio (e.g., 1.5 for landscape)
         })
         attr.needsUpdate = true
     }
@@ -179,6 +181,12 @@ export class AtlasLayer {
             let scaleX = 1.0, scaleY = 1.0
             if (imgRatio > cellRatio) scaleY = cellRatio / imgRatio
             else scaleX = imgRatio / cellRatio
+            if (this.fill) {
+                // Largest centred square of the image, in cell uv units.
+                const side = Math.min(scaleX * cellRatio, scaleY)
+                scaleX = side / cellRatio
+                scaleY = side
+            }
 
             uvArray[i * 4] = scaleX - (uvMarginX * 2.0)
             uvArray[i * 4 + 1] = scaleY - (uvMarginY * 2.0)
@@ -200,6 +208,13 @@ export class AtlasLayer {
 
     public setShowAsPoint(show: boolean) {
         this.material.setShowAsPoint(show)
+    }
+
+    public setFill(fill: boolean) {
+        if (fill === this.fill) return
+        this.fill = fill
+        this.updateUVsAndOffsets()
+        this.updateRatios()
     }
 
     public dispose() {

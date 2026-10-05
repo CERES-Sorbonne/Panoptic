@@ -17,7 +17,7 @@ export class MapControls {
     private isMouseInCanvas = false // Track if mouse is inside the canvas
 
     private lasso: LassoLayer
-    public minZoom = 0.01
+    public minZoom = 0.002
     public maxZoom = 20
     public zoomSpeed = 0.001
 
@@ -81,6 +81,8 @@ export class MapControls {
     // zoom overlay): that overlay fires the canvas's mouseleave, which would otherwise drop the
     // hovered point and with it the overlay itself. The cursor still has to be over the canvas.
     public hoverThroughOverlays = false
+    // Thumbnails are square crops (AtlasLayer fill), so the hit box is the full square.
+    public fillCells = false
 
     public getHoveredPoint(zoomParams: ZoomParams): PointData | null {
         if (this.mode.startsWith('lasso')) return null
@@ -117,8 +119,9 @@ export class MapControls {
         })
 
         for (const p of nearbyPoints) {
-            const vW = p.ratio > 1.0 ? 1.0 : p.ratio
-            const vH = p.ratio > 1.0 ? 1.0 / p.ratio : 1.0
+            const ratio = this.fillCells ? 1.0 : p.ratio
+            const vW = ratio > 1.0 ? 1.0 : ratio
+            const vH = ratio > 1.0 ? 1.0 / ratio : 1.0
             const halfW = (vW * zoomScale) / 2.0
             const halfH = (vH * zoomScale) / 2.0
 
