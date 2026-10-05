@@ -27,7 +27,7 @@ from panoptic.models.stream_models import (
 from panoptic.core.databases.data.system_properties import is_readonly, is_system
 from panoptic.core.databases.entity_schema import OP_CREATE, OP_DELETE
 from panoptic.core.databases.data.create import (
-    FILES_SCHEMA, INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
+    INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
     INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
 )
 from panoptic.routes.deps import get_project
@@ -752,10 +752,7 @@ def get_property_column(
                     file_ids = [r[1] for r in inst_rows]
                     file_to_val: dict[int, Any] = {}
                     if file_ids:
-                        file_rows = FILES_SCHEMA.select(
-                            reader.conn, ['id', system_def.col], id=file_ids
-                        )
-                        file_to_val = {r[0]: r[1] for r in file_rows}
+                        file_to_val = reader._file_system_values(system_def, file_ids)
 
                     n = len(inst_rows)
                     counter = 0

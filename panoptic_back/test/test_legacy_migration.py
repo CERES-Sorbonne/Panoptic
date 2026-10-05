@@ -285,7 +285,7 @@ def test_migrate_fixture_end_to_end(panoptic, tmp_path):
         with DataReader(str(project.data_db_path)) as r:
             assert len(r.get_instances()) == 12
             assert len(r.get_folders()) == 2
-            assert len(r.get_properties()) == 23
+            assert len(r.get_properties()) == 24
             assert len(r.get_tags()) == 10
     finally:
         panoptic.close_project(run.project_id)

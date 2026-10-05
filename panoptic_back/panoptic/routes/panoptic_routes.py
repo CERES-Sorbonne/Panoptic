@@ -4,8 +4,8 @@ from __future__ import annotations
 import glob
 import os
 import pathlib
-import subprocess
 import sys
+from importlib import metadata
 from sys import platform
 
 import anyio
@@ -394,13 +394,11 @@ def get_packages():
         'platform': sys.platform,
     }
     for pkg_list, key in [(base_packages, 'panopticPackages'), (plugin_packages, 'pluginPackages')]:
-        try:
-            raw = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *pkg_list])
-            versions = [v.split(os.linesep.encode())[0].strip().decode() for v in raw.split(b'Version:')[1:]]
-            for pkg, ver in zip(pkg_list, versions):
-                res[key][pkg] = ver
-        except Exception:
-            pass
+        for pkg in pkg_list:
+            try:
+                res[key][pkg] = metadata.version(pkg)
+            except metadata.PackageNotFoundError:
+                pass
     return res
 
 

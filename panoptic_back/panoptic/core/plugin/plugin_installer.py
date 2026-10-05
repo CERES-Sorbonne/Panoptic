@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
-from importlib import metadata
+from importlib import metadata, util
 from pathlib import Path
 
 import requests
@@ -40,7 +40,7 @@ class PluginInstaller:
         """pip install -U <source>, return the resolved install_path."""
         min_version = PIP_MIN_VERSIONS.get(source)
         requirement = f'{source}>={min_version}' if min_version else source
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', requirement])
+        subprocess.check_call(self._pip_install_cmd() + ['-U', requirement])
         dist = metadata.distribution(source)
         return str(Path(str(dist.locate_file(''))) / source)
 
@@ -116,9 +116,20 @@ class PluginInstaller:
     def _install_requirements(self, plugin_dir: Path) -> None:
         req = plugin_dir / 'requirements.txt'
         if req.exists():
-            subprocess.check_call(
-                [sys.executable, '-m', 'pip', 'install', '-r', str(req)]
-            )
+            subprocess.check_call(self._pip_install_cmd() + ['-r', str(req)])
+
+    @staticmethod
+    def _pip_install_cmd() -> list[str]:
+        """Install command for the running interpreter.
+
+        Envs created by uv have no pip module, so fall back to uv targeting this env.
+        """
+        if util.find_spec('pip') is not None:
+            return [sys.executable, '-m', 'pip', 'install']
+        uv = shutil.which('uv')
+        if uv:
+            return [uv, 'pip', 'install', '--python', sys.executable]
+        raise RuntimeError(f"Neither pip nor uv is available to install packages into {sys.executable}")
 
     @staticmethod
     def _zip_url(git_url: str) -> str:
