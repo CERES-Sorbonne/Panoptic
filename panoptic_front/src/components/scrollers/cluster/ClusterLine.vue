@@ -5,6 +5,7 @@ import { ClusterLine, GroupViewMode, MOSAIC_GRID, mosaicSlotCount } from '@/comp
 import { ClusterRequest, Group, GroupType } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { isNoValue } from '@/core/group/valueParser'
+import { firstSlots } from '@/core/group/groupSlots'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { useDataStore } from '@/data/stores/dataStore'
 import CenteredImage from '@/components/images/CenteredImage.vue'
@@ -56,7 +57,8 @@ const MOSAIC_GAP = 2
 function mosaicTiles(group: Group, width: number) {
     const grid = MOSAIC_GRID[props.viewMode ?? 'single'] ?? MOSAIC_GRID.single
     if (!grid.cols || !grid.rows) return null
-    const slots = (group.slots ?? []).slice(0, mosaicSlotCount(props.viewMode ?? 'single'))
+    // A closed, sub-clustered card holds no slots of its own: its images come from its leaves.
+    const slots = firstSlots(group, mosaicSlotCount(props.viewMode ?? 'single'))
     if (slots.length < 2) return null
 
     const h = props.imageSize
@@ -144,11 +146,10 @@ function isCollapsed(group: Group) {
 // into a single card. Only a CLUSTER card may do it — clusters are what an action added on top
 // of the grouping, so folding them away returns to the group they were made from. The property
 // groups the GroupManager builds are the base of the view: they are always shown, never folded.
-// Also not offered when the parent is the tree root, which is never a card.
+// A cluster's parent can be the tree root when there is no grouping: the root then folds back
+// into the single card the view shows for the flat collection.
 function canCollapse(group: Group) {
-    if (group.type !== GroupType.Cluster) return false
-    const parent = group.parent
-    return !!parent && !!parent.parent
+    return group.type === GroupType.Cluster && !!group.parent
 }
 
 // A collapsed card whose subtree is CLUSTERS (not property value-groups) can drop them

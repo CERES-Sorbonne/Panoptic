@@ -49,7 +49,7 @@ invariant report, so every cluster test carries the I1–I5 checks for free.
 | --- | --- | --- |
 | **A1** one "no value" key per type | `specs/a1_valueParser.ts` | `A1 valueParser[...]`, `A1 isNoValue`, `A1 integration: ...` |
 | **A2** a real removal bumps `version` | `specs/a2_version.ts` | `A2: ...` |
-| **A3** group selection over `groupSlots` | `specs/a3_groupSlots.ts` | `A3 groupSlots: ...`, `A3: ...` |
+| **A3** group selection over `groupSlots` | `specs/a3_groupSlots.ts` | `A3 groupSlots: ...`, `A3 firstSlots: ...`, `A3: ...` |
 | **A4** an iterator for a missing id is a dead end | `specs/a4_iterators.ts` | `A4: ...` |
 | **A5** a view must not wipe collection state | `specs/a5_staticChecks.ts` | `A5: ...` (static source check — see below) |
 | **A6** `setAsRoot` is gone | `specs/a6_setAsRoot.ts` | `A6: GroupManager has no setAsRoot` |

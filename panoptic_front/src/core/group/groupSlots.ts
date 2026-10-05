@@ -22,3 +22,23 @@ export function groupSlots(group: Group): number[] {
     walk(group)
     return res
 }
+
+// The first `n` images a group shows, read from its leaves when it has been sub-clustered. A
+// card only needs a few images to draw, so the walk stops as soon as it has them instead of
+// building the whole union.
+export function firstSlots(group: Group, n: number): number[] {
+    if (!group.children.length) return group.slots.slice(0, n)
+    const res: number[] = []
+    const walk = (g: Group): boolean => {
+        if (!g.children.length) {
+            for (const s of g.slots) {
+                res.push(s)
+                if (res.length >= n) return true
+            }
+            return false
+        }
+        return g.children.some(walk)
+    }
+    walk(group)
+    return res
+}

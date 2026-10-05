@@ -2,6 +2,7 @@
 import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
 import ClusterLineVue from './ClusterLine.vue';
 import { Group } from '@/core/GroupManager'
+import { firstSlots } from '@/core/group/groupSlots'
 import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/composables/keyState';
 import { Property, ModalId } from '@/data/models';
@@ -36,6 +37,10 @@ const props = defineProps<{
     targetPropertyIds?: number[],
     // How each card renders its group: one representative image, or a mosaic of the first few.
     viewMode?: GroupViewMode
+    // Show the root as the one card, its clusters folded under it. Owned by the view rather than
+    // written to root.view.closed: the root's open state is shared with the tree and grid views,
+    // which have no card to stand in for a closed root.
+    rootFolded?: boolean
 }>()
 
 const emit = defineEmits(['reco', 'open-cluster', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value', 'choose-target', 'create-target'])
@@ -108,7 +113,7 @@ const windowIds = computed(() => {
                 // A mosaic card shows the group's first images, so preload all of them —
                 // otherwise only the representative one has its data ready.
                 const count = mosaicSlotCount(props.viewMode ?? 'single')
-                const slots = count > 1 ? (entry.group.slots ?? []).slice(0, count) : [entry.slot]
+                const slots = count > 1 ? firstSlots(entry.group, count) : [entry.slot]
                 for (const slot of slots) {
                     const instanceId = columnStore.instanceIds()[slot]
                     if (instanceId !== undefined && !isNaN(instanceId)) {
@@ -162,14 +167,17 @@ type ClusterEntry = { group: Group, slot: number }
 // sub-dividing turns one card into several), while a CLOSED one stands in for its whole
 // subtree as a single card that can be re-opened from its + button. sha1 piling is a leaf
 // overlay (pileIndex), not children, so a piled leaf still surfaces as one card here.
+// A closed pile that has been sub-clustered holds no slots of its own, so its representative
+// image is read from its leaves; only a group that shows no image at all is skipped.
 function collectCandidates(group: Group, out: ClusterEntry[]) {
     for (const child of group.children) {
         // subGroupType is not reliable (a level can mix cluster + property children), so key
         // off children + the group's own open state.
         if (child.children.length > 0 && !child.view.closed) {
             collectCandidates(child, out)
-        } else if (child.slots && child.slots.length > 0) {
-            out.push({ group: child, slot: child.slots[0] })
+        } else {
+            const slot = firstSlots(child, 1)[0]
+            if (slot !== undefined) out.push({ group: child, slot })
         }
     }
 }
@@ -185,7 +193,9 @@ function computeLines() {
             return
         }
         const candidates: ClusterEntry[] = []
-        collectCandidates(root, candidates)
+        // A folded root stands in for its whole tree: with no grouping its clusters fold back
+        // into the single card of the flat collection.
+        if (!props.rootFolded) collectCandidates(root, candidates)
         if (candidates.length === 0 && root.slots && root.slots.length > 0) {
             candidates.push({ group: root, slot: root.slots[0] })
         }
@@ -306,7 +316,7 @@ watch(() => props.manager, () => {
 
 // Width and imageSize both drive the per-line/per-card sizing — recompute on either.
 // The width prop is the single source of truth (no observer), so one pass per change.
-watch([contentWidth, layoutContentWidth, () => props.imageSize, inputRows], () => {
+watch([contentWidth, layoutContentWidth, () => props.imageSize, inputRows, () => props.rootFolded], () => {
     nextTick(computeLines)
 })
 
