@@ -36,6 +36,19 @@ export function arrayEqual(arr1: any[], arr2: any[]) {
 
 export const sleep = m => new Promise(r => setTimeout(r, m))
 
+// Resolves once the browser has painted, so a loader set just before a long synchronous job
+// (filter scan, sort, group build) is on screen while it runs. rAF fires before the paint and
+// the timeout after it. A hidden page does not run rAF, and node has none: fall back to a task.
+export function afterPaint(): Promise<void> {
+    return new Promise(resolve => {
+        if (typeof requestAnimationFrame !== 'function' || typeof document === 'undefined' || document.hidden) {
+            setTimeout(resolve, 0)
+            return
+        }
+        requestAnimationFrame(() => setTimeout(resolve, 0))
+    })
+}
+
 export class EventEmitter {
     private listeners: Function[];
 

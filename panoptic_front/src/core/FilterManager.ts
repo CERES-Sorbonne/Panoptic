@@ -424,6 +424,11 @@ async function filterByPluginMask(
     }
 }
 
+// A query run by a plugin on the backend, as opposed to text / regex, which run locally.
+function isPluginQuery(query: TextQuery | undefined): boolean {
+    return !!query?.text && query.type !== 'text' && query.type !== 'regex'
+}
+
 async function filterQueryMask(
     slots: Int32Array, mask: Uint8Array, query: TextQuery,
     properties: PropertyIndex, tags: TagIndex
@@ -453,6 +458,10 @@ export class FilterManager {
     // Scores of the active plugin text search (e.g. similarity), keyed by instance id.
     // Derived from the query on every run: not reactive, never saved.
     scores: GroupScoreList | undefined = undefined
+    // Text searches in flight (column download, plugin request), for the search box's loader. A count, not a flag:
+    // a debounced reload can overlap an incremental update, and the first to finish must not
+    // clear the other. A stale run still counts until it returns — the backend is still on it.
+    queryStatus = reactive({ running: 0 })
     onResultChange: EventEmitter
     onStateChange: EventEmitter
 
@@ -498,9 +507,16 @@ export class FilterManager {
     private async _ensureColumns(): Promise<void> {
         const col = useColumnStore()
         const filterCols = this.getRequiredColumns()
-        const queryCols = this.state.query?.text
-            ? objValues(this.ctx.properties).filter(p => fullTextTypes.has(p.type) || isTag(p.type)).map(p => p.id)
-            : []
+        // Text and regex scan every text and tag column. A plugin query only matches the
+        // backend's answer against sha1s: loading the text columns for it held the request back
+        // until all of them had downloaded, which after a page reload is most of the wait.
+        const query = this.state.query
+        let queryCols: number[] = []
+        if (isPluginQuery(query)) {
+            if (col.systemProps.SHA1 != null) queryCols = [col.systemProps.SHA1]
+        } else if (query?.text) {
+            queryCols = objValues(this.ctx.properties).filter(p => fullTextTypes.has(p.type) || isTag(p.type)).map(p => p.id)
+        }
         const all = [...new Set([...filterCols, ...queryCols])]
         await Promise.all(all.map(id => col.requireFullColumn(id)))
     }
@@ -573,16 +589,25 @@ export class FilterManager {
     // `full` = a run over the whole slot set, which replaces the scores. An incremental run
     // only re-queries the dirty slots, so their scores are merged into the existing ones.
     private async filterSlots(slots: Int32Array, full = false): Promise<{ valid: Int32Array; reject: Int32Array }> {
-        await this._ensureColumns()
-        const col = useColumnStore()
-
+        const query = this.state.query
+        // Any search counts, from the start: text and regex wait for the text and tag columns to
+        // download, a plugin query for the backend. Once the columns are loaded a local search
+        // finishes in the same task, so the loader is never painted for it.
+        const searching = !!query?.text
+        if (searching) this.queryStatus.running++
+        let scores: GroupScoreList | undefined
         const n = slots.length
         const mask = new Uint8Array(n)
         mask.fill(1)
-
-        const scores = this.state.query?.text
-            ? await filterQueryMask(slots, mask, this.state.query, this.ctx.properties, this.ctx.tags)
-            : undefined
+        try {
+            await this._ensureColumns()
+            scores = query?.text
+                ? await filterQueryMask(slots, mask, query, this.ctx.properties, this.ctx.tags)
+                : undefined
+        } finally {
+            if (searching) this.queryStatus.running--
+        }
+        const col = useColumnStore()
         if (full || !this.scores) this.scores = scores
         else if (scores) Object.assign(this.scores.valueIndex, scores.valueIndex)
 

@@ -9,7 +9,7 @@ import { CollectionState } from "@/data/models";
 import { FilterContext, FilterManager, FilterState } from "./FilterManager";
 import { SortManager, SortState } from "./SortManager";
 import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest, GroupInspector } from "./GroupManager";
-import { EventEmitter } from "@/utils/utils";
+import { EventEmitter, afterPaint } from "@/utils/utils";
 import { useDataStore } from "@/data/stores/dataStore";
 import { useColumnStore } from "@/data/stores/columnStore";
 import { Reactive, reactive, watch, WatchStopHandle } from "vue";
@@ -248,6 +248,24 @@ export class CollectionManager implements GroupInspector {
         // writing results.
         const token = ++this.runToken
 
+        // An active text search keeps the search box's loader up for the whole recompute, not
+        // just its column download / plugin request: the scan, sort and group build that follow
+        // block the main thread too. The paint is awaited first so the loader is visible while
+        // they run.
+        const status = this.filterManager.queryStatus
+        const searching = !!this.filterManager.state.query?.text
+        if (searching) status.running++
+        try {
+            await afterPaint()
+            if (token !== this.runToken) return
+            await this.recompute(token)
+        } finally {
+            if (searching) status.running--
+        }
+    }
+
+    private async recompute(token: number) {
+        const col = useColumnStore()
         const count   = col.slotCount()
         const deleted = col.deletedMask()
 
@@ -320,6 +338,9 @@ export class CollectionManager implements GroupInspector {
             return
         }
         const token = ++this.runToken
+        // Let any loader set by the change paint before the blocking sort / group build.
+        await afterPaint()
+        if (token !== this.runToken) return
         if (kind === 'sort') {
             const sortRes = await this.sortManager.sort(this.filterManager.result.slots)
             if (token !== this.runToken) return
