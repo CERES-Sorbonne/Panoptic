@@ -162,11 +162,24 @@ export const useDataStore = defineStore('dataStore', () => {
 
     function importTags(toImport: any[]) {
         const updated = new Set<number>()
+        // Tag edits that can move an image without its value changing:
+        //  - new parents change what a filter on an ancestor matches (allChildren) and which
+        //    parent groups the image joins (tag grouping expands to parents), for the tag and
+        //    its whole subtree
+        //  - a new label changes the sort key of images carrying the tag
+        // A new tag is carried by no image yet, and a color change moves nothing.
+        const reparented: number[] = []
+        const renamed: number[] = []
         for (const raw of toImport) {
             let tag: Tag = raw.listId !== undefined ? { ...raw, propertyId: raw.listId } : raw
             if (tag.id === deletedID) continue
             tag.count = tags.value[tag.id]?.count ?? 0
             tag.parents = tag.parents.filter(p => p !== 0)
+            const old = tags.value[tag.id]
+            if (old && old.id !== deletedID) {
+                if (!sameIdSet(old.parents, tag.parents)) reparented.push(tag.id)
+                else if (old.value !== tag.value) renamed.push(tag.id)
+            }
             tags.value[tag.id] = tag
             if (!(tag.propertyId in properties.value)) {
                 console.warn('Property ' + tag.propertyId + ' must be loaded before importing tags')
@@ -177,6 +190,23 @@ export const useDataStore = defineStore('dataStore', () => {
             updated.add(tag.propertyId)
         }
         _rebuildTagTrees(updated)
+
+        if (reparented.length || renamed.length) {
+            // Read after the rebuild so allChildren is current. A move does not change the
+            // moved tag's own subtree, so this is the same set before and after.
+            const affected = new Set<number>(renamed)
+            for (const id of reparented) {
+                affected.add(id)
+                for (const c of tags.value[id]?.allChildren ?? []) affected.add(c)
+            }
+            for (const id of columnStore.instancesWithTagIds(affected)) dirtyInstances.add(id)
+        }
+    }
+
+    function sameIdSet(a: number[], b: number[]): boolean {
+        if (a.length !== b.length) return false
+        const s = new Set(a)
+        return b.every(id => s.has(id))
     }
 
     // Rebuild the hierarchy of the given properties (cycle-breaking + children), then refresh
@@ -372,18 +402,6 @@ export const useDataStore = defineStore('dataStore', () => {
         delta.instanceValues?.forEach(chunk => chunk.ids?.forEach(id => dirtyInstances.add(id)))
         delta.imageValues?.forEach(chunk => chunk.sha1s?.forEach(sha1 => columnStore.getInstancesBySha1(sha1).forEach(id => dirtyInstances.add(id))))
         delta.fileValues?.forEach(chunk => chunk.fileIds?.forEach(fid => columnStore.getInstancesByFileId(fid).forEach(id => dirtyInstances.add(id))))
-
-        // When tags are modified (e.g. reparented), their allChildren sets may
-        // have changed, affecting any instance whose tag filter value includes
-        // the affected tags. Re-filter all non-deleted instances.
-        if (c?.tags?.length) {
-            const count = columnStore.slotCount()
-            const delMask = columnStore.deletedMask()
-            const ids = columnStore.instanceIds()
-            for (let s = 0; s < count; s++) {
-                if (!delMask[s]) dirtyInstances.add(ids[s])
-            }
-        }
 
         if (delta.state?.maxSequence > lastSequence.value) lastSequence.value = delta.state.maxSequence
         triggerRefs()

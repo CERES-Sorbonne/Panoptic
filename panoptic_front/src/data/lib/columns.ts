@@ -101,6 +101,18 @@ export function stripTagIds(sparse: TagSparse, count: number, drop: Set<number>)
     return changed
 }
 
+/** Slots of one tag column whose value names any of `tagIds`. Read only. */
+export function slotsWithTagIds(sparse: TagSparse, count: number, tagIds: Set<number>): number[] {
+    if (!tagIds.size) return []
+    const hits: number[] = []
+    for (let s = 0; s < count; s++) {
+        const tags = sparse[s]
+        if (!tags?.length) continue
+        for (let i = 0; i < tags.length; i++) if (tagIds.has(tags[i])) { hits.push(s); break }
+    }
+    return hits
+}
+
 /**
  * A column built in the browser from columns that are already loaded, instead of streamed.
  * `build` runs once per fill and returns the per-slot reader, so it can prepare lookups first.
