@@ -150,6 +150,7 @@ function handleExpand(e: MouseEvent) {
 .tree-count {
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
+    font-family: var(--font-mono);
     margin-left: auto;
 }
 
