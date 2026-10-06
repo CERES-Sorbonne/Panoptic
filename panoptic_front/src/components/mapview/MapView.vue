@@ -525,7 +525,7 @@ function islandStrip() {
 const SNAKE_START_MS = 150
 const SNAKE_MIN_MS = 60
 const SNAKE_SPEEDUP_MS = 4
-const SNAKE_FIRST_STEP_MS = 700
+const SNAKE_FIRST_STEP_MS = 1200
 // Half extent, in cells, of the area framed around the head when a game starts.
 const SNAKE_VIEW = { c: 16, r: 11 }
 const SNAKE_KEYS: Record<string, SnakeDir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
@@ -545,6 +545,24 @@ function snakeCellToWorld(c: number, r: number) {
 function renderSnake() {
     if (!snake || !snakeGrid) return
     renderer.value?.snakeLayer.render(snake, snakeCellToWorld, imageWorldSize(props.imageSize))
+}
+
+// Camera target: the head, clamped so the view never drifts past the grid's edges — and the grid
+// centre on an axis where the whole grid fits on screen.
+function followSnake() {
+    if (!snake || !snakeGrid || !renderer.value) return
+    const size = imageWorldSize(props.imageSize)
+    const view = renderer.value.getCameraRect()
+    const [hx, hy] = snakeCellToWorld(snake.body[0].c, snake.body[0].r)
+    const axis = (head: number, cells: number, viewSpan: number) => {
+        const half = cells * size / 2 + size
+        const room = half - viewSpan / 2
+        return room <= 0 ? 0 : Math.max(-room, Math.min(room, head))
+    }
+    renderer.value.setFollow({
+        x: axis(hx, snakeGrid.cols, view.maxX - view.minX),
+        y: axis(hy, snakeGrid.rows, view.maxY - view.minY),
+    })
 }
 
 function startSnake() {
@@ -571,10 +589,11 @@ function startSnake() {
     renderer.value.setHoverEnabled(false)
     renderer.value.setFollow(null)
     renderSnake()
-    // Zoom in around the head; the camera then follows it.
+    // Zoom in around the head, never past the grid's edges (a small grid fills the view); the
+    // camera then follows the head.
     const head = snake.body[0]
-    const [x0, y0] = snakeCellToWorld(head.c - SNAKE_VIEW.c, head.r - SNAKE_VIEW.r)
-    const [x1, y1] = snakeCellToWorld(head.c + SNAKE_VIEW.c, head.r + SNAKE_VIEW.r)
+    const [x0, y0] = snakeCellToWorld(Math.max(0, head.c - SNAKE_VIEW.c), Math.max(0, head.r - SNAKE_VIEW.r))
+    const [x1, y1] = snakeCellToWorld(Math.min(grid.cols - 1, head.c + SNAKE_VIEW.c), Math.min(grid.rows - 1, head.r + SNAKE_VIEW.r))
     lookAtBounds({ minX: x0, minY: y0, maxX: x1, maxY: y1 })
     // Keep the off-screen arrow clear of the floating toolbar, the HUD and the group-list island.
     renderer.value.snakeLayer.setInsets({ top: 70, bottom: 60, left: 20, right: islandStrip() + 20 })
@@ -587,8 +606,7 @@ function snakeTick() {
     snakeScore.value = snake.score
     snakeState.value = snake.state
     renderSnake()
-    const [x, y] = snakeCellToWorld(snake.body[0].c, snake.body[0].r)
-    renderer.value?.setFollow({ x, y })
+    followSnake()
     if (snake.state === 'running') {
         snakeTimer = window.setTimeout(snakeTick, Math.max(SNAKE_MIN_MS, SNAKE_START_MS - snake.score * SNAKE_SPEEDUP_MS))
     }

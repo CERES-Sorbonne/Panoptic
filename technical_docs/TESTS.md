@@ -10,6 +10,8 @@ cd panoptic_back && python -m pytest test panoptic/core/task/tests
 
 - `python -m pytest` (pas `pytest` seul) : c'est ce qui rend `panoptic` importable sans l'installer.
 - `panoptic/core/task/tests` contient les tests du cycle de vie des plugins.
+- Les écritures d'un plugin via `PluginProjectInterface` (`test_plugin_interface.py`) : elles
+  préviennent les clients (callback de commit du projet), création de groupes de propriétés.
 - Les bases (`*_db.py`), le modèle undo / redo (`test_undo_redo.py`), la migration des anciens
   projets (`test_legacy_migration.py`, `test_conversion.py`), l'import de dossier et l'import / export
   CSV (`test_import_export.py`, sur les images et CSV de `test/data`).

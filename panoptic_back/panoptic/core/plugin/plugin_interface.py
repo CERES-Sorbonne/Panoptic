@@ -19,7 +19,7 @@ from panoptic.core.databases.project.models import UserDefaults
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.core.databases.data.models import (
     Commit, DataCommit, DeleteCommit, File, FileSource, Folder, Instance, InstanceValue,
-    Property, Sha1Value, Tag, UpsertCommit, FileValue,
+    Property, PropertyGroup, Sha1Value, Tag, UpsertCommit, FileValue,
 )
 from panoptic.core.databases.entity_schema import OP_CREATE
 from panoptic.core.plugin.action_registry import ActionRegistry, build_function_description
@@ -42,6 +42,7 @@ class PluginProjectInterface:
         action_registry: ActionRegistry,
         register_import_complete: Callable,
         register_folder_delete: Callable,
+        on_commit: Callable[[], None] | None = None,
     ):
         self._name         = plugin_name
         self.base_path     = Path(base_path)
@@ -52,6 +53,7 @@ class PluginProjectInterface:
         self._actions      = action_registry
         self._reg_import_complete = register_import_complete
         self._reg_delete   = register_folder_delete
+        self._on_commit    = on_commit
 
     # ------------------------------------------------------------------
     # Internal DB helpers — same open/close-per-call pattern as Project
@@ -92,6 +94,10 @@ class PluginProjectInterface:
     def get_properties(self, **filters) -> List[Property]:
         with self._data_reader() as r:
             return r.get_properties(**filters)
+
+    def get_property_groups(self, **filters) -> List[PropertyGroup]:
+        with self._data_reader() as r:
+            return r.get_property_groups(**filters)
 
     def get_tags(self, **filters) -> List[Tag]:
         with self._data_reader() as r:
@@ -137,6 +143,18 @@ class PluginProjectInterface:
         self.apply_upsert_commit(commit)
         return prop
 
+    def add_property_group(self, name: str) -> PropertyGroup:
+        """Create a property group and return it with its allocated id."""
+        with self._project_db() as pdb:
+            new_id = pdb.allocate_property_groups(1)
+        if not isinstance(new_id, int):
+            new_id = list(new_id)[0]
+        group = PropertyGroup(id=new_id, name=name, commit_id=0, operation=OP_CREATE)
+        commit = UpsertCommit()
+        commit.property_groups[new_id] = group
+        self.apply_upsert_commit(commit)
+        return group
+
     def apply_commit(self, commit: DataCommit, group_id: int = None) -> Commit | None:
         """Unified create/update/delete for the logged (revertable) entities.
 
@@ -144,15 +162,26 @@ class PluginProjectInterface:
         so nothing is committed.
         """
         with self._data_writer() as w:
-            return w.apply_commit(self._name, commit, group_id=group_id)
+            result = w.apply_commit(self._name, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
 
     def apply_upsert_commit(self, commit: UpsertCommit, group_id: int = None) -> Commit | None:
         with self._data_writer() as w:
-            return w.apply_upsert_commit(self._name, commit, group_id=group_id)
+            result = w.apply_upsert_commit(self._name, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
 
     def apply_delete_commit(self, commit: DeleteCommit, group_id: int = None) -> Commit | None:
         with self._data_writer() as w:
-            return w.apply_delete_commit(self._name, commit, group_id=group_id)
+            result = w.apply_delete_commit(self._name, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
+
+    def _fire_on_commit(self) -> None:
+        # Writes bypass Project, so clients are told here to fetch the new delta.
+        if self._on_commit:
+            self._on_commit()
 
     # ------------------------------------------------------------------
     # Vectors — media.db

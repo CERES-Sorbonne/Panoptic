@@ -787,6 +787,7 @@ class Project:
             action_registry=self.action,
             register_import_complete=lambda cb: self.on_import_complete(cb, owner=plugin_name),
             register_folder_delete=lambda cb: self.on_folder_delete(cb, owner=plugin_name),
+            on_commit=self._fire_on_commit,
         )
 
     def update_plugin_params(self, plugin_name: str, params: dict) -> None:
