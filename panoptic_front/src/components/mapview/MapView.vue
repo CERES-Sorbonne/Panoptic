@@ -11,7 +11,8 @@ import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
 import { imageWorldSize } from '@/mixins/mapview/MapRenderer'
-import { cellCenter, DEFAULT_GRID_DENSITY, mapGrid } from '@/mixins/mapview/GridLayout'
+import { cellCenter, DEFAULT_GRID_DENSITY, mapGrid, type MapGrid } from '@/mixins/mapview/GridLayout'
+import { konamiMatcher, SnakeGame, type Cell, type SnakeDir, type SnakeState } from '@/mixins/mapview/GridSnake'
 import { keyState } from '@/data/composables/keyState'
 import { newZoomOwner, zoomModal } from '../modals/zoomModal'
 import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
@@ -352,6 +353,7 @@ function rescaleGrid(imageSize: number, previous: number) {
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
     renderer.value.scaleCameraPosition(imageWorldSize(imageSize) / imageWorldSize(previous))
+    renderSnake()
 }
 
 async function showMap(mapId: number, force = false) {
@@ -491,23 +493,143 @@ function focusGroup(leaf: { id: number, points: PointData[] }) {
 }
 
 function lookAtPoints(pts: PointData[]) {
-    if (!renderer.value || !pts.length) return
+    if (!pts.length) return
     let minX = pts[0].x, minY = pts[0].y, maxX = minX, maxY = minY
     for (const p of pts) {
         minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
         maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
     }
-    // Reserve the strip the island actually covers (its own width plus the gap to the canvas's
-    // right edge) so the framed group doesn't land underneath it.
-    let padding: { right: number } | undefined
-    if (canvasContainer.value && groupListIslandRef.value) {
-        const containerRect = canvasContainer.value.getBoundingClientRect()
-        const islandRect = groupListIslandRef.value.getBoundingClientRect()
-        const right = containerRect.right - islandRect.left
-        if (right > 0) padding = { right }
-    }
-    renderer.value.lookAtRect({ minX, minY, maxX, maxY }, padding)
+    lookAtBounds({ minX, minY, maxX, maxY })
 }
+
+function lookAtBounds(rect: { minX: number, minY: number, maxX: number, maxY: number }) {
+    if (!renderer.value) return
+    // Reserve the strip the island covers so the framed group doesn't land underneath it.
+    const right = islandStrip()
+    renderer.value.lookAtRect(rect, right > 0 ? { right } : undefined)
+}
+
+// Width of the canvas's right strip covered by the group-list island (its own width plus the gap
+// to the canvas's right edge), in CSS px.
+function islandStrip() {
+    if (!canvasContainer.value || !groupListIslandRef.value) return 0
+    const containerRect = canvasContainer.value.getBoundingClientRect()
+    const islandRect = groupListIslandRef.value.getBoundingClientRect()
+    return Math.max(0, containerRect.right - islandRect.left)
+}
+
+// ── Snake easter egg ──────────────────────────────────────────────────────────
+
+// Konami code with the pointer over the map, in grid layout: a snake game over the whole grid
+// (its edges are the walls), the camera following the head, the image to eat highlighted in red.
+const SNAKE_START_MS = 150
+const SNAKE_MIN_MS = 60
+const SNAKE_SPEEDUP_MS = 4
+const SNAKE_FIRST_STEP_MS = 700
+// Half extent, in cells, of the area framed around the head when a game starts.
+const SNAKE_VIEW = { c: 16, r: 11 }
+const SNAKE_KEYS: Record<string, SnakeDir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
+
+const snakeState = ref<SnakeState | null>(null)
+const snakeScore = ref(0)
+const pointerInside = ref(false)
+let snake: SnakeGame | null = null
+let snakeGrid: MapGrid | null = null
+let snakeTimer: number | undefined
+const konami = konamiMatcher()
+
+function snakeCellToWorld(c: number, r: number) {
+    return cellCenter(snakeGrid!, r * snakeGrid!.cols + c, imageWorldSize(props.imageSize))
+}
+
+function renderSnake() {
+    if (!snake || !snakeGrid) return
+    renderer.value?.snakeLayer.render(snake, snakeCellToWorld, imageWorldSize(props.imageSize))
+}
+
+function startSnake() {
+    const data = builtMapId != null ? media.maps[builtMapId]?.data : null
+    if (!data || !renderer.value || !points.value.length) return
+    const grid = mapGrid(toRaw(data), gridDensity.value)
+    const size = imageWorldSize(props.imageSize)
+    const images: Cell[] = []
+    for (const p of points.value) {
+        const cell = grid.cells.get(p.sha1)
+        if (cell != null) images.push({ c: cell % grid.cols, r: Math.floor(cell / grid.cols) })
+    }
+    const view = renderer.value.getCameraRect()
+    const start = {
+        c: Math.floor(((view.minX + view.maxX) / 2) / size + grid.cols / 2),
+        r: Math.floor(((view.minY + view.maxY) / 2) / size + grid.rows / 2),
+    }
+
+    clearTimeout(snakeTimer)
+    snakeGrid = grid
+    snake = new SnakeGame({ c0: 0, r0: 0, cols: grid.cols, rows: grid.rows }, images, Math.random, start)
+    snakeScore.value = 0
+    snakeState.value = snake.state
+    renderer.value.setHoverEnabled(false)
+    renderer.value.setFollow(null)
+    renderSnake()
+    // Zoom in around the head; the camera then follows it.
+    const head = snake.body[0]
+    const [x0, y0] = snakeCellToWorld(head.c - SNAKE_VIEW.c, head.r - SNAKE_VIEW.r)
+    const [x1, y1] = snakeCellToWorld(head.c + SNAKE_VIEW.c, head.r + SNAKE_VIEW.r)
+    lookAtBounds({ minX: x0, minY: y0, maxX: x1, maxY: y1 })
+    // Keep the off-screen arrow clear of the floating toolbar, the HUD and the group-list island.
+    renderer.value.snakeLayer.setInsets({ top: 70, bottom: 60, left: 20, right: islandStrip() + 20 })
+    snakeTimer = window.setTimeout(snakeTick, SNAKE_FIRST_STEP_MS)
+}
+
+function snakeTick() {
+    if (!snake) return
+    snake.step()
+    snakeScore.value = snake.score
+    snakeState.value = snake.state
+    renderSnake()
+    const [x, y] = snakeCellToWorld(snake.body[0].c, snake.body[0].r)
+    renderer.value?.setFollow({ x, y })
+    if (snake.state === 'running') {
+        snakeTimer = window.setTimeout(snakeTick, Math.max(SNAKE_MIN_MS, SNAKE_START_MS - snake.score * SNAKE_SPEEDUP_MS))
+    }
+}
+
+function stopSnake() {
+    clearTimeout(snakeTimer)
+    if (!snake) return
+    snake = null
+    snakeGrid = null
+    snakeState.value = null
+    renderer.value?.snakeLayer.hide()
+    renderer.value?.setHoverEnabled(true)
+    renderer.value?.setFollow(null)
+}
+
+function isTyping(e: KeyboardEvent) {
+    const el = e.target as HTMLElement | null
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+}
+
+function onSnakeKey(e: KeyboardEvent) {
+    if (snake) {
+        if (e.key === 'Escape') stopSnake()
+        else if (e.key === ' ' && snake.state !== 'running') startSnake()
+        else if (SNAKE_KEYS[e.key]) snake.turn(SNAKE_KEYS[e.key])
+        else return
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        return
+    }
+    if (layout.value !== 'grid' || !pointerInside.value || isTyping(e)) return
+    if (konami(e.key)) startSnake()
+}
+
+window.addEventListener('keydown', onSnakeKey, true)
+onUnmounted(() => {
+    window.removeEventListener('keydown', onSnakeKey, true)
+    stopSnake()
+})
+watch([layout, gridDensity, () => props.mapOptions.selectedMap], stopSnake)
 
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
@@ -566,7 +688,7 @@ onMounted(async () => {
             @update:grid-density="props.mapOptions.gridDensity = $event" @delete:map="deleteMap"
             :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
 
-        <div class="map-view-container">
+        <div class="map-view-container" @mouseenter="pointerInside = true" @mouseleave="pointerInside = false">
             <div class="map-container"
                 :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
                 <div ref="canvasContainer" class="canvas-wrapper"></div>
@@ -606,6 +728,12 @@ onMounted(async () => {
                         <i class="bi bi-dash-circle-dotted"></i>
                     </div>
                 </WithToolTip>
+            </div>
+
+            <div v-if="snakeState" class="snake-hud">
+                <i class="bi bi-controller"></i>
+                <span class="tabular-nums">{{ $t('map.snake.score', { score: snakeScore }) }}</span>
+                <span class="snake-hint">{{ $t('map.snake.' + (snakeState === 'running' ? 'hint' : snakeState)) }}</span>
             </div>
 
             <div v-if="atlasUnusable" class="atlas-empty">
@@ -922,6 +1050,28 @@ onMounted(async () => {
 .atlas-generate:disabled {
     opacity: 0.6;
     cursor: default;
+}
+
+.snake-hud {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--island-surface);
+    border: 1px solid var(--island-border);
+    border-radius: var(--island-radius);
+    box-shadow: var(--island-shadow);
+}
+
+.snake-hint {
+    color: var(--text-secondary);
 }
 
 .cursor-grab {

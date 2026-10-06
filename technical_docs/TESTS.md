@@ -33,7 +33,7 @@ Nécessite Node 24. Détails dans `test/group/README.md` et `test/map/README.md`
 `test/map` couvre le placement en grille de la vue spatiale (`src/mixins/mapview/GridLayout.ts`) :
 une case distincte par image (cas limites compris), déterminisme, et la conservation de la
 projection mesurée sur des nuages synthétiques (voisinages, corrélation des distances, groupes
-d'un seul tenant, groupes distincts qui ne se touchent pas), ainsi que le cache de grille par carte.
+d'un seul tenant, groupes distincts qui ne se touchent pas), ainsi que le cache de grille par carte et les règles du snake caché dans le mode grille.
 
 ### Action « Tests » (`.github/workflows/tests.yml`)
 

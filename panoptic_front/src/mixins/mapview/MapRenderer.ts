@@ -7,6 +7,7 @@ import { HDLayer } from './HDLayer'
 import { HoverPointLayer } from './HoverPointLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
+import { SnakeLayer } from './SnakeLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 
@@ -31,6 +32,11 @@ export class MapRenderer {
     private hdLayer: HDLayer
     private hoverPointLayer: HoverPointLayer
     private lassoLayer: LassoLayer
+    public snakeLayer: SnakeLayer
+    // Off while the snake easter egg runs, so the HD preview never covers the board.
+    private hoverEnabled = true
+    // World point the camera glides towards each frame (the snake's head), if any.
+    private follow: { x: number, y: number } | null = null
     private spatialIndex = new SpatialIndex()
     
 
@@ -69,6 +75,8 @@ export class MapRenderer {
         this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points) => {
             if (this.onPointSelection) this.onPointSelection(points)
         })
+
+        this.snakeLayer = new SnakeLayer(this.scene)
 
         this.controls = new MapControls(this.camera, this.renderer.domElement, this.lassoLayer, this.spatialIndex)
 
@@ -143,6 +151,12 @@ export class MapRenderer {
             this.hdLayer.tick()
         }
         this.hoverPointLayer.updateAnimations()
+        const view = this.getCameraRect()
+        this.snakeLayer.tick(performance.now(), view, (view.maxX - view.minX) / Math.max(1, this.container.clientWidth))
+        if (this.follow) {
+            this.camera.position.x += (this.follow.x - this.camera.position.x) * 0.12
+            this.camera.position.y += (this.follow.y - this.camera.position.y) * 0.12
+        }
 
         this.updateHoverState()
         this.syncPixelRatio()
@@ -152,7 +166,7 @@ export class MapRenderer {
     }
 
     private updateHoverState() {
-        const foundPoint = this.controls.getHoveredPoint(this.zoomParams)
+        const foundPoint = this.hoverEnabled ? this.controls.getHoveredPoint(this.zoomParams) : null
 
         if (foundPoint) {
             const instanceId = useColumnStore().getInstancesBySha1(foundPoint.sha1)[0]
@@ -167,6 +181,14 @@ export class MapRenderer {
             this.hoverPointLayer.unhover()
             this.onHover.emit()
         }
+    }
+
+    public setFollow(target: { x: number, y: number } | null) {
+        this.follow = target
+    }
+
+    public setHoverEnabled(value: boolean) {
+        this.hoverEnabled = value
     }
 
     public setHoverThroughOverlays(value: boolean) {
@@ -301,6 +323,7 @@ export class MapRenderer {
         this.atlasLayers.dispose()
         this.hdLayer?.dispose()
         this.hoverPointLayer?.dispose()
+        this.snakeLayer.dispose()
         this.scene.clear()
     }
 }

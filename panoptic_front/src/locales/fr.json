@@ -778,6 +778,12 @@
         "show_points": "Afficher les points",
         "grid_layout": "Disposition en grille",
         "fill_cells": "Remplir les cases (recadrage carré)",
+        "snake": {
+            "score": "Score : {score}",
+            "hint": "Flèches pour diriger · Échap pour quitter",
+            "over": "Perdu ! Espace pour rejouer · Échap pour quitter",
+            "won": "Gagné ! Espace pour rejouer · Échap pour quitter"
+        },
         "grid_density": "Cases vides entre les groupes",
         "show_boxes": "Afficher les boites",
         "pan": "Déplacer",
