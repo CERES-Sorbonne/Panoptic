@@ -27,13 +27,31 @@ export class SnakeGame {
     private pendingGrowth = 0
 
     // `images`: cells of the board holding an image — the only cells food can appear on.
-    // `start`: where the head starts (board centre by default), heading right.
+    // `start`: where the head starts (board centre by default). It heads towards the farthest wall,
+    // so a small board does not end the game on the first moves.
     constructor(public board: SnakeBoard, private images: Cell[], private rand: () => number = Math.random, start?: Cell) {
-        const length = Math.min(START_LENGTH, board.cols)
+        const b = board
         const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
-        const head = clamp(start?.c ?? board.c0 + Math.floor(board.cols / 2), board.c0 + length - 1, board.c0 + board.cols - 1)
-        const r = clamp(start?.r ?? board.r0 + Math.floor(board.rows / 2), board.r0, board.r0 + board.rows - 1)
-        for (let i = 0; i < length; i++) this.body.push({ c: head - i, r })
+        const head = {
+            c: clamp(start?.c ?? b.c0 + Math.floor(b.cols / 2), b.c0, b.c0 + b.cols - 1),
+            r: clamp(start?.r ?? b.r0 + Math.floor(b.rows / 2), b.r0, b.r0 + b.rows - 1),
+        }
+        const room: Record<SnakeDir, number> = {
+            right: b.c0 + b.cols - 1 - head.c,
+            left: head.c - b.c0,
+            up: b.r0 + b.rows - 1 - head.r,
+            down: head.r - b.r0,
+        }
+        this.dir = (['right', 'left', 'up', 'down'] as SnakeDir[]).reduce((best, d) => room[d] > room[best] ? d : best)
+
+        // Pushed forward when there is no room behind for the tail.
+        const d = DELTA[this.dir]
+        const length = Math.min(START_LENGTH, d.c ? b.cols : b.rows)
+        if (d.c > 0) head.c = Math.max(head.c, b.c0 + length - 1)
+        if (d.c < 0) head.c = Math.min(head.c, b.c0 + b.cols - length)
+        if (d.r > 0) head.r = Math.max(head.r, b.r0 + length - 1)
+        if (d.r < 0) head.r = Math.min(head.r, b.r0 + b.rows - length)
+        for (let i = 0; i < length; i++) this.body.push({ c: head.c - d.c * i, r: head.r - d.r * i })
         this.placeFood()
     }
 

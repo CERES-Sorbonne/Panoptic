@@ -5,19 +5,22 @@ import { rng } from '../harness/data'
 
 const board = { c0: 10, r0: 20, cols: 12, rows: 8 }
 
+// Most room to the right from here (7 cells, against 4 / 3 / 4), so the snake heads right.
+const S = { c: 14, r: 24 }
+
 function allCells(b = board): Cell[] {
     const res: Cell[] = []
     for (let c = b.c0; c < b.c0 + b.cols; c++) for (let r = b.r0; r < b.r0 + b.rows; r++) res.push({ c, r })
     return res
 }
 
-test('snake: starts centred, heading right, food on an image off the snake', () => {
-    const g = new SnakeGame(board, allCells(), rng(1))
-    assert.deepEqual(g.body, [{ c: 16, r: 24 }, { c: 15, r: 24 }, { c: 14, r: 24 }])
+test('snake: starts heading to the farthest wall, food on an image off the snake', () => {
+    const g = new SnakeGame(board, allCells(), rng(1), S)
+    assert.deepEqual(g.body, [{ c: 14, r: 24 }, { c: 13, r: 24 }, { c: 12, r: 24 }])
     assert.ok(g.food)
     assert.ok(!g.body.some(p => p.c === g.food!.c && p.r === g.food!.r))
     assert.equal(g.step(), 'moved')
-    assert.deepEqual(g.body[0], { c: 17, r: 24 })
+    assert.deepEqual(g.body[0], { c: 15, r: 24 })
     assert.equal(g.body.length, 3)
 })
 
@@ -30,8 +33,8 @@ test('snake: food only ever lands on image cells', () => {
 })
 
 test('snake: eating scores, grows by two and moves the food', () => {
-    const g = new SnakeGame(board, [{ c: 17, r: 24 }, { c: 11, r: 21 }], rng(1))
-    g.food = { c: 17, r: 24 }
+    const g = new SnakeGame(board, [{ c: 15, r: 24 }, { c: 11, r: 21 }], rng(1), S)
+    g.food = { c: 15, r: 24 }
     assert.equal(g.step(), 'ate')
     assert.equal(g.score, 1)
     assert.deepEqual(g.food, { c: 11, r: 21 })
@@ -40,14 +43,14 @@ test('snake: eating scores, grows by two and moves the food', () => {
 })
 
 test('snake: eating the last image wins', () => {
-    const g = new SnakeGame(board, [{ c: 17, r: 24 }], rng(1))
+    const g = new SnakeGame(board, [{ c: 15, r: 24 }], rng(1), S)
     assert.equal(g.step(), 'won')
     assert.equal(g.state, 'won')
     assert.equal(g.step(), 'won', 'no more moves once finished')
 })
 
 test('snake: the board edge is a wall', () => {
-    const g = new SnakeGame(board, allCells(), rng(1))
+    const g = new SnakeGame(board, allCells(), rng(1), S)
     g.food = null
     let result = ''
     for (let i = 0; i < 10 && result !== 'over'; i++) result = g.step()
@@ -56,24 +59,24 @@ test('snake: the board edge is a wall', () => {
 })
 
 test('snake: no U-turn, and two quick turns both apply', () => {
-    const g = new SnakeGame(board, allCells(), rng(1))
+    const g = new SnakeGame(board, allCells(), rng(1), S)
     g.turn('left')
     g.step()
-    assert.deepEqual(g.body[0], { c: 17, r: 24 }, 'reversing is ignored')
+    assert.deepEqual(g.body[0], { c: 15, r: 24 }, 'reversing is ignored')
     g.turn('up')
     g.turn('left')
     g.step()
     g.step()
-    assert.deepEqual(g.body[0], { c: 16, r: 25 })
+    assert.deepEqual(g.body[0], { c: 14, r: 25 })
 })
 
 test('snake: running into itself ends the game, chasing its tail does not', () => {
-    const g = new SnakeGame(board, allCells(), rng(1))
+    const g = new SnakeGame(board, allCells(), rng(1), S)
     g.body = [{ c: 15, r: 24 }, { c: 14, r: 24 }, { c: 14, r: 25 }, { c: 15, r: 25 }, { c: 16, r: 25 }]
     g.turn('up')
     assert.equal(g.step(), 'over')
 
-    const h = new SnakeGame(board, allCells(), rng(1))
+    const h = new SnakeGame(board, allCells(), rng(1), S)
     h.body = [{ c: 15, r: 24 }, { c: 14, r: 24 }, { c: 14, r: 25 }, { c: 15, r: 25 }]
     h.food = null
     h.turn('up')
@@ -84,6 +87,18 @@ test('snake: starts where asked, kept inside the board with room for its body', 
     const grid = { c0: 0, r0: 0, cols: 400, rows: 300 }
     assert.deepEqual(new SnakeGame(grid, [], rng(1), { c: 120, r: 80 }).body[0], { c: 120, r: 80 })
     assert.deepEqual(new SnakeGame(grid, [], rng(1), { c: 0, r: 500 }).body, [{ c: 2, r: 299 }, { c: 1, r: 299 }, { c: 0, r: 299 }])
+})
+
+test('snake: on a small board it never starts facing a close wall', () => {
+    const small = { c0: 0, r0: 0, cols: 9, rows: 9 }
+    const near = new SnakeGame(small, [], rng(1), { c: 7, r: 4 })
+    assert.deepEqual(near.body, [{ c: 6, r: 4 }, { c: 7, r: 4 }, { c: 8, r: 4 }], 'heads left, tail against the right wall')
+    near.food = null
+    for (let i = 0; i < 6; i++) assert.equal(near.step(), 'moved', `step ${i}`)
+
+    const tall = new SnakeGame({ c0: 0, r0: 0, cols: 3, rows: 20 }, [], rng(1), { c: 1, r: 2 })
+    assert.deepEqual(tall.body[0], { c: 1, r: 2 })
+    assert.deepEqual(tall.body[1], { c: 1, r: 1 }, 'heads up the long axis')
 })
 
 test('snake: food can spawn anywhere on the grid', () => {
