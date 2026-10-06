@@ -29,6 +29,13 @@ export const useColumnStore = defineStore('columnStore', () => {
     let sha1s: (string | null)[] = []
     let fileIds = new Int32Array(0)
 
+    // sha1 -> slots index behind getInstancesBySha1: the first slot holding each sha1, then for
+    // every slot the next slot with the same sha1 (-1 ends the chain). Built on first lookup and
+    // dropped whenever a sha1 is written, so a lookup costs the size of the pile, not a scan of
+    // every slot (a 500-point lasso on 500k images took seconds).
+    let sha1Head: Map<string, number> | null = null
+    let sha1Next = new Int32Array(0)
+
     const columnData: Record<number, ColumnData> = markRaw({})
     const columnFetched: Record<number, Uint8Array> = markRaw({})
     const _propTypes: Record<number, PropertyType> = markRaw({})
@@ -121,6 +128,7 @@ export const useColumnStore = defineStore('columnStore', () => {
                 fileIds[s] = batch.fileIds[i] ?? 0
             }
             slotCount = newSize
+            sha1Head = null
         })
 
         fullColumnStatus[instanceIdPropId] = 'loaded'
@@ -188,7 +196,7 @@ export const useColumnStore = defineStore('columnStore', () => {
 
     function writeSlot(propId: number, slot: number, value: any) {
         if (propId === _instanceIdPropId) { instanceIds[slot] = value == null ? NaN : Number(value); return }
-        if (propId === _sha1PropId) { sha1s[slot] = value ?? null; return }
+        if (propId === _sha1PropId) { sha1s[slot] = value ?? null; sha1Head = null; return }
         if (propId === _fileIdPropId) { fileIds[slot] = value == null ? NaN : Number(value); return }
 
         const col = ensureColumn(propId)
@@ -298,6 +306,7 @@ export const useColumnStore = defineStore('columnStore', () => {
             fileIds[s] = newFileIds[i]
         }
         slotCount = newSize
+        sha1Head = null
         instanceCount.value = newSize
     }
 
@@ -458,14 +467,26 @@ export const useColumnStore = defineStore('columnStore', () => {
         return Object.keys(fullColumnStatus).map(Number).filter(id => fullColumnStatus[id] === 'loaded')
     }
 
+    function sha1Index(): Map<string, number> {
+        if (sha1Head) return sha1Head
+        const head = new Map<string, number>()
+        const next = new Int32Array(slotCount)
+        // Walk backwards so each chain runs in slot order.
+        for (let s = slotCount - 1; s >= 0; s--) {
+            const sha1 = sha1s[s]
+            if (sha1 == null) { next[s] = -1; continue }
+            next[s] = head.get(sha1) ?? -1
+            head.set(sha1, s)
+        }
+        sha1Head = head
+        sha1Next = next
+        return head
+    }
+
     function getInstancesBySha1(sha1: string): number[] {
         const ids: number[] = []
-        const count = slotCount
-
-        for (let i = 0; i < count; i++) {
-            if (sha1s[i] === sha1 && !deletedMask[i]) {
-                ids.push(instanceIds[i])
-            }
+        for (let s = sha1Index().get(sha1) ?? -1; s !== -1; s = sha1Next[s]) {
+            if (!deletedMask[s]) ids.push(instanceIds[s])
         }
         return ids
     }
@@ -675,6 +696,8 @@ export const useColumnStore = defineStore('columnStore', () => {
         selectionVersions.global = 0
         instanceIds = new Int32Array(0)
         sha1s = []
+        sha1Head = null
+        sha1Next = new Int32Array(0)
         fileIds = new Int32Array(0)
 
         _instanceIdPropId = null
@@ -699,7 +722,9 @@ export const useColumnStore = defineStore('columnStore', () => {
         slotCount() { return slotCount },
         slotEpoch() { return slotEpoch },
         deletedMask() { return deletedMask },
-        selectionMask() { return selectionMasks.get('global')! },
+        // The raw slot-indexed mask, for callers scanning many slots (isSelected per slot is a
+        // map lookup each time). Read selectionTick(ns) too to stay reactive.
+        selectionMask(ns = 'global') { return selectionMasks.get(ns) },
         instanceIds() { return instanceIds },
         sha1s() { return sha1s },
         fileIds() { return fileIds },

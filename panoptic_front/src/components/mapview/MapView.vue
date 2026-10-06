@@ -126,6 +126,11 @@ let sha1ToPoint: { [sha1: string]: PointData } = {}
 // plain let) since the group-list island reads it directly in the template.
 const leaves = shallowRef<{ id: number, name: string, color: string, points: PointData[] }[]>([])
 const points = shallowRef<PointData[]>([])
+// For each slot, the index in `points` of the point drawing it (-1: none). Built with the
+// geometry, so a selection tick finds its points with typed-array reads.
+let pointOfSlot = new Int32Array(0)
+// Each point's z before the selection lifts it: BASE_Z, or DIM_Z while a soloed group dims it.
+let baseZ = new Float32Array(0)
 
 // ── Atlas status ──────────────────────────────────────────────────────────────
 
@@ -234,16 +239,17 @@ function buildLeaves() {
     updateColors()
 }
 
+// Full restyle: group borders and solo dimming, then the selection on top.
 function updateColors() {
-    const ns = selectNamespace.value
-    for (const p of points.value) {
+    const pts = points.value
+    if (baseZ.length !== pts.length) baseZ = new Float32Array(pts.length)
+    for (let i = 0; i < pts.length; i++) {
+        const p = pts[i]
         p.color = defaultColor
         p.borderColor = defaultColor
         p.border = 0.0
-        p.tint = WHITE_TINT
-        p.tintAlpha = 0.0
         p.desaturate = 0.0
-        p.z = BASE_Z
+        baseZ[i] = BASE_Z
     }
 
     for (const leaf of leaves.value) {
@@ -260,10 +266,11 @@ function updateColors() {
         : undefined
     if (activeLeaf) {
         const activeSet = new Set(activeLeaf.points)
-        for (const p of points.value) {
+        for (let i = 0; i < pts.length; i++) {
+            const p = pts[i]
             if (!activeSet.has(p)) {
                 p.desaturate = DIM_DESATURATE
-                p.z = DIM_Z
+                baseZ[i] = DIM_Z
                 // The leaf-colouring pass above already painted every OTHER leaf's border too —
                 // left alone, each dimmed group keeps its own bright border ring around its
                 // (now-grey) photos, which is exactly the "still has colour" a solo is meant to
@@ -274,48 +281,57 @@ function updateColors() {
         }
     }
 
-    // Selection tint. A point stands for a whole sha1-pile (possibly several instances, each
-    // independently selectable in the scrollers — see PileLine.vue), and `p.id` is only one
-    // arbitrary representative instance of that pile (see sha1ToId in showMap). Checking that
-    // single instance's selection state left the point untinted whenever a *different* pile
-    // member was the one actually selected. Scan the tree's slots for a selected sha1 match
-    // instead, matching the pile-wide select/deselect handleLasso already does.
-    const sha1sArr = columnStore.sha1s()
-    const selectedSha1s = new Set<string>()
-    const addIfSelected = (slot: number) => {
-        if (columnStore.isSelected(slot, ns)) {
-            const sha1 = sha1sArr[slot]
-            if (sha1) selectedSha1s.add(sha1)
-        }
+    if (renderer.value) {
+        renderer.value.updateBorder()
+        renderer.value.updateDesaturation()
     }
-    if (builtSlots) {
-        for (const slot of builtSlots) addIfSelected(slot)
-    } else {
-        for (let slot = 0; slot < columnStore.slotCount(); slot++) addIfSelected(slot)
+    // Soloing moves points between z tiers: positions must be re-uploaded while it is or was on.
+    updateSelection(!!activeLeaf || hadActiveLeaf)
+    hadActiveLeaf = !!activeLeaf
+}
+
+// Selection tint and z lift, on top of the style updateColors set. Selection ticks run only this.
+//
+// A point stands for a whole sha1-pile (possibly several instances, each independently
+// selectable in the scrollers — see PileLine.vue), so it is tinted when any slot of its pile is
+// selected, matching the pile-wide select/deselect handleLasso does.
+function updateSelection(baseZChanged = false) {
+    const pts = points.value
+    const mask = columnStore.selectionMask(selectNamespace.value)
+    const selected = new Uint8Array(pts.length)
+    let anySelected = false
+    if (mask) {
+        const mark = (slot: number) => {
+            if (!mask[slot]) return
+            const i = pointOfSlot[slot]
+            if (i >= 0) { selected[i] = 1; anySelected = true }
+        }
+        if (builtSlots) for (const slot of builtSlots) mark(slot)
+        else for (let slot = 0; slot < pointOfSlot.length; slot++) mark(slot)
     }
 
-    for (const p of points.value) {
-        if (selectedSha1s.has(p.sha1)) {
+    for (let i = 0; i < pts.length; i++) {
+        const p = pts[i]
+        if (selected[i]) {
             p.tint = SELECTED_TINT
             p.tintAlpha = 0.8
             // Selected always wins the depth tie against an overlapping neighbour, whether or
-            // not a group happens to be soloed right now (this runs after the dim block above).
+            // not a group happens to be soloed right now.
             p.z = SELECTED_Z
+        } else {
+            p.tint = WHITE_TINT
+            p.tintAlpha = 0.0
+            p.z = baseZ[i] ?? BASE_Z
         }
     }
 
-    const anySelected = selectedSha1s.size > 0
     if (renderer.value) {
-        renderer.value.updateBorder()
         renderer.value.updateTints()
-        renderer.value.updateDesaturation()
         // Position upload (re-writes every instance matrix + flags the GPU buffer dirty) only
-        // when something that touches z just changed, is still in effect, or just cleared —
-        // plain ticks where neither soloing nor any selection is or was active skip this and
-        // stay cheap.
-        if (activeLeaf || hadActiveLeaf || anySelected || hadSelected) renderer.value.updatePosition()
+        // when z can have changed — plain ticks where neither soloing nor any selection is or
+        // was active skip this and stay cheap.
+        if (baseZChanged || anySelected || hadSelected) renderer.value.updatePosition()
     }
-    hadActiveLeaf = !!activeLeaf
     hadSelected = anySelected
 }
 
@@ -406,6 +422,7 @@ async function showMap(mapId: number, force = false) {
     }
 
     const newSha1ToPoint: { [sha1: string]: PointData } = {}
+    const sha1ToIndex = new Map<string, number>()
     const res: PointData[] = []
     for (let i = 0; i < values.length; i += 3) {
         const sha1 = values[i]
@@ -434,12 +451,22 @@ async function showMap(mapId: number, force = false) {
             desaturate: 0.0,
             borderColor: defaultColor
         }
+        sha1ToIndex.set(sha1, res.length)
         res.push(p)
         newSha1ToPoint[sha1] = p
     }
 
+    const newPointOfSlot = new Int32Array(columnStore.slotCount()).fill(-1)
+    const drawnSlots = slots ?? newPointOfSlot.keys()
+    for (const slot of drawnSlots) {
+        const sha1 = allSha1s[slot]
+        const i = sha1 ? sha1ToIndex.get(sha1) : undefined
+        if (i !== undefined) newPointOfSlot[slot] = i
+    }
+
     applyLayout(res, mapId)
     sha1ToPoint = newSha1ToPoint
+    pointOfSlot = newPointOfSlot
     points.value = res
     builtMapId = mapId
     builtRoot = root
@@ -651,7 +678,7 @@ watch([layout, gridDensity, () => props.mapOptions.selectedMap], stopSnake)
 
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
-watch(() => columnStore.selectionTick(selectNamespace.value), () => updateColors())
+watch(() => columnStore.selectionTick(selectNamespace.value), () => updateSelection())
 watch(selectedGroupId, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))

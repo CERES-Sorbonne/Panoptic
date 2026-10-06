@@ -1,11 +1,15 @@
 import { ZoomParams } from '@/data/models';
 import * as THREE from 'three';
 
+// Corner radius of the thumbnails, in units of the image's longest side.
+const IMAGE_RADIUS = 0.05
+
 export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
     private _zoomRef: { value: number } = { value: 1.0 };
     private _zoomParams = new THREE.Vector3(1.0, 0.1, 0.11);
-    private _radius = { value: 0.05 };
+    private _radius = { value: IMAGE_RADIUS };
     private _showAsPoint = { value: 0.0 };
+    private _fill = { value: 0.0 };
 
     constructor(parameters: THREE.MeshBasicMaterialParameters, collNb: number, rowNb: number) {
         super(parameters);
@@ -17,6 +21,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
             shader.uniforms.uZoom = this._zoomRef;
             shader.uniforms.uZoomParams = { value: this._zoomParams };
             shader.uniforms.uShowAsPoint = this._showAsPoint;
+            shader.uniforms.uFill = this._fill;
 
             shader.vertexShader = `
                 attribute vec2 vOffset;
@@ -27,7 +32,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 attribute float vRatioAttr;
                 attribute float vDesaturate;
 
-                varying vec2 vMappedUv;
+                varying vec4 vInstanceUvTransform;
+                varying vec2 vInstanceOffset;
                 varying vec2 vRawUv;
                 varying vec4 vInstanceTint;
                 varying vec3 vInstanceBorder;
@@ -35,8 +41,6 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying float vRatio;
                 varying float vInstanceDesaturate;
 
-                uniform float uGridCols;
-                uniform float uGridRows;
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
                 uniform float uShowAsPoint;
@@ -85,12 +89,9 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 `
                 #include <uv_vertex>
                 vRawUv = uv;
-                
-                float margin = 0.0005; 
-                vec2 safeUv = mix(vec2(margin), vec2(1.0 - margin), uv);
-                vec2 correctedUv = safeUv * vUvTransform.xy + vUvTransform.zw;
-                vMappedUv = (correctedUv / vec2(uGridCols, uGridRows)) + vOffset;
-                
+                vInstanceUvTransform = vUvTransform;
+                vInstanceOffset = vOffset;
+
                 vInstanceTint = vTint;
                 vInstanceBorder = vBorderCol;
                 vInstanceBorderWidth = vBorderWidth;
@@ -99,7 +100,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
             );
 
             shader.fragmentShader = `
-                varying vec2 vMappedUv;
+                varying vec4 vInstanceUvTransform;
+                varying vec2 vInstanceOffset;
                 varying vec2 vRawUv;
                 varying vec4 vInstanceTint;
                 varying vec3 vInstanceBorder;
@@ -107,8 +109,11 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying float vRatio;
                 varying float vInstanceDesaturate;
 
+                uniform float uGridCols;
+                uniform float uGridRows;
                 uniform float uRadius;
                 uniform float uShowAsPoint;
+                uniform float uFill;
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
 
@@ -150,7 +155,13 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                         dimensions = vec2(vRatio, 1.0);
                     }
                     
-                    vec2 p = (vRawUv - 0.5) * dimensions;
+                    // With MSAA, a pixel the quad only partly covers is shaded at its centre, which
+                    // can lie outside the quad: the uv extrapolates past [0, 1] and the edge mask
+                    // drops the quad's samples there. Scattered images want that soft edge, but
+                    // tiled grid cells would let the background show through as a line along
+                    // every shared edge, so there the uv is clamped and the cell stays opaque.
+                    vec2 rawUv = uFill > 0.5 ? clamp(vRawUv, 0.0, 1.0) : vRawUv;
+                    vec2 p = (rawUv - 0.5) * dimensions;
                     vec2 b = dimensions * 0.5;
                     
                     float d = sdRoundedBox(p, b, uRadius);
@@ -168,7 +179,11 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     float borderW = vInstanceBorderWidth * max(borderScale, MIN_BORDER_RATIO);
                     float borderMask = smoothstep(aa, 0.0, d + borderW);
 
-                    vec4 texelColor = texture2D( map, vMappedUv );
+                    float margin = 0.0005;
+                    vec2 safeUv = mix(vec2(margin), vec2(1.0 - margin), rawUv);
+                    vec2 correctedUv = safeUv * vInstanceUvTransform.xy + vInstanceUvTransform.zw;
+                    vec2 mappedUv = correctedUv / vec2(uGridCols, uGridRows) + vInstanceOffset;
+                    vec4 texelColor = texture2D( map, mappedUv );
 
                     // Grey out (per-pixel luminance, not a flat colour wash) before tinting, so a
                     // dimmed-group photo and a blue selection overlay compose instead of fighting.
@@ -185,7 +200,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     // uv lands on the atlas cell's opaque/transparent boundary, and with a thin
                     // (zoom-scaled) border the whole ring would otherwise go see-through, letting
                     // the white background bleed through as a white glow on the bottom border.
-                    diffuseColor = vec4(finalRGB, max(texelColor.a, 1.0 - borderMask) * outsideMask);
+                    float alpha = uFill > 0.5 ? 1.0 : max(texelColor.a, 1.0 - borderMask) * outsideMask;
+                    diffuseColor = vec4(finalRGB, alpha);
                 }
                 `
             );
@@ -198,6 +214,13 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
         if (this.userData.shader) {
             this.userData.shader.uniforms.uRadius.value = radius;
         }
+    }
+
+    // Grid cells with square thumbnails: square corners and opaque edges, so neighbours tile
+    // without gaps.
+    public setFill(fill: boolean) {
+        this._fill.value = fill ? 1.0 : 0.0;
+        this._radius.value = fill ? 0.0 : IMAGE_RADIUS;
     }
 
     public setZoomParams(params: ZoomParams) {
