@@ -26,6 +26,8 @@ export class MapRenderer {
     private frustumSize = 20
 
     private zoomParams: ZoomParams = { h: 5.0, z1: 0.1, z2: 0.11 }
+    // Grid with square thumbnails: each one fills its whole cell, with no gap to its neighbours.
+    private fillCells = false
 
     public atlasLayers: AtlasLayerManager
     private hdLayer: HDLayer
@@ -56,15 +58,15 @@ export class MapRenderer {
         this.initRenderer()
 
         this.atlasLayers = new AtlasLayerManager(this.scene)
-        this.atlasLayers.setZoomParams(this.zoomParams)
+        this.atlasLayers.setZoomParams(this.activeZoomParams())
 
         this.hdLayer = new HDLayer(this.scene, baseImgUrl)
         this.hdLayer.setZoomReference(this.globalUniforms.uZoom)
-        this.hdLayer.setZoomParams(this.zoomParams)
+        this.hdLayer.setZoomParams(this.activeZoomParams())
 
         this.hoverPointLayer = new HoverPointLayer(this.scene)
         this.hoverPointLayer.setZoomReference(this.globalUniforms.uZoom)
-        this.hoverPointLayer.setZoomParams(this.zoomParams)
+        this.hoverPointLayer.setZoomParams(this.activeZoomParams())
 
         this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points) => {
             if (this.onPointSelection) this.onPointSelection(points)
@@ -152,7 +154,7 @@ export class MapRenderer {
     }
 
     private updateHoverState() {
-        const foundPoint = this.controls.getHoveredPoint(this.zoomParams)
+        const foundPoint = this.controls.getHoveredPoint(this.activeZoomParams())
 
         if (foundPoint) {
             const instanceId = useColumnStore().getInstancesBySha1(foundPoint.sha1)[0]
@@ -219,8 +221,10 @@ export class MapRenderer {
     }
 
     public setFillCells(fill: boolean) {
+        this.fillCells = fill
         this.atlasLayers.setFill(fill)
         this.controls.fillCells = fill
+        this.pushZoomParams()
     }
 
     public setShowAsPoint(show: boolean) {
@@ -234,9 +238,22 @@ export class MapRenderer {
 
     public setImageSize(imageSize: number) {
         this.zoomParams.h = imageWorldSize(imageSize)
-        this.hdLayer.setZoomParams(this.zoomParams)
-        this.hoverPointLayer.setZoomParams(this.zoomParams)
-        this.atlasLayers.setZoomParams(this.zoomParams)
+        this.pushZoomParams()
+    }
+
+    // Thumbnails shrink from h to h * z1/z2 as the camera zooms in, so scattered images overlap
+    // less. Filled grid cells must keep their full size to tile, so z2 = z1 cancels the shrink
+    // (the border scale only reads z1 and is unchanged).
+    private activeZoomParams(): ZoomParams {
+        const { h, z1, z2 } = this.zoomParams
+        return { h, z1, z2: this.fillCells ? z1 : z2 }
+    }
+
+    private pushZoomParams() {
+        const params = this.activeZoomParams()
+        this.hdLayer.setZoomParams(params)
+        this.hoverPointLayer.setZoomParams(params)
+        this.atlasLayers.setZoomParams(params)
     }
 
     private onResize() {
@@ -251,7 +268,7 @@ export class MapRenderer {
 
     public getImageMaxSize(): number {
         const currentZoom = this.camera.zoom;
-        const { h, z1, z2 } = this.zoomParams;
+        const { h, z1, z2 } = this.activeZoomParams();
 
         let zoomScale: number;
 

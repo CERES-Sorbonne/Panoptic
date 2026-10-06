@@ -20,8 +20,9 @@ export class AtlasLayer {
     private atlas: ImageAtlas
     // Square thumbnails showing a centred crop of the image, instead of the whole image letterboxed.
     private fill = false
-    private matrixHelper = new THREE.Matrix4()
-    private colorHelper = new THREE.Color()
+    // Parsed hex colours. Points share a handful of colours, and THREE.Color.set re-parsing the
+    // string for each of 500k points made every recolour slow.
+    private colorCache = new Map<string, THREE.Color>()
 
     constructor(atlas: ImageAtlas, texture: THREE.Texture, points: PointData[], currentSheetIdx: number) {
         this.points = points
@@ -79,12 +80,27 @@ export class AtlasLayer {
      */
     public updatePositions() {
         const zStep = STACK_Z_RANGE / Math.max(1, this.points.length)
-        this.points.forEach((p, i) => {
-            this.matrixHelper.makeScale(1.0, 1.0, 1.0)
-            this.matrixHelper.setPosition(p.x, p.y, p.z + i * zStep)
-            this.mesh.setMatrixAt(i, this.matrixHelper)
-        })
+        // Instance matrices are pure translations (InstancedMesh starts them as identity), so
+        // only the translation column is written.
+        const array = this.mesh.instanceMatrix.array as Float32Array
+        const points = this.points
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i]
+            const o = i * 16
+            array[o + 12] = p.x
+            array[o + 13] = p.y
+            array[o + 14] = p.z + i * zStep
+        }
         this.mesh.instanceMatrix.needsUpdate = true
+    }
+
+    private color(hex: string): THREE.Color {
+        let c = this.colorCache.get(hex)
+        if (!c) {
+            c = new THREE.Color().set(hex)
+            this.colorCache.set(hex, c)
+        }
+        return c
     }
 
     public updateRatios() {
@@ -119,14 +135,16 @@ export class AtlasLayer {
         const attr = this.geometry.getAttribute('vTint') as THREE.InstancedBufferAttribute
         const array = attr.array as Float32Array
 
-        this.points.forEach((p, i) => {
+        const points = this.points
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i]
             // If PointData has a specific color, use it, otherwise white
-            this.colorHelper.set(p.tint || '#FFFFFF')
-            array[i * 4] = this.colorHelper.r
-            array[i * 4 + 1] = this.colorHelper.g
-            array[i * 4 + 2] = this.colorHelper.b
+            const c = this.color(p.tint || '#FFFFFF')
+            array[i * 4] = c.r
+            array[i * 4 + 1] = c.g
+            array[i * 4 + 2] = c.b
             array[i * 4 + 3] = p.tintAlpha ?? 0.0 // Default alpha to 0 (no tint effect)
-        })
+        }
         attr.needsUpdate = true
     }
 
@@ -140,13 +158,15 @@ export class AtlasLayer {
         const colArray = colAttr.array as Float32Array
         const widthArray = widthAttr.array as Float32Array
 
-        this.points.forEach((p, i) => {
-            this.colorHelper.set(p.borderColor || '#000000')
-            colArray[i * 3] = this.colorHelper.r
-            colArray[i * 3 + 1] = this.colorHelper.g
-            colArray[i * 3 + 2] = this.colorHelper.b
+        const points = this.points
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i]
+            const c = this.color(p.borderColor || '#000000')
+            colArray[i * 3] = c.r
+            colArray[i * 3 + 1] = c.g
+            colArray[i * 3 + 2] = c.b
             widthArray[i] = p.border ?? 0.0
-        })
+        }
         colAttr.needsUpdate = true
         widthAttr.needsUpdate = true
     }
@@ -213,6 +233,7 @@ export class AtlasLayer {
     public setFill(fill: boolean) {
         if (fill === this.fill) return
         this.fill = fill
+        this.material.setFill(fill)
         this.updateUVsAndOffsets()
         this.updateRatios()
     }
