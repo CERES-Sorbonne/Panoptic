@@ -805,6 +805,7 @@
         "find": {
             "play": "Mini-jeu : retrouver l'image sur la carte",
             "stop": "Arrêter le jeu",
+            "reveal": "Indice : la zone, puis l'image",
             "score": "{score} trouvée(s) · {misses} raté(s)",
             "hint": "Retrouvez cette image et cliquez dessus",
             "hover_hint": "Survolez une image"

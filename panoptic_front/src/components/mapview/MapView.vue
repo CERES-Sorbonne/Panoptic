@@ -595,11 +595,11 @@ function lookAtPoints(pts: PointData[]) {
     lookAtBounds({ minX, minY, maxX, maxY })
 }
 
-function lookAtBounds(rect: { minX: number, minY: number, maxX: number, maxY: number }) {
+function lookAtBounds(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration?: number) {
     if (!renderer.value) return
     // Reserve the strip the island covers so the framed group doesn't land underneath it.
     const right = islandStrip()
-    renderer.value.lookAtRect(rect, right > 0 ? { right } : undefined)
+    renderer.value.lookAtRect(rect, right > 0 ? { right } : undefined, duration)
 }
 
 // Width of the canvas's right strip covered by the group-list island (its own width plus the gap
@@ -751,6 +751,11 @@ const findTarget = shallowRef<PointData | null>(null)
 const findScore = ref(0)
 const findMisses = ref(0)
 const findFeedback = ref<'hit' | 'miss' | null>(null)
+// Wand hints given for the current target: the first frames its area, the second the image.
+let findReveals = 0
+const REVEAL_MS = 1500
+// Side of the area framed by the first hint, in images.
+const REVEAL_AREA = 30
 let findFeedbackTimer: number | undefined
 
 function nextFindTarget() {
@@ -761,6 +766,7 @@ function nextFindTarget() {
     let next = pts[Math.floor(Math.random() * pts.length)]
     if (pts.length > 1) while (next === findTarget.value) next = pts[Math.floor(Math.random() * pts.length)]
     findTarget.value = next
+    findReveals = 0
 }
 
 function startFind() {
@@ -789,6 +795,20 @@ function onFindClick(point: PointData) {
     findFeedback.value = hit ? 'hit' : 'miss'
     clearTimeout(findFeedbackTimer)
     findFeedbackTimer = window.setTimeout(() => { findFeedback.value = null }, FIND_FEEDBACK_MS)
+}
+
+function revealFindTarget() {
+    const t = findTarget.value
+    if (!t) return
+    if (findReveals++ > 0) {
+        lookAtBounds({ minX: t.x, minY: t.y, maxX: t.x, maxY: t.y }, REVEAL_MS)
+        return
+    }
+    // The target lands somewhere in the area, not in its middle.
+    const half = REVEAL_AREA * imageWorldSize(props.imageSize) / 2
+    const cx = t.x + (Math.random() - 0.5) * half
+    const cy = t.y + (Math.random() - 0.5) * half
+    lookAtBounds({ minX: cx - half, minY: cy - half, maxX: cx + half, maxY: cy + half }, REVEAL_MS)
 }
 
 // The target left the map (filter, map switch): draw another one.
@@ -935,6 +955,11 @@ onMounted(async () => {
                         @click="props.mapOptions.previewCollapsed = !props.mapOptions.previewCollapsed">
                         <i class="bi section-chevron" :class="props.mapOptions.previewCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
                         <span class="flex-grow-1">{{ $t('map.preview') }}</span>
+                        <WithToolTip v-if="findTarget" message="map.find.reveal">
+                            <div class="group-action-btn" @click.stop="revealFindTarget()">
+                                <i class="bi bi-magic"></i>
+                            </div>
+                        </WithToolTip>
                         <WithToolTip v-if="showMinimap" :message="findTarget ? 'map.find.stop' : 'map.find.play'">
                             <div class="group-action-btn" @click.stop="findTarget ? stopFind() : startFind()">
                                 <i class="bi" :class="findTarget ? 'bi-stop-fill' : 'bi-play-fill'"></i>

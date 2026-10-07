@@ -410,7 +410,8 @@ export class MapRenderer {
 
     public lookAtRect(
         rect: { minX: number, minY: number, maxX: number, maxY: number },
-        padding?: { left?: number, right?: number, top?: number, bottom?: number }
+        padding?: { left?: number, right?: number, top?: number, bottom?: number },
+        duration = 500
     ) {
         let offset = this.getImageMaxSize()
         let finalRect = deepCopy(rect)
@@ -418,7 +419,7 @@ export class MapRenderer {
         finalRect.minY -= offset
         finalRect.maxX += offset
         finalRect.maxY += offset
-        this.controls.lookAtRect(finalRect, 500, padding)
+        this.controls.lookAtRect(finalRect, duration, padding)
     }
 
     public dispose() {

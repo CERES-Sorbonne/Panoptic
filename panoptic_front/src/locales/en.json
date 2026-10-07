@@ -795,6 +795,7 @@
         "find": {
             "play": "Mini-game: find the image on the map",
             "stop": "Stop the game",
+            "reveal": "Hint: the area, then the image",
             "score": "{score} found · {misses} missed",
             "hint": "Find this image and click it",
             "hover_hint": "Hover an image"
