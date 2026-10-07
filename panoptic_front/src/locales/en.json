@@ -784,6 +784,15 @@
         "group_property": "Groups",
         "group_cluster": "Clusters",
         "groups": "Groups",
+        "minimap": "Minimap",
+        "find": {
+            "play": "Mini-game: find the image on the map",
+            "stop": "Stop the game",
+            "score": "{score} found · {misses} missed",
+            "hint": "Find this image and click it",
+            "hover_hint": "Hover an image"
+        },
+        "preview": "Preview",
         "border_width": "Border width",
         "hover_scale": "Hover zoom size",
         "atlas": "Thumbnail atlas",

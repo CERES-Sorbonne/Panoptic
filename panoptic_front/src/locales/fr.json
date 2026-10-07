@@ -794,6 +794,15 @@
         "group_property": "Groupes",
         "group_cluster": "Clusters",
         "groups": "Groupes",
+        "minimap": "Minimap",
+        "find": {
+            "play": "Mini-jeu : retrouver l'image sur la carte",
+            "stop": "Arrêter le jeu",
+            "score": "{score} trouvée(s) · {misses} raté(s)",
+            "hint": "Retrouvez cette image et cliquez dessus",
+            "hover_hint": "Survolez une image"
+        },
+        "preview": "Aperçu",
         "border_width": "Largeur de bordure",
         "hover_scale": "Taille au survol",
         "atlas": "Atlas de vignettes",

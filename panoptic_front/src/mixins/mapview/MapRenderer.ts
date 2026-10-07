@@ -37,6 +37,8 @@ export class MapRenderer {
     public snakeLayer: SnakeLayer
     // Off while the snake easter egg runs, so the HD preview never covers the board.
     private hoverEnabled = true
+    private hoveredPoint: PointData | null = null
+    private hoverScale = 1
     // World point the camera glides towards each frame (the snake's head), if any.
     private follow: { x: number, y: number } | null = null
     private spatialIndex = new SpatialIndex()
@@ -47,6 +49,7 @@ export class MapRenderer {
     }
 
     public onPointSelection: ((points: PointData[]) => void) | null = null
+    public onPointClick: ((point: PointData) => void) | null = null
 
     public onHover = new EventEmitter()
 
@@ -81,6 +84,9 @@ export class MapRenderer {
         this.snakeLayer = new SnakeLayer(this.scene)
 
         this.controls = new MapControls(this.camera, this.renderer.domElement, this.lassoLayer, this.spatialIndex)
+        this.controls.onClick = () => {
+            if (this.hoveredPoint) this.onPointClick?.(this.hoveredPoint)
+        }
 
         this.resizeObserver = new ResizeObserver(() => this.onResize())
         this.resizeObserver.observe(this.container)
@@ -131,6 +137,7 @@ export class MapRenderer {
         const dataStore = useDataStore()
         this.spatialIndex.initTree(points)
         this.showAsPoint = showAsPoint
+        this.hoveredPoint = null
 
         await this.atlasLayers.loadLayers(
             atlas,
@@ -168,7 +175,12 @@ export class MapRenderer {
     }
 
     private updateHoverState() {
-        const foundPoint = this.hoverEnabled ? this.controls.getHoveredPoint(this.activeZoomParams()) : null
+        const params = this.activeZoomParams()
+        // The enlarged preview covers its neighbours: it stays hovered while the cursor is on it.
+        const keep = this.hoverEnabled && this.hoveredPoint && !this.showAsPoint
+            && this.controls.isMouseOver(this.hoveredPoint, params, this.hoverScale)
+        const foundPoint = keep ? this.hoveredPoint : this.hoverEnabled ? this.controls.getHoveredPoint(params) : null
+        this.hoveredPoint = foundPoint
 
         if (foundPoint) {
             const instanceId = useColumnStore().getInstancesBySha1(foundPoint.sha1)[0]
@@ -221,6 +233,7 @@ export class MapRenderer {
     }
 
     public setHoverScale(scale: number) {
+        this.hoverScale = scale
         this.hdLayer.setHoverScale(scale)
     }
 
@@ -231,6 +244,7 @@ export class MapRenderer {
     // Points moved (layout switch, grid rescale): re-index them and re-upload their positions.
     public updateLayout(points: PointData[]) {
         this.spatialIndex.initTree(points)
+        this.hoveredPoint = null
         this.atlasLayers.updatePositions()
         this.hdLayer.updatePositions()
     }
@@ -321,6 +335,10 @@ export class MapRenderer {
             minY: (this.camera.bottom / zoom) + this.camera.position.y,
             maxY: (this.camera.top / zoom) + this.camera.position.y
         }
+    }
+
+    public centerOn(x: number, y: number) {
+        this.controls.panTo(x, y)
     }
 
     public lookAtRect(

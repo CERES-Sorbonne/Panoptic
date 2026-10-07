@@ -95,6 +95,9 @@ export interface MapOptions {
     gridDensity?: number
     // In the grid, thumbnails fill their cell with a centred square crop.
     fillCells?: boolean
+    previewCollapsed?: boolean
+    groupsCollapsed?: boolean
+    minimapCollapsed?: boolean
 }
 
 // Per-view options for the group recommendation view. Stores which group the

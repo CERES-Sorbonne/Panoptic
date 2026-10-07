@@ -16,7 +16,6 @@ export class SpatialIndex {
             // KDBush returns a numeric index/id for each point added
             const id = this.tree.add(point.x, point.y);
             this.idToPointMap.set(id, point);
-            point.id = id;
         }
 
         this.tree.finish();

@@ -22,6 +22,9 @@ export class MapControls {
     public zoomSpeed = 0.001
 
     public onUpdate: () => void = () => { }
+    // A pan-mode press released without moving the camera.
+    public onClick: () => void = () => { }
+    private downPos = { x: 0, y: 0 }
 
     constructor(
         camera: THREE.OrthographicCamera, 
@@ -87,22 +90,10 @@ export class MapControls {
     public getHoveredPoint(zoomParams: ZoomParams): PointData | null {
         if (this.mode.startsWith('lasso')) return null
         
-        // Return null if mouse is outside the canvas
-        const overCanvas = this.isMouseInCanvas || (this.hoverThroughOverlays
-            && Math.abs(this.mouse.x) <= 1 && Math.abs(this.mouse.y) <= 1)
-        if (!overCanvas) return null
+        if (!this.isOverCanvas()) return null
 
         const worldPos = this.getMouseWorldPos()
-        const currentZoom = this.camera.zoom
-        const { h, z1, z2 } = zoomParams
-
-        // Replicate shader scaling logic
-        let zoomScale = h
-        if (currentZoom >= z1 && currentZoom < z2) {
-            zoomScale = h * (z1 / currentZoom)
-        } else if (currentZoom >= z2) {
-            zoomScale = h * (z1 / z2)
-        }
+        const zoomScale = this.zoomScale(zoomParams)
 
         const nearbyPoints = this.spatialIndex.getPointsInRect({
             minX: worldPos.x - zoomScale,
@@ -119,18 +110,35 @@ export class MapControls {
         })
 
         for (const p of nearbyPoints) {
-            const ratio = this.fillCells ? 1.0 : p.ratio
-            const vW = ratio > 1.0 ? 1.0 : ratio
-            const vH = ratio > 1.0 ? 1.0 / ratio : 1.0
-            const halfW = (vW * zoomScale) / 2.0
-            const halfH = (vH * zoomScale) / 2.0
-
-            if (worldPos.x >= p.x - halfW && worldPos.x <= p.x + halfW &&
-                worldPos.y >= p.y - halfH && worldPos.y <= p.y + halfH) {
-                return p
-            }
+            if (this.contains(p, worldPos, zoomScale)) return p
         }
         return null
+    }
+
+    public isOverCanvas() {
+        return this.isMouseInCanvas || (this.hoverThroughOverlays
+            && Math.abs(this.mouse.x) <= 1 && Math.abs(this.mouse.y) <= 1)
+    }
+
+    // Whether the cursor is over the point's thumbnail, grown by `scale` (the hover preview).
+    public isMouseOver(p: PointData, zoomParams: ZoomParams, scale = 1): boolean {
+        if (this.mode.startsWith('lasso') || !this.isOverCanvas()) return false
+        return this.contains(p, this.getMouseWorldPos(), this.zoomScale(zoomParams) * scale)
+    }
+
+    // Replicates the shader's thumbnail size at the current zoom.
+    private zoomScale({ h, z1, z2 }: ZoomParams) {
+        const currentZoom = this.camera.zoom
+        if (currentZoom >= z2) return h * (z1 / z2)
+        if (currentZoom >= z1) return h * (z1 / currentZoom)
+        return h
+    }
+
+    private contains(p: PointData, pos: { x: number, y: number }, size: number) {
+        const ratio = this.fillCells ? 1.0 : p.ratio
+        const halfW = (ratio > 1.0 ? 1.0 : ratio) * size / 2.0
+        const halfH = (ratio > 1.0 ? 1.0 / ratio : 1.0) * size / 2.0
+        return Math.abs(pos.x - p.x) <= halfW && Math.abs(pos.y - p.y) <= halfH
     }
 
     private handleWheel = (e: WheelEvent) => {
@@ -153,15 +161,19 @@ export class MapControls {
         } else if (this.mode === 'pan') {
             this.isDragging = true
             this.prevPos = { x: e.clientX, y: e.clientY }
+            this.downPos = { x: e.clientX, y: e.clientY }
         }
         this.updateCursor()
         this.onUpdate()
     }
 
-    private handleMouseUp = () => {
+    private handleMouseUp = (e: MouseEvent) => {
         if (this.isLassoing) {
             this.isLassoing = false
             this.lasso.end()
+        }
+        if (this.isDragging && Math.hypot(e.clientX - this.downPos.x, e.clientY - this.downPos.y) < 5) {
+            this.onClick()
         }
         this.isDragging = false
         this.updateCursor()
@@ -192,6 +204,14 @@ export class MapControls {
         worldPos.x = this.camera.position.x + (this.mouse.x * worldWidth) / 2
         worldPos.y = this.camera.position.y + (this.mouse.y * worldHeight) / 2
         return worldPos
+    }
+
+    public panTo(x: number, y: number) {
+        if (this.animationId) cancelAnimationFrame(this.animationId)
+        this.animationId = null
+        this.camera.position.x = x
+        this.camera.position.y = y
+        this.onUpdate()
     }
 
     public lookAtRect(

@@ -19,6 +19,7 @@ import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
 
 // Components
 import Toolbar from './Toolbar.vue'
+import Minimap from './Minimap.vue'
 import Zoomable from '../Zoomable.vue'
 import CenteredImage from '../images/CenteredImage.vue'
 import InstanceData from '../data/InstanceData.vue'
@@ -41,8 +42,12 @@ const DIM_DESATURATE = 1.0
 const DIM_Z = 0.0
 const BASE_Z = 0.5
 const SELECTED_Z = 1.0
-// Similarity search: the least similar image keeps this opacity, the best one is fully opaque.
-const MIN_SCORE_OPACITY = 0.1
+// Similarity search, on the score within the range the plugin declares: hidden below HIDE, faded in
+// up to FADE_END, then the FADE_END opacity, and fully opaque from FULL.
+const SCORE_HIDE = 0.30
+const SCORE_FADE_END = 0.75
+const SCORE_FADE_END_OPACITY = 0.85
+const SCORE_FULL = 0.85
 // Within a tier, more similar images are lifted in front (stays under the 0.5 tier gap with
 // AtlasLayer's STACK_Z_RANGE).
 const SCORE_Z_RANGE = 0.3
@@ -137,6 +142,8 @@ const points = shallowRef<PointData[]>([])
 let pointOfSlot = new Int32Array(0)
 // Each point's z before the selection lifts it: BASE_Z, or DIM_Z while a soloed group dims it.
 let baseZ = new Float32Array(0)
+// Bumped whenever points move or restyle in place, so the minimap redraws.
+const pointsVersion = ref(0)
 
 // ── Atlas status ──────────────────────────────────────────────────────────────
 
@@ -152,6 +159,7 @@ const mapMissingCount = ref(0)
 // project to build an atlas.
 const atlasUnusable = computed(() => media.atlasFetched && media.atlasCoverage.total > 0
     && (!media.hasAtlas || media.atlasCoverage.inAtlas === 0))
+const showMinimap = computed(() => points.value.length > 0 && !atlasUnusable.value)
 
 // Tracks the latest showMap call to cancel stale concurrent invocations
 let showMapToken = 0
@@ -300,9 +308,15 @@ function updateColors() {
     hadScores = hasScores
 }
 
-// Opacity of each point from the active similarity search's scores, normalised over the points
-// on the map so the best and worst matches always span the whole range. Squared, so the best
-// matches stand out.
+// Opacity of each point from the active similarity search's scores.
+function scoreOpacity(t: number) {
+    if (t >= SCORE_FULL) return 1.0
+    if (t >= SCORE_FADE_END) return SCORE_FADE_END_OPACITY
+    if (t < SCORE_HIDE) return 0.0
+    const u = (t - SCORE_HIDE) / (SCORE_FADE_END - SCORE_HIDE)
+    return SCORE_FADE_END_OPACITY * u * u
+}
+
 function applyScoreOpacity(): boolean {
     const pts = points.value
     const scores = props.collection.result?.root?.scores
@@ -310,23 +324,27 @@ function applyScoreOpacity(): boolean {
         for (const p of pts) p.opacity = 1.0
         return false
     }
-    let min = Infinity, max = -Infinity
-    for (const p of pts) {
-        const v = scores.valueIndex[p.id!]
-        if (v === undefined) continue
-        if (v < min) min = v
-        if (v > max) max = v
+    // Through the slots, not p.id: the spatial index overwrites it with its own index.
+    const pointScore = new Float64Array(pts.length).fill(NaN)
+    const ids = columnStore.instanceIds()
+    const read = (slot: number) => {
+        const i = pointOfSlot[slot]
+        if (i < 0 || !isNaN(pointScore[i])) return
+        const v = scores.valueIndex[ids[slot]]
+        if (v !== undefined) pointScore[i] = v
     }
-    const range = max - min
+    if (builtSlots) for (const slot of builtSlots) read(slot)
+    else for (let slot = 0; slot < pointOfSlot.length; slot++) read(slot)
+
+    const range = scores.max - scores.min
     for (let i = 0; i < pts.length; i++) {
-        const v = scores.valueIndex[pts[i].id!]
+        const v = pointScore[i]
         let t = 0
-        if (v !== undefined) {
-            t = range > 0 ? (v - min) / range : 1
-            if (range > 0 && !scores.maxIsBest) t = 1 - t
-            t *= t
+        if (!isNaN(v)) {
+            t = range > 0 ? Math.min(1, Math.max(0, (v - scores.min) / range)) : v
+            if (!scores.maxIsBest) t = 1 - t
         }
-        pts[i].opacity = MIN_SCORE_OPACITY + (1 - MIN_SCORE_OPACITY) * t
+        pts[i].opacity = scoreOpacity(t)
         baseZ[i] += t * SCORE_Z_RANGE
     }
     return true
@@ -375,6 +393,7 @@ function updateSelection(baseZChanged = false) {
         if (baseZChanged || anySelected || hadSelected) renderer.value.updatePosition()
     }
     hadSelected = anySelected
+    pointsVersion.value++
 }
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
@@ -400,6 +419,7 @@ function relayout() {
     if (builtMapId == null || !points.value.length) return
     const inView = renderer.value?.getPointsInView() ?? []
     applyLayout(points.value, builtMapId)
+    pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
     lookAtPoints(inView.length ? inView : points.value)
@@ -408,6 +428,7 @@ function relayout() {
 function rescaleGrid(imageSize: number, previous: number) {
     if (layout.value !== 'grid' || builtMapId == null || !points.value.length) return
     applyLayout(points.value, builtMapId)
+    pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
     renderer.value.scaleCameraPosition(imageWorldSize(imageSize) / imageWorldSize(previous))
@@ -719,6 +740,65 @@ onUnmounted(() => {
 })
 watch([layout, gridDensity, () => props.mapOptions.selectedMap], stopSnake)
 
+// ── Find-the-image game ───────────────────────────────────────────────────────
+
+// The preview shows a random image of the map; clicking it on the map scores and draws the next.
+const FIND_FEEDBACK_MS = 600
+
+const findTarget = shallowRef<PointData | null>(null)
+const findScore = ref(0)
+const findMisses = ref(0)
+const findFeedback = ref<'hit' | 'miss' | null>(null)
+let findFeedbackTimer: number | undefined
+
+function nextFindTarget() {
+    // Only images the atlas draws can be found on the map.
+    const mapping = media.atlas?.sha1Mapping
+    const pts = mapping ? points.value.filter(p => mapping[p.sha1]) : points.value
+    if (!pts.length) { stopFind(); return }
+    let next = pts[Math.floor(Math.random() * pts.length)]
+    if (pts.length > 1) while (next === findTarget.value) next = pts[Math.floor(Math.random() * pts.length)]
+    findTarget.value = next
+}
+
+function startFind() {
+    findScore.value = 0
+    findMisses.value = 0
+    findFeedback.value = null
+    props.mapOptions.previewCollapsed = false
+    nextFindTarget()
+}
+
+function stopFind() {
+    clearTimeout(findFeedbackTimer)
+    findTarget.value = null
+    findFeedback.value = null
+}
+
+function onFindClick(point: PointData) {
+    if (!findTarget.value) return
+    const hit = point.sha1 === findTarget.value.sha1
+    if (hit) {
+        findScore.value++
+        nextFindTarget()
+    } else {
+        findMisses.value++
+    }
+    findFeedback.value = hit ? 'hit' : 'miss'
+    clearTimeout(findFeedbackTimer)
+    findFeedbackTimer = window.setTimeout(() => { findFeedback.value = null }, FIND_FEEDBACK_MS)
+}
+
+// The target left the map (filter, map switch): draw another one.
+watch(points, (pts) => {
+    if (!findTarget.value) return
+    const sha1 = findTarget.value.sha1
+    const same = pts.find(p => p.sha1 === sha1)
+    if (same) findTarget.value = same
+    else nextFindTarget()
+})
+onUnmounted(stopFind)
+
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(() => columnStore.selectionTick(selectNamespace.value), () => updateSelection())
@@ -738,6 +818,7 @@ watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
+        r.onPointClick = onFindClick
         r.atlasLayers.onProgress = (p) => { atlasLoad.value = p }
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
@@ -842,22 +923,47 @@ onMounted(async () => {
                 </button>
             </div>
 
-            <div v-if="hoverImage || leaves.length" ref="groupListIslandRef" class="group-list-island">
-                <InstanceData :instance-ids="hoverImage ? [hoverImage.id] : []" :prop-ids="[]">
-                    <div v-if="hoverImage" class="group-inspector">
-                        <Zoomable :image="hoverImage">
-                            <CenteredImage :instance-id="hoverImage.id" :width="190" :height="150" />
-                        </Zoomable>
+            <div v-if="hoverImage || leaves.length || showMinimap" ref="groupListIslandRef" class="group-list-island">
+                <template v-if="hoverImage || showMinimap">
+                    <div class="section-header" :class="{ collapsed: props.mapOptions.previewCollapsed }"
+                        @click="props.mapOptions.previewCollapsed = !props.mapOptions.previewCollapsed">
+                        <i class="bi section-chevron" :class="props.mapOptions.previewCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                        <span class="flex-grow-1">{{ $t('map.preview') }}</span>
+                        <WithToolTip v-if="showMinimap" :message="findTarget ? 'map.find.stop' : 'map.find.play'">
+                            <div class="group-action-btn" @click.stop="findTarget ? stopFind() : startFind()">
+                                <i class="bi" :class="findTarget ? 'bi-stop-fill' : 'bi-play-fill'"></i>
+                            </div>
+                        </WithToolTip>
                     </div>
-                </InstanceData>
-
+                    <template v-if="!props.mapOptions.previewCollapsed">
+                        <InstanceData v-if="findTarget" :instance-ids="[findTarget.id]" :prop-ids="[]">
+                            <div class="group-inspector find-target" :class="findFeedback ? 'find-' + findFeedback : ''">
+                                <CenteredImage :instance-id="findTarget.id" :width="190" :height="150" />
+                                <span class="find-hint">{{ $t('map.find.hint') }}</span>
+                                <span class="section-count tabular-nums">
+                                    {{ $t('map.find.score', { score: findScore, misses: findMisses }) }}
+                                </span>
+                            </div>
+                        </InstanceData>
+                        <InstanceData v-else-if="hoverImage" :instance-ids="[hoverImage.id]" :prop-ids="[]">
+                            <div class="group-inspector">
+                                <Zoomable :image="hoverImage">
+                                    <CenteredImage :instance-id="hoverImage.id" :width="190" :height="150" />
+                                </Zoomable>
+                            </div>
+                        </InstanceData>
+                        <div v-else class="group-inspector find-hint">{{ $t('map.find.hover_hint') }}</div>
+                    </template>
+                </template>
 
                 <template v-if="leaves.length">
-                    <div class="group-list-header">
+                    <div class="section-header" :class="{ collapsed: props.mapOptions.groupsCollapsed }"
+                        @click="props.mapOptions.groupsCollapsed = !props.mapOptions.groupsCollapsed">
+                        <i class="bi section-chevron" :class="props.mapOptions.groupsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
                         <span class="flex-grow-1">{{ $t('map.groups') }}</span>
-                        <span>{{ leaves.length }}</span>
+                        <span class="section-count tabular-nums">{{ leaves.length }}</span>
                     </div>
-                    <div class="group-list-body">
+                    <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
                         <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
                             :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                             <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
@@ -879,6 +985,16 @@ onMounted(async () => {
                             </div>
                         </div>
                     </div>
+                </template>
+
+                <template v-if="showMinimap">
+                    <div class="section-header" :class="{ collapsed: props.mapOptions.minimapCollapsed }"
+                        @click="props.mapOptions.minimapCollapsed = !props.mapOptions.minimapCollapsed">
+                        <i class="bi section-chevron" :class="props.mapOptions.minimapCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                        <span class="flex-grow-1">{{ $t('map.minimap') }}</span>
+                    </div>
+                    <Minimap v-if="!props.mapOptions.minimapCollapsed" :renderer="renderer" :points="points"
+                        :version="pointsVersion" :point-size="imageWorldSize(props.imageSize)" />
                 </template>
             </div>
         </div>
@@ -969,6 +1085,38 @@ onMounted(async () => {
     overflow: hidden;
 }
 
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+}
+
+.section-header:hover {
+    background-color: var(--hover-bg);
+}
+
+.section-chevron {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.section-count {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.group-list-island > :last-child {
+    border-bottom: none;
+}
+
 .group-inspector {
     display: flex;
     align-items: center;
@@ -978,15 +1126,24 @@ onMounted(async () => {
     border-bottom: 1px solid var(--border-color);
 }
 
-.group-list-header {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    padding: 8px 10px;
-    font-size: 13px;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
+.find-target {
+    flex-direction: column;
+    gap: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.find-hit {
+    background-color: color-mix(in srgb, #2fb344 20%, transparent);
+}
+
+.find-miss {
+    background-color: color-mix(in srgb, #d63939 20%, transparent);
+}
+
+.find-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
 }
 
 .group-list-body {
@@ -994,6 +1151,7 @@ onMounted(async () => {
     flex-direction: column;
     gap: 2px;
     padding: 4px;
+    border-bottom: 1px solid var(--border-color);
     flex: 1;
     min-height: 0;
     overflow-y: auto;
