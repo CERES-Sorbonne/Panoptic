@@ -4,3 +4,4 @@
 import './specs/grid_validity'
 import './specs/grid_quality'
 import './specs/grid_cache'
+import './specs/grid_snake'

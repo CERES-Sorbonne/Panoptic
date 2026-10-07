@@ -17,5 +17,6 @@ npm run bench:grid  # quality metrics and timings, not run in CI
 | `specs/grid_validity.ts` | one distinct in-bounds cell per point, edge cases, determinism |
 | `specs/grid_quality.ts` | the grid keeps the projection's neighbourhoods and cluster separation |
 | `specs/grid_cache.ts` | per-map grid cache (`mapGrid`) and cell placement (`cellCenter`) |
+| `specs/grid_snake.ts` | the grid snake easter egg's rules (`GridSnake.ts`) and Konami code detection |
 
 Quality thresholds sit below what `bench:grid` measures today: tighten them when the layout improves.

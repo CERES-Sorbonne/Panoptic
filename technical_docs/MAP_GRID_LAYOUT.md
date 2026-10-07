@@ -176,6 +176,16 @@ Nouveau dossier `panoptic_front/test/map/` (même principe de bundle que `test/g
 4. Raffinement par fenêtres + Web Worker pour les grands projets.
 5. Transition animée + option pour la désactiver.
 
+## Easter egg
+
+En mode grille, pointeur au-dessus de la carte, le Konami code (↑ ↑ ↓ ↓ ← → ← → B A) lance un
+snake sur toute la grille (ses bords sont les murs), la caméra suivant la tête. L'image à manger,
+surlignée en rouge, est une image affichée tirée n'importe où dans la grille ; hors de l'écran, une
+flèche rouge au bord de la vue indique sa direction (`edgeArrow`). +2 segments par image, vitesse
+croissante.
+Flèches pour diriger, Échap pour quitter, Espace pour rejouer. Logique pure dans `GridSnake.ts`
+(testée), rendu dans `SnakeLayer.ts`, survol coupé pendant la partie.
+
 ## Décisions prises
 
 - Grille calculée sur toute la carte, une fois, puis mise en cache (pas de recalcul au filtrage).

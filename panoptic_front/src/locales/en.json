@@ -768,6 +768,12 @@
         "show_points": "Show points",
         "grid_layout": "Grid layout",
         "fill_cells": "Fill cells (square crop)",
+        "snake": {
+            "score": "Score: {score}",
+            "hint": "Arrows to steer · Esc to quit",
+            "over": "Game over! Space to replay · Esc to quit",
+            "won": "You won! Space to replay · Esc to quit"
+        },
         "grid_density": "Empty cells between groups",
         "show_boxes": "Show boxes",
         "pan": "Pan",
