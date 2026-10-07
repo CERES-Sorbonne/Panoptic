@@ -482,9 +482,9 @@ function closeDetail(idx: number) {
                     </WithToolTip>
                 </div>
                 <div class="group-toolbar-counts">
-                    <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
-                    <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
-                    <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
+                    <span class="group-count"><i class="bi bi-images me-1" /><span class="num">{{ counts.images }}</span> {{ $t('main.group.images') }}</span>
+                    <span class="group-count"><i class="bi bi-collection me-1" /><span class="num">{{ counts.groups }}</span> {{ $t('main.group.groups') }}</span>
+                    <span class="group-count"><i class="bi bi-intersect me-1" /><span class="num">{{ counts.leafClusters }}</span> {{ $t('main.group.leaf_clusters') }}</span>
                 </div>
             </div>
             <div class="cluster-empty">
@@ -513,9 +513,9 @@ function closeDetail(idx: number) {
                             </WithToolTip>
                         </div>
                         <div class="group-toolbar-counts">
-                            <span class="group-count"><i class="bi bi-images me-1" />{{ counts.images }} {{ $t('main.group.images') }}</span>
-                            <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
-                            <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
+                            <span class="group-count"><i class="bi bi-images me-1" /><span class="num">{{ counts.images }}</span> {{ $t('main.group.images') }}</span>
+                            <span class="group-count"><i class="bi bi-collection me-1" /><span class="num">{{ counts.groups }}</span> {{ $t('main.group.groups') }}</span>
+                            <span class="group-count"><i class="bi bi-intersect me-1" /><span class="num">{{ counts.leafClusters }}</span> {{ $t('main.group.leaf_clusters') }}</span>
                         </div>
                     </div>
                     <ClusterScroller

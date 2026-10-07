@@ -16,8 +16,8 @@ const progress = computed(() => total.value > 0 ? done.value / total.value * 100
     <div class="text-center">
         {{ props.task.name }}
         <div class="w-100 text-center" style="font-size: 10px;">
-            {{ done }} / {{ total }} {{ $t('main.nav.tasks.done') }}
-            <span v-if="failed > 0" class="text-danger">({{ failed }} failed)</span>
+            <span class="num">{{ done }} / {{ total }}</span> {{ $t('main.nav.tasks.done') }}
+            <span v-if="failed > 0" class="text-danger">(<span class="num">{{ failed }}</span> failed)</span>
         </div>
         <div v-if="total > 0" class="progress" role="progressbar"
             aria-valuemin="0" aria-valuemax="100" style="height: 1px">

@@ -114,7 +114,7 @@ watch(() => props.instance.id, resetZoom)
                 </div>
             </wTT>
             <wTT message="modals.image.zoom_reset_tooltip">
-                <div class="zoom-btn zoom-value" @click="resetZoom">{{ Math.round(zoom * 100) }}%</div>
+                <div class="zoom-btn zoom-value num" @click="resetZoom">{{ Math.round(zoom * 100) }}%</div>
             </wTT>
             <wTT message="modals.image.zoom_in_tooltip">
                 <div class="zoom-btn" :class="{ disabled: zoom >= maxZoom }" @click="zoomTo(zoom * ZOOM_STEP)">

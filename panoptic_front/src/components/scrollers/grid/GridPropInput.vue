@@ -12,7 +12,7 @@ import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/stores/dataStore';
 import { Property, PropertyType } from '@/data/models';
 import { InstanceEntry } from '@/data/stores/instanceStore';
-import { isTag } from '@/utils/utils';
+import { isNumeric, isTag } from '@/utils/utils';
 import { computed, ref } from 'vue';
 
 const data = useDataStore()
@@ -86,7 +86,7 @@ async function waitForDbAction() {
                         </span>
                     </div>
                     <TextInput v-else :model-value="value" @update:model-value="set" @update:height="emitHeight"
-                        :min-height="props.minHeight" :editable="false" />
+                        :min-height="props.minHeight" :editable="false" :class="{ num: isNumeric(type) }" />
                 </div>
 
             </template>

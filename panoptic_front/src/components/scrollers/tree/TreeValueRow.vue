@@ -6,7 +6,7 @@ import TreeCellFrame from './TreeCellFrame.vue'
 import TagBadge from '@/components/tagtree/TagBadge.vue'
 import { Property, PropertyType } from '@/data/models'
 import { useDataStore } from '@/data/stores/dataStore'
-import { isTag } from '@/utils/utils'
+import { isNumeric, isTag } from '@/utils/utils'
 import { computed } from 'vue'
 
 const data = useDataStore()
@@ -39,7 +39,8 @@ const isEmpty = computed(() => {
         <div v-else-if="isTag(props.property.type)" class="badges">
             <TagBadge v-for="id in tags" :key="id" :id="id" class="me-1" title="" />
         </div>
-        <span v-else-if="props.value !== undefined && props.value !== ''" class="value">{{ props.value }}</span>
+        <span v-else-if="props.value !== undefined && props.value !== ''" class="value"
+            :class="{ num: isNumeric(props.property.type) }">{{ props.value }}</span>
     </TreeCellFrame>
 </template>
 

@@ -102,9 +102,14 @@
                 "confirm": "Convert \"{name}\" to the current format?\n\nA backup of the old data is kept in the project folder. The undo history is not kept."
             },
             "legacy": {
-                "banner": "Projects from an older version were found",
-                "banner_button": "Convert"
-            }
+                "section": "Older version projects",
+                "banner_button": "Convert",
+                "confirm": "Convert \"{name}\"?\n\nA converted copy will be created in:\n{dest}\n\nThe original project is not modified.",
+                "failed": "Conversion failed",
+                "retry": "Retry",
+                "done": "Converted"
+            },
+            "no_projects": "No project yet"
         },
         "status": {
             "no_project": "No open Panoptic project"
@@ -449,6 +454,8 @@
             "plugin_stop": "Stop plugin",
             "plugin_start": "Start plugin",
             "plugin_stopped_hint": "Its actions and tasks are unavailable until it is started again. It starts again when the project is reopened.",
+            "pluginNoSettings": "This plugin has no settings.",
+            "applied": "Applied",
             "reset": "Reset",
             "update": "Update",
             "registeredVectorTypes": "Registered Vector Types",

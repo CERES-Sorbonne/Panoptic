@@ -201,11 +201,11 @@ async function importIiif() {
                                             </div>
                                             <div v-if="iiifTestResult.version" class="result-line">
                                                 <span class="result-key">{{ $t('modals.filesource.result_version') }}</span>
-                                                v{{ iiifTestResult.version }}
+                                                <span class="num">v{{ iiifTestResult.version }}</span>
                                             </div>
                                             <div v-if="iiifTestResult.itemCount !== undefined" class="result-line">
                                                 <span class="result-key">{{ $t('modals.filesource.result_items') }}</span>
-                                                {{ iiifTestResult.itemCount }}
+                                                <span class="num">{{ iiifTestResult.itemCount }}</span>
                                             </div>
                                         </template>
                                         <div v-else class="result-line">{{ iiifTestResult.error }}</div>

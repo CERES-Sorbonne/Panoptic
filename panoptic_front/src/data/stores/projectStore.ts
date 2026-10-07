@@ -119,7 +119,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function setPluginParams(plugin: string, params: any) {
-        const plugins = await apiSetPluginParams(plugin, params)
+        state.value.plugins = await apiSetPluginParams(plugin, params)
     }
 
     async function call(req: ExecuteActionPayload) {

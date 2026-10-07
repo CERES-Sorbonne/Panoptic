@@ -8,7 +8,7 @@ import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
-import { ModalId, PluginType, ProjectRef } from '@/data/models';
+import { LegacyMigrationRun, LegacyProject, ModalId, PluginType, ProjectRef } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
@@ -16,14 +16,13 @@ import UserSelector from '@/components/home/UserSelector.vue';
 import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
 import FirstModal from '@/components/modals/FirstModal.vue';
 import NotifModal from '@/components/modals/NotifModal.vue';
-import LegacyImportModal from '@/components/modals/LegacyImportModal.vue';
 import TauriDbSelector from '@/components/tauri/TauriDbSelector.vue';
 import { isTauri } from '@/data/tauriLauncherStore';
 
 const panoptic = usePanopticStore()
 // shown when the backend cannot be reached; empty means same origin
 const backendUrl = (import.meta as any).env.VITE_API_ROUTE || window.location.origin
-const { t } = useI18n()
+const { t, te } = useI18n()
 
 const menuMode = ref(0) // 0 options 1 create
 const showPluginForm = ref(false)
@@ -34,13 +33,67 @@ const langs = ['fr', 'en']
 const hasProjects = computed(() => panoptic.projects.length > 0)
 // Seuls les projets compatibles s'ouvrent. Les autres sont listés grisés en dessous,
 // avec un bouton de conversion quand c'est possible.
+// Le groupe d'un projet est fixé la première fois qu'on le voit: un projet converti
+// reste à sa place au lieu de sauter en haut de la liste.
+const firstSeenCompatible = new Map<string | number, boolean>()
+function listedAsCompatible(project: ProjectRef) {
+    if (!firstSeenCompatible.has(project.id)) firstSeenCompatible.set(project.id, isCompatible(project))
+    return firstSeenCompatible.get(project.id)
+}
 const sortedProjects = computed(() => [
-    ...panoptic.projects.filter(p => isCompatible(p)),
-    ...panoptic.projects.filter(p => !isCompatible(p)),
+    ...panoptic.projects.filter(p => listedAsCompatible(p)),
+    ...panoptic.projects.filter(p => !listedAsCompatible(p)),
 ])
-// Projets 0.x trouvés par le scan: grisés eux aussi, convertis via LegacyImportModal
+// Projets 0.x trouvés par le scan: grisés eux aussi, convertis directement depuis leur ligne
 const legacyProjects = computed(() => panoptic.hasLegacyProjects ? panoptic.legacyProjects : [])
-const showProjectMenu = computed(() => panoptic.isConnected && (hasProjects.value || legacyProjects.value.length > 0))
+const isProjectListEmpty = computed(() => panoptic.projectsLoaded && panoptic.legacyScanLoaded
+    && !hasProjects.value && !legacyProjects.value.length)
+
+// Progression de la migration 0.x en cours, affichée sur la ligne du projet concerné.
+// Le backend signale une étape quand elle se termine: stageIndex compte les étapes finies,
+// l'étape en cours est donc la suivante dans le pipeline (même ordre que le backend).
+const LEGACY_STAGES = ['read-legacy', 'write-data-db', 'write-media-db', 'write-project-db', 'check', 'register-project']
+function legacyRun(project: LegacyProject) {
+    const run = panoptic.legacyMigration
+    return run?.legacyPath == project.legacyPath ? run : undefined
+}
+function runProgress(run: LegacyMigrationRun) {
+    if (run.status == 'done') return 100
+    if (!run.stageCount) return 0
+    return run.stageIndex / run.stageCount * 100
+}
+function runCurrentStep(run: LegacyMigrationRun) {
+    return Math.min(run.stageIndex + 1, run.stageCount)
+}
+function runStageLabel(run: LegacyMigrationRun) {
+    const stage = LEGACY_STAGES[run.stageIndex]
+    const key = 'modals.legacy.stages.' + stage
+    return stage && te(key) ? t(key) : t('main.home.convert.running')
+}
+
+function canMigrate(project: LegacyProject) {
+    return project.exists && !!project.shape && !project.migratedTo
+}
+
+// Refus du backend avant le démarrage (destination non vide, ...), par projet
+const legacyErrors = ref<{ [legacyPath: string]: string }>({})
+function legacyError(project: LegacyProject) {
+    const run = legacyRun(project)
+    return legacyErrors.value[project.legacyPath] ?? (run?.status == 'failed' ? (run.error || ' ') : undefined)
+}
+
+// Conversion directe vers le dossier proposé: le projet d'origine n'est jamais modifié
+async function migrateLegacy(project: LegacyProject) {
+    if (panoptic.isMigrationRunning) return
+    const dest = project.suggestedPath
+    if (!window.confirm(t('main.home.legacy.confirm', { name: project.name, dest }))) return
+    delete legacyErrors.value[project.legacyPath]
+    try {
+        await panoptic.migrateLegacyProject(project.legacyPath, dest, project.name, false)
+    } catch (e: any) {
+        legacyErrors.value[project.legacyPath] = e?.response?.data?.message ?? e?.message ?? ' '
+    }
+}
 
 // Cas classique de mise à jour: aucun projet récent mais plusieurs anciens.
 // La proposition de migration passe donc avant FirstModal et le tutoriel.
@@ -131,7 +184,6 @@ async function downloadPackagesInfos() {
 
 // Le scan des anciens projets arrive de façon asynchrone: on attend son résultat
 // avant de décider quelle intro afficher, sinon FirstModal gagne la course.
-// La modale de conversion ne s'ouvre jamais seule, uniquement via la bannière.
 watch(() => [panoptic.isConnected, panoptic.projectsLoaded, panoptic.legacyScanLoaded, hasLegacyProjects.value], () => {
     if (!panoptic.isConnected || !panoptic.projectsLoaded || !panoptic.legacyScanLoaded) return
     if (hasLegacyProjects.value) {
@@ -146,10 +198,6 @@ watch(() => [panoptic.isConnected, panoptic.projectsLoaded, panoptic.legacyScanL
     }
 }, { immediate: true })
 
-function openLegacyModal(legacyPath?: string) {
-    panoptic.showModal(ModalId.LEGACY, legacyPath ? { legacyPath } : undefined)
-}
-
 </script>
 
 <template>
@@ -159,11 +207,13 @@ function openLegacyModal(legacyPath?: string) {
 
         <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
         <FirstModal />
-        <LegacyImportModal />
         <NotifModal />
 
         <div class="window2 d-flex ">
-            <div v-if="showProjectMenu" class="project-menu">
+            <!-- Toujours rendue, même vide: la colonne n'apparaît pas en cours de route
+                 et ne décale pas le menu principal -->
+            <div class="project-menu">
+                <div v-if="isProjectListEmpty" class="dimmed-2 project-empty">{{ $t('main.home.no_projects') }}</div>
                 <div v-for="project in sortedProjects" :key="project.id" class="d-flex"
                     :class="{ 'old-project': !isCompatible(project) }">
                     <div class="project flex-grow-1 overflow-hidden" @click="openProject(project)"
@@ -173,14 +223,16 @@ function openLegacyModal(legacyPath?: string) {
                             correctHyphen(project.path) }}</div>
                         <template v-if="!isCompatible(project)">
                             <div style="font-size: 12px;">{{ $t('main.home.convert.' + project.status) }}</div>
-                            <span v-if="project.status == 'outdated'" class="legacy-banner-btn legacy-convert"
-                                :class="{ converting: panoptic.convertingProjects.includes(project.id) }"
-                                @click.stop="convertProject(project)">
+                            <!-- hauteur fixe: bouton et progression occupent la même place -->
+                            <div v-if="project.status == 'outdated'" class="convert-slot">
                                 <template v-if="panoptic.convertingProjects.includes(project.id)">
-                                    <i class="bi bi-hourglass-split me-1"></i>{{ $t('main.home.convert.running') }}
+                                    <div class="convert-label">{{ $t('main.home.convert.running') }}</div>
+                                    <div class="convert-bar indeterminate"><div></div></div>
                                 </template>
-                                <template v-else>{{ $t('main.home.legacy.banner_button') }}</template>
-                            </span>
+                                <span v-else class="convert-btn" @click.stop="convertProject(project)">
+                                    {{ $t('main.home.legacy.banner_button') }}
+                                </span>
+                            </div>
                         </template>
                     </div>
                     <div class="project-option flex-shrink-0">
@@ -208,35 +260,54 @@ function openLegacyModal(legacyPath?: string) {
 
                     </div>
                 </div>
-                <div v-for="project in legacyProjects" :key="project.legacyPath" class="d-flex legacy-project">
-                    <div class="flex-grow-1 overflow-hidden">
+                <template v-if="legacyProjects.length">
+                    <div class="legacy-section">{{ $t('main.home.legacy.section') }}</div>
+                    <div v-for="project in legacyProjects" :key="project.legacyPath" class="legacy-project">
                         <h5 class="m-0">{{ project.name }}</h5>
                         <div class="m-0 p-0 text-wrap text-break" style="font-size: 13px;">{{
                             correctHyphen(project.legacyPath) }}</div>
-                        <div style="font-size: 12px;">{{ $t('main.home.convert.outdated') }}</div>
+                        <div v-if="!canMigrate(project)" style="font-size: 12px;">
+                            <wTT :message="project.problem">{{ $t('modals.legacy.unavailable') }}</wTT>
+                        </div>
+                        <div v-if="canMigrate(project)" class="convert-slot">
+                            <template v-if="legacyError(project)">
+                                <div class="convert-label failed">
+                                    <span class="text-truncate"><wTT :message="legacyError(project)">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>{{ $t('main.home.legacy.failed') }}
+                                    </wTT></span>
+                                    <span class="bb flex-shrink-0" @click="migrateLegacy(project)">
+                                        {{ $t('main.home.legacy.retry') }}</span>
+                                </div>
+                            </template>
+                            <template v-else-if="legacyRun(project)">
+                                <div class="convert-label">
+                                    <span class="text-truncate">{{ legacyRun(project).status == 'done'
+                                        ? $t('main.home.legacy.done') : runStageLabel(legacyRun(project)) }}</span>
+                                    <span v-if="legacyRun(project).stageCount" class="num flex-shrink-0">{{
+                                        runCurrentStep(legacyRun(project)) }}/{{ legacyRun(project).stageCount }}</span>
+                                </div>
+                                <div class="convert-bar"><div :style="{ width: runProgress(legacyRun(project)) + '%' }"></div></div>
+                            </template>
+                            <span v-else class="convert-btn" :class="{ disabled: panoptic.isMigrationRunning }"
+                                @click="migrateLegacy(project)">
+                                {{ $t('main.home.legacy.banner_button') }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="flex-shrink-0 align-self-center">
-                        <span class="legacy-banner-btn legacy-convert" @click="openLegacyModal(project.legacyPath)">
-                            {{ $t('main.home.legacy.banner_button') }}
-                        </span>
-                    </div>
-                </div>
+                </template>
             </div>
             <div class="flex-grow-1 d-flex flex-column overflow-hidden">
-                <div v-if="panoptic.isConnected && hasLegacyProjects" class="legacy-banner" @click="openLegacyModal()">
-                    <i class="bi bi-box-arrow-in-down me-1"></i>
-                    <b>{{ $t('main.home.legacy.banner', { count: panoptic.legacyProjects.length }) }}</b>
-                    <span class="legacy-banner-btn ms-2">{{ $t('main.home.legacy.banner_button') }}</span>
-                </div>
                 <div class="d-flex flex-column main-menu justify-content-center">
                     <div>
                         <div class="icon">
                             <PanopticIcon />
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
-                        <div class="d-flex justify-content-center gap-1">
-                            <h6 v-if="panoptic.isConnected" class="dimmed-2 mt-1">Version {{ panoptic.version }} </h6>
-                            <wTT v-if="panoptic.isConnected" message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
+                        <!-- rendu même hors connexion pour réserver la hauteur de la ligne -->
+                        <div class="d-flex justify-content-center gap-1"
+                            :style="{ visibility: panoptic.isConnected ? 'visible' : 'hidden' }">
+                            <h6 class="dimmed-2 mt-1">Version <span class="num">{{ panoptic.version }}</span> </h6>
+                            <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
                                     @click="downloadPackagesInfos"></i></wTT>
                         </div>
                         <TauriDbSelector v-if="isTauri && panoptic.isConnected" confirm class="mt-2" />
@@ -287,6 +358,8 @@ function openLegacyModal(legacyPath?: string) {
                         </div>
                     </div>
                     </template>
+                    <!-- remplace la liste des plugins hors connexion: le logo garde sa place -->
+                    <div v-else class="flex-grow-1"></div>
                 </div>
                 <div v-if="panoptic.isConnected" class="user-section">
                     <UserSelector />
@@ -382,13 +455,9 @@ function openLegacyModal(legacyPath?: string) {
     border-top: 1px solid var(--border-color);
 }
 
-.legacy-banner {
-    background-color: rgb(238, 238, 255);
-    border-bottom: 1px solid var(--border-color);
-    padding: 10px 15px;
-    text-align: left;
-    cursor: pointer;
-    color: rgb(45, 45, 45);
+.project-empty {
+    padding: 10px;
+    font-size: 13px;
 }
 
 .old-project .project {
@@ -400,14 +469,12 @@ function openLegacyModal(legacyPath?: string) {
     background-color: transparent;
 }
 
-.old-project .legacy-convert {
-    display: inline-block;
-    margin-top: 4px;
-}
-
-.legacy-convert.converting {
-    background-color: rgb(200, 200, 200);
-    cursor: default;
+.legacy-section {
+    margin: 15px 15px 0 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    font-size: 13px;
+    color: rgb(90, 90, 90);
 }
 
 .legacy-project {
@@ -416,15 +483,72 @@ function openLegacyModal(legacyPath?: string) {
     color: rgb(150, 150, 150);
 }
 
-.legacy-convert {
-    cursor: pointer;
-    white-space: nowrap;
+/* Bouton, progression et échec partagent cette hauteur: la ligne ne bouge pas */
+.convert-slot {
+    height: 30px;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
 }
 
-.legacy-banner-btn {
+.convert-btn {
     background-color: rgb(170, 170, 255);
     color: white;
     border-radius: 8px;
     padding: 2px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* une seule migration 0.x à la fois côté backend */
+.convert-btn.disabled {
+    background-color: rgb(220, 220, 220);
+    color: rgb(150, 150, 150);
+    cursor: default;
+}
+
+.convert-label {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    font-size: 12px;
+    line-height: 16px;
+    color: rgb(90, 90, 90);
+}
+
+.convert-label .text-truncate {
+    flex-grow: 1;
+}
+
+.convert-label.failed {
+    color: rgb(160, 40, 30);
+}
+
+.convert-bar {
+    width: 100%;
+    height: 4px;
+    margin-top: 4px;
+    border-radius: 2px;
+    background-color: rgb(225, 225, 235);
+    overflow: hidden;
+}
+
+.convert-bar > div {
+    height: 100%;
+    background-color: rgb(170, 170, 255);
+    transition: width 0.3s ease;
+}
+
+/* conversion sur place: pas d'étapes remontées, barre animée */
+.convert-bar.indeterminate > div {
+    width: 30%;
+    animation: convert-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes convert-slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(340%); }
 }
 </style>
