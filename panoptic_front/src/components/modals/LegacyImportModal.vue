@@ -7,6 +7,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { LegacyProject, ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useModalStore } from '@/data/stores/modalStore';
+import NumText from '@/components/utils/NumText.vue';
 
 const panoptic = usePanopticStore()
 const modalStore = useModalStore()
@@ -123,7 +124,10 @@ modalStore.registerModal(ModalId.LEGACY, 1)
                 <div v-if="scan?.registries?.length" class="dimmed mb-2">
                     <div v-for="registry in scan.registries" :key="registry.path">
                         <i class="bi bi-database me-1"></i>
-                        {{ $t('modals.legacy.registry', { count: registry.projects, shape: registry.shape }) }}
+                        <i18n-t keypath="modals.legacy.registry" scope="global">
+                            <template #count><span class="num">{{ registry.projects }}</span></template>
+                            <template #shape>{{ registry.shape }}</template>
+                        </i18n-t>
                         <span class="path">{{ registry.path }}</span>
                         <span v-if="registry.problem" class="warn ms-1">{{ registry.problem }}</span>
                     </div>
@@ -139,9 +143,9 @@ modalStore.registerModal(ModalId.LEGACY, 1)
                             <div class="dimmed">
                                 <span v-if="project.shape">{{ $t('modals.legacy.shape') }}: {{ project.shape }}</span>
                                 <span v-if="project.instanceCount != null" class="ms-2">
-                                    {{ $t('modals.legacy.images', { count: project.instanceCount }) }}
+                                    <NumText keypath="modals.legacy.images" :values="{ count: project.instanceCount }" />
                                 </span>
-                                <span v-if="project.dbSize" class="ms-2">{{ readableSize(project.dbSize) }}</span>
+                                <span v-if="project.dbSize" class="ms-2 num">{{ readableSize(project.dbSize) }}</span>
                             </div>
                             <div v-if="project.plugins?.length" class="dimmed">
                                 {{ $t('modals.legacy.plugins', { plugins: project.plugins.join(', ') }) }}

@@ -270,7 +270,7 @@ onMounted(async () => {
             <div class="action-bar">
                 <div class="path-string">{{ displayPath }}</div>
                 <div class="count" @click="count">
-                    <span v-if="selectedFullCount != null">{{ selectedFullCount }} images</span>
+                    <span v-if="selectedFullCount != null"><span class="num">{{ selectedFullCount }}</span> images</span>
                     <span v-else-if="!isCounting">Count</span>
                     <span v-else class="spinner-border spinner-border-sm" role="status" />
                 </div>

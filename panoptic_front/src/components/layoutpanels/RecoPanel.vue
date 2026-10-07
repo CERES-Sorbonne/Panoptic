@@ -10,6 +10,7 @@ import { Instance } from '@/data/models'
 import { useColumnStore } from '@/data/stores/columnStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
+import NumText from '@/components/utils/NumText.vue'
 
 const props = defineProps<{
     title: string
@@ -78,12 +79,12 @@ onUnmounted(() => {
                     <SelectCircle :small="true" :model-value="allSelected" @update:model-value="toggleAll" />
                 </span>
                 <span class="tw-title">{{ title }}</span>
-                <span class="tw-count">{{ count }}</span>
+                <span class="tw-count num">{{ count }}</span>
 
                 <!-- Per-panel selection: count, actions, clear (independent namespace) -->
                 <template v-if="selectedCount > 0">
                     <div class="sel-sep"></div>
-                    <span class="sel-count">{{ $t('main.reco.selected', { count: selectedCount }) }}</span>
+                    <span class="sel-count"><NumText keypath="main.reco.selected" :values="{ count: selectedCount }" /></span>
                     <div class="sel-actions" @click.stop>
                         <slot name="actions" :count="selectedCount" />
                     </div>

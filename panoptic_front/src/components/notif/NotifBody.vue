@@ -14,7 +14,7 @@ const emits = defineEmits([])
 
 <template>
     <div class="d-flex flex-column">
-        <div>Received At: {{ props.notif.receivedAt.toLocaleString() }}</div>
+        <div>Received At: <span class="num">{{ props.notif.receivedAt.toLocaleString() }}</span></div>
         <div>Type: <span class="">
                 <NotifIcon :type="props.notif.type" />
             </span> {{ props.notif.type }}</div>
@@ -44,12 +44,12 @@ const emits = defineEmits([])
             <Collapsable :default-open="true" max-height="150">
                 <template #title>Request</template>
                 <template #content>
-                    <JsonViewer :data="props.notif.request" :dark-mode="false" style="font-family: monospace;" />
+                    <JsonViewer :data="props.notif.request" :dark-mode="false" style="font-family: var(--font-mono);" />
                 </template>
             </Collapsable>
         </div>
         <div v-if="props.notif.data">Data: <br />
-            <JsonViewer :data="props.notif.data" :dark-mode="false" style="font-family: monospace;" />
+            <JsonViewer :data="props.notif.data" :dark-mode="false" style="font-family: var(--font-mono);" />
         </div>
     </div>
 </template>

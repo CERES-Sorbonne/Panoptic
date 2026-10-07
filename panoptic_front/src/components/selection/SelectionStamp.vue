@@ -43,7 +43,7 @@ function openSelectionModal() {
         <div class="seg count-seg" @click="emits('remove:selected')">
             <WithToolTip message="main.menu.remove_selection_tooltip">
                 <i class="bi bi-x clear-icon" />
-                <span class="count">{{ count }}</span>
+                <span class="count num">{{ count }}</span>
             </WithToolTip>
         </div>
         <div class="seg" @click="openSelectionModal">

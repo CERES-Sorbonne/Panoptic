@@ -51,7 +51,7 @@ const realValue = computed(() => {
         <div v-if="props.property.type == PropertyType.multi_tags">
             <TagPreview :property-id="props.property.id" :value="realValue" />
         </div>
-        <div v-if="props.property.type == PropertyType.number">
+        <div v-if="props.property.type == PropertyType.number" class="num">
             {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.path">
@@ -60,7 +60,7 @@ const realValue = computed(() => {
         <div v-if="props.property.type == PropertyType.string">
             {{ realValue }}
         </div>
-        <div v-if="props.property.type == PropertyType._id || props.property.type == PropertyType._height || props.property.type == PropertyType._width ">
+        <div v-if="props.property.type == PropertyType._id || props.property.type == PropertyType._height || props.property.type == PropertyType._width " class="num">
             {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.tag">

@@ -120,7 +120,7 @@ watch(relative, () => proposeReparse.value = true)
             <div v-if="uploadHasError" class="mb-3" :class="(uploadHasKeyError ? 'text-danger' : 'text-warning')">
                 Errors:
                 <div v-for="error, col in uploadConfirm.errors">
-                    column: {{ Number(col) }} : {{ error }}
+                    column: <span class="num">{{ Number(col) }}</span> : {{ error }}
                 </div>
             </div>
             <table v-if="!uploadHasKeyError">
@@ -138,7 +138,7 @@ watch(relative, () => proposeReparse.value = true)
                         :class="!take[i] ? 'dimmed' : ''">
                         <td class="border text-center"><input v-if="Number(i) != 0" type="checkbox" v-model="take[i]" />
                         </td>
-                        <td class="border text-center">{{ i }}</td>
+                        <td class="border text-center num">{{ i }}</td>
                         <td class="border">
                             <PropertyIcon :type="p.type" /> {{ p.name }}
                         </td>
@@ -192,7 +192,7 @@ watch(relative, () => proposeReparse.value = true)
 
             <div v-if="missing?.length">
                 <div class="text-warning mb-2">
-                    {{ missing.length }} {{ $t('modals.import.not_found') }}
+                    <span class="num">{{ missing.length }}</span> {{ $t('modals.import.not_found') }}
                 </div>
                 <div class="d-flex flex-row">
                     <div v-if="!loading" style="width: 300px;" class="bbb text-center" @click="confirmImport">{{
@@ -207,7 +207,7 @@ watch(relative, () => proposeReparse.value = true)
                 <div class="mt-2 p-2"
                     style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color);">
                     <div v-for="lines in missing">
-                        {{ $t('modals.import.row') }}: {{ lines[0] + 1 }} {{ $t('modals.import.key') }}: {{ lines[1]
+                        {{ $t('modals.import.row') }}: <span class="num">{{ lines[0] + 1 }}</span> {{ $t('modals.import.key') }}: {{ lines[1]
                         }}
                     </div>
                 </div>

@@ -270,8 +270,8 @@ watch(() => keyState.right, (state) => {
                     </wTT>
                 </div>
                 <div class="title-sep"></div>
-                <div class="text-truncate"><b>ID: {{ image?.id }}</b> | {{ image?.width }} x {{ image?.height }} | {{
-                    image?.name }}</div>
+                <div class="text-truncate"><b>ID: <span class="num">{{ image?.id }}</span></b> | <span
+                    class="num">{{ image?.width }} x {{ image?.height }}</span> | {{ image?.name }}</div>
             </div>
         </template>
         <template #content>

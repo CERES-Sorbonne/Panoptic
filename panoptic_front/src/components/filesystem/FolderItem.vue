@@ -32,7 +32,7 @@ const className = computed(() => {
         <div v-else class="bi bi-folder"></div>
         <div style="margin-left: 2px;">{{ props.dir.name }}</div>
         <div class="flex-grow-1"></div>
-        <div v-if="dir.images" class="ms-2 end">{{ dir.images }}<i
+        <div v-if="dir.images" class="ms-2 end"><span class="num">{{ dir.images }}</span><i
                 class="bi bi-images ms-1" /></div>
     </div>
 </template>

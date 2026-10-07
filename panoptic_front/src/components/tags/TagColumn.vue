@@ -200,7 +200,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
 
         <div v-if="props.main" class="text-center p-2 selected-tag">
             <div v-if="props.selectedTags.length" class="d-flex" style="height: 24px;">
-                <div class="flex-grow-1">{{ props.selectedTags.length }} Selected</div>
+                <div class="flex-grow-1"><span class="num">{{ props.selectedTags.length }}</span> Selected</div>
                 <div><i class="bi bi-x bb" @click="emits('unselect')"></i></div>
             </div>
             <div v-else class="text-secondary">{{ $t('modals.tags.click_any') }}</div>
@@ -230,7 +230,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
                             :can-customize="true"
                             @show="optionsTag = element.id" @hide="optionsTag = -1" />
                     </div>
-                    <div class="me-2 text-secondary" style="font-size: 13px; font-family: var(--font-mono);">{{ element.count +
+                    <div class="me-2 text-secondary num" style="font-size: 13px;">{{ element.count +
                         sum(element.allChildren.map(c => data.tags[c].count)) }}</div>
                 </div>
             </template>

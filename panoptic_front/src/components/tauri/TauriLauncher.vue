@@ -73,7 +73,7 @@ watch(() => launcher.logs.length, async () => {
                 <p>
                     {{ $t('launcher.update.question') }}
                     <span v-if="launcher.updateInfo?.latestVersion" class="text-nowrap">
-                        ({{ launcher.updateInfo.installedVersion }} → {{ launcher.updateInfo.latestVersion }})
+                        (<span class="num">{{ launcher.updateInfo.installedVersion }}</span> → <span class="num">{{ launcher.updateInfo.latestVersion }}</span>)
                     </span>
                 </p>
                 <p v-if="launcher.updateInfo?.latestIsDev" class="text-secondary small">
@@ -135,8 +135,8 @@ watch(() => launcher.logs.length, async () => {
                 :key="i" :class="{ 'log-stderr': log.stream === 'stderr' }">{{ log.line }}&#10;</span></pre>
 
             <div class="text-secondary small text-center mt-2">
-                <span v-if="launcher.uiVersion">UI v{{ launcher.uiVersion }}</span>
-                <span v-if="launcher.status?.installedVersion"> — panoptic v{{ launcher.status.installedVersion }}</span>
+                <span v-if="launcher.uiVersion">UI <span class="num">v{{ launcher.uiVersion }}</span></span>
+                <span v-if="launcher.status?.installedVersion"> — panoptic <span class="num">v{{ launcher.status.installedVersion }}</span></span>
                 <div v-if="launcher.status?.logPath">{{ $t('launcher.logs') }} : {{ launcher.status.logPath }}</div>
                 <!-- hidden option: pick the panoptic / panopticml versions (pre-releases included) -->
                 <div v-if="showVersionsLink" class="versions-link">

@@ -177,12 +177,12 @@ async function buildRequest() {
                             <div class="segment" v-if="selectedCount > 0" :class="getClass(state.selection, 'selected')"
                                 @click="set('selection', 'selected')">
                                 {{ $t('modals.export.selection_selected') }}
-                                <span class="segment-count">{{ selectedCount }}</span>
+                                <span class="segment-count num">{{ selectedCount }}</span>
                             </div>
                             <div class="segment" :class="getClass(state.selection, 'filtered')"
                                 @click="set('selection', 'filtered')">
                                 {{ $t('modals.export.selection_filtered') }}
-                                <span class="segment-count" v-if="filteredCount > 0">{{ filteredCount }}</span>
+                                <span class="segment-count num" v-if="filteredCount > 0">{{ filteredCount }}</span>
                             </div>
                         </div>
                     </div>
@@ -211,7 +211,7 @@ async function buildRequest() {
                                 <input type="checkbox" class="checkbox" :checked="all"
                                     :indeterminate="selectedPropertyCount > 0 && !all" @change="toggleAll" />
                                 {{ $t('modals.export.properties_all') }}
-                                <span class="count">{{ selectedPropertyCount }} / {{ properties.length }}</span>
+                                <span class="count num">{{ selectedPropertyCount }} / {{ properties.length }}</span>
                             </label>
                         </div>
                         <div class="property-list">

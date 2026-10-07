@@ -325,10 +325,10 @@ watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiSt
                 <div v-if="scoreInterval.description.length" class="me-1">
                     <wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT>
                 </div>
-                <div class="text-secondary">({{ formatScore(scoreInterval.values[0]) }} - {{
+                <div class="text-secondary num">({{ formatScore(scoreInterval.values[0]) }} - {{
                     formatScore(scoreInterval.values[1]) }})</div>
                 <div v-if="instances.length" class="ms-2 text-secondary">
-                    ({{ instances.length }} images)
+                    (<span class="num">{{ instances.length }}</span> images)
                 </div>
                 <div class="d-flex ms-3">
                     <wTT message="main.menu.image_size_tooltip" :click="false">

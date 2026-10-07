@@ -102,9 +102,14 @@
                 "confirm": "Convertir « {name} » au format actuel ?\n\nUne sauvegarde des anciennes données est conservée dans le dossier du projet. L'historique d'annulation n'est pas conservé."
             },
             "legacy": {
-                "banner": "Des projets d'une ancienne version ont été trouvés",
-                "banner_button": "Convertir"
-            }
+                "section": "Projets d'une ancienne version",
+                "banner_button": "Convertir",
+                "confirm": "Convertir « {name} » ?\n\nUne copie convertie sera créée dans :\n{dest}\n\nLe projet d'origine n'est pas modifié.",
+                "failed": "Échec de la conversion",
+                "retry": "Réessayer",
+                "done": "Converti"
+            },
+            "no_projects": "Aucun projet pour l'instant"
         },
         "status": {
             "no_project": "Aucun projet Panoptic ouvert"
@@ -454,6 +459,8 @@
             "plugin_stop": "Arrêter le plugin",
             "plugin_start": "Démarrer le plugin",
             "plugin_stopped_hint": "Ses actions et ses tâches sont indisponibles jusqu'à son redémarrage. Il redémarre à la réouverture du projet.",
+            "pluginNoSettings": "Ce plugin n'a pas de paramètres.",
+            "applied": "Appliqué",
             "reset": "Réinitialiser",
             "update": "Actualiser",
             "registeredVectorTypes": "Vecteurs disponibles",
