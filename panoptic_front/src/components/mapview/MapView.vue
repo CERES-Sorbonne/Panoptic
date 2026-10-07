@@ -73,14 +73,15 @@ const defaultColor = '#777777'
 const borderWidth = computed(() => props.mapOptions.borderWidth ?? DEFAULT_BORDER_WIDTH)
 // Same story for how much the HD preview grows on hover.
 const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_SCALE)
-const layout = computed(() => props.mapOptions.layout ?? 'scatter')
+const layout = computed(() => props.mapOptions.layout ?? 'grid')
 const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_DENSITY)
-const fillCells = computed(() => layout.value === 'grid' && !!props.mapOptions.fillCells)
+const fillCells = computed(() => layout.value === 'grid' && (props.mapOptions.fillCells ?? true))
 watch(() => props.mapOptions, (opts) => {
     if (opts && opts.borderWidth == null) opts.borderWidth = DEFAULT_BORDER_WIDTH
     if (opts && opts.hoverScale == null) opts.hoverScale = DEFAULT_HOVER_SCALE
-    if (opts && opts.layout == null) opts.layout = 'scatter'
+    if (opts && opts.layout == null) opts.layout = 'grid'
     if (opts && opts.gridDensity == null) opts.gridDensity = DEFAULT_GRID_DENSITY
+    if (opts && opts.fillCells == null) opts.fillCells = true
 }, { immediate: true })
 
 // The group clicked in the group-list island — its points render at full strength while every
@@ -546,7 +547,10 @@ watch(() => props.imageSize, (val, old) => {
     renderer.value?.setImageSize(val)
     rescaleGrid(val, old)
 })
-watch(layout, relayout)
+watch(layout, (val) => {
+    renderer.value?.setDetailEnabled(val === 'grid')
+    relayout()
+})
 watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
 watch(fillCells, (val) => renderer.value?.setFillCells(val))
 watch(borderWidth, () => updateColors())
@@ -559,6 +563,7 @@ watch(renderer, (r) => {
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
         r.setFillCells(fillCells.value)
+        r.setDetailEnabled(layout.value === 'grid')
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
         // not when it was queued: the showPoints watcher had no renderer to reach in between.
         if (pendingCreateMap) {

@@ -6,9 +6,9 @@ export function createMapOptions(): MapOptions {
         showPoints: false,
         selectedMap: 0,
         borderWidth: 0.05,
-        layout: 'scatter',
+        layout: 'grid',
         gridDensity: DEFAULT_GRID_DENSITY,
-        fillCells: false
+        fillCells: true
     }
 }
 
