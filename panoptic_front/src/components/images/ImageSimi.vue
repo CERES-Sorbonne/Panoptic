@@ -36,7 +36,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)">
             <img :src="props.image.url" :style="imageStyle" />
         </div>
-        <div class="text-center text-secondary" style="font-size: 10px;">{{ props.image.dist }}</div>
+        <div class="text-center text-secondary num" style="font-size: 10px;">{{ props.image.dist }}</div>
     </div>
 </template>
 

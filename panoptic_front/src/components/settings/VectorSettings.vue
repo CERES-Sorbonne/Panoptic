@@ -55,10 +55,10 @@ onMounted(() => media.updateVectorStats())
             <tbody>
                 <tr v-for="vecType in media.vectorTypes" :key="vecType.id">
                     <td><i class="bb bi bi-x" @click="deleteType(vecType.id)" /></td>
-                    <td>{{ vecType.id }}</td>
+                    <td class="num">{{ vecType.id }}</td>
                     <td>
                         <div class="d-flex align-items-center">
-                            <span class="counts">
+                            <span class="counts num">
                                 <span class="count" :style="{ width: numberWidth }">{{ media.vectorCount(vecType.id) }}</span>
                                 /
                                 <span class="count" :style="{ width: numberWidth }">{{ media.vectorStats.sha1Count }}</span>
@@ -106,7 +106,6 @@ onMounted(() => media.updateVectorStats())
 }
 
 .counts {
-    font-family: monospace;
     white-space: nowrap;
 }
 
