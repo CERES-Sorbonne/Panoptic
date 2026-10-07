@@ -24,6 +24,7 @@ import CenteredImage from '../images/CenteredImage.vue'
 import InstanceData from '../data/InstanceData.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
+import NumText from '../utils/NumText.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
 const DEFAULT_HOVER_SCALE = 2.0
@@ -782,7 +783,7 @@ onMounted(async () => {
 
             <div v-if="snakeState" class="snake-hud">
                 <i class="bi bi-controller"></i>
-                <span class="tabular-nums">{{ $t('map.snake.score', { score: snakeScore }) }}</span>
+                <NumText keypath="map.snake.score" :values="{ score: snakeScore }" />
                 <span class="snake-hint">{{ $t('map.snake.' + (snakeState === 'running' ? 'hint' : snakeState)) }}</span>
             </div>
 
@@ -795,7 +796,7 @@ onMounted(async () => {
                 <template v-if="media.atlasTask">
                     <div class="atlas-empty-progress">
                         <span>{{ $t('map.atlas_generating') }}</span>
-                        <span class="tabular-nums">{{ media.atlasTaskPercent }}%</span>
+                        <span class="num">{{ media.atlasTaskPercent }}%</span>
                     </div>
                     <div class="atlas-bar"><div :style="{ width: media.atlasTaskPercent + '%' }"></div></div>
                 </template>
@@ -817,14 +818,14 @@ onMounted(async () => {
                 <template v-if="leaves.length">
                     <div class="group-list-header">
                         <span class="flex-grow-1">{{ $t('map.groups') }}</span>
-                        <span>{{ leaves.length }}</span>
+                        <span class="num">{{ leaves.length }}</span>
                     </div>
                     <div class="group-list-body">
                         <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
                             :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                             <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                             <span class="group-name">{{ leaf.name }}</span>
-                            <span class="group-count tabular-nums">{{ leaf.points.length }}</span>
+                            <span class="group-count num">{{ leaf.points.length }}</span>
                             <div class="group-actions" @click.stop>
                                 <WithToolTip message="btn.goto-group">
                                     <div class="group-action-btn" @click="focusGroup(leaf)">

@@ -80,6 +80,8 @@ class TaskState(BaseModel):
     cancelled: bool = False
     # Name of the plugin that queued the task, None for core tasks
     owner: str | None = None
+    # Vector type the task computes vectors for, so the UI can show its progress per type
+    vector_type_id: int | None = None
 
     # Current phase, e.g. "Scanning folder structure", "Loading plugin"
     step: str | None = None

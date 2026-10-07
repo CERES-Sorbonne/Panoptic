@@ -46,6 +46,10 @@ export const CHART_CHROME = {
     selectionLine: 'rgba(22, 120, 194, 0.55)',
 }
 
+/** Font for numbers drawn on the canvas. Canvas can't read CSS variables, so this copies
+ *  --font-mono (assets/theme.css) to match the .num class used for numbers elsewhere. */
+export const CHART_NUMBER_FONT = "'JetBrains Mono Variable', 'JetBrains Mono', monospace"
+
 export function paletteColor(index: number): string {
     return CHART_PALETTE[index % CHART_PALETTE.length]
 }

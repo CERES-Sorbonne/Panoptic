@@ -60,6 +60,7 @@ class TaskManager:
             task.state.name = task.name
             task.state.key = task.key
             task.state.owner = task.owner
+            task.state.vector_type_id = task.vector_type_id
             task.on_progress(self._on_progress)
             self._tasks[task.id] = task
             if high_priority:

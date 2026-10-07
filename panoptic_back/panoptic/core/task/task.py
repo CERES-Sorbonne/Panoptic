@@ -27,6 +27,8 @@ class Task(ABC):
         self.id:   str | None = None
         # Plugin that queued the task. Set by the plugin interface, None for core tasks.
         self.owner: str | None = None
+        # Vector type the task computes vectors for, None for other tasks
+        self.vector_type_id: int | None = None
         self.state = TaskState(id='unregistered', name=self.name, key=self.key)
 
         self._cancel_event   = threading.Event()

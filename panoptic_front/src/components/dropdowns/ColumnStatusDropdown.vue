@@ -118,39 +118,39 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
                         <div class="load-track">
                             <div class="load-fill" :style="{ width: (basePct ?? 0) + '%' }" />
                         </div>
-                        <span v-if="basePct !== null" class="load-pct">{{ basePct }}%</span>
+                        <span v-if="basePct !== null" class="load-pct num">{{ basePct }}%</span>
                     </div>
                     <div v-if="otherCurrent" class="load-row" :title="$t('dropdown.property_status.loading', { name: otherCurrent.name })">
                         <span class="load-name">{{ otherCurrent.name }}</span>
-                        <span v-if="otherRemaining > 1" class="load-queue">+{{ otherRemaining - 1 }}</span>
+                        <span v-if="otherRemaining > 1" class="load-queue num">+{{ otherRemaining - 1 }}</span>
                         <div class="load-track">
                             <div class="load-fill" :style="{ width: (otherPct ?? 0) + '%' }" />
                         </div>
-                        <span v-if="otherPct !== null" class="load-pct">{{ otherPct }}%</span>
+                        <span v-if="otherPct !== null" class="load-pct num">{{ otherPct }}%</span>
                     </div>
                 </div>
 
                 <!-- Counts and legend -->
-                <div class="col-status-header tabular-nums">
+                <div class="col-status-header">
                     <div class="stat-row">
                         <i class="bi bi-images me-1 text-secondary" />
                         <span class="text-secondary">{{ $t('dropdown.property_status.images_loaded') }}</span>
-                        <span class="stat-val">{{ instanceCount.toLocaleString() }}</span>
+                        <span class="stat-val num">{{ instanceCount.toLocaleString() }}</span>
                     </div>
                     <div class="stat-row">
                         <i class="bi bi-columns me-1 text-secondary" />
                         <span class="text-secondary">{{ $t('dropdown.property_status.properties_total') }}</span>
-                        <span class="stat-val">{{ columns.length }}</span>
+                        <span class="stat-val num">{{ columns.length }}</span>
                     </div>
                     <div class="stat-row">
                         <i class="bi bi-eye me-1 text-secondary" />
                         <span class="text-secondary">{{ $t('dropdown.property_status.images_in_view') }}</span>
-                        <span class="stat-val">{{ trackedInstances.toLocaleString() }}</span>
+                        <span class="stat-val num">{{ trackedInstances.toLocaleString() }}</span>
                     </div>
                     <div class="stat-row">
                         <i class="bi bi-arrow-repeat me-1 text-secondary" />
                         <span class="text-secondary">{{ $t('dropdown.property_status.properties_in_use') }}</span>
-                        <span class="stat-val">{{ requestedCount }}</span>
+                        <span class="stat-val num">{{ requestedCount }}</span>
                     </div>
                     <div class="legend-row">
                         <span class="legend-item"><span class="dot dot-requested" />{{ $t('dropdown.property_status.legend_in_use') }}</span>
@@ -289,7 +289,6 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 .stat-val {
     margin-left: auto;
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
 }
 
 .legend-row {

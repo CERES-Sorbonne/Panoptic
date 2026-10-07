@@ -3,6 +3,7 @@
 <script setup lang="ts">
 import { GraphOptions } from '@/data/models'
 import wTT from '@/components/tooltips/withToolTip.vue'
+import NumText from '@/components/utils/NumText.vue'
 
 const props = defineProps<{
     options: GraphOptions
@@ -52,10 +53,10 @@ const types: { value: GraphOptions['chartType']; icon: string; tip: string }[] =
 
         <div class="flex-grow-1"></div>
 
-        <span class="count">{{ $t('main.graph-view.total_images', { count: props.total.toLocaleString() }) }}</span>
+        <span class="count"><NumText keypath="main.graph-view.total_images" :values="{ count: props.total.toLocaleString() }" /></span>
 
         <button v-if="props.selected > 0" class="sel-chip" @click="emits('clear-selection')">
-            {{ $t('main.graph-view.selected', { count: props.selected.toLocaleString() }) }}
+            <NumText keypath="main.graph-view.selected" :values="{ count: props.selected.toLocaleString() }" />
             <i class="bi bi-x"></i>
         </button>
     </div>
@@ -117,7 +118,6 @@ const types: { value: GraphOptions['chartType']; icon: string; tip: string }[] =
 .count {
     font-size: 11px;
     color: var(--grey-text);
-    font-variant-numeric: tabular-nums;
 }
 
 .sel-chip {
@@ -131,7 +131,6 @@ const types: { value: GraphOptions['chartType']; icon: string; tip: string }[] =
     background: var(--primary-light);
     color: var(--primary);
     font-size: 11px;
-    font-variant-numeric: tabular-nums;
     cursor: pointer;
 }
 

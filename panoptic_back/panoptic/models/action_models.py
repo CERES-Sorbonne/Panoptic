@@ -124,6 +124,8 @@ class ActionResult:
     urls:   list[str]   | None = None
     notifs: list[Notif] | None = None
     value:  Any         = None
+    # Id of a task queued by the action, so the UI can follow its progress
+    task_id: str | None = None
 
 
 # ---------------------------------------------------------------------------

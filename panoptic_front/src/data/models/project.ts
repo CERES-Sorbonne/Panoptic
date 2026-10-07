@@ -67,13 +67,15 @@ export interface TaskState {
     cancelled: boolean
     // Plugin that queued the task, null for core tasks
     owner?: string | null
+    // Vector type the task computes vectors for, null for other tasks
+    vectorTypeId?: number | null
     step?: string | null
     detail?: string | null
     workers?: number | null
-    started_at?: number | null
+    startedAt?: number | null
     elapsed?: number | null
     rate?: number | null
-    eta_seconds?: number | null
+    etaSeconds?: number | null
 }
 
 export interface ProjectSettings {

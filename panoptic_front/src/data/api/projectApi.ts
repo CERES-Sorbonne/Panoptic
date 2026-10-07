@@ -327,6 +327,7 @@ export async function apiCallActions(req: ExecuteActionPayload) {
     const ares: ActionResult = res.data
     if (ares.commit) ares.commit = keysToCamel(ares.commit)
     if (ares.groups) ares.groups = keysToCamel(ares.groups)
+    if (res.data.task_id) ares.taskId = res.data.task_id
     return ares
 }
 

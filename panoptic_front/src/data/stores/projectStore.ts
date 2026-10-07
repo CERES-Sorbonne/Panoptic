@@ -182,6 +182,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         await saveUiState()
     }
 
+    function getTask(id: string): TaskState | null {
+        return state.value?.tasks?.find(t => t.id === id) ?? null
+    }
+
     let _wasImporting = false
     function importTasks(tasks: TaskState[]) {
         if (!state.value) return
@@ -240,7 +244,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updateSettings,
         uploadPropFile,
         setPluginParams, saveUiState,
-        call, importTasks,
+        call, importTasks, getTask,
         fetchPluginsInfo, stopPlugin, startPlugin,
         stopTask, dismissTask, dismissFinishedTasks,
         updateScoreInterval,

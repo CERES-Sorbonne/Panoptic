@@ -25,7 +25,7 @@ const color = computed(() => {
 
 <template>
     <div class="badge tag-badge" :style="'background: ' + Colors[color].color">
-      <span class="m-0 p-0">
+      <span class="m-0 p-0 num">
         {{ props.value }}
       </span>
     </div>
