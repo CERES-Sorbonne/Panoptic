@@ -211,6 +211,10 @@ export class MapRenderer {
         this.atlasLayers.updateDesaturation()
     }
 
+    public updateOpacity() {
+        this.atlasLayers.updateOpacity()
+    }
+
     public updateBorder() {
         this.atlasLayers.updateBorder()
         this.hdLayer.updateBorder()

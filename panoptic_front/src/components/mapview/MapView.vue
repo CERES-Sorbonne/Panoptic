@@ -41,6 +41,11 @@ const DIM_DESATURATE = 1.0
 const DIM_Z = 0.0
 const BASE_Z = 0.5
 const SELECTED_Z = 1.0
+// Similarity search: the least similar image keeps this opacity, the best one is fully opaque.
+const MIN_SCORE_OPACITY = 0.1
+// Within a tier, more similar images are lifted in front (stays under the 0.5 tier gap with
+// AtlasLayer's STACK_Z_RANGE).
+const SCORE_Z_RANGE = 0.3
 
 const data = useDataStore()
 const media = useMediaStore()
@@ -96,6 +101,7 @@ function toggleGroupSelection(leaf: { id: number }) {
 let hadActiveLeaf = false
 // Same idea, for whether any image was selected — selection also bumps z (SELECTED_Z) now.
 let hadSelected = false
+let hadScores = false
 
 // Last instance the pointer hovered over a point for — kept sticky (only overwritten on a real
 // hover, never cleared) so the inspector doesn't blank out the moment the cursor leaves a point.
@@ -281,13 +287,49 @@ function updateColors() {
         }
     }
 
+    const hasScores = applyScoreOpacity()
+
     if (renderer.value) {
         renderer.value.updateBorder()
         renderer.value.updateDesaturation()
+        renderer.value.updateOpacity()
     }
-    // Soloing moves points between z tiers: positions must be re-uploaded while it is or was on.
-    updateSelection(!!activeLeaf || hadActiveLeaf)
+    // Soloing and scores move points in z: positions must be re-uploaded while either is or was on.
+    updateSelection(!!activeLeaf || hadActiveLeaf || hasScores || hadScores)
     hadActiveLeaf = !!activeLeaf
+    hadScores = hasScores
+}
+
+// Opacity of each point from the active similarity search's scores, normalised over the points
+// on the map so the best and worst matches always span the whole range. Squared, so the best
+// matches stand out.
+function applyScoreOpacity(): boolean {
+    const pts = points.value
+    const scores = props.collection.result?.root?.scores
+    if (!scores) {
+        for (const p of pts) p.opacity = 1.0
+        return false
+    }
+    let min = Infinity, max = -Infinity
+    for (const p of pts) {
+        const v = scores.valueIndex[p.id!]
+        if (v === undefined) continue
+        if (v < min) min = v
+        if (v > max) max = v
+    }
+    const range = max - min
+    for (let i = 0; i < pts.length; i++) {
+        const v = scores.valueIndex[pts[i].id!]
+        let t = 0
+        if (v !== undefined) {
+            t = range > 0 ? (v - min) / range : 1
+            if (range > 0 && !scores.maxIsBest) t = 1 - t
+            t *= t
+        }
+        pts[i].opacity = MIN_SCORE_OPACITY + (1 - MIN_SCORE_OPACITY) * t
+        baseZ[i] += t * SCORE_Z_RANGE
+    }
+    return true
 }
 
 // Selection tint and z lift, on top of the style updateColors set. Selection ticks run only this.
@@ -449,6 +491,7 @@ async function showMap(mapId: number, force = false) {
             border: 0.0,
             tintAlpha: 0.0,
             desaturate: 0.0,
+            opacity: 1.0,
             borderColor: defaultColor
         }
         sha1ToIndex.set(sha1, res.length)

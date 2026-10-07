@@ -31,6 +31,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 attribute float vBorderWidth;
                 attribute float vRatioAttr;
                 attribute float vDesaturate;
+                attribute float vOpacity;
 
                 varying vec4 vInstanceUvTransform;
                 varying vec2 vInstanceOffset;
@@ -40,6 +41,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying float vInstanceBorderWidth;
                 varying float vRatio;
                 varying float vInstanceDesaturate;
+                varying float vInstanceOpacity;
 
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
@@ -96,6 +98,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 vInstanceBorder = vBorderCol;
                 vInstanceBorderWidth = vBorderWidth;
                 vInstanceDesaturate = vDesaturate;
+                vInstanceOpacity = vOpacity;
                 `
             );
 
@@ -108,6 +111,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying float vInstanceBorderWidth;
                 varying float vRatio;
                 varying float vInstanceDesaturate;
+                varying float vInstanceOpacity;
 
                 uniform float uGridCols;
                 uniform float uGridRows;
@@ -116,6 +120,10 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uFill;
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
+
+                // Opacity fades towards the scene background (MapRenderer) instead of using real
+                // alpha: alphaTest would discard faded images, and blending breaks depth ordering.
+                const vec3 BACKGROUND = vec3(1.0);
 
                 float sdRoundedBox(vec2 p, vec2 b, float r) {
                     vec2 q = abs(p) - b + r;
@@ -142,7 +150,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
 
     // Instead of multiplying, use the logic from your image mode:
     // This ensures that if it's visible in image mode, it's visible here.
-    vec3 finalRGB = mix(vInstanceBorder, vInstanceTint.rgb, vInstanceTint.a);
+    vec3 fadedDot = mix(BACKGROUND, vInstanceBorder, vInstanceOpacity);
+    vec3 finalRGB = mix(fadedDot, vInstanceTint.rgb, vInstanceTint.a);
     
     // Use 1.0 instead of texelColor.a since there is no texture
     diffuseColor = vec4(finalRGB, pointMask); 
@@ -190,9 +199,13 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     float luminance = dot(texelColor.rgb, vec3(0.299, 0.587, 0.114));
                     vec3 desaturatedColor = mix(texelColor.rgb, vec3(luminance), vInstanceDesaturate);
 
+                    // Fade before tinting, so a selected point stays clearly tinted.
+                    vec3 fadedColor = mix(BACKGROUND, desaturatedColor, vInstanceOpacity);
+                    vec3 fadedBorder = mix(BACKGROUND, vInstanceBorder.rgb, vInstanceOpacity);
+
                     // Mix between original texture and tint color based on tint alpha
-                    vec3 tintedColor = mix(desaturatedColor, vInstanceTint.rgb, vInstanceTint.a);
-                    vec3 tintedBorderColor = mix(vInstanceBorder.rgb, vInstanceTint.rgb, vInstanceTint.a);
+                    vec3 tintedColor = mix(fadedColor, vInstanceTint.rgb, vInstanceTint.a);
+                    vec3 tintedBorderColor = mix(fadedBorder, vInstanceTint.rgb, vInstanceTint.a);
 
                     vec3 finalRGB = mix(tintedBorderColor, tintedColor, borderMask);
                     // The border ring is drawn inside the image box, so it must be opaque even

@@ -55,6 +55,7 @@ export class AtlasLayer {
         this.geometry.setAttribute('vBorderWidth', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
         this.geometry.setAttribute('vRatioAttr', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
         this.geometry.setAttribute('vDesaturate', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
+        this.geometry.setAttribute('vOpacity', new THREE.InstancedBufferAttribute(new Float32Array(count), 1))
 
         // Initial population of all attributes
         this.updateUVsAndOffsets()
@@ -63,6 +64,7 @@ export class AtlasLayer {
         this.updateTints()
         this.updateBorder()
         this.updateDesaturation()
+        this.updateOpacity()
 
         this.mesh.frustumCulled = false
         this.mesh.matrixAutoUpdate = false
@@ -125,6 +127,15 @@ export class AtlasLayer {
         this.points.forEach((p, i) => {
             array[i] = p.desaturate ?? 0.0
         })
+        attr.needsUpdate = true
+    }
+
+    public updateOpacity() {
+        const attr = this.geometry.getAttribute('vOpacity') as THREE.InstancedBufferAttribute
+        const array = attr.array as Float32Array
+
+        const points = this.points
+        for (let i = 0; i < points.length; i++) array[i] = points[i].opacity ?? 1.0
         attr.needsUpdate = true
     }
 

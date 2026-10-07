@@ -223,6 +223,10 @@ export class AtlasLayerManager {
         this.layers.forEach(l => l.updateDesaturation())
     }
 
+    public updateOpacity() {
+        this.layers.forEach(l => l.updateOpacity())
+    }
+
     public updatePositions() {
         this.layers.forEach(l => l.updatePositions())
     }

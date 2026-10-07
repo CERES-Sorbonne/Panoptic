@@ -99,6 +99,8 @@ export interface PointData {
     // 0 = full colour, 1 = fully desaturated (per-pixel greyscale, not a flat colour wash — kept
     // separate from tint so "dim this group" and "tint this selection" can compose independently.
     desaturate?: number
+    // 1 = fully visible, lower values fade the point into the background (similarity search).
+    opacity?: number
     sha1: string
     // Position in the projection; x/y are where the current layout draws the point.
     sx: number
