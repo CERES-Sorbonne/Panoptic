@@ -15,6 +15,8 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
     private _desaturate = { value: 0.0 };
     // 1: the tint covers the border too, as on the grid thumbnails.
     private _tintBorder = { value: 0.0 };
+    // Fades towards the white scene background like the atlas thumbnails' vOpacity.
+    private _fade = { value: 1.0 };
 
     constructor(parameters: THREE.MeshBasicMaterialParameters) {
         super(parameters);
@@ -31,6 +33,7 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
             shader.uniforms.uUvTransform = this._uvTransform;
             shader.uniforms.uDesaturate = this._desaturate;
             shader.uniforms.uTintBorder = this._tintBorder;
+            shader.uniforms.uFade = this._fade;
 
             shader.vertexShader = `
                 varying vec2 vRawUv;
@@ -85,6 +88,7 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 uniform vec4 uUvTransform;
                 uniform float uDesaturate;
                 uniform float uTintBorder;
+                uniform float uFade;
 
                 float sdRoundedBox(vec2 p, vec2 b, float r) {
                     vec2 q = abs(p) - b + r;
@@ -121,8 +125,10 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
 
                 float luminance = dot(texelColor.rgb, vec3(0.299, 0.587, 0.114));
                 vec3 desaturatedColor = mix(texelColor.rgb, vec3(luminance), uDesaturate);
-                vec3 tintedColor = mix(desaturatedColor, uTint, uTintAlpha);
-                vec3 borderColor = mix(uBorderColor, uTint, uTintAlpha * uTintBorder);
+                vec3 fadedColor = mix(vec3(1.0), desaturatedColor, uFade);
+                vec3 fadedBorder = mix(vec3(1.0), uBorderColor, uFade);
+                vec3 tintedColor = mix(fadedColor, uTint, uTintAlpha);
+                vec3 borderColor = mix(fadedBorder, uTint, uTintAlpha * uTintBorder);
                 vec3 finalRGB = mix(borderColor, tintedColor, borderMask);
 
                 // opacity is MeshBasicMaterial's own uniform (declared upstream in the
@@ -172,5 +178,9 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
 
     public setTintBorder(tintBorder: boolean) {
         this._tintBorder.value = tintBorder ? 1.0 : 0.0
+    }
+
+    public setFade(amount: number | undefined) {
+        this._fade.value = amount ?? 1.0
     }
 }

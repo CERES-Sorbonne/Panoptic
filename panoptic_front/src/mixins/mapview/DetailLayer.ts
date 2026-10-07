@@ -221,6 +221,7 @@ export class DetailLayer {
         m.setBorder(p.border ?? 0, p.borderColor ?? '#000000')
         m.setTint(p.tint, p.tintAlpha)
         m.setDesaturate(p.desaturate)
+        m.setFade(p.opacity)
     }
 
     private removeTile(p: PointData, tile: Tile) {

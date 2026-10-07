@@ -284,6 +284,7 @@ export class MapRenderer {
 
     public updateOpacity() {
         this.atlasLayers.updateOpacity()
+        this.detailLayer.updateStyles()
     }
 
     public updateBorder() {
