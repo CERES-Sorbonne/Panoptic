@@ -22,6 +22,7 @@ import { useInstanceStore } from '@/data/stores/instanceStore'
 import { GraphOptions } from '@/data/models'
 import { ChartModel, thumbnailsAvailable } from './chartModel'
 import { buildChartOption, chartLayout } from './chartOptions'
+import { CHART_NUMBER_FONT } from './chartPalette'
 
 const columnStore = useColumnStore()
 const instanceStore = useInstanceStore()
@@ -77,18 +78,26 @@ function onLegendChange(params: any) {
 }
 
 // ── Option ───────────────────────────────────────────────────────────────────
+// Canvas text is not redrawn when a web font arrives. Rebuild the option once the number
+// font has loaded, or axis numbers drawn before that keep the fallback font.
+const numberFontReady = ref(false)
+document.fonts.load(`10px ${CHART_NUMBER_FONT}`).finally(() => { numberFontReady.value = true })
+
 // Built by chartOptions.ts, which stays a pure function of the model + display options +
 // the reactive bits below, so the same option can be rendered outside the app.
-const option = computed(() => buildChartOption(props.model, props.options, {
-    selected: selectedCells.value,
-    anySelected: selectedTotal.value > 0,
-    isVisible,
-    imageUrl: id => {
-        const url = instanceStore.instanceData[id]?.imageUrl
-        return url ? `${url}?size=128` : undefined
-    },
-    thumbnails: showThumbnails.value,
-}))
+const option = computed(() => {
+    void numberFontReady.value
+    return buildChartOption(props.model, props.options, {
+        selected: selectedCells.value,
+        anySelected: selectedTotal.value > 0,
+        isVisible,
+        imageUrl: id => {
+            const url = instanceStore.instanceData[id]?.imageUrl
+            return url ? `${url}?size=128` : undefined
+        },
+        thumbnails: showThumbnails.value,
+    })
+})
 
 // ── Pointer geometry ─────────────────────────────────────────────────────────
 const chartRef = ref<any>(null)

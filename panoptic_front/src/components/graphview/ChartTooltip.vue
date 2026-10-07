@@ -24,7 +24,7 @@ const props = defineProps<{
     <div class="chart-tooltip">
         <div class="tt-head">
             <span class="tt-title">{{ props.title }}</span>
-            <span class="tt-total tabular-nums">{{ props.total.toLocaleString() }}</span>
+            <span class="tt-total num">{{ props.total.toLocaleString() }}</span>
         </div>
 
         <!-- Values lead, labels follow: the reader already knows the series and wants the number. -->
@@ -32,14 +32,14 @@ const props = defineProps<{
             <div v-for="row in props.rows" :key="row.name" class="tt-row">
                 <span class="tt-key" :style="{ background: row.color }"></span>
                 <span class="tt-name">{{ row.name }}</span>
-                <span class="tt-value tabular-nums">{{ row.count.toLocaleString() }}</span>
+                <span class="tt-value num">{{ row.count.toLocaleString() }}</span>
             </div>
         </div>
 
         <div v-if="props.instanceIds.length" class="tt-images">
             <CenteredImage v-for="id in props.instanceIds" :key="id" :instance-id="id" :width="42" :height="42"
                 :cover="true" :no-click="true" />
-            <div v-if="props.more > 0" class="tt-more">+{{ props.more }}</div>
+            <div v-if="props.more > 0" class="tt-more num">+{{ props.more }}</div>
         </div>
     </div>
 </template>
@@ -73,7 +73,6 @@ const props = defineProps<{
 }
 
 .tt-total {
-    font-variant-numeric: tabular-nums;
     color: var(--grey-text);
 }
 
@@ -110,7 +109,6 @@ const props = defineProps<{
 
 .tt-value {
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
 }
 
 .tt-images {
@@ -129,6 +127,5 @@ const props = defineProps<{
     border-radius: 3px;
     background: var(--grey);
     color: var(--grey-text);
-    font-variant-numeric: tabular-nums;
 }
 </style>

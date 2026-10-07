@@ -55,7 +55,7 @@ const inputKey = inject('inputKey') as string
         <Zoomable v-if="!hideImg" :image="inst">
             <div class="img-container image-drag-handle" :style="`width: ${w + 2}px; height: ${props.size}px;`"
                 @click="emits('open', props.instance)">
-                <div v-if="props.score != undefined" class="simi-ratio">{{ props.score }}</div>
+                <div v-if="props.score != undefined" class="simi-ratio num">{{ props.score }}</div>
                 <CenteredImage :instance-id="props.instance.id" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 
@@ -78,7 +78,7 @@ const inputKey = inject('inputKey') as string
         <!-- Absolutely-positioned wrapper: keeps the badge out of normal flow so it doesn't
              add an empty line box (which would overflow the row). -->
         <div v-if="props.count > 1" class="image-count-wrap">
-            <div class="image-count">{{ props.count }}</div>
+            <div class="image-count num">{{ props.count }}</div>
         </div>
 
         <div class="prop-container" v-if="props.properties.length">

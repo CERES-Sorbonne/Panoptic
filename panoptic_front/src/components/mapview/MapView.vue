@@ -25,6 +25,7 @@ import CenteredImage from '../images/CenteredImage.vue'
 import InstanceData from '../data/InstanceData.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
+import NumText from '../utils/NumText.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
 const DEFAULT_HOVER_SCALE = 2.0
@@ -84,14 +85,15 @@ const defaultColor = '#777777'
 const borderWidth = computed(() => props.mapOptions.borderWidth ?? DEFAULT_BORDER_WIDTH)
 // Same story for how much the HD preview grows on hover.
 const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_SCALE)
-const layout = computed(() => props.mapOptions.layout ?? 'scatter')
+const layout = computed(() => props.mapOptions.layout ?? 'grid')
 const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_DENSITY)
-const fillCells = computed(() => layout.value === 'grid' && !!props.mapOptions.fillCells)
+const fillCells = computed(() => layout.value === 'grid' && (props.mapOptions.fillCells ?? true))
 watch(() => props.mapOptions, (opts) => {
     if (opts && opts.borderWidth == null) opts.borderWidth = DEFAULT_BORDER_WIDTH
     if (opts && opts.hoverScale == null) opts.hoverScale = DEFAULT_HOVER_SCALE
-    if (opts && opts.layout == null) opts.layout = 'scatter'
+    if (opts && opts.layout == null) opts.layout = 'grid'
     if (opts && opts.gridDensity == null) opts.gridDensity = DEFAULT_GRID_DENSITY
+    if (opts && opts.fillCells == null) opts.fillCells = true
 }, { immediate: true })
 
 // The group clicked in the group-list island — its points render at full strength while every
@@ -809,7 +811,10 @@ watch(() => props.imageSize, (val, old) => {
     renderer.value?.setImageSize(val)
     rescaleGrid(val, old)
 })
-watch(layout, relayout)
+watch(layout, (val) => {
+    renderer.value?.setDetailEnabled(val === 'grid')
+    relayout()
+})
 watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
 watch(fillCells, (val) => renderer.value?.setFillCells(val))
 watch(borderWidth, () => updateColors())
@@ -823,6 +828,7 @@ watch(renderer, (r) => {
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
         r.setFillCells(fillCells.value)
+        r.setDetailEnabled(layout.value === 'grid')
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
         // not when it was queued: the showPoints watcher had no renderer to reach in between.
         if (pendingCreateMap) {
@@ -901,7 +907,7 @@ onMounted(async () => {
 
             <div v-if="snakeState" class="snake-hud">
                 <i class="bi bi-controller"></i>
-                <span class="tabular-nums">{{ $t('map.snake.score', { score: snakeScore }) }}</span>
+                <NumText keypath="map.snake.score" :values="{ score: snakeScore }" />
                 <span class="snake-hint">{{ $t('map.snake.' + (snakeState === 'running' ? 'hint' : snakeState)) }}</span>
             </div>
 
@@ -914,7 +920,7 @@ onMounted(async () => {
                 <template v-if="media.atlasTask">
                     <div class="atlas-empty-progress">
                         <span>{{ $t('map.atlas_generating') }}</span>
-                        <span class="tabular-nums">{{ media.atlasTaskPercent }}%</span>
+                        <span class="num">{{ media.atlasTaskPercent }}%</span>
                     </div>
                     <div class="atlas-bar"><div :style="{ width: media.atlasTaskPercent + '%' }"></div></div>
                 </template>
@@ -940,7 +946,7 @@ onMounted(async () => {
                             <div class="group-inspector find-target" :class="findFeedback ? 'find-' + findFeedback : ''">
                                 <CenteredImage :instance-id="findTarget.id" :width="190" :height="150" />
                                 <span class="find-hint">{{ $t('map.find.hint') }}</span>
-                                <span class="section-count tabular-nums">
+                                <span class="section-count num">
                                     {{ $t('map.find.score', { score: findScore, misses: findMisses }) }}
                                 </span>
                             </div>
@@ -961,14 +967,14 @@ onMounted(async () => {
                         @click="props.mapOptions.groupsCollapsed = !props.mapOptions.groupsCollapsed">
                         <i class="bi section-chevron" :class="props.mapOptions.groupsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
                         <span class="flex-grow-1">{{ $t('map.groups') }}</span>
-                        <span class="section-count tabular-nums">{{ leaves.length }}</span>
+                        <span class="section-count num">{{ leaves.length }}</span>
                     </div>
                     <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
                         <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
                             :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                             <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                             <span class="group-name">{{ leaf.name }}</span>
-                            <span class="group-count tabular-nums">{{ leaf.points.length }}</span>
+                            <span class="group-count num">{{ leaf.points.length }}</span>
                             <div class="group-actions" @click.stop>
                                 <WithToolTip message="btn.goto-group">
                                     <div class="group-action-btn" @click="focusGroup(leaf)">

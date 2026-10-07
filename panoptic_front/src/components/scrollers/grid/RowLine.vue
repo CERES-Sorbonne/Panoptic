@@ -209,7 +209,7 @@ watch(() => props.properties, () => {
                 <SelectCircle :model-value="props.selected" :class="{ 'hover-only': !props.selected }"
                     @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
                     class="select" :light-mode="true" />
-                <div class="image-count" v-if="pile?.slots.length > 1">{{ pile.slots.length }}</div>
+                <div class="image-count num" v-if="pile?.slots.length > 1">{{ pile.slots.length }}</div>
             </Zoomable>
         </div>
 

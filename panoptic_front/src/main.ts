@@ -7,6 +7,8 @@ import App from './App.vue'
 
 // Self-hosted Inter (npm: inter-ui) so font metrics are identical on every OS.
 import "inter-ui/inter-variable.css"
+// Self-hosted mono font for the same reason; every number in the UI uses it (see .num).
+import "@fontsource-variable/jetbrains-mono"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
 import "bootstrap"

@@ -4,6 +4,7 @@ import { MapControls } from './MapControl'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { SpatialIndex } from './SpatialIndex'
 import { HDLayer } from './HDLayer'
+import { DetailLayer, MAX_DETAIL_TILES } from './DetailLayer'
 import { HoverPointLayer } from './HoverPointLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
@@ -32,6 +33,12 @@ export class MapRenderer {
 
     public atlasLayers: AtlasLayerManager
     private hdLayer: HDLayer
+    private detailLayer: DetailLayer
+    // Sharper images over the thumbnails when zoomed in. Only in the grid, where images never
+    // overlap: in the scatter a tile would cover the neighbours drawn in front of its thumbnail.
+    private detailEnabled = false
+    // Camera state the detail view was last computed for.
+    private detailViewKey = ''
     private hoverPointLayer: HoverPointLayer
     private lassoLayer: LassoLayer
     public snakeLayer: SnakeLayer
@@ -72,6 +79,10 @@ export class MapRenderer {
         this.hdLayer = new HDLayer(this.scene, baseImgUrl)
         this.hdLayer.setZoomReference(this.globalUniforms.uZoom)
         this.hdLayer.setZoomParams(this.activeZoomParams())
+
+        this.detailLayer = new DetailLayer(this.scene, baseImgUrl)
+        this.detailLayer.setZoomReference(this.globalUniforms.uZoom)
+        this.detailLayer.setZoomParams(this.activeZoomParams())
 
         this.hoverPointLayer = new HoverPointLayer(this.scene)
         this.hoverPointLayer.setZoomReference(this.globalUniforms.uZoom)
@@ -138,6 +149,8 @@ export class MapRenderer {
         this.spatialIndex.initTree(points)
         this.showAsPoint = showAsPoint
         this.hoveredPoint = null
+        this.detailLayer.setMap(atlas.cellWidth)
+        this.invalidateDetail()
 
         await this.atlasLayers.loadLayers(
             atlas,
@@ -169,9 +182,53 @@ export class MapRenderer {
 
         this.updateHoverState()
         this.syncPixelRatio()
+        this.updateDetailView()
+        this.detailLayer.tick()
         // console.log(this.controls.getMouseWorldPos())
         // console.log(this.camera.zoom)
         this.renderer.render(this.scene, this.camera)
+    }
+
+    private invalidateDetail() {
+        this.detailViewKey = ''
+    }
+
+    // Recomputes which images get a detail tile when the camera or the canvas changed.
+    private updateDetailView() {
+        const imageSize = this.getImageMaxSize()
+        const pixelRatio = this.renderer.getPixelRatio()
+        const { clientWidth, clientHeight } = this.container
+        const { zoom, position } = this.camera
+        const key = `${zoom},${position.x},${position.y},${clientWidth},${clientHeight},${pixelRatio},${imageSize}`
+        if (key === this.detailViewKey) return
+        this.detailViewKey = key
+
+        // Longest side of a thumbnail on screen, in device px.
+        const pixelSize = imageSize * zoom * clientHeight / this.frustumSize * pixelRatio
+        if (!this.detailEnabled || this.showAsPoint || !this.detailLayer.wantsDetail(pixelSize)) {
+            this.detailLayer.setView([], 0)
+            return
+        }
+        // Thumbnails are at least this big on screen, so the query returns a few thousand
+        // points at most.
+        const rect = this.getCameraRect()
+        const half = imageSize / 2
+        const points = this.spatialIndex.getPointsInRect({
+            minX: rect.minX - half, maxX: rect.maxX + half,
+            minY: rect.minY - half, maxY: rect.maxY + half
+        })
+        if (points.length > MAX_DETAIL_TILES) {
+            this.detailLayer.setView([], 0)
+            return
+        }
+        const dist = (p: PointData) => (p.x - position.x) ** 2 + (p.y - position.y) ** 2
+        points.sort((a, b) => dist(a) - dist(b))
+        this.detailLayer.setView(points, pixelSize)
+    }
+
+    public setDetailEnabled(enabled: boolean) {
+        this.detailEnabled = enabled
+        this.invalidateDetail()
     }
 
     private updateHoverState() {
@@ -216,11 +273,13 @@ export class MapRenderer {
     public updateTints() {
         this.atlasLayers.updateTints()
         this.hdLayer.updateTints()
+        this.detailLayer.updateStyles()
     }
 
     // Grid-thumbnail-only effect (the HD hover preview always shows a point in full colour).
     public updateDesaturation() {
         this.atlasLayers.updateDesaturation()
+        this.detailLayer.updateStyles()
     }
 
     public updateOpacity() {
@@ -230,6 +289,7 @@ export class MapRenderer {
     public updateBorder() {
         this.atlasLayers.updateBorder()
         this.hdLayer.updateBorder()
+        this.detailLayer.updateStyles()
     }
 
     public setHoverScale(scale: number) {
@@ -239,6 +299,7 @@ export class MapRenderer {
 
     public updatePosition() {
         this.atlasLayers.updatePositions()
+        this.detailLayer.updatePositions()
     }
 
     // Points moved (layout switch, grid rescale): re-index them and re-upload their positions.
@@ -247,6 +308,7 @@ export class MapRenderer {
         this.hoveredPoint = null
         this.atlasLayers.updatePositions()
         this.hdLayer.updatePositions()
+        this.invalidateDetail()
     }
 
     public getPointsInView(): PointData[] {
@@ -263,6 +325,7 @@ export class MapRenderer {
     public setFillCells(fill: boolean) {
         this.fillCells = fill
         this.atlasLayers.setFill(fill)
+        this.detailLayer.setFill(fill)
         this.controls.fillCells = fill
         this.pushZoomParams()
     }
@@ -274,6 +337,7 @@ export class MapRenderer {
         if (show) this.hdLayer.unhover()
         else this.hoverPointLayer.unhover()
         this.atlasLayers.setShowAsPoint(show)
+        this.invalidateDetail()
     }
 
     public setImageSize(imageSize: number) {
@@ -294,6 +358,8 @@ export class MapRenderer {
         this.hdLayer.setZoomParams(params)
         this.hoverPointLayer.setZoomParams(params)
         this.atlasLayers.setZoomParams(params)
+        this.detailLayer.setZoomParams(params)
+        this.invalidateDetail()
     }
 
     private onResize() {
@@ -361,6 +427,7 @@ export class MapRenderer {
         this.renderer.dispose()
         this.atlasLayers.dispose()
         this.hdLayer?.dispose()
+        this.detailLayer.dispose()
         this.hoverPointLayer?.dispose()
         this.snakeLayer.dispose()
         this.scene.clear()

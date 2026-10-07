@@ -254,11 +254,11 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             <ClusterBadge v-if="score != undefined" :value="Math.round(score)" :score="props.item.data.score" />
         </div>
 
-        <div class="align-self-center me-2 text-secondary tabular-nums" style="font-size: 11px;">{{ slotCount }} Images
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;"><span class="num">{{ slotCount }}</span> Images
         </div>
 
-        <div v-if="subgroupCount" class="align-self-center me-2 text-secondary tabular-nums" style="font-size: 11px;">{{
-            subgroupCount }} {{ $t('main.view.groupes_nb') }}</div>
+        <div v-if="subgroupCount" class="align-self-center me-2 text-secondary" style="font-size: 11px;"><span
+            class="num">{{ subgroupCount }}</span> {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
             <template v-if="isClusterGroup">

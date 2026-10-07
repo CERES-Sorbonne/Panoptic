@@ -109,13 +109,13 @@ watch(() => data.onUndo, () => {
                         {{ $t('dropdown.history.empty') }}
                     </div>
 
-                    <div v-if="history.redo.length > maxShow" class="more">
+                    <div v-if="history.redo.length > maxShow" class="more num">
                         + {{ history.redo.length - maxShow }}
                     </div>
                     <div v-for="commit in redos" :key="commit.id" class="entry undone">
-                        <span class="time">{{ formatTime(commit.timestamp) }}</span>
-                        <span v-if="commit.tags">{{ commit.tags }} {{ $t('dropdown.history.tags') }}</span>
-                        <span v-if="commit.values">{{ commit.values }} {{ $t('dropdown.history.values') }}</span>
+                        <span class="time num">{{ formatTime(commit.timestamp) }}</span>
+                        <span v-if="commit.tags"><span class="num">{{ commit.tags }}</span> {{ $t('dropdown.history.tags') }}</span>
+                        <span v-if="commit.values"><span class="num">{{ commit.values }}</span> {{ $t('dropdown.history.values') }}</span>
                         <span v-if="authorName(commit)" class="author">{{ authorName(commit) }}</span>
                     </div>
 
@@ -131,12 +131,12 @@ watch(() => data.onUndo, () => {
                     </div>
 
                     <div v-for="commit in undos" :key="commit.id" class="entry">
-                        <span class="time">{{ formatTime(commit.timestamp) }}</span>
-                        <span v-if="commit.tags">{{ commit.tags }} {{ $t('dropdown.history.tags') }}</span>
-                        <span v-if="commit.values">{{ commit.values }} {{ $t('dropdown.history.values') }}</span>
+                        <span class="time num">{{ formatTime(commit.timestamp) }}</span>
+                        <span v-if="commit.tags"><span class="num">{{ commit.tags }}</span> {{ $t('dropdown.history.tags') }}</span>
+                        <span v-if="commit.values"><span class="num">{{ commit.values }}</span> {{ $t('dropdown.history.values') }}</span>
                         <span v-if="authorName(commit)" class="author">{{ authorName(commit) }}</span>
                     </div>
-                    <div v-if="history.undo.length > maxShow" class="more">
+                    <div v-if="history.undo.length > maxShow" class="more num">
                         + {{ history.undo.length - maxShow }}
                     </div>
                 </template>
@@ -204,7 +204,6 @@ watch(() => data.onUndo, () => {
 
 .time {
     color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
 }
 
 /* Redo entries are commits that are undone right now, so they are crossed out. */

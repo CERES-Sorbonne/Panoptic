@@ -2,7 +2,7 @@ import { ZoomParams } from '@/data/models';
 import * as THREE from 'three';
 
 // Corner radius of the thumbnails, in units of the image's longest side.
-const IMAGE_RADIUS = 0.05
+export const IMAGE_RADIUS = 0.05
 
 export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
     private _zoomRef: { value: number } = { value: 1.0 };
