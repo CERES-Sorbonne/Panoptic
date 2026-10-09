@@ -774,6 +774,7 @@
         "show_image": "Show images",
         "show_points": "Show points",
         "grid_layout": "Grid layout",
+        "group_outlines": "Group outlines and names",
         "fill_cells": "Fill cells (square crop)",
         "snake": {
             "score": "Score: {score}",

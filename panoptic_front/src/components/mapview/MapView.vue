@@ -96,6 +96,7 @@ const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_S
 const layout = computed(() => props.mapOptions.layout ?? 'grid')
 const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_DENSITY)
 const fillCells = computed(() => layout.value === 'grid' && (props.mapOptions.fillCells ?? true))
+const groupOutlines = computed(() => props.mapOptions.groupOutlines ?? true)
 watch(() => props.mapOptions, (opts) => {
     if (opts && opts.borderWidth == null) opts.borderWidth = DEFAULT_BORDER_WIDTH
     if (opts && opts.hoverScale == null) opts.hoverScale = DEFAULT_HOVER_SCALE
@@ -161,6 +162,10 @@ const pointsVersion = ref(0)
 // In the grid layout, the index in `points` of the image in each cell (-1: empty), for the cell
 // tool.
 let gridCells: { cols: number, rows: number, cellPoint: Int32Array } | null = null
+// Index in `points` of each sha1's point.
+let pointIndex = new Map<string, number>()
+// For each point, the index in `leaves` of the group whose colour it takes (-1: none).
+let pointLeaf = new Int32Array(0)
 
 // ── Atlas status ──────────────────────────────────────────────────────────────
 
@@ -285,11 +290,15 @@ function updateColors() {
 
     // A point in several leaves (multi-tag grouping) takes the smallest one's colour, written last:
     // the most specific tag, which a bigger group would otherwise hide.
-    const bySize = [...leaves.value].sort((a, b) => b.points.length - a.points.length)
-    for (const leaf of bySize) {
-        for (const point of leaf.points) {
+    const ls = leaves.value
+    const bySize = ls.map((_, i) => i).sort((a, b) => ls[b].points.length - ls[a].points.length)
+    pointLeaf = new Int32Array(pts.length).fill(-1)
+    for (const li of bySize) {
+        for (const point of ls[li].points) {
             point.border = borderWidth.value
-            point.borderColor = leaf.color
+            point.borderColor = ls[li].color
+            const i = pointIndex.get(point.sha1)
+            if (i !== undefined) pointLeaf[i] = li
         }
     }
 
@@ -320,6 +329,7 @@ function updateColors() {
     }
 
     applyPaintHighlight()
+    syncGroupRegions()
     const hasScores = applyScoreOpacity()
 
     if (renderer.value) {
@@ -474,6 +484,27 @@ function applyLayout(pts: PointData[], mapId: number) {
     }
 }
 
+function syncGroupRegions() {
+    const grid = gridCells
+    if (!renderer.value) return
+    if (!grid || !leaves.value.length || !groupOutlines.value || pointLeaf.length !== points.value.length) {
+        renderer.value.setGroupRegions(null)
+        return
+    }
+    const cellGroup = new Int32Array(grid.cellPoint.length)
+    for (let cell = 0; cell < cellGroup.length; cell++) {
+        const i = grid.cellPoint[cell]
+        cellGroup[cell] = i >= 0 ? pointLeaf[i] : -1
+    }
+    renderer.value.setGroupRegions({
+        cols: grid.cols,
+        rows: grid.rows,
+        cellSize: imageWorldSize(props.imageSize),
+        cellGroup,
+        groups: leaves.value.map(l => ({ name: l.name, color: l.color })),
+    })
+}
+
 // Call once `points` holds the points applyLayout placed.
 function syncBrushGrid() {
     renderer.value?.setBrushGrid(gridCells && {
@@ -489,6 +520,7 @@ function relayout() {
     const inView = renderer.value?.getPointsInView() ?? []
     applyLayout(points.value, builtMapId)
     syncBrushGrid()
+    syncGroupRegions()
     pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
@@ -499,6 +531,7 @@ function rescaleGrid(imageSize: number, previous: number) {
     if (layout.value !== 'grid' || builtMapId == null || !points.value.length) return
     applyLayout(points.value, builtMapId)
     syncBrushGrid()
+    syncGroupRegions()
     pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
@@ -601,6 +634,7 @@ async function showMap(mapId: number, force = false) {
 
     applyLayout(res, mapId)
     sha1ToPoint = newSha1ToPoint
+    pointIndex = sha1ToIndex
     pointOfSlot = newPointOfSlot
     points.value = res
     syncBrushGrid()
@@ -991,6 +1025,7 @@ watch(layout, (val) => {
 })
 watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
 watch(fillCells, (val) => renderer.value?.setFillCells(val))
+watch(groupOutlines, () => syncGroupRegions())
 watch(borderWidth, () => updateColors())
 watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 
@@ -1010,6 +1045,7 @@ watch(renderer, (r) => {
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
         // not when it was queued: the showPoints watcher had no renderer to reach in between.
         syncBrushGrid()
+        syncGroupRegions()
         if (pendingCreateMap) {
             r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, props.mapOptions.showPoints)
             pendingCreateMap = null
@@ -1066,6 +1102,12 @@ onMounted(async () => {
                     <div class="tool" :class="{ selected: fillCells }"
                         @click="props.mapOptions.fillCells = !props.mapOptions.fillCells">
                         <i class="bi bi-aspect-ratio"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip v-if="layout == 'grid' && leaves.length" message="map.group_outlines">
+                    <div class="tool" :class="{ selected: groupOutlines }"
+                        @click="props.mapOptions.groupOutlines = !groupOutlines">
+                        <i class="bi bi-map"></i>
                     </div>
                 </WithToolTip>
                 <WithToolTip message="map.pan">

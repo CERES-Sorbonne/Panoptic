@@ -221,6 +221,26 @@ tag choisi au lieu de sélectionner, le clic droit le retire.
 - Les valeurs du geste s'affichent tout de suite, avant la réponse du serveur ; le surlignage suit
   ensuite `data.onChange` (geste, annulation, modifications venues d'ailleurs).
 
+## Contours et noms des groupes
+
+Quand la carte est coloriée par groupes (propriété ou clusters), le mode grille trace un contour
+de la couleur du groupe, posé à l'intérieur de ses cases, sur chaque arête qui le sépare d'un autre
+groupe ou d'une case vide (là où deux groupes se touchent : deux bandes accolées, une par groupe),
+et affiche aux faibles zooms le nom du groupe sur chaque îlot assez grand : la carte se lit comme
+une carte géographique. Bouton `bi-map` de la barre flottante (`groupOutlines`, activé par défaut),
+visible en grille quand il y a des groupes.
+
+- Une image dans plusieurs groupes compte pour le plus petit, comme pour sa bordure.
+- Logique pure dans `GridRegions.ts` (testée) : `groupStrokes` (un trait par côté de frontière,
+  avec la normale vers l'intérieur du groupe, fusionnés le long d'une même ligne) et `groupIslands` (îlots 4-connexes, du plus grand au plus petit, l'étiquette
+  sur la case de l'îlot la plus proche de son centroïde, pour rester dedans même s'il est courbé).
+- Rendu dans `GridRegionsLayer.ts` : chaque trait est un quad dont deux sommets sont poussés
+  vers l'intérieur par `aOffset * uThickness` ; l'épaisseur (3 px à l'écran, au plus un quart de
+  case) suit donc le zoom sans reconstruire la géométrie. Sous l'outil cases. Étiquettes en HTML au-dessus du canvas pour un texte net. Elles n'apparaissent que tant que les
+  vignettes font moins de 40 px à l'écran, sur les îlots d'au moins ~60 px de large, 60 au plus,
+  sans chevauchement (les plus grands îlots d'abord), et ne sont recalculées que quand la vue bouge.
+- Recalculé à chaque recoloration (`updateColors`), changement de disposition ou de taille d'image.
+
 ## Easter egg
 
 En mode grille, pointeur au-dessus de la carte, le Konami code (↑ ↑ ↓ ↓ ← → ← → B A) lance un

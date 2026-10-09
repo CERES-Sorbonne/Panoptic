@@ -95,6 +95,8 @@ export interface MapOptions {
     gridDensity?: number
     // In the grid, thumbnails fill their cell with a centred square crop.
     fillCells?: boolean
+    // In the grid, lines between groups and group names over their islands.
+    groupOutlines?: boolean
     // Tag brush of the grid layout: the tag property and tag it paints.
     paintPropertyId?: number | null
     paintTagId?: number | null

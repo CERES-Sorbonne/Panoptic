@@ -784,6 +784,7 @@
         "show_image": "Afficher les images",
         "show_points": "Afficher les points",
         "grid_layout": "Disposition en grille",
+        "group_outlines": "Contours et noms des groupes",
         "fill_cells": "Remplir les cases (recadrage carré)",
         "snake": {
             "score": "Score : {score}",

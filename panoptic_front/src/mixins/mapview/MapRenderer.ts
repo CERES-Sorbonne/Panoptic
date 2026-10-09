@@ -11,6 +11,7 @@ import { LassoLayer } from './LassoLayer'
 import { SnakeLayer } from './SnakeLayer'
 import { GridBrushLayer, type BrushGrid } from './GridBrushLayer'
 import { isCellTool } from './GridBrush'
+import { GridRegionsLayer, type RegionGrid } from './GridRegionsLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 
@@ -45,6 +46,7 @@ export class MapRenderer {
     private lassoLayer: LassoLayer
     public snakeLayer: SnakeLayer
     private gridBrush: GridBrushLayer
+    private regions: GridRegionsLayer
     // Off while the snake easter egg runs, so the HD preview never covers the board.
     private hoverEnabled = true
     // Off with the cell tool: the enlarged preview would cover the cells being worked on. The
@@ -102,6 +104,7 @@ export class MapRenderer {
 
         this.snakeLayer = new SnakeLayer(this.scene)
         this.gridBrush = new GridBrushLayer(this.scene, (points, remove) => this.onBrushCommit?.(points, remove))
+        this.regions = new GridRegionsLayer(this.scene, this.container)
 
         this.controls = new MapControls(this.camera, this.renderer.domElement, this.lassoLayer, this.spatialIndex)
         this.controls.onClick = () => {
@@ -197,6 +200,7 @@ export class MapRenderer {
         this.updateHoverState()
         this.gridBrush.hover(isCellTool(this.controls.getMode()) && this.controls.isOverCanvas() ? this.controls.getMouseWorldPos() : null)
         this.syncPixelRatio()
+        this.regions.update(view, this.container.clientWidth, this.container.clientHeight)
         this.updateDetailView()
         this.detailLayer.tick()
         // console.log(this.controls.getMouseWorldPos())
@@ -297,6 +301,11 @@ export class MapRenderer {
     // The grid the cell tool works on, or null outside the grid layout.
     public setBrushGrid(grid: BrushGrid | null) {
         this.gridBrush.setGrid(grid)
+    }
+
+    // Group outlines and labels of the grid layout, or null to hide them.
+    public setGroupRegions(grid: RegionGrid | null) {
+        this.regions.setGrid(grid)
     }
 
     public setBrushSize(size: number) {
@@ -466,6 +475,7 @@ export class MapRenderer {
         this.hoverPointLayer?.dispose()
         this.snakeLayer.dispose()
         this.gridBrush.dispose()
+        this.regions.dispose()
         this.scene.clear()
     }
 }
