@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from panoptic.core.databases.panoptic.create import panoptic_db_desc
 from panoptic.core.databases.panoptic.models import LegacyMigration
 from panoptic.core.databases.panoptic.panoptic_db import PanopticDB
 from panoptic.core.panoptic.panoptic import Panoptic
@@ -60,8 +61,8 @@ def panoptic(tmp_path, monkeypatch):
 # Schema
 # ---------------------------------------------------------------------------
 
-def test_panoptic_db_v1_upgrades_to_v2(tmp_path):
-    """A panoptic.db written by the previous release gains legacy_migrations."""
+def test_panoptic_db_v1_upgrades_to_latest(tmp_path):
+    """A v1 panoptic.db is migrated to the current version."""
     db_path = tmp_path / 'panoptic.db'
     conn = sqlite3.connect(str(db_path))
     conn.executescript("""
@@ -78,8 +79,9 @@ def test_panoptic_db_v1_upgrades_to_v2(tmp_path):
 
     db = PanopticDB(str(db_path))
     try:
-        assert db._get_db_version() == 2
+        assert db._get_db_version() == panoptic_db_desc.version
         assert db._table_exists('legacy_migrations')
+        assert db._table_exists('user_data')
         # pre-existing rows survive the upgrade
         assert [p.id for p in db.get_projects()] == ['pid']
         db.set_legacy_migration(LegacyMigration(legacy_path='/old', status='done'))
