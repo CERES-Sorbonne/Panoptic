@@ -47,6 +47,8 @@ export class GridBrushLayer {
     private rectStart: Cell | null = null
     private pressCell: Cell = { c: 0, r: 0 }
     private cursorKey = ''
+    private addColor = ADD_COLOR.clone()
+    private addFrame = ADD_FRAME.clone()
 
     constructor(scene: THREE.Scene, onCommit: (points: PointData[], remove: boolean) => void) {
         this.scene = scene
@@ -93,6 +95,12 @@ export class GridBrushLayer {
             this.coverMaterial.needsUpdate = true
         }
         this.cover.scale.set(cols * cellSize, rows * cellSize, 1)
+    }
+
+    public setAddColor(color: string | null) {
+        this.addColor.set(color ?? ADD_COLOR)
+        this.addFrame.set(color ?? ADD_FRAME)
+        this.setColors()
     }
 
     public setSize(size: number) {
@@ -180,7 +188,7 @@ export class GridBrushLayer {
         const texture = this.coverTexture
         if (!this.stroke || !this.grid || !texture) return
         const data = texture.image.data as Uint8Array
-        const color = this.remove ? REMOVE_COLOR : ADD_COLOR
+        const color = this.remove ? REMOVE_COLOR : this.addColor
         const r = Math.round(color.r * 255), g = Math.round(color.g * 255), b = Math.round(color.b * 255)
         const marks = this.stroke.marks
         const cellPoint = this.grid.cellPoint
@@ -197,8 +205,8 @@ export class GridBrushLayer {
     }
 
     private setColors() {
-        this.cursorMaterial.color.copy(this.remove ? REMOVE_COLOR : ADD_COLOR)
-        this.cursorFrameMaterial.color.copy(this.remove ? REMOVE_COLOR : ADD_FRAME)
+        this.cursorMaterial.color.copy(this.remove ? REMOVE_COLOR : this.addColor)
+        this.cursorFrameMaterial.color.copy(this.remove ? REMOVE_COLOR : this.addFrame)
     }
 
     public dispose() {

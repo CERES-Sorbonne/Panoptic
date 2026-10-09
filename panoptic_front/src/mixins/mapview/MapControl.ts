@@ -3,6 +3,7 @@ import { LassoLayer } from './LassoLayer'
 import { SpatialIndex } from './SpatialIndex'
 import { PointData, ZoomParams } from '@/data/models'
 import { keyState } from '@/data/composables/keyState'
+import { isCellTool } from './GridBrush'
 
 // Wheel delta (px) per brush size step: one notch of a mouse wheel.
 const BRUSH_WHEEL_STEP = 100
@@ -36,7 +37,7 @@ export class MapControls {
     public onUpdate: () => void = () => { }
     // A pan-mode press released without moving the camera.
     public onClick: () => void = () => { }
-    // Cell tool ('cells' mode): left press adds, right press removes, Shift draws a rectangle.
+    // Cell tools ('cells', 'paint'): left press adds, right press removes, Shift draws a rectangle.
     public onBrushStart: (world: THREE.Vector3, remove: boolean, rect: boolean) => void = () => { }
     public onBrushMove: (world: THREE.Vector3, rect: boolean) => void = () => { }
     public onBrushEnd: () => void = () => { }
@@ -79,7 +80,7 @@ export class MapControls {
     }
 
     private usesRightButton() {
-        return this.mode === 'cells' || this.mode === 'lasso'
+        return isCellTool(this.mode) || this.mode === 'lasso'
     }
 
     private handleKeyDown = (e: KeyboardEvent) => {
@@ -205,7 +206,7 @@ export class MapControls {
         e.preventDefault()
         // keyState.ctrl follows the real key: a trackpad pinch sends ctrlKey wheel events without
         // it, and keeps zooming.
-        if (this.mode === 'cells' && keyState.ctrl) {
+        if (isCellTool(this.mode) && keyState.ctrl) {
             this.brushWheel += e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 33 : e.deltaY
             if (Math.abs(this.brushWheel) >= BRUSH_WHEEL_STEP) {
                 this.onBrushResize(this.brushWheel < 0 ? 1 : -1)
@@ -233,7 +234,7 @@ export class MapControls {
         } else if (this.mode === 'lasso' && (e.button === 0 || e.button === 2)) {
             this.isLassoing = true
             this.lasso.start(this.getMouseWorldPos(), { x: e.clientX, y: e.clientY }, e.button === 2)
-        } else if (this.mode === 'cells' && (e.button === 0 || e.button === 2)) {
+        } else if (isCellTool(this.mode) && (e.button === 0 || e.button === 2)) {
             this.isBrushing = true
             this.onBrushStart(this.getMouseWorldPos(), e.button === 2, e.shiftKey)
         }
@@ -274,7 +275,7 @@ export class MapControls {
     private updateCursor() {
         if (this.isDragging) this.domElement.style.cursor = 'grabbing'
         else if (this.mode === 'pan' || (this.spaceHeld && !this.isLassoing && !this.isBrushing)) this.domElement.style.cursor = 'grab'
-        else if (this.isLassoing || this.mode.startsWith('lasso') || this.mode === 'cells') this.domElement.style.cursor = 'crosshair'
+        else if (this.isLassoing || this.mode.startsWith('lasso') || isCellTool(this.mode)) this.domElement.style.cursor = 'crosshair'
         else this.domElement.style.cursor = 'default'
     }
 

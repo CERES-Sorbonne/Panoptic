@@ -1,5 +1,10 @@
 import type { Cell } from './GridSnake'
 
+// Mouse modes driving the cell cursor: selection, and the tag brush.
+export function isCellTool(mode: string) {
+    return mode === 'cells' || mode === 'paint'
+}
+
 // Inclusive bounds, in cells.
 export interface CellRect { c0: number, r0: number, c1: number, r1: number }
 

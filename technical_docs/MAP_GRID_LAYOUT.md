@@ -201,9 +201,25 @@ Logique pure dans `GridBrush.ts` (testée), rendu et geste dans `GridBrushLayer.
 dans `MapControl.ts`. `MapView` fournit la table case → image (`gridCells`, construite par
 `applyLayout`).
 
-Suite prévue : un pinceau à tags sur le même moteur (onglet du panneau de droite pour choisir le
-tag, clic gauche pose le tag, clic droit le retire, un appel serveur et une entrée d'historique par
-geste).
+### Pinceau à tags
+
+Deuxième outil de la grille (`bi-brush`), sur le même moteur et avec les mêmes gestes : il pose le
+tag choisi au lieu de sélectionner, le clic droit le retire.
+
+- Une section « Pinceau » s'ajoute en haut du panneau de droite : propriété de tags (modifiable,
+  hors mode fichier), puis le `TagInput` de l'édition sous les images, en `forceMono` : recherche,
+  création d'un tag à la volée, couleur ; la croix du badge désélectionne. Propriété et tag sont
+  persistés dans `MapOptions` (`paintPropertyId`, `paintTagId`, `paintCollapsed`).
+- Le curseur et les cases couvertes prennent la couleur du tag (bleu de la sélection pour un tag
+  sans couleur, que le gris des autres images noierait).
+- Tant que l'outil est actif avec un tag choisi, la carte montre ce qui est peint : bordure de la
+  couleur du tag sur les images qui le portent, les autres en gris (`PAINT_BORDER`,
+  `PAINT_DESATURATE`). La colonne de la propriété est chargée en entier pour ça.
+- Un geste = un seul commit (`paintTag.ts`, via `setPropertyValues`) = une entrée d'historique,
+  annulable par Ctrl+Z. Seules les images dont la valeur change sont envoyées. Une propriété à tag
+  unique voit sa valeur remplacée, une propriété multi-tags reçoit le tag en plus.
+- Les valeurs du geste s'affichent tout de suite, avant la réponse du serveur ; le surlignage suit
+  ensuite `data.onChange` (geste, annulation, modifications venues d'ailleurs).
 
 ## Easter egg
 

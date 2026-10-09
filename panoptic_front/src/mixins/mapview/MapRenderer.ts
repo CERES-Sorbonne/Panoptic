@@ -10,6 +10,7 @@ import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
 import { SnakeLayer } from './SnakeLayer'
 import { GridBrushLayer, type BrushGrid } from './GridBrushLayer'
+import { isCellTool } from './GridBrush'
 import { deepCopy, EventEmitter } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 
@@ -194,7 +195,7 @@ export class MapRenderer {
         }
 
         this.updateHoverState()
-        this.gridBrush.hover(this.controls.getMode() === 'cells' && this.controls.isOverCanvas() ? this.controls.getMouseWorldPos() : null)
+        this.gridBrush.hover(isCellTool(this.controls.getMode()) && this.controls.isOverCanvas() ? this.controls.getMouseWorldPos() : null)
         this.syncPixelRatio()
         this.updateDetailView()
         this.detailLayer.tick()
@@ -285,7 +286,12 @@ export class MapRenderer {
 
     public setMouseMode(mode: string) {
         this.controls.setMode(mode)
-        this.hoverPreview = mode !== 'cells'
+        this.hoverPreview = !isCellTool(mode)
+    }
+
+    // Colour of the cell cursor and of the covered cells when adding (default: selection blue).
+    public setBrushColor(color: string | null) {
+        this.gridBrush.setAddColor(color)
     }
 
     // The grid the cell tool works on, or null outside the grid layout.
