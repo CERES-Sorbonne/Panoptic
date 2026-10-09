@@ -13,6 +13,7 @@ import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
 import { imageWorldSize } from '@/mixins/mapview/MapRenderer'
 import { cellCenter, DEFAULT_GRID_DENSITY, mapGrid, type MapGrid } from '@/mixins/mapview/GridLayout'
 import { konamiMatcher, SnakeGame, type Cell, type SnakeDir, type SnakeState } from '@/mixins/mapview/GridSnake'
+import { nextBrushSize } from '@/mixins/mapview/GridBrush'
 import { keyState } from '@/data/composables/keyState'
 import { newZoomOwner, zoomModal } from '../modals/zoomModal'
 import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
@@ -77,6 +78,8 @@ const groupListIslandRef = ref<HTMLElement | null>(null)
 
 // State
 const mouseMode = ref('pan')
+// Side of the cell tool's square cursor, in cells.
+const brushSize = ref(1)
 const defaultColor = '#777777'
 
 // Border width of the rendered images, adjustable via the header-bar slider. Persisted per view
@@ -120,9 +123,10 @@ const hoverImage = computed<Instance | null>(() => lastHoverId.value != null ? (
 // scrollers' images (keyState.ctrl also covers Option on mac). It follows the hovered point
 // and closes on release or once the cursor is off every point.
 const zoomOwner = newZoomOwner()
-watch([() => keyState.ctrl, hoverInstanceId], ([held, id]) => {
+// Not with the cell tool, where Ctrl + wheel sizes the cursor.
+watch([() => keyState.ctrl, hoverInstanceId, mouseMode], ([held, id, mode]) => {
     const ours = zoomModal.open && zoomModal.owner === zoomOwner
-    if (held && id != null) {
+    if (held && id != null && mode !== 'cells') {
         if (!zoomModal.open || (ours && zoomModal.image?.id !== id)) {
             zoomModal.show({ id } as Instance, zoomOwner)
         }
@@ -149,6 +153,9 @@ let pointOfSlot = new Int32Array(0)
 let baseZ = new Float32Array(0)
 // Bumped whenever points move or restyle in place, so the minimap redraws.
 const pointsVersion = ref(0)
+// In the grid layout, the index in `points` of the image in each cell (-1: empty), for the cell
+// tool.
+let gridCells: { cols: number, rows: number, cellPoint: Int32Array } | null = null
 
 // ── Atlas status ──────────────────────────────────────────────────────────────
 
@@ -410,13 +417,29 @@ function applyLayout(pts: PointData[], mapId: number) {
     if (layout.value === 'grid' && data) {
         const grid = mapGrid(toRaw(data), gridDensity.value)
         const size = imageWorldSize(props.imageSize)
-        for (const p of pts) [p.x, p.y] = cellCenter(grid, grid.cells.get(p.sha1)!, size)
+        const cellPoint = new Int32Array(grid.cols * grid.rows).fill(-1)
+        pts.forEach((p, i) => {
+            const cell = grid.cells.get(p.sha1)!
+            cellPoint[cell] = i
+            ;[p.x, p.y] = cellCenter(grid, cell, size)
+        })
+        gridCells = { cols: grid.cols, rows: grid.rows, cellPoint }
     } else {
         for (const p of pts) {
             p.x = p.sx
             p.y = p.sy
         }
+        gridCells = null
     }
+}
+
+// Call once `points` holds the points applyLayout placed.
+function syncBrushGrid() {
+    renderer.value?.setBrushGrid(gridCells && {
+        ...gridCells,
+        cellSize: imageWorldSize(props.imageSize),
+        points: points.value,
+    })
 }
 
 // Re-places the points after a layout or density change, framing the images that were on screen.
@@ -424,6 +447,7 @@ function relayout() {
     if (builtMapId == null || !points.value.length) return
     const inView = renderer.value?.getPointsInView() ?? []
     applyLayout(points.value, builtMapId)
+    syncBrushGrid()
     pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
@@ -433,6 +457,7 @@ function relayout() {
 function rescaleGrid(imageSize: number, previous: number) {
     if (layout.value !== 'grid' || builtMapId == null || !points.value.length) return
     applyLayout(points.value, builtMapId)
+    syncBrushGrid()
     pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
@@ -537,6 +562,7 @@ async function showMap(mapId: number, force = false) {
     sha1ToPoint = newSha1ToPoint
     pointOfSlot = newPointOfSlot
     points.value = res
+    syncBrushGrid()
     builtMapId = mapId
     builtRoot = root
     builtSlots = slots
@@ -565,16 +591,17 @@ async function showMap(mapId: number, force = false) {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-const handleLasso = (selectedPoints: PointData[]) => {
-    // A point stands for its sha1, so the lasso takes every instance sharing it (sha1-pile rule).
+// A point stands for its sha1, so this takes every instance sharing it (sha1-pile rule).
+function selectPoints(selectedPoints: PointData[], remove: boolean) {
     const ids: number[] = []
     for (const point of selectedPoints) {
         const instanceIds = columnStore.getInstancesBySha1(point.sha1)
         if (instanceIds.length) ids.push(...instanceIds)
     }
-    if (mouseMode.value == 'lasso-plus') props.collection.selectImages(ids)
-    if (mouseMode.value == 'lasso-minus') props.collection.unselectImages(ids)
+    if (remove) props.collection.unselectImages(ids)
+    else props.collection.selectImages(ids)
 }
+
 
 async function deleteMap(mapId: number) {
     await media.deleteMap(mapId)
@@ -826,6 +853,7 @@ onUnmounted(stopFind)
 
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
+watch(brushSize, (size) => renderer.value?.setBrushSize(size))
 watch(() => columnStore.selectionTick(selectNamespace.value), () => updateSelection())
 watch(selectedGroupId, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
@@ -836,6 +864,7 @@ watch(() => props.imageSize, (val, old) => {
 })
 watch(layout, (val) => {
     renderer.value?.setDetailEnabled(val === 'grid')
+    if (val !== 'grid' && mouseMode.value === 'cells') mouseMode.value = 'pan'
     relayout()
 })
 watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
@@ -845,8 +874,12 @@ watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 
 watch(renderer, (r) => {
     if (r) {
-        r.onPointSelection = handleLasso
+        r.onPointSelection = selectPoints
         r.onPointClick = onFindClick
+        r.onBrushCommit = selectPoints
+        r.onBrushResize = (dir) => { brushSize.value = nextBrushSize(brushSize.value, dir) }
+        r.setBrushSize(brushSize.value)
+        r.setMouseMode(mouseMode.value)
         r.atlasLayers.onProgress = (p) => { atlasLoad.value = p }
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
@@ -854,6 +887,7 @@ watch(renderer, (r) => {
         r.setDetailEnabled(layout.value === 'grid')
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
         // not when it was queued: the showPoints watcher had no renderer to reach in between.
+        syncBrushGrid()
         if (pendingCreateMap) {
             r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, props.mapOptions.showPoints)
             pendingCreateMap = null
@@ -917,16 +951,22 @@ onMounted(async () => {
                         <i class="bi bi-hand-index-thumb"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="map.lasso_add">
-                    <div class="tool" :class="{ selected: mouseMode == 'lasso-plus' }" @click="mouseMode = 'lasso-plus'">
+                <WithToolTip v-if="layout == 'grid'" message="map.cell_select">
+                    <div class="tool" :class="{ selected: mouseMode == 'cells' }" @click="mouseMode = 'cells'">
+                        <i class="bi bi-bounding-box"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip message="map.lasso">
+                    <div class="tool" :class="{ selected: mouseMode == 'lasso' }" @click="mouseMode = 'lasso'">
                         <i class="bi bi-plus-circle-dotted"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="map.lasso_remove">
-                    <div class="tool" :class="{ selected: mouseMode == 'lasso-minus' }" @click="mouseMode = 'lasso-minus'">
-                        <i class="bi bi-dash-circle-dotted"></i>
-                    </div>
-                </WithToolTip>
+            </div>
+
+            <div v-if="mouseMode == 'cells' && !snakeState" class="snake-hud cell-hud">
+                <i class="bi bi-bounding-box"></i>
+                <span class="num">{{ brushSize }}×{{ brushSize }}</span>
+                <span class="snake-hint">{{ $t('map.cell_select_hint') }}</span>
             </div>
 
             <div v-if="snakeState" class="snake-hud">
@@ -1353,6 +1393,11 @@ onMounted(async () => {
 
 .snake-hint {
     color: var(--text-secondary);
+}
+
+/* Lets the cell tool work under it. */
+.cell-hud {
+    pointer-events: none;
 }
 
 .cursor-grab {

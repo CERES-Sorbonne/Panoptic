@@ -176,6 +176,35 @@ Nouveau dossier `panoptic_front/test/map/` (même principe de bundle que `test/g
 4. Raffinement par fenêtres + Web Worker pour les grands projets.
 5. Transition animée + option pour la désactiver.
 
+## Sélection par cases
+
+Outil de la barre flottante (`bi-bounding-box`), visible seulement en mode grille ; le lasso reste
+l'outil du mode nuage, avec la même règle (clic gauche : ajoute, clic droit : retire). Un curseur
+carré de N × N cases suit la souris :
+
+- clic / glisser gauche : ajoute les images couvertes à la sélection ; clic droit : les retire ;
+- Shift (au clic ou pendant le glisser) : rectangle entre la case de départ et la case courante.
+  Firefox ouvre toujours son menu sur Shift + clic droit, sans transmettre l'événement à la page :
+  on y fait clic droit puis Shift ;
+- Ctrl + molette : taille du curseur (1 → 128, +1 par cran jusqu'à 8 puis ×1.25). Seul le vrai
+  Ctrl compte (`keyState.ctrl`) : un pincement de trackpad envoie `ctrlKey` sans `keydown` et
+  continue de zoomer. La vignette zoomée (Ctrl au survol) est coupée avec cet outil ;
+- Espace + glisser : déplace la carte (dans tous les modes).
+
+Pendant le geste, les cases couvertes qui contiennent une image sont teintées (une texture d'un
+texel par case posée sur toute la grille) ; la sélection n'est modifiée qu'au relâchement, en une
+fois. Un glissé rapide est comblé par une ligne de Bresenham entre deux positions du curseur.
+L'aperçu HD agrandi est coupé (il cacherait le curseur), l'aperçu du panneau de droite suit
+toujours l'image survolée.
+
+Logique pure dans `GridBrush.ts` (testée), rendu et geste dans `GridBrushLayer.ts`, événements
+dans `MapControl.ts`. `MapView` fournit la table case → image (`gridCells`, construite par
+`applyLayout`).
+
+Suite prévue : un pinceau à tags sur le même moteur (onglet du panneau de droite pour choisir le
+tag, clic gauche pose le tag, clic droit le retire, un appel serveur et une entrée d'historique par
+geste).
+
 ## Easter egg
 
 En mode grille, pointeur au-dessus de la carte, le Konami code (↑ ↑ ↓ ↓ ← → ← → B A) lance un
