@@ -219,12 +219,14 @@ function valueOf(image: Instance, propertyId: number): any {
     return slot !== undefined ? col.readSlot(propertyId, slot) : undefined
 }
 
-async function acceptRecommend(image: Instance) {
+async function acceptRecommend(images: Instance[]) {
+    if (!images.length) return
     const imageValues: ImagePropertyValue[] = []
     const instanceValues: InstancePropertyValue[] = []
 
-    propertyValues.forEach(v => {
-        if (v.value != undefined) {
+    images.forEach(image => {
+        propertyValues.forEach(v => {
+            if (v.value == undefined) return
             const prop = data.properties[v.propertyId]
             let value = v.value
             if (prop.type == PropertyType.multi_tags) {
@@ -238,12 +240,12 @@ async function acceptRecommend(image: Instance) {
             } else {
                 imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
             }
-        }
+        })
     })
     await data.setPropertyValues(instanceValues, imageValues)
-    // The image now matches the group; keep it out of the queue without
-    // blacklisting it (it belongs to the group now).
-    matchingIds(image).forEach(id => accepted.add(id))
+    // The images now match the group; keep them out of the queue without
+    // blacklisting them (they belong to the group now).
+    images.forEach(image => matchingIds(image).forEach(id => accepted.add(id)))
 }
 
 // Ids to hide for a recommendation. For a sha1 group every instance sharing the
@@ -303,7 +305,7 @@ function selectedInstances(ns: string): Instance[] {
 }
 
 async function acceptSelected() {
-    for (const img of selectedInstances('reco-queue')) await acceptRecommend(img)
+    await acceptRecommend(selectedInstances('reco-queue'))
     col.clearSelection('reco-queue')
 }
 
@@ -506,7 +508,7 @@ onBeforeUnmount(() => heroObserver?.disconnect())
                     </div>
                     <div v-if="hero" class="hero-actions">
                         <wTT message="main.recommand.accept">
-                            <button class="accept" @click="acceptRecommend(hero)"><span
+                            <button class="accept" @click="acceptRecommend([hero])"><span
                                     class="bi bi-check-lg"></span></button>
                         </wTT>
                         <wTT message="main.recommand.refuse">
