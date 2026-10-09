@@ -132,6 +132,9 @@ watch([() => keyState.ctrl, hoverInstanceId], ([held, id]) => {
     renderer.value?.setHoverThroughOverlays(zoomModal.open && zoomModal.owner === zoomOwner)
 })
 onUnmounted(() => zoomModal.hide(zoomOwner))
+// The modal's image needs its instance data loaded, which the preview only does for the
+// hovered image (and not at all during the find game).
+const zoomedId = computed(() => zoomModal.open && zoomModal.owner === zoomOwner ? zoomModal.image?.id : null)
 
 // The map is keyed by sha1 (one point per sha1); the tree by slot.
 let sha1ToPoint: { [sha1: string]: PointData } = {}
@@ -874,6 +877,7 @@ onMounted(async () => {
 
 <template>
     <div class="main-layout">
+        <InstanceData v-if="zoomedId != null" :instance-ids="[zoomedId]" :prop-ids="[]" />
         <Toolbar :selected-map="props.mapOptions.selectedMap"
             @update:selected-map="id => props.mapOptions.selectedMap = id" :has-maps="media.hasMaps"
             :images="getRootInstances" :border-width="borderWidth"
