@@ -39,6 +39,9 @@ function submit(hide) {
 function cancel() {
     localValue.value = props.modelValue
 }
+
+// focus() opens the calendar: what a cell opened from its read-only row, or by Tab, needs.
+defineExpose({ focus })
 </script>
 
 <template>

@@ -8,6 +8,7 @@ import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import { useCellPopup } from './cellPopup'
 import { PropertyType } from '@/data/models'
 import { keyState } from '@/data/composables/keyState'
+import { textLines } from './cellDisplay'
 
 const props = defineProps<{
     modelValue?: string
@@ -35,9 +36,8 @@ const PAD = 0
 
 watch(() => props.modelValue, v => localValue.value = v ?? '')
 
-// A cell row is one line high, so line breaks can't be shown as line breaks: the value is cut
-// on them and each break is drawn back as a ⏎ icon, keeping the real text readable on one line.
-const lines = computed(() => (props.modelValue ?? '').split(/\r?\n/))
+// line breaks are drawn as ⏎ icons (see textLines)
+const lines = computed(() => textLines(props.modelValue))
 
 // Natural width of the longest line, measured on a canvas rather than by laying the text out:
 // the popup's width has to be known BEFORE the textarea wraps anything, so it can't be read

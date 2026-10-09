@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Group ID Resolution Benchmark</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; max-width: 1240px; color: #222; line-height: 1.45; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    h2 { font-size: 15px; margin: 24px 0 8px; }
+    p.lead { color: #555; font-size: 13px; max-width: 880px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 12px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eaeaea; vertical-align: middle; }
+    th { background: #fafafa; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #555; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: "SF Mono", Consolas, monospace; }
+    .bar-cell { width: 130px; padding: 4px 8px; }
+    .bar { height: 12px; border-radius: 2px; }
+    .bar.cold { background: #fbbf24; }
+    .bar.hot { background: #34d399; }
+    button { padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; background: #111; color: white; border: 0; border-radius: 6px; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    #status { margin-top: 10px; color: #666; font-style: italic; min-height: 22px; font-size: 13px; }
+    .config { background: #f7f7f7; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+    .config label { font-size: 13px; }
+    .config input[type="number"] { width: 110px; padding: 4px 6px; font-size: 13px; }
+    code { background: #f3f3f3; padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: "SF Mono", Consolas, monospace; }
+    .approach { padding: 8px 12px; background: #fafafa; border-left: 3px solid #ddd; margin: 6px 0; font-size: 13px; }
+    .approach b { font-family: "SF Mono", Consolas, monospace; color: #111; }
+    .winner { color: #047857; font-weight: 700; }
+    .err { color: #b91c1c; }
+    .note { color: #777; font-size: 12px; }
+    ul { font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>Group ID Resolution Benchmark</h1>
+<p class="lead">
+Compares 6 strategies for resolving a leaf-group ID from a 3-level value path
+<code>[numeric, string, tagId]</code> with property IDs <code>[1, 2, 3]</code>.
+Each test generates N unique paths and measures the <b>cold</b> phase (first-pass ID
+creation — populates any internal state) and the <b>hot</b> phase (second-pass lookup
+of the same paths).
+</p>
+
+<div class="config">
+    <label>Paths: <input id="count" type="number" value="3000000" min="1000" step="100000"></label>
+    <label><input id="hot" type="checkbox" checked> Hot phase</label>
+    <label><input id="verify" type="checkbox" checked> Verify uniqueness</label>
+    <label><input id="warmup" type="checkbox" checked> JIT warm-up</label>
+    <button id="run">Run benchmark</button>
+</div>
+<div id="status"></div>
+
+<table id="results">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Approach</th>
+            <th class="num">Cold (ms)</th>
+            <th class="bar-cell"></th>
+            <th class="num">ns/op</th>
+            <th class="num">Hot (ms)</th>
+            <th class="bar-cell"></th>
+            <th class="num">ns/op</th>
+            <th class="num">Unique IDs</th>
+            <th>Notes</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h2>Approaches</h2>
+<div class="approach"><b>A. GroupValueIndex (nested Map)</b> — current production code. One Map per groupBy level; descend through the tree by value; <code>null</code>-key entry at each leaf holds the sequential ID.</div>
+<div class="approach"><b>B. Flat Map&lt;string, number&gt;</b> — concatenate values into one canonical string, store in a single Map keyed by that string. Sequential IDs.</div>
+<div class="approach"><b>C. FNV-1a 53-bit hash (type-dispatched)</b> — stateless. For each value, branch on <code>typeof</code>: number → mix as int; string → char-by-char FNV-1a. PropIds mixed in so groupBy reorder doesn't alias.</div>
+<div class="approach"><b>D. FNV-1a 53-bit hash + on-the-fly string interning</b> — same hash, but strings are first interned through a Map&lt;string, int&gt;. Inner loop becomes pure numeric arithmetic. Cold cost includes building the intern table.</div>
+<div class="approach"><b>E. Canonical string ID</b> — concatenated string itself is the ID. No hashing, no Map. Useful as a baseline for "what does just-make-a-string cost?"</div>
+<div class="approach"><b>F. JSON.stringify ID</b> — common lazy approach. Compares against the slowest realistic option.</div>
+<div class="approach"><b>G. FNV+Murmur3 hash (true 53-bit)</b> — same shape as C, but h2 uses a Murmur3-style mixer (rotate + two different primes) instead of a second FNV. This makes the two streams algebraically independent — fixes the entropy ceiling that made C/D effectively 32-bit.</div>
+<div class="approach"><b>H. FNV+Murmur3 + string intern</b> — same idea as D, with the corrected hash. Expected to be the fastest hot pass with near-zero collisions.</div>
+
+<h2>Data shape</h2>
+<ul>
+    <li>Each path: <code>[i % 1000, "label_" + Math.floor(i / 100), i % 100]</code>.</li>
+    <li>By construction all paths are unique for any N up to 3M (the triple of those three expressions identifies <code>i</code> uniquely).</li>
+    <li>Average string length: ~10 chars; ~30k distinct strings across 3M paths.</li>
+    <li>Each approach runs once after warm-up; per-op times have very low variance at N = 3M.</li>
+</ul>
+
+<h2>Reading the table</h2>
+<ul>
+    <li><b>Cold</b> includes any state population (Map fill, intern table build).</li>
+    <li><b>Hot</b> reruns lookups on the same paths with state already populated.</li>
+    <li><b>ns/op</b> = total time / N. Easier to compare across N values.</li>
+    <li>For stateless approaches (C, E, F), cold ≈ hot — they're pure functions.</li>
+    <li>For stateful approaches (A, B, D), hot &lt; cold (no allocations on the second pass).</li>
+    <li>Best result in each column is highlighted green.</li>
+</ul>
+
+<script>
+'use strict';
+
+// ────────────────────────────────────────────────────────────────────────────
+// Data
+// ────────────────────────────────────────────────────────────────────────────
+
+const PROP_IDS = [1, 2, 3];
+
+function generatePaths(n) {
+    const paths = new Array(n);
+    for (let i = 0; i < n; i++) {
+        paths[i] = [i % 1000, 'label_' + Math.floor(i / 100), i % 100];
+    }
+    return paths;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach A — current GroupValueIndex (nested Map)
+// ────────────────────────────────────────────────────────────────────────────
+
+class GroupValueIndex {
+    constructor() {
+        this.index = new Map();
+        this.idCounter = 1;
+    }
+    get(valueKey) {
+        let idx = this.index;
+        for (let i = 0; i < valueKey.length; i++) {
+            const v = valueKey[i];
+            let nxt = idx.get(v);
+            if (nxt === undefined) { nxt = new Map(); idx.set(v, nxt); }
+            idx = nxt;
+        }
+        let id = idx.get(null);
+        if (id === undefined) { id = this.idCounter++; idx.set(null, id); }
+        return id;
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach B — flat Map<canonical-string, number>
+// ────────────────────────────────────────────────────────────────────────────
+
+class FlatStringIndex {
+    constructor() {
+        this.m = new Map();
+        this.c = 1;
+    }
+    get(valueKey) {
+        const k = valueKey[0] + '\x1f' + valueKey[1] + '\x1f' + valueKey[2];
+        let id = this.m.get(k);
+        if (id === undefined) { id = this.c++; this.m.set(k, id); }
+        return id;
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach C — FNV-1a 53-bit hash, type-dispatched
+// ────────────────────────────────────────────────────────────────────────────
+
+function hashPath(propIds, values) {
+    let h1 = 2166136261 | 0;
+    let h2 = 0x811c9dc5 | 0;
+    for (let i = 0; i < values.length; i++) {
+        const p = propIds[i] | 0;
+        h1 = Math.imul(h1 ^ p, 16777619);
+        h2 = Math.imul(h2 ^ p, 0x01000193);
+        const v = values[i];
+        const t = typeof v;
+        if (t === 'number') {
+            const vi = v | 0;
+            h1 = Math.imul(h1 ^ vi, 16777619);
+            h2 = Math.imul(h2 ^ vi, 0x01000193);
+        } else if (t === 'string') {
+            for (let j = 0; j < v.length; j++) {
+                const c = v.charCodeAt(j);
+                h1 = Math.imul(h1 ^ c, 16777619);
+                h2 = Math.imul(h2 ^ c, 0x01000193);
+            }
+        } else if (v === null || v === undefined) {
+            h1 = Math.imul(h1 ^ 0xfe, 16777619);
+            h2 = Math.imul(h2 ^ 0xfe, 0x01000193);
+        }
+        h1 = Math.imul(h1 ^ 0xff, 16777619);
+        h2 = Math.imul(h2 ^ 0xff, 0x01000193);
+    }
+    return (h1 >>> 0) * 0x200000 + (h2 >>> 11);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach D — FNV-1a + string interning (on the fly)
+// ────────────────────────────────────────────────────────────────────────────
+
+class Interner {
+    constructor() {
+        this.m = new Map();
+        this.c = 1;
+    }
+    intern(s) {
+        let n = this.m.get(s);
+        if (n === undefined) { n = this.c++; this.m.set(s, n); }
+        return n;
+    }
+}
+
+function hashPathInterned(propIds, values, interner) {
+    let h1 = 2166136261 | 0;
+    let h2 = 0x811c9dc5 | 0;
+    for (let i = 0; i < values.length; i++) {
+        const p = propIds[i] | 0;
+        h1 = Math.imul(h1 ^ p, 16777619);
+        h2 = Math.imul(h2 ^ p, 0x01000193);
+        let v = values[i];
+        if (typeof v === 'string') v = interner.intern(v);
+        const vi = v | 0;
+        h1 = Math.imul(h1 ^ vi, 16777619);
+        h2 = Math.imul(h2 ^ vi, 0x01000193);
+    }
+    return (h1 >>> 0) * 0x200000 + (h2 >>> 11);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach G — FNV-1a (h1) + Murmur3 mix (h2), truly independent 53-bit
+// ────────────────────────────────────────────────────────────────────────────
+//
+// Why this exists: the original two-stream FNV in approach C uses the SAME
+// prime (16777619) for both h1 and h2, just with different seeds. That makes
+// the two streams algebraically correlated, so the combined "53-bit" hash
+// only delivers ~32 bits of entropy in practice. Murmur3's mixing step is a
+// different algebra (rotate + two different primes + scramble), so the two
+// streams are genuinely independent.
+
+function hashPathStrong(propIds, values) {
+    let h1 = 2166136261 | 0;      // FNV offset
+    let h2 = 0x9E3779B9 | 0;      // Knuth golden-ratio constant (different seed)
+    let kk = 0;
+    for (let i = 0; i < values.length; i++) {
+        const p = propIds[i] | 0;
+        // h1: FNV-1a step
+        h1 = Math.imul(h1 ^ p, 16777619);
+        // h2: Murmur3 mix step
+        kk = Math.imul(p, 0xcc9e2d51);
+        kk = (kk << 15) | (kk >>> 17);
+        kk = Math.imul(kk, 0x1b873593);
+        h2 ^= kk;
+        h2 = (h2 << 13) | (h2 >>> 19);
+        h2 = (Math.imul(h2, 5) + 0xe6546b64) | 0;
+
+        const v = values[i];
+        const t = typeof v;
+        if (t === 'number') {
+            const vi = v | 0;
+            h1 = Math.imul(h1 ^ vi, 16777619);
+            kk = Math.imul(vi, 0xcc9e2d51);
+            kk = (kk << 15) | (kk >>> 17);
+            kk = Math.imul(kk, 0x1b873593);
+            h2 ^= kk;
+            h2 = (h2 << 13) | (h2 >>> 19);
+            h2 = (Math.imul(h2, 5) + 0xe6546b64) | 0;
+        } else if (t === 'string') {
+            for (let j = 0; j < v.length; j++) {
+                const c = v.charCodeAt(j);
+                h1 = Math.imul(h1 ^ c, 16777619);
+                kk = Math.imul(c, 0xcc9e2d51);
+                kk = (kk << 15) | (kk >>> 17);
+                kk = Math.imul(kk, 0x1b873593);
+                h2 ^= kk;
+                h2 = (h2 << 13) | (h2 >>> 19);
+                h2 = (Math.imul(h2, 5) + 0xe6546b64) | 0;
+            }
+        }
+        // separator
+        h1 = Math.imul(h1 ^ 0xff, 16777619);
+        kk = Math.imul(0xff, 0xcc9e2d51);
+        kk = (kk << 15) | (kk >>> 17);
+        kk = Math.imul(kk, 0x1b873593);
+        h2 ^= kk;
+        h2 = (h2 << 13) | (h2 >>> 19);
+        h2 = (Math.imul(h2, 5) + 0xe6546b64) | 0;
+    }
+    // Final avalanche on both streams
+    h1 ^= h1 >>> 16; h1 = Math.imul(h1, 0x85ebca6b); h1 ^= h1 >>> 13;
+    h2 ^= h2 >>> 16; h2 = Math.imul(h2, 0xc2b2ae35); h2 ^= h2 >>> 16;
+    return (h1 >>> 0) * 0x200000 + (h2 >>> 11);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach H — strong hash + on-the-fly string interning
+// ────────────────────────────────────────────────────────────────────────────
+
+function hashPathStrongInterned(propIds, values, interner) {
+    let h1 = 2166136261 | 0;
+    let h2 = 0x9E3779B9 | 0;
+    let kk = 0;
+    for (let i = 0; i < values.length; i++) {
+        const p = propIds[i] | 0;
+        h1 = Math.imul(h1 ^ p, 16777619);
+        kk = Math.imul(p, 0xcc9e2d51);
+        kk = (kk << 15) | (kk >>> 17);
+        kk = Math.imul(kk, 0x1b873593);
+        h2 ^= kk;
+        h2 = (h2 << 13) | (h2 >>> 19);
+        h2 = (Math.imul(h2, 5) + 0xe6546b64) | 0;
+
+        let v = values[i];
+        if (typeof v === 'string') v = interner.intern(v);
+        const vi = v | 0;
+        h1 = Math.imul(h1 ^ vi, 16777619);
+        kk = Math.imul(vi, 0xcc9e2d51);
+        kk = (kk << 15) | (kk >>> 17);
+        kk = Math.imul(kk, 0x1b873593);
+        h2 ^= kk;
+        h2 = (h2 << 13) | (h2 >>> 19);
+        h2 = (Math.imul(h2, 5) + 0xe6546b64) | 0;
+    }
+    h1 ^= h1 >>> 16; h1 = Math.imul(h1, 0x85ebca6b); h1 ^= h1 >>> 13;
+    h2 ^= h2 >>> 16; h2 = Math.imul(h2, 0xc2b2ae35); h2 ^= h2 >>> 16;
+    return (h1 >>> 0) * 0x200000 + (h2 >>> 11);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach E — canonical string ID (no hashing)
+// ────────────────────────────────────────────────────────────────────────────
+
+function canonicalStringId(values) {
+    return values[0] + '\x1f' + values[1] + '\x1f' + values[2];
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach F — JSON.stringify ID
+// ────────────────────────────────────────────────────────────────────────────
+
+function jsonStringifyId(values) {
+    return JSON.stringify(values);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Approach definitions for the runner
+// ────────────────────────────────────────────────────────────────────────────
+
+const APPROACHES = [
+    {
+        name: 'A. GroupValueIndex (nested Map)',
+        notes: 'k Map walks/level + Map alloc on miss',
+        runCold(paths) {
+            const idx = new GroupValueIndex();
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = idx.get(paths[i]);
+            return { ids, state: { idx } };
+        },
+        runHot(paths, state) {
+            const ids = new Float64Array(paths.length);
+            const idx = state.idx;
+            for (let i = 0; i < paths.length; i++) ids[i] = idx.get(paths[i]);
+            return ids;
+        }
+    },
+    {
+        name: 'B. Flat Map<string, number>',
+        notes: 'one canonical-string concat + 1 Map op',
+        runCold(paths) {
+            const idx = new FlatStringIndex();
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = idx.get(paths[i]);
+            return { ids, state: { idx } };
+        },
+        runHot(paths, state) {
+            const ids = new Float64Array(paths.length);
+            const idx = state.idx;
+            for (let i = 0; i < paths.length; i++) ids[i] = idx.get(paths[i]);
+            return ids;
+        }
+    },
+    {
+        name: 'C. FNV-1a hash (type-dispatched)',
+        notes: 'pure function, no state',
+        runCold(paths) {
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPath(PROP_IDS, paths[i]);
+            return { ids, state: null };
+        },
+        runHot(paths) {
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPath(PROP_IDS, paths[i]);
+            return ids;
+        }
+    },
+    {
+        name: 'D. FNV-1a + string intern',
+        notes: 'intern Map grows once; hot is numeric',
+        runCold(paths) {
+            const interner = new Interner();
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPathInterned(PROP_IDS, paths[i], interner);
+            return { ids, state: { interner } };
+        },
+        runHot(paths, state) {
+            const ids = new Float64Array(paths.length);
+            const interner = state.interner;
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPathInterned(PROP_IDS, paths[i], interner);
+            return ids;
+        }
+    },
+    {
+        name: 'E. Canonical string ID',
+        notes: 'no hash, string is the ID',
+        runCold(paths) {
+            const ids = new Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = canonicalStringId(paths[i]);
+            return { ids, state: null };
+        },
+        runHot(paths) {
+            const ids = new Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = canonicalStringId(paths[i]);
+            return ids;
+        }
+    },
+    {
+        name: 'F. JSON.stringify ID',
+        notes: 'lazy baseline',
+        runCold(paths) {
+            const ids = new Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = jsonStringifyId(paths[i]);
+            return { ids, state: null };
+        },
+        runHot(paths) {
+            const ids = new Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = jsonStringifyId(paths[i]);
+            return ids;
+        }
+    },
+    {
+        name: 'G. FNV+Murmur3 hash (true 53-bit)',
+        notes: 'two independent mixers; fixes C collisions',
+        runCold(paths) {
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPathStrong(PROP_IDS, paths[i]);
+            return { ids, state: null };
+        },
+        runHot(paths) {
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPathStrong(PROP_IDS, paths[i]);
+            return ids;
+        }
+    },
+    {
+        name: 'H. FNV+Murmur3 + string intern',
+        notes: 'true 53-bit; hot is numeric',
+        runCold(paths) {
+            const interner = new Interner();
+            const ids = new Float64Array(paths.length);
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPathStrongInterned(PROP_IDS, paths[i], interner);
+            return { ids, state: { interner } };
+        },
+        runHot(paths, state) {
+            const ids = new Float64Array(paths.length);
+            const interner = state.interner;
+            for (let i = 0; i < paths.length; i++) ids[i] = hashPathStrongInterned(PROP_IDS, paths[i], interner);
+            return ids;
+        }
+    }
+];
+
+// ────────────────────────────────────────────────────────────────────────────
+// Runner + UI
+// ────────────────────────────────────────────────────────────────────────────
+
+const countInput = document.getElementById('count');
+const hotCheckbox = document.getElementById('hot');
+const verifyCheckbox = document.getElementById('verify');
+const warmupCheckbox = document.getElementById('warmup');
+const runButton = document.getElementById('run');
+const statusEl = document.getElementById('status');
+const tbody = document.querySelector('#results tbody');
+
+function setStatus(msg, isErr) {
+    statusEl.textContent = msg;
+    statusEl.className = isErr ? 'err' : '';
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms == null ? 30 : ms)); }
+
+function countUnique(ids) {
+    // Faster than `new Set(ids).size` for typed arrays of numbers;
+    // for Array of strings, Set is still fine.
+    if (ids instanceof Float64Array) {
+        const s = new Set();
+        for (let i = 0; i < ids.length; i++) s.add(ids[i]);
+        return s.size;
+    }
+    return new Set(ids).size;
+}
+
+async function run() {
+    runButton.disabled = true;
+    tbody.innerHTML = '';
+
+    try {
+        const n = Math.max(1000, parseInt(countInput.value, 10) || 0);
+        const doHot = hotCheckbox.checked;
+        const doVerify = verifyCheckbox.checked;
+        const doWarmup = warmupCheckbox.checked;
+
+        setStatus('Generating ' + n.toLocaleString() + ' paths…');
+        await delay();
+        const paths = generatePaths(n);
+
+        if (doWarmup) {
+            setStatus('Warming up JIT…');
+            await delay();
+            const warm = paths.slice(0, Math.min(20000, n));
+            for (const ap of APPROACHES) {
+                const { state } = ap.runCold(warm);
+                ap.runHot(warm, state);
+            }
+        }
+
+        const results = [];
+
+        for (let i = 0; i < APPROACHES.length; i++) {
+            const ap = APPROACHES[i];
+
+            setStatus('[' + (i + 1) + '/' + APPROACHES.length + '] ' + ap.name + ' — cold pass…');
+            await delay(50);
+
+            const t0 = performance.now();
+            const { ids, state } = ap.runCold(paths);
+            const coldTime = performance.now() - t0;
+
+            let hotTime = null;
+            let hotIds = null;
+            if (doHot) {
+                setStatus('[' + (i + 1) + '/' + APPROACHES.length + '] ' + ap.name + ' — hot pass…');
+                await delay(50);
+                const t1 = performance.now();
+                hotIds = ap.runHot(paths, state);
+                hotTime = performance.now() - t1;
+            }
+
+            let uniqueIds = null;
+            let coldHotMatch = null;
+            if (doVerify) {
+                setStatus('[' + (i + 1) + '/' + APPROACHES.length + '] ' + ap.name + ' — verifying…');
+                await delay();
+                uniqueIds = countUnique(ids);
+                if (hotIds) {
+                    let mismatch = 0;
+                    for (let j = 0; j < ids.length; j++) {
+                        if (ids[j] !== hotIds[j]) { mismatch++; if (mismatch > 3) break; }
+                    }
+                    coldHotMatch = mismatch === 0;
+                }
+            }
+
+            results.push({
+                name: ap.name,
+                notes: ap.notes,
+                coldTime,
+                hotTime,
+                uniqueIds,
+                coldHotMatch,
+                n
+            });
+
+            renderResults(results, n);
+            await delay(20);
+        }
+
+        setStatus('Done. ' + n.toLocaleString() + ' paths processed across ' + APPROACHES.length + ' approaches.');
+    } catch (err) {
+        setStatus('Error: ' + err.message, true);
+        console.error(err);
+    } finally {
+        runButton.disabled = false;
+    }
+}
+
+function renderResults(results, n) {
+    tbody.innerHTML = '';
+    const cold = results.map(r => r.coldTime);
+    const hots = results.map(r => r.hotTime).filter(t => t != null);
+    const maxCold = Math.max.apply(null, cold);
+    const maxHot = hots.length ? Math.max.apply(null, hots) : 1;
+    const minCold = Math.min.apply(null, cold);
+    const minHot = hots.length ? Math.min.apply(null, hots) : Infinity;
+
+    results.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        const collisions = r.uniqueIds != null ? n - r.uniqueIds : null;
+
+        const coldBarPct = (r.coldTime / maxCold) * 100;
+        const hotBarPct = r.hotTime != null ? (r.hotTime / maxHot) * 100 : 0;
+        const coldNs = (r.coldTime * 1e6 / n).toFixed(0);
+        const hotNs = r.hotTime != null ? (r.hotTime * 1e6 / n).toFixed(0) : '—';
+        const hotMs = r.hotTime != null ? r.hotTime.toFixed(1) : '—';
+        const isColdWinner = r.coldTime === minCold;
+        const isHotWinner = r.hotTime === minHot;
+
+        let uniqStr = '—';
+        if (r.uniqueIds != null) {
+            uniqStr = r.uniqueIds.toLocaleString();
+            if (collisions > 0) {
+                uniqStr += ' <span class="err">(' + collisions + ' coll.)</span>';
+            }
+        }
+        let noteStr = r.notes;
+        if (r.coldHotMatch === false) noteStr += ' <span class="err">[hot≠cold]</span>';
+
+        tr.innerHTML =
+            '<td>' + (i + 1) + '</td>' +
+            '<td>' + r.name + '</td>' +
+            '<td class="num' + (isColdWinner ? ' winner' : '') + '">' + r.coldTime.toFixed(1) + '</td>' +
+            '<td class="bar-cell"><div class="bar cold" style="width:' + coldBarPct.toFixed(0) + '%"></div></td>' +
+            '<td class="num">' + coldNs + '</td>' +
+            '<td class="num' + (isHotWinner ? ' winner' : '') + '">' + hotMs + '</td>' +
+            '<td class="bar-cell">' + (r.hotTime != null ? '<div class="bar hot" style="width:' + hotBarPct.toFixed(0) + '%"></div>' : '') + '</td>' +
+            '<td class="num">' + hotNs + '</td>' +
+            '<td class="num">' + uniqStr + '</td>' +
+            '<td>' + noteStr + '</td>';
+        tbody.appendChild(tr);
+    });
+}
+
+runButton.addEventListener('click', run);
+
+// Auto-render an empty row layout on load so the table is visible.
+</script>
+
+</body>
+</html>

@@ -4,14 +4,17 @@
 // It owns all the geometry and all the states, so the per-type inputs above it only decide
 // what to render inside. Nothing is sized in pixels here: the frame is width:100% of whatever
 // the cell gives it, so it can never be wider or narrower than its slot.
+//
+// In the tree scroller a row at rest is not this frame but TreeCellView, which reproduces it as
+// plain markup; this frame is mounted only for the row being edited. Keep the two in step.
 import PropertyIcon from '@/components/properties/PropertyIcon.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
+import TreeRowActions from './TreeRowActions.vue'
 import { PropertyType } from '@/data/models'
-import { Filter, FilterGroup, FilterOperator } from '@/core/FilterManager'
-import { computed, inject, ref, watch } from 'vue'
-import { useTabStore } from '@/data/stores/tabStore'
+import { inject, ref, watch } from 'vue'
 import { cellValueKey } from './cellValue'
 import { useHoverSource } from '@/data/stores/hoverStore'
+import { isClipped } from '../cellHover'
 
 const props = defineProps<{
     type: PropertyType
@@ -38,10 +41,31 @@ const root = ref<HTMLElement>(null)
 const iconZone = ref<HTMLElement>(null)
 defineExpose({ valueZone, root, iconZone })
 
-// Every tree/cluster row funnels through this frame, so pointing at a property is reported
-// once, here, rather than in each of the seven typed inputs. Outside those two scrollers no
-// provider exists and the source reports nothing. Release on unmount is its job too.
+// Every editor row (and every cluster row) funnels through this frame, so pointing at a property
+// is reported once, here, rather than in each of the seven typed inputs. Outside those scrollers
+// no provider exists and the source reports nothing. Release on unmount is its job too. (The
+// tree's read-only rows are reported by the scroller itself, see cellHover.ts.)
 const { enter, leave, setFocus } = useHoverSource(root)
+
+// The row buttons (filter, copy) are only mounted while the pointer is on the row: each one is a
+// tooltip with its own Teleport, and on every row of every card that was most of a row's cost for
+// buttons hardly ever shown. The flag only decides whether they exist; whether they SHOW is still
+// the CSS :hover rule below. A recycled row can move away from under the pointer without a
+// pointerleave, and the flag then goes stale — that costs a mount, never buttons stuck on
+// another image.
+const pointed = ref(false)
+
+function onEnter() {
+    pointed.value = true
+    enter()
+}
+
+// Not on touch: every tap ends with a pointerleave, while the :hover it leaves behind sticks. The
+// buttons that tap revealed would then be gone by the next tap, the one meant for them.
+function onLeave(e: PointerEvent) {
+    if (e.pointerType !== 'touch') pointed.value = false
+    leave()
+}
 
 // Focus, unlike hover, must survive the pointer wandering off: it lasts as long as the editor
 // is open. Inline editors are caught by focusin/focusout on the row — and the claim is marked
@@ -73,68 +97,17 @@ function tooltipText() {
     return props.tooltip ?? zone.innerText.trim()
 }
 
-// The value zone and the values inside it each cut their own overflow with an ellipsis, so the
-// cut can be on any of them.
-function isClipped(zone: HTMLElement) {
-    return [zone, ...Array.from(zone.querySelectorAll<HTMLElement>('*'))].some(e => e.scrollWidth > e.clientWidth)
-}
+// The row's property and value, for its filter button. Not provided in the cluster view.
+const cellValue = inject(cellValueKey, null)
 
 // Copies the row's full value: the same text the tooltip would show, cut or not.
-const copied = ref(false)
-let copiedTimer: ReturnType<typeof setTimeout>
-
-// Toggles "property = this value" ("contains" for tags) on the current tab's filters.
-const cellValue = inject(cellValueKey, null)
-const tabStore = useTabStore()
-const filterManager = () => tabStore.getMainTab().collection.filterManager
-
-// every filter of the tab on this row's property, nested groups included
-function propertyFilters(): Filter[] {
-    const propertyId = cellValue().propertyId
-    const found: Filter[] = []
-    const visit = (group: FilterGroup) => group.filters.forEach(f => {
-        if (f.isGroup) visit(f as FilterGroup)
-        else if ((f as Filter).propertyId == propertyId) found.push(f as Filter)
-    })
-    visit(filterManager().state.filter)
-    return found
-}
-
-// Filled blue, as in the property panel, while any filter of the tab is on this property
-const isFiltered = computed(() => !!cellValue && propertyFilters().length > 0)
-
-// A second click removes the property's filters, matching the blue state above.
-function filterValue() {
-    const manager = filterManager()
-    const existing = propertyFilters()
-    if (existing.length) {
-        existing.forEach(f => manager.deleteFilter(f.id))
-        return
-    }
-    const { propertyId, value } = cellValue()
-    const filter = manager.addNewFilter(propertyId)
-    // tag properties have no "equal": match images that have all of the row's tags
-    // (a single-tag property only offers "any", which is the same thing for one tag)
-    const operator = props.type == PropertyType.multi_tags ? FilterOperator.containsAll
-        : props.type == PropertyType.tag ? FilterOperator.containsAny
-        : FilterOperator.equal
-    manager.updateFilter(filter.id, { operator, value })
-}
-
-async function copyValue() {
-    const text = props.tooltip ?? valueZone.value?.innerText.trim()
-    if (!text) return
-    await navigator.clipboard.writeText(text)
-    copied.value = true
-    clearTimeout(copiedTimer)
-    copiedTimer = setTimeout(() => copied.value = false, 1000)
-}
+const copyText = () => props.tooltip ?? valueZone.value?.innerText.trim()
 </script>
 
 <template>
     <!-- pointerdown closes the tooltip: the click it starts opens an editor over the row -->
     <div class="tree-cell" ref="root" :class="{ active: props.active }" @click="emits('click')"
-        @pointerenter="enter" @pointerleave="leave" @pointerdown="tip?.hide()" @focusin="onFocusIn"
+        @pointerenter="onEnter" @pointerleave="onLeave" @pointerdown="tip?.hide()" @focusin="onFocusIn"
         @focusout="onFocusOut">
         <!-- full-bleed layer under the icon and the value (colour fill) -->
         <!-- the icon's mousedown.prevent above keeps an open inline editor focused until its own
@@ -156,19 +129,8 @@ async function copyValue() {
             </div>
         </wTT>
         <!-- mousedown.prevent keeps an open editor focused; click.stop keeps the row from opening one -->
-        <span v-if="!props.empty && !props.active" class="row-actions">
-            <!-- the styled span sits inside wTT: scoped styles can't reach wTT's own trigger span -->
-            <wTT v-if="cellValue" message=".filter_by_value" :click="false">
-                <span class="row-btn" @mousedown.prevent @click.stop="filterValue">
-                    <i :class="isFiltered ? 'bi bi-funnel-fill text-primary' : 'bi bi-funnel'" />
-                </span>
-            </wTT>
-            <wTT message=".copy" :click="false">
-                <span class="row-btn" @mousedown.prevent @click.stop="copyValue">
-                    <i :class="copied ? 'bi bi-check2' : 'bi bi-copy'" />
-                </span>
-            </wTT>
-        </span>
+        <TreeRowActions v-if="pointed && !props.empty && !props.active" :type="props.type"
+            :filter="cellValue?.()" :text="copyText" />
     </div>
 </template>
 
@@ -253,6 +215,7 @@ async function copyValue() {
     text-overflow: ellipsis;
 }
 
+/* TreeRowActions' root: placed and revealed by the row */
 .row-actions {
     position: absolute;
     right: 2px;
@@ -262,17 +225,6 @@ async function copyValue() {
     display: none;
     background-color: white;
     border-radius: 3px;
-}
-
-.row-btn {
-    padding: 0 3px;
-    font-size: 12px;
-    line-height: 18px;
-    color: var(--grey-text);
-}
-
-.row-btn:hover {
-    color: black;
 }
 
 /* only on hover, and never while the row is being edited */

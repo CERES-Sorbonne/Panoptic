@@ -12,7 +12,8 @@ const props = defineProps<{
     teleport?: boolean
 }>()
 
-const emits = defineEmits(['update:modelValue'])
+// hide: the calendar closed, submitted or not (the grid unmounts its editor on it)
+const emits = defineEmits(['update:modelValue', 'hide'])
 
 defineExpose({ focus })
 
@@ -46,7 +47,7 @@ watch(() => props.modelValue, loadValue)
 
 <template>
     <Dropdown :offset="-20" :no-shadow="false" :teleport="props.teleport" @esc="cancel" @enter="submit" placement="bottom"
-        ref="dropdownElem">
+        @hide="emits('hide')" ref="dropdownElem">
         <template v-slot:button>
             <div ref="previewElem" style="font-size: 14px;">
                 <DatePreview :date="props.modelValue" class="row-preview" style="cursor: pointer;"

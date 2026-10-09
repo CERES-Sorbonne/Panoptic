@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<{
     blurOnEnter: true,
     autoFocus: false
 })
-const emits = defineEmits(['update:modelValue', 'update:height', 'show', 'hide'])
+const emits = defineEmits(['update:modelValue', 'update:height', 'show', 'hide', 'tab'])
 
 defineExpose({ focus })
 
@@ -83,7 +83,7 @@ watch(props, loadValue)
         <TextInput v-else :model-value="localValue" @update:model-value="updateLocal" :min-height="props.minHeight"
             :auto-focus="props.autoFocus" :no-shadow="props.noShadow" :url-mode="true" :width="props.width"
             :always-shadow="props.alwaysShadow" :blur-on-enter="props.blurOnEnter" @cancel="cancel" @blur="emitValue"
-            @update:height="emitHeight" ref="inputElem" />
+            @update:height="emitHeight" @tab="emits('tab')" ref="inputElem" />
     </div>
 </template>
 

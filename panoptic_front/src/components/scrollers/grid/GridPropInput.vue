@@ -13,7 +13,8 @@ import { useDataStore } from '@/data/stores/dataStore';
 import { Property, PropertyType } from '@/data/models';
 import { InstanceEntry } from '@/data/stores/instanceStore';
 import { isNumeric, isTag } from '@/utils/utils';
-import { computed, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { keyState } from '@/data/composables/keyState';
 
 const data = useDataStore()
 
@@ -22,8 +23,18 @@ const props = defineProps<{
     property: Property
     minHeight: number
     width: number
+    // Show the value on one line, clipped (for rows of a fixed height). Editing is unchanged.
+    singleLine?: boolean
+    // Editor mode (the grid, which draws its cells with GridCellView and mounts this only for the
+    // cell being edited): opens the editor on mount, and reports `close` once the edit is over and
+    // `tab` (with whether shift was held) when Tab is pressed in it.
+    open?: boolean
 }>()
-const emits = defineEmits(['update:height'])
+const emits = defineEmits<{
+    'update:height': [height: number]
+    close: []
+    tab: [backwards: boolean]
+}>()
 
 defineExpose({
     focus,
@@ -47,6 +58,31 @@ async function waitForDbAction() {
     return dbInput.value.waitForDbAction()
 }
 
+function onClose() {
+    if (props.open) emits('close')
+}
+
+function onTab() {
+    if (props.open) emits('tab', keyState.shift)
+}
+
+// The checkbox has no edit to finish: reached by Tab, it is done once focus leaves it.
+function onCheckboxFocusOut() {
+    onClose()
+}
+
+onMounted(async () => {
+    if (!props.open) return
+    // the dropdown editors place their popup on the cell, so let it be laid out first
+    await nextTick()
+    focus()
+})
+
+// Unmounted by its row before it closed (the row was recycled to another image): the cell must
+// not stay open, or its editor would pop up again whenever that image is next drawn. A second
+// close is a no-op for the grid.
+onBeforeUnmount(onClose)
+
 </script>
 
 <template>
@@ -55,28 +91,31 @@ async function waitForDbAction() {
             <template #default="{ value, set }">
                 <div style="padding: 2px 0px">
                     <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :instance-id="props.instance.id" :can-create="true" :can-delete="true" :can-customize="true"
-                        @update:model-value="set" @update:height="emitHeight" :min-height="props.minHeight"
-                        :teleport="true" :width="props.width" :auto-focus="true" ref="inputElem" />
+                        :no-wrap="props.singleLine" @update:model-value="set" @update:height="emitHeight" :min-height="props.minHeight"
+                        :teleport="true" :width="props.width" :auto-focus="true" ref="inputElem"
+                        @hide="onClose" @tab="onTab" />
 
                     <CellTextInput v-else-if="type == PropertyType.string" :model-value="value" @update:model-value="set"
                         @update:height="emitHeight" :min-height="props.minHeight" :width="props.width"
-                        ref="inputElem" />
+                        ref="inputElem" @hide="onClose" @tab="onTab" />
 
                     <CellUrlInput v-else-if="type == PropertyType.url" :model-value="value" @update:model-value="set"
                         @update:height="emitHeight" :min-height="props.minHeight" :url-mode="true" :width="props.width"
-                        ref="inputElem" />
+                        ref="inputElem" @hide="onClose" @tab="onTab" />
 
                     <CheckboxInput v-else-if="type == PropertyType.checkbox" :model-value="value"
-                        @update:model-value="set" @update:height="emitHeight" ref="inputElem" />
+                        @update:model-value="set" @update:height="emitHeight" ref="inputElem"
+                        @focusout="onCheckboxFocusOut" @keydown.tab="e => { if (props.open) { e.preventDefault(); onTab() } }" />
 
                     <CellColorInput v-else-if="type == PropertyType.color" :model-value="value" @update:model-value="set" @update:height="emitHeight"
-                        :min-height="props.minHeight -2" :width="props.width" ref="inputElem" :teleport="true" />
+                        :min-height="props.minHeight -2" :width="props.width" ref="inputElem" :teleport="true"
+                        @hide="onClose" />
 
                     <RowDateInput v-else-if="type == PropertyType.date" :model-value="value" @update:model-value="set" :teleport="true"
-                        @update:height="emitHeight" ref="inputElem" />
+                        @update:height="emitHeight" ref="inputElem" @hide="onClose" />
 
                     <RowNumberInput v-else-if="type == PropertyType.number" :model-value="value" @update:model-value="set"
-                        @update:height="emitHeight" ref="inputElem" :height="27" />
+                        @update:height="emitHeight" ref="inputElem" :height="27" @hide="onClose" @tab="onTab" />
 
 
                     <div v-else-if="property.type == PropertyType._folders" :style="{ height: props.minHeight + 'px' }"
@@ -85,6 +124,8 @@ async function waitForDbAction() {
                             <TagBadge :name="data.folders[props.instance.properties[property.id]].name" :color="-1" />
                         </span>
                     </div>
+                    <!-- Read-only values: on one line, a plain text node is all it takes. -->
+                    <div v-else-if="props.singleLine" class="text-truncate" style="padding: 0 2px;" :class="{ num: isNumeric(type) }">{{ value }}</div>
                     <TextInput v-else :model-value="value" @update:model-value="set" @update:height="emitHeight"
                         :min-height="props.minHeight" :editable="false" :class="{ num: isNumeric(type) }" />
                 </div>

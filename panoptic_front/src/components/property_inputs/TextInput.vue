@@ -116,9 +116,10 @@ onMounted(async () => {
 watch(() => props.width, () => {
     updateHeight()
 })
-watch(() => props.modelValue, () => {
-    input(props.modelValue)
-})
+// A value set from outside is only displayed (ContentEditable syncs its own content) and
+// measured. Echoing it back as update:modelValue made a mere display a write: '' came back as
+// undefined, which DBInput.set sees as a change and sends to the database.
+watch(() => props.modelValue, updateHeight)
 </script>
 
 <template>

@@ -45,12 +45,25 @@ onUnmounted(() => {
     instanceStore.unregister(uid)
 })
 
+// The ids `selected` was last synced for. The selection listener keeps it right for those, so a
+// new array naming the same ids (a scroller rebuilding its window in place) needs no new pass.
+let syncedIds: number[] = []
+
+function sameIds(a: number[], b: number[]) {
+    if (a.length !== b.length) return false
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+    return true
+}
+
 watch(
     [() => props.instanceIds, () => props.propIds],
     ([ids, propIds]) => {
         if (!ids) return
         const projectId = panoptic.connectionState?.connectedProject ?? ''
+        // The store skips its bookkeeping itself when this registration did not change.
         instanceStore.register(uid, ids, [...propIds, data.getSysId('width'), data.getSysId('height')], projectId)
+        if (sameIds(ids, syncedIds)) return
+        syncedIds = ids
         syncSelection()
     },
     { immediate: true, deep: false }

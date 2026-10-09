@@ -4,6 +4,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import TreeCellFrame from './TreeCellFrame.vue'
 import { PropertyType } from '@/data/models'
+import { numberValue } from './cellDisplay'
 
 const props = defineProps<{
     modelValue?: number
@@ -14,12 +15,8 @@ const emits = defineEmits(['update:modelValue', 'focus', 'blur', 'tab'])
 const inputElem = ref(null)
 const editing = ref(false)
 
-// "No value" covers more than `undefined` here: a group's value can come in as null, and a
-// cluster/undecided card can carry a NaN — none of which is a number to show.
-const value = computed(() => {
-    const v = props.modelValue
-    return typeof v === 'number' && !isNaN(v) ? v : undefined
-})
+// see numberValue: null and NaN are no value either
+const value = computed(() => numberValue(props.modelValue))
 
 const localValue = ref<string>(value.value?.toString() ?? '')
 

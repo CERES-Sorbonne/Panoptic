@@ -2,26 +2,34 @@
 import { Property, Sha1Scores } from '@/data/models';
 import { ScrollerPileLine } from '@/components/scrollers/types';
 import ImageVue from './Image.vue';
-import { SelectedImages } from '@/core/GroupManager';
+import { ImageIterator, SelectedImages } from '@/core/GroupManager';
 import { useColumnStore } from '@/data/stores/columnStore';
-import { ComputedRef, Ref, computed, inject } from 'vue';
+import { ComputedRef, computed, inject } from 'vue';
+import { LineHost, lineIterators, treeLinesBuiltKey } from './treeLines';
 
 const col = useColumnStore()
 const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(() => 'global'))
+const linesBuilt = inject(treeLinesBuiltKey, undefined)
 
 const props = defineProps<{
     imageSize: number
-    inputIndex: number
     item: ScrollerPileLine
     parentIds: number[]
-    hoverBorder: number
-    index: any
+    // The tree the line is a range of (the manager's GroupResult).
+    result: LineHost
     properties: Property[]
     sha1Scores: Sha1Scores
     preview?: SelectedImages
 }>()
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
+
+// One iterator per pile on this line (its `slots` = the whole pile), made for the lines on screen
+// only — see ImageLine.vue.
+const images = computed<ImageIterator[]>(previous => {
+    linesBuilt?.value
+    return lineIterators(props.result, props.item, previous)
+})
 
 // Inner (image) width for the cell at column `i` — precomputed by the scroller so cells
 // add up to exactly the line width. Falls back to the line's base image size.
@@ -34,7 +42,7 @@ const selected = computed(() => {
     col.selectionTick(ns)  // reactive dep on this namespace's selection (step 2)
     const res = {}
     const ids = col.instanceIds()
-    props.item.data.forEach(it => {
+    images.value.forEach(it => {
         const id = ids[it.slot]
         res[id] = col.isSelected(it.slot, ns)
     })
@@ -45,7 +53,7 @@ const previews = computed(() => {
     const res = {}
     if (!props.preview) return res
     const ids = col.instanceIds()
-    props.item.data.forEach(it => {
+    images.value.forEach(it => {
         const id = ids[it.slot]
         res[id] = props.preview[id]
     })
@@ -58,13 +66,13 @@ const previews = computed(() => {
     <div class="d-flex flex-row">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="emits('scroll', parentId)" @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
-            <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
+            <div class="image-line" :data-border-group="parentId"></div>
         </div>
-        <ImageVue :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+        <ImageVue :image="imageIt" :groupId="item.groupId" :size="props.imageSize"
             :width="cellWidth(i)"
             :properties="props.properties" :selected="selected[col.instanceIds()[imageIt.slot]]" :selectedPreview="previews[col.instanceIds()[imageIt.slot]]"
             @update:selected="v => emits('update:selected-image', { id: col.instanceIds()[imageIt.slot], value: v })"
-            v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
+            v-for="imageIt, i in images" class="me-2 mb-2" />
 
         <!-- Reserve the space of the images missing from this (partial) line so it keeps
              the same size as a full line instead of stretching to fill the gap. -->
@@ -72,7 +80,7 @@ const previews = computed(() => {
             v-for="n in props.item.emptyCount"
             :key="'empty-' + n"
             class="image-empty me-2 mb-2"
-            :style="{ width: cellWidth(props.item.data.length + n - 1) + 2 + 'px', height: props.imageSize + 2 + 'px' }"
+            :style="{ width: cellWidth(props.item.count + n - 1) + 2 + 'px', height: props.imageSize + 2 + 'px' }"
         ></div>
     </div>
 </template>
@@ -82,10 +90,6 @@ const previews = computed(() => {
     height: 100%;
     border-left: 1px solid var(--border-color);
     padding-left: 10px;
-}
-
-.active {
-    border-left: 1px solid blue;
 }
 
 .image-empty {

@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{
     minHeight: 30,
     offset: 0
 })
-const emits = defineEmits(['update:height', 'update:modelValue'])
+const emits = defineEmits(['update:height', 'update:modelValue', 'hide'])
 
 const localValue = ref(null)
 const dropdown = ref(null)
@@ -55,6 +55,12 @@ function set(color) {
     emits('update:modelValue', color)
 }
 
+// The palette closed, picked or not: the edit is over (the grid unmounts its editor on this).
+function onHide() {
+    isFocus.value = false
+    emits('hide')
+}
+
 function onShow() {
     if (!previewElem.value) return
     previewWidth.value = Math.max(previewElem.value.offsetWidth, 100)
@@ -69,7 +75,7 @@ defineExpose({
 </script>
 
 <template>
-    <Dropdown :teleport="props.teleport" :offset="0" @show="onShow" ref="dropdown">
+    <Dropdown :teleport="props.teleport" :offset="0" @show="onShow" @hide="onHide" ref="dropdown">
         <template #button>
             <div v-if="props.modelValue !== undefined" :style="{ height: props.minHeight + 'px' }"
                 style="cursor: pointer;" ref="previewElem">

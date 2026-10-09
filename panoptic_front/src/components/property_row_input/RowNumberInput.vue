@@ -9,7 +9,7 @@ const props = defineProps<{
     height?: number
     inputOffset?: number
 }>()
-const emits = defineEmits(['update:modelValue', 'tab', 'focus'])
+const emits = defineEmits(['update:modelValue', 'tab', 'focus', 'hide'])
 
 defineExpose({ focus })
 
@@ -41,6 +41,13 @@ function focus() {
     edit()
 }
 
+// The field lost focus: its value was committed (NumberInput emits on blur) and the edit is over
+// (the grid unmounts its editor on `hide`).
+function onBlur() {
+    loadValue()
+    emits('hide')
+}
+
 onMounted(loadValue)
 watch(props, loadValue)
 
@@ -52,7 +59,7 @@ watch(props, loadValue)
             style="font-size: inherit; cursor: pointer;" @click="edit" :width="props.width" />
         <div v-else :style="{ lineHeight: inputLineHeight + 'px', top: inputOffset + 'px', position: 'relative' }">
             <NumberInput :model-value="props.modelValue" @update:model-value="emitValue" :width="props.width"
-                @keydown.esc.stop @blur="loadValue" ref="inputElem" class="reduced" @keydown.tab.stop.prevent="emits('tab')" @focus="emits('focus')"/>
+                @keydown.esc.stop @blur="onBlur" ref="inputElem" class="reduced" @keydown.tab.stop.prevent="emits('tab')" @focus="emits('focus')"/>
         </div>
     </div>
 </template>

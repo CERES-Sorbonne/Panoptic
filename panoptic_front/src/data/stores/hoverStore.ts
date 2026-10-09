@@ -87,27 +87,34 @@ const focusClaims = new Set<() => void>()
  *   - the window loses focus, or the pointer leaves the document → global listeners
  *   - a drag steals the pointer → pointercancel
  */
+// The page-wide half of every source: the ways a hover goes stale that no single row can see.
+// Exported for the scrollers that report hover by delegation (cellHover.ts) instead of through a
+// source per row.
+export function installHoverListeners() {
+    if (installed) return
+    installed = true
+    const hover = useHoverStore()
+    const clear = () => hover.clearAllHover()
+    // Deferred: during focusout the document still reports the OLD activeElement, and a
+    // click on empty space moves focus to <body> without ever firing focusin.
+    const recheck = () => setTimeout(() => focusClaims.forEach(check => check()), 0)
+    document.addEventListener('focusin', recheck, true)
+    document.addEventListener('focusout', recheck, true)
+    document.addEventListener('pointerdown', recheck, true)
+    // 'blur' on window: alt-tab, devtools, another app. The pointer may come back anywhere.
+    window.addEventListener('blur', clear)
+    // pointer left the page entirely — a fast exit can outrun the row's own pointerleave
+    document.documentElement.addEventListener('pointerleave', clear)
+    // vuedraggable and the like capture the pointer; no leave is ever delivered
+    document.addEventListener('pointercancel', clear, true)
+    document.addEventListener('dragstart', clear, true)
+}
+
 export function useHoverSource(root?: Ref<HTMLElement>) {
     const hover = useHoverStore()
     const propertyId = inject(hoverPropertyKey, () => null)
 
-    if (!installed) {
-        installed = true
-        const clear = () => hover.clearAllHover()
-        // Deferred: during focusout the document still reports the OLD activeElement, and a
-        // click on empty space moves focus to <body> without ever firing focusin.
-        const recheck = () => setTimeout(() => focusClaims.forEach(check => check()), 0)
-        document.addEventListener('focusin', recheck, true)
-        document.addEventListener('focusout', recheck, true)
-        document.addEventListener('pointerdown', recheck, true)
-        // 'blur' on window: alt-tab, devtools, another app. The pointer may come back anywhere.
-        window.addEventListener('blur', clear)
-        // pointer left the page entirely — a fast exit can outrun the row's own pointerleave
-        document.documentElement.addEventListener('pointerleave', clear)
-        // vuedraggable and the like capture the pointer; no leave is ever delivered
-        document.addEventListener('pointercancel', clear, true)
-        document.addEventListener('dragstart', clear, true)
-    }
+    installHoverListeners()
 
     // Identity of this component instance. Not the property id: the same property can be shown
     // by several rows at once, and they must not clear each other. One token for both maps.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, shallowRef } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import { ImageIterator } from '@/core/GroupManager'
@@ -8,9 +8,12 @@ import { usePanopticStore } from '@/data/stores/panopticStore'
 import Zoomable from '@/components/Zoomable.vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from './TreePropertyInput.vue'
+import TreeCellView from './TreeCellView.vue'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { emptyInstanceEntry, useInstanceStore } from '@/data/stores/instanceStore'
 import { useDataStore } from '@/data/stores/dataStore'
+import { cellEditingKey, openPropertiesOf, useCellEditing } from '../cellEditing'
+import { cellPointedKey } from '../cellHover'
 
 const panoptic = usePanopticStore()
 const store = useColumnStore()
@@ -22,7 +25,6 @@ const props = defineProps({
     // Optional per-cell width (defaults to `size`). The scroller hands out 1px-wider
     // widths to some cells so a line fills its full width; height stays driven by `size`.
     width: { type: Number, default: undefined },
-    index: Number,
     groupId: Number,
     hideProperties: Boolean,
     constraintWidth: Boolean,
@@ -53,7 +55,31 @@ const inst = computed(() => {
 const isSelected = computed(() => props.selected ?? false)
 
 const hideImg = inject('hideImg')
-const inputKey = inject('inputKey') as string
+
+// Property rows are drawn read-only (TreeCellView); the scroller says which of them have their
+// editor open (TreePropertyInput) and which one is under the pointer. Outside a TreeScroller the
+// card keeps its own state, so it still edits.
+const cells = inject(cellEditingKey, null) ?? useCellEditing()
+const pointed = inject(cellPointedKey, null) ?? shallowRef(null)
+
+// This card's open properties. Every card on screen re-evaluates when a cell opens or closes:
+// handing back the previous array while nothing changed for this card keeps it from re-rendering.
+const openIds = computed<number[]>(previous => {
+    const id = instanceId.value
+    if (id === undefined) return []
+    return openPropertiesOf(cells.open.value, id, props.image.groupId, previous)
+})
+
+// A number, not the key: only the card under the pointer, and the one it left, see it change.
+const pointedId = computed(() => {
+    const p = pointed.value
+    if (!p || p.instanceId !== instanceId.value || p.groupId !== props.image.groupId) return undefined
+    return p.propertyId
+})
+
+function openCell(property: Property) {
+    cells.openCell({ instanceId: inst.value.id, groupId: props.image.groupId, propertyId: property.id })
+}
 
 const score = computed(() => {
     const group = props.image.group
@@ -100,9 +126,13 @@ const score = computed(() => {
         </div>
 
         <div class="prop-container" v-if="props.properties.length && !props.hideProperties && instanceId !== undefined">
-            <TreePropertyInput v-for="property in props.properties" :key="property.id"
-                :group-id="props.image.groupId" :input-key="inputKey" :property="property" :instance="inst"
-                :idx="props.image.getImageOrder()" />
+            <template v-for="property in props.properties" :key="property.id">
+                <TreePropertyInput v-if="openIds.includes(property.id)" :open="true"
+                    :group-id="props.image.groupId" :property="property" :instance="inst"
+                    @close="cells.closeCell" @tab="cells.tab" />
+                <TreeCellView v-else :property="property" :instance="inst" :group-id="props.image.groupId"
+                    :pointed="pointedId === property.id" @open="openCell(property)" />
+            </template>
         </div>
 
         <div v-if="props.selectedPreview" class="w-100 h-100"
@@ -154,7 +184,7 @@ const score = computed(() => {
     border-radius: 3px;
     overflow: hidden;
     /* No margin here: the line comps apply me-2/mb-2, which is the GAP the scroller budgets
-       for (TreeScroller.fillWidths). A margin of our own would be spent twice, overflow the
+       for (treeLines.fillWidths). A margin of our own would be spent twice, overflow the
        line, and get taken back out of the cards by flex-shrink. */
     /* The cell width is computed to the pixel by the scroller: never let flex resize it.
        min-width:0 also drops the automatic min-content floor — without it a card could not
@@ -162,6 +192,12 @@ const score = computed(() => {
        focusing a row (span -> <input>) visibly widened the card. */
     flex: 0 0 auto;
     min-width: 0;
+    /* A row changing (an editor opening, a value arriving, hover buttons mounting) is laid out and
+       repainted within this card rather than checked against the whole line. Clipping costs nothing:
+       overflow is already hidden, the ring/overlays/count chip are all inset, and every popup and
+       tooltip a row opens is teleported to the body. No size containment: the height comes from
+       the property rows. */
+    contain: layout paint style;
 }
 
 /* Ring as an inset overlay rather than a real border: it stays inside the cell's own width

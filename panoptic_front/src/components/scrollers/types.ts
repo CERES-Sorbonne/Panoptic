@@ -1,11 +1,11 @@
-import { Group, ImageIterator } from "@/core/GroupManager"
+import { Group } from "@/core/GroupManager"
 import { Instance } from "@/data/models"
 
 export interface ScrollerLine {
     id: string | number
     type: string
     groupId?: number
-    data: any
+    data?: any
     index?: number
     depth?: number
     size: number
@@ -16,8 +16,14 @@ export interface GroupLine extends ScrollerLine {
     nbClusters: number
 }
 
+// An image (or sha1 pile) line of the tree: positions [start, start + count) of leaf `groupId` —
+// slot indices in a flat leaf, pile indices in a piled one. No images or iterators: the line
+// component makes those for the lines on screen (see tree/treeLines.ts), so building the lines
+// costs nothing per image.
 export interface ImageLine extends ScrollerLine {
-    data: ImageIterator[]
+    groupId: number
+    start: number
+    count: number
     imageSize: number
     emptyCount: number
     // Per-column inner (image) widths, precomputed by the scroller so the cells add up to
@@ -43,13 +49,8 @@ export interface PileRowLine extends ScrollerLine {
     data: PileHandle
 }
 
-export interface ScrollerPileLine extends ScrollerLine {
-    data: ImageIterator[]
-    imageSize: number
-    emptyCount: number
-    // See ImageLine.cardWidths — same precomputed per-column widths for pile rows.
-    cardWidths: number[]
-}
+// Same range line, type 'piles': positions are the leaf's piles.
+export type ScrollerPileLine = ImageLine
 
 // How a group card renders its images: one representative image, or a mosaic of the first few —
 // either one large image on the left half plus a grid on the right ('mosaic'), or a plain

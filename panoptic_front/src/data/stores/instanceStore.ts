@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { markRaw, reactive, ref } from 'vue'
+import { computed, markRaw, reactive, shallowRef } from 'vue'
 import { deletedID, ImageValuesArray, InstanceValuesArray, FileValuesArray, LoadResult } from '../models'
 import { projectApi } from '../api/projectApi'
 import { SERVER_PREFIX } from '../api/panopticApi'
@@ -35,7 +35,17 @@ export const useInstanceStore = defineStore('instanceStore', () => {
 
     const instanceData = reactive<Record<number, InstanceEntry>>({})
     const registrations = markRaw(new Map<string, Registration>())
-    const registeredInstanceCount = ref(0)
+    // Distinct instances over all registrations, for the column status dropdown. Counted when read,
+    // not on each register: the scrollers re-register on every window change, and the count went
+    // over every registration's ids each time for a number shown only while that dropdown is open.
+    const registrationsChanged = shallowRef(0)
+    const registeredInstanceCount = computed(() => {
+        registrationsChanged.value
+        const unique = new Set<number>()
+        for (const { instanceIds } of registrations.values())
+            for (const id of instanceIds) unique.add(id)
+        return unique.size
+    })
 
     // Per-pair load tracking. A (instanceId, propId) pair is "available" when it is
     // already loaded (fetched) or currently being requested (inFlight) — in both cases
@@ -100,9 +110,23 @@ export const useInstanceStore = defineStore('instanceStore', () => {
         return entry
     }
 
+    function sameIds(a: number[], b: number[]) {
+        if (a.length !== b.length) return false
+        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+        return true
+    }
+
     function register(key: string, instanceIds: number[], propIds: number[], projectId: string) {
+        const previous = registrations.get(key)
+        if (previous && sameIds(previous.instanceIds, instanceIds) && sameIds(previous.propIds, propIds)) {
+            // A rebuilt window often names the same instances (a refresh, a rebuild in place): the
+            // entries exist already. Still fetch: a register is also when values gone stale (see
+            // fetchAll's sequence check) are asked for again.
+            if (instanceIds.length && propIds.length) scheduleFetch()
+            return
+        }
         registrations.set(key, { instanceIds: [...instanceIds], propIds: [...propIds] })
-        updateRegisteredCount()
+        registrationsChanged.value++
 
         for (const id of instanceIds) {
             if (instanceData[id]) continue
@@ -115,14 +139,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
 
     function unregister(key: string) {
         registrations.delete(key)
-        updateRegisteredCount()
-    }
-
-    function updateRegisteredCount() {
-        const unique = new Set<number>()
-        for (const { instanceIds } of registrations.values())
-            for (const id of instanceIds) unique.add(id)
-        registeredInstanceCount.value = unique.size
+        registrationsChanged.value++
     }
 
     // --- fetch ---
@@ -343,7 +360,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
         inFlight.clear()
         cachedSequence = 0
         if (batchTimer !== null) { clearTimeout(batchTimer); batchTimer = null }
-        registeredInstanceCount.value = 0
+        registrationsChanged.value++
     }
 
     return {

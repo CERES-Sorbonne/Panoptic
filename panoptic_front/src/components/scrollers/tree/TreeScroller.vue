@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, triggerRef } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, triggerRef, getCurrentInstance } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { Group, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager'
+import { Group, SelectedImages } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/composables/keyState';
 import { Property, Sha1Scores, PropertyMode, ModalId } from '@/data/models';
 import { ScrollerLine, GroupLine, ScrollerPileLine, ImageLine } from '@/components/scrollers/types';
+import { cardLineSize, lineFirstSlots, lineSlot, TreeLineCache, treeLinesBuiltKey } from './treeLines';
 import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore'; // <-- Imported columnStore
 import InstanceData from '@/components/data/InstanceData.vue';
 import { usePagedLines } from '@/components/scrollers/usePagedLines';
+import CellHoverTip from '@/components/scrollers/CellHoverTip.vue';
+import { cellEditingKey, CellKey, useCellEditing } from '@/components/scrollers/cellEditing';
+import { cellPointedKey, useCellHover } from '@/components/scrollers/cellHover';
+import { adjacentCell, CellLines, revealOffset } from '@/components/scrollers/cellNavigation';
+import { useDataStore } from '@/data/stores/dataStore';
+import { useInstanceStore } from '@/data/stores/instanceStore';
+import { cellFullText } from './cellDisplay';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore() // <-- Initialized store to map slots to IDs
@@ -28,12 +36,13 @@ const props = defineProps<{
     sha1Scores?: Sha1Scores,
     hideIfModal?: boolean
     preview?: SelectedImages
+    // No longer read: Tab between cells walks this scroller's own lines (see navigateCell) instead
+    // of inputStore's registry, which this key used to namespace. Kept so callers need no change.
     inputKey: string
 }>()
 
 const emit = defineEmits(['reco'])
 
-provide('inputKey', props.inputKey)
 // Selection namespace for descendant cells (defaults to 'global'). Sourced from
 // the manager so there is a single source of truth per scroller.
 provide('selectNamespace', computed(() => props.manager?.selectionNamespace ?? 'global'))
@@ -43,19 +52,28 @@ const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
 
 const hoverGroupBorder = ref(-1)
 
+// The hovered group's indent borders are lit by one CSS rule written here, not by a prop handed to
+// every line: as a prop, each hover in or out of a border re-rendered every line on screen (and
+// every idle one the scroller keeps). The borders only carry their group id (data-border-group);
+// the rule is scoped to this scroller, so the other pane's tree keeps its own borders.
+const borderScope = 'tree-' + getCurrentInstance()!.uid
+const hoverBorderCss = computed(() => hoverGroupBorder.value < 0 ? '' :
+    `.vue-recycle-scroller[data-border-scope="${borderScope}"] [data-border-group="${hoverGroupBorder.value}"] { border-left-color: blue; }`)
+
 const scroller = ref(null)
 
 // The scroller only gets the lines around the viewport plus padding (see usePagedLines), so
 // a huge tree does not go past the browser's height limit. imageLines stays the full list.
-const paged = usePagedLines<ScrollerLine>({ scroller, viewportHeight: () => props.height })
+// Mounted beyond the viewport: one line on each side (the buffer follows the tallest line, ~330px
+// for a card line with properties), at least 300px when the lines are short so a fast trackpad
+// frame does not scroll into blank. It used to be 400px of scroller buffer inside an 800px window,
+// and since the window was rebuilt nearly every scroll event, every line on screen re-rendered as
+// often (see usePagedLines).
+const paged = usePagedLines<ScrollerLine>({ scroller, viewportHeight: () => props.height, minBuffer: 300 })
 const windowLines = paged.windowLines
+const scrollerBuffer = paged.buffer
 watch(imageLines, lines => paged.setLines(lines), { flush: 'sync' })
 
-// One indent column as ImageLine/PileLine actually render it: .ps-2 (8) + .image-line's
-// border-left (1) + its padding-left (10). Must match that CSS or the lines overflow.
-const MARGIN_STEP = 19
-const GAP = 8 // must match the "me-2" margin applied to Image/PileLine cells
-const BORDER = 2 // Image.vue's .full-container 1px border on each side, added on top of its width style
 // Trim off the width prop: the vertical scrollbar (15) + 2px so cells don't touch it. This
 // used to be 34, which happened to cover the indent the line math forgot to reserve; now that
 // the indent is accounted for properly, the extra would just be wasted space on the right.
@@ -72,36 +90,70 @@ const visiblePropertiesNb = computed(() => props.properties.length)
 const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1))
 const visiblePropertiesClusterNb = computed(() => visiblePropertiesCluster.value.length)
 
-const maxPerLine = computed(() => Math.ceil(contentWidth.value / props.imageSize * 1.5))
-
 // Row height depends on the actual rendered image size of that row (which varies per
-// line, see computeImageLines/computeImagePileLines), not the global imageSize prop.
+// leaf, see treeLines.buildLeafLines), not the global imageSize prop.
 function imageLineSizeFor(imgSize: number) {
-    let nb = visiblePropertiesNb.value
-    let offset = 0
-    if (nb > 0) {
-        offset += 28
-    }
-    if (nb > 1) {
-        offset += (nb - 1) * 26
-    }
-    return imgSize + offset + 6
+    return cardLineSize(imgSize, visiblePropertiesNb.value)
 }
 
 function pileLineSizeFor(imgSize: number) {
-    let nb = visiblePropertiesClusterNb.value
-    let offset = 0
-    if (nb > 0) {
-        offset += 28
-    }
-    if (nb > 1) {
-        offset += (nb - 1) * 26
-    }
-    return imgSize + offset + 6
+    return cardLineSize(imgSize, visiblePropertiesClusterNb.value)
 }
 
-function simiImageLineSizeFor(imgSize: number) {
-    return imgSize + 40
+// ── Property cells ──────────────────────────────────────────────────────────
+// The cards draw their property rows read-only (TreeCellView) and mount an editor only for the
+// row being edited; which one that is lives here, per scroller. Hover on the rows is handled here
+// too, once for all of them: hover-store reporting, the value tooltip, and which row gets the
+// filter/copy buttons.
+const data = useDataStore()
+const instanceStore = useInstanceStore()
+
+const cells = useCellEditing({ navigate: navigateCell })
+provide(cellEditingKey, cells)
+
+const cellHover = useCellHover({
+    fullText: key => {
+        const property = data.properties[key.propertyId]
+        if (!property) return undefined
+        return cellFullText(property, instanceStore.instanceData[key.instanceId]?.properties[key.propertyId], data.tags)
+    }
+})
+provide(cellPointedKey, cellHover.pointed)
+
+// The cells of `propertyId` in display order: every image of an image line, and every pile of a
+// pile line when the property is one the piles show (see visiblePropertiesCluster).
+function cellLines(propertyId: number): CellLines {
+    const lines = imageLines.value
+    const ids = columnStore.instanceIds()
+    const host = props.manager.result
+    const onPiles = visiblePropertiesCluster.value.some(p => p.id === propertyId)
+    return {
+        count: lines.length,
+        cells: l => {
+            const line = lines[l]
+            if (line.type === 'images' || (line.type === 'piles' && onPiles)) return (line as ImageLine).count
+            return 0
+        },
+        // A pile's cell is its first image's, as the card draws it (Image.vue reads `slot`).
+        at: (l, i) => ({ instanceId: ids[lineSlot(host, lines[l] as ImageLine, i)], groupId: lines[l].groupId }),
+    }
+}
+
+// Tab / Shift-Tab: the same property on the next / previous image, scrolled into view first.
+async function navigateCell(from: CellKey, backwards: boolean): Promise<CellKey | undefined> {
+    const to = adjacentCell(cellLines(from.propertyId), from, backwards, groupIdx[from.groupId] ?? 0)
+    if (!to || to.cell.instanceId === undefined) return undefined
+    const offset = revealOffset(paged.lineOffset(to.line), imageLines.value[to.line].size, paged.getScrollTop(), props.height)
+    if (offset !== undefined) {
+        // The editor being left commits on its blur: give it that now, while its card is still
+        // there — the scroll can recycle it, and the popups close on scroll anyway.
+        ;(document.activeElement as HTMLElement)?.blur?.()
+        paged.scrollToPosition(offset)
+        // Open only once the scroll has landed and the target card is drawn: an editor opened
+        // before would be closed by the scroll it is waiting on.
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    }
+    return { ...to.cell, propertyId: from.propertyId }
 }
 
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
@@ -136,17 +188,19 @@ const windowIds = computed(() => {
         if (lines[end].type === 'images' || lines[end].type === 'piles') postCount++
     }
 
+    // Read off the leaves directly (a pile counts by its first image, the one its card draws):
+    // no iterators for this, the lines only hold ranges.
+    const host = props.manager.result
+    const colIds = columnStore.instanceIds()
+    const slots: number[] = []
     for (let i = start; i <= end; i++) {
         const line = lines[i]
-        if (line.type === 'images' || line.type === 'piles') {
-            for (const it of (line as ImageLine).data) {
-                // <-- RESOLVE ID: Map the iterator's slot to the backend instanceId
-                const instanceId = columnStore.instanceIds()[it.slot]
-                if (instanceId !== undefined && !isNaN(instanceId)) {
-                    ids.push(instanceId)
-                }
-            }
-        }
+        if (line.type === 'images' || line.type === 'piles') lineFirstSlots(host, line as ImageLine, slots)
+    }
+    for (const slot of slots) {
+        // RESOLVE ID: map the slot to the backend instanceId
+        const instanceId = colIds[slot]
+        if (instanceId !== undefined && !isNaN(instanceId)) ids.push(instanceId)
     }
     return ids
 })
@@ -159,72 +213,48 @@ defineExpose({
 })
 
 function clear() {
+    lineCache.clear()
     imageLines.value = []
 }
 
-function GroupToLines(it: GroupIterator) {
-    const lines: Array<GroupLine | ScrollerPileLine> = []
-    const group = it.group
-    lines.push({
+// Each leaf's block of image/pile lines, kept across rebuilds (see TreeLineCache for the key and
+// why it needs no change signal from the tree). A rebuild walks the groups only and reuses every
+// block whose leaf, sizes and properties did not change — opening or closing a group no longer
+// re-lines the images of every other group.
+const lineCache = new TreeLineCache()
+
+// Bumped with every new line list; the line components re-check their iterators on it (see
+// treeLinesBuiltKey).
+const linesBuilt = shallowRef(0)
+provide(treeLinesBuiltKey, linesBuilt)
+
+function groupLine(group: Group): GroupLine {
+    // Never reused — GroupManager rebuilds the tree with new Group objects, so reusing old line
+    // objects keeps stale .data references and Vue won't update. One per group: cheap.
+    return {
         id: group.id,
         type: 'group',
         data: group,
         depth: group.depth,
         size: props.hideGroup ? 0 : 30,
         nbClusters: 10
-    })
-
-    // A group with children is a real sub-tree; piled leaves have no children.
-    if (group.children.length > 0) return lines
-    if (group.view.closed) return lines
-
-    // getImageLineParents() = ancestors + the group itself, so an image line draws depth + 1
-    // indent columns, not depth. Reserving only `depth` of them made every line that much too
-    // wide, and the overflow came out of the trailing cell.
-    const availableWidth = contentWidth.value - ((group.depth + 1) * MARGIN_STEP)
-    const piled = props.manager.result.pileIndex.has(group.id)
-    if (!piled) {
-        computeImageLines(it, lines, props.imageSize, availableWidth, group)
-    } else {
-        computeImagePileLines(it, lines as ScrollerPileLine[], props.imageSize, availableWidth, group)
     }
-
-    return lines
 }
 
-// Two lines are interchangeable when rendering them produces the same DOM. When that
-// holds we keep the PREVIOUS line object so its `:item` reference stays stable and the
-// child component (and its images) is not re-rendered — this is what stops the flash.
-function sameLine(a: ScrollerLine, b: ScrollerLine): boolean {
-    if (!a || a.type !== b.type || a.size !== b.size || (a as any).depth !== (b as any).depth) return false
-    if (b.type === 'group') {
-        // Never reuse group lines — GroupManager rebuilds the tree with new Group objects,
-        // so reusing old line objects keeps stale .data references and Vue won't update.
-        return false
-    }
-    if (b.type === 'images' || b.type === 'piles') {
-        const ad = (a as ImageLine).data, bd = (b as ImageLine).data
-        if (ad.length !== bd.length) return false
-        for (let i = 0; i < ad.length; i++) {
-            if (ad[i].slot !== bd[i].slot) return false
-        }
-        return true
-    }
-    return false
-}
+// What the current lines were built from. A version bump the lines already reflect needs no
+// second rebuild: opening/closing a group bumps the version AND rebuilds right away through the
+// group:open/close handlers, so the debounced version watcher would otherwise redo the same work
+// 50ms later. The manager is part of the stamp since a swapped-in manager can sit at the same
+// version number as the one it replaced.
+let builtVersion = -1
+let builtManager: GroupInspector | undefined
 
-// Reuse unchanged line objects (matched by id) so RecycleScroller and the line components
-// keep their existing instances/DOM; only new or changed lines get fresh objects.
-function reconcileLines(prev: ScrollerLine[], next: ScrollerLine[]): ScrollerLine[] {
-    if (!prev.length) return next
-    const byId = new Map<any, ScrollerLine>()
-    for (const l of prev) byId.set(l.id, l)
-    for (let i = 0; i < next.length; i++) {
-        const old = byId.get(next[i].id)
-        if (old && sameLine(old, next[i])) next[i] = old
-    }
-    return next
-}
+// Parent-id arrays handed to the lines (see groupLineParents/getImageLineParents). The template
+// asks for them on every render of the scroller slot, i.e. every time the window shifts. A fresh
+// array each time is a changed prop for every line on screen, so all of them re-rendered on
+// scroll; handing back the same array while the tree is unchanged lets Vue skip them. Keyed by group id ('g' = the group line's own ancestors, 'l' = an image line's, which
+// adds the group itself) and emptied by computeLines, which is when the drawn tree changes.
+const parentsCache = new Map<string, number[]>()
 
 let _computingLines = false
 function computeLines() {
@@ -232,123 +262,44 @@ function computeLines() {
     _computingLines = true
     try {
         if (!props.manager.result.root) return
+        builtVersion = props.manager.version.value
+        builtManager = props.manager
+        // Parent chains are read off the tree being drawn now: drop the ones of the old tree.
+        parentsCache.clear()
+        const host = props.manager.result
         let it = props.manager.getGroupIterator()
         if (!it?.group) {
+            lineCache.clear()
             imageLines.value = []
             return
         }
-        const lines = []
+        const params = {
+            contentWidth: contentWidth.value,
+            imageSize: props.imageSize,
+            propertyCount: visiblePropertiesNb.value,
+            pilePropertyCount: visiblePropertiesClusterNb.value,
+        }
+        const lines: ScrollerLine[] = []
         const visited = new Set<number>()
         while (it) {
             const group = it.group
             if (visited.has(group.id)) break
             visited.add(group.id)
             groupIdx[group.id] = lines.length
-            const gl = GroupToLines(it)
-            for (let i = 0; i < gl.length; i++) lines.push(gl[i])
+            lines.push(groupLine(group))
+            // A group with children is a real sub-tree (piled leaves have no children); a closed
+            // leaf keeps its cached block for when it reopens.
+            if (group.children.length === 0 && !group.view.closed) {
+                const block = lineCache.leafLines(host, group, params)
+                for (let i = 0; i < block.length; i++) lines.push(block[i])
+            }
             it = it.nextGroup()
         }
-        imageLines.value = reconcileLines(imageLines.value, lines)
+        lineCache.prune(host)
+        linesBuilt.value++
+        imageLines.value = lines
     } finally {
         _computingLines = false
-    }
-}
-
-// Per-cell widths that exactly fill a line: flooring the cell size leaves up to
-// (itemsPerLine - 1) leftover px at the line end, so hand those out 1px at a time to the
-// leading columns. The distribution depends only on lineWidth/itemsPerLine (constant across
-// a group's lines), so grid columns stay aligned line-to-line and the line comps do no math.
-function fillWidths(lineWidth: number, itemsPerLine: number): { lineImgSize: number, cardWidths: number[] } {
-    const cardArea = lineWidth - GAP * (itemsPerLine - 1) // px available for cell OUTER widths
-    const baseOuter = Math.floor(cardArea / itemsPerLine)
-    const extraCount = cardArea - baseOuter * itemsPerLine
-    const lineImgSize = Math.max(1, baseOuter - BORDER)
-    const cardWidths: number[] = []
-    for (let c = 0; c < itemsPerLine; c++) cardWidths.push(lineImgSize + (c < extraCount ? 1 : 0))
-    return { lineImgSize, cardWidths }
-}
-
-function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
-    // Empty group: no images, so emit no image line (avoids a blank/spinner row).
-    if (!parentGroup.slots || parentGroup.slots.length === 0) return
-
-    // imageHeight only decides how many images fit in a line...
-    const lineWidth = totalWidth
-    const itemsPerLine = Math.max(1, Math.floor(lineWidth / (imageHeight + BORDER + GAP)))
-    // ...then images are stretched to exactly fill a FULL line. Every line uses these same
-    // widths — a trailing/partial line (end of group, small group) keeps them too instead of
-    // blowing its images up to fill the leftover space; the empty slots are simulated
-    // (reserved, not rendered) so alignment across lines stays consistent.
-    const { lineImgSize, cardWidths } = fillWidths(lineWidth, itemsPerLine)
-    let groupLineIndex = 0
-
-    let addLine = (line: ImageIterator[]) => {
-        lines.push({
-            id: parentGroup.id + '|img-' + groupLineIndex++,
-            type: 'images',
-            data: line,
-            groupId: parentGroup.id,
-            depth: parentGroup.depth + 1,
-            imageSize: lineImgSize,
-            emptyCount: itemsPerLine - line.length,
-            cardWidths,
-            size: isSimilarities ? simiImageLineSizeFor(lineImgSize) : imageLineSizeFor(lineImgSize),
-            isSimilarities: isSimilarities
-        })
-    }
-
-    let newLine: ImageIterator[] = []
-    let imgIt = ImageIterator.fromGroupIterator(it)
-    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId) {
-        newLine.push(imgIt)
-        imgIt = imgIt.nextImages()
-        if (newLine.length >= itemsPerLine) {
-            addLine(newLine)
-            newLine = []
-        }
-    }
-
-    if (newLine.length > 0) {
-        addLine(newLine)
-    }
-}
-
-function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], imageHeight, totalWidth, parentGroup) {
-    // Empty leaf: no piles, so emit no image line.
-    if (!parentGroup.slots || parentGroup.slots.length === 0) return
-
-    const lineWidth = totalWidth
-    const itemsPerLine = Math.max(1, Math.floor(lineWidth / (imageHeight + BORDER + GAP)))
-    const { lineImgSize, cardWidths } = fillWidths(lineWidth, itemsPerLine)
-    let groupLineIndex = 0
-
-    let addLine = (line: ImageIterator[]) => {
-        lines.push({
-            id: parentGroup.id + '|pile-' + groupLineIndex++,
-            type: 'piles',
-            data: line,
-            groupId: parentGroup.id,
-            depth: parentGroup.depth + 1,
-            imageSize: lineImgSize,
-            emptyCount: itemsPerLine - line.length,
-            cardWidths,
-            size: pileLineSizeFor(lineImgSize)
-        })
-    }
-
-    let newLine: ImageIterator[] = []
-    let imgIt = ImageIterator.fromGroupIterator(it)
-    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId) {
-        newLine.push(imgIt)
-        imgIt = imgIt.nextImages()
-        if (newLine.length >= itemsPerLine) {
-            addLine(newLine)
-            newLine = []
-        }
-    }
-
-    if (newLine.length > 0) {
-        addLine(newLine)
     }
 }
 
@@ -372,10 +323,22 @@ function getParents(group: Group) {
     return ids
 }
 
-function getImageLineParents(item) {
-    return [...getParents(props.manager.result.index[item.groupId]), item.groupId]
+function groupLineParents(group: Group) {
+    const key = 'g' + group?.id
+    let ids = parentsCache.get(key)
+    if (!ids) parentsCache.set(key, ids = getParents(group))
+    return ids
 }
 
+function getImageLineParents(item) {
+    const key = 'l' + item.groupId
+    let ids = parentsCache.get(key)
+    if (!ids) parentsCache.set(key, ids = [...getParents(props.manager.result.index[item.groupId]), item.groupId])
+    return ids
+}
+
+// The line toggled (or its children) bumped the version before emitting: rebuild now so the
+// open/close is immediate, and let the stamp in computeLines turn the watcher's pass into a no-op.
 function closeGroup(groupIds) {
     computeLines()
 }
@@ -399,7 +362,12 @@ function toggleGroupSelect(groupId: number) {
 let _triggerHandle: ReturnType<typeof setTimeout> | undefined
 function triggerUpdate() {
     clearTimeout(_triggerHandle)
-    _triggerHandle = setTimeout(computeLines, 50)
+    // Checked when the timer fires, not now: a rebuild that lands in between (group toggle,
+    // manager swap) may already cover this bump.
+    _triggerHandle = setTimeout(() => {
+        if (builtManager === props.manager && builtVersion === props.manager.version.value) return
+        computeLines()
+    }, 50)
 }
 
 
@@ -418,6 +386,10 @@ watch(() => props.imageSize, () => {
 })
 
 const margin_scroll_offset = 0
+// Drawn in one go, not the viewport first and the buffer lines a frame later: the buffer is one
+// line each side now, so that would only move ~40% of the (read-only) rows to the next frame for
+// the same total. And shrinking the window for that frame would hand the scroller two new lists,
+// each re-rendering every line on screen (see usePagedLines).
 watch(visiblePropertiesNb, () => {
     const lines = imageLines.value
     if (!lines.length) return
@@ -456,11 +428,10 @@ watch(visiblePropertiesNb, () => {
     newScrollPos += oldTopSize > 0 ? delta * (newTopSize / oldTopSize) : delta
 
     // Mutate sizes on the line objects, and keep them: the line components are not
-    // re-created (no blank flash). The new list re-measures the window synchronously.
-    for (const l of lines) {
-        if (l.type === 'images') l.size = imageLineSizeFor((l as ImageLine).imageSize)
-        else if (l.type === 'piles') l.size = pileLineSizeFor((l as ScrollerPileLine).imageSize)
-    }
+    // re-created (no blank flash). Every image/pile line drawn is one of the cache's, and the
+    // cache resizes all of its blocks — closed groups' too, so they are right when reopened.
+    // The new list re-measures the window synchronously.
+    lineCache.resize(visiblePropertiesNb.value, visiblePropertiesClusterNb.value)
 
     imageLines.value = [...lines]
     paged.scrollToPosition(newScrollPos - margin_scroll_offset)
@@ -482,29 +453,34 @@ watch(() => props.manager.version.value, triggerUpdate)
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
+        <!-- skip-hover: nothing reads the scroller's own `hover` class, and setting it re-rendered
+             the scroller's whole pool each time the pointer crossed into another line. -->
         <RecycleScroller :items="windowLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-            :buffer="400" :min-item-size="0" :page-mode="false"
-            :prerender="0">
+            :buffer="scrollerBuffer" :min-item-size="0" :page-mode="false" :skip-hover="true"
+            :prerender="0" :data-border-scope="borderScope" v-on="cellHover.listeners">
             <template v-slot="{ item, index, active }">
-                <template v-if="true">
+                <!-- Only the views in use: an idle one (kept by the scroller for a later line) would
+                     otherwise keep its last line mounted, off screen, and re-render it on every
+                     change it reads — properties, the tree version, the image size. -->
+                <template v-if="active">
                     <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                     <div v-if="item.type == 'group' && !props.hideGroup">
-                        <GroupLineVue :item="(item as GroupLine)" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                        <GroupLineVue :item="(item as GroupLine)" :parent-ids="groupLineParents(item.data)"
                             :manager="props.manager" :hide-options="props.hideOptions" :data="props.manager.result"
                             @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
                             @group:close="closeGroup" @group:open="openGroup" @select="toggleGroupSelect"
                             @reco="emit('reco', $event)" />
                     </div>
                     <div v-else-if="item.type == 'images'">
-                        <ImageLineVue :image-size="(item as ImageLine).imageSize" :input-index="paged.lineIndex(index) * maxPerLine" :item="(item as ImageLine)"
-                            :index="props.manager.result.index" :hover-border="hoverGroupBorder"
+                        <ImageLineVue :image-size="(item as ImageLine).imageSize" :item="(item as ImageLine)"
+                            :result="props.manager.result"
                             :parent-ids="getImageLineParents(item)" :properties="props.properties"
                             @update:selected-image="e => updateImageSelection(e, (item as ImageLine))" @scroll="scrollTo"
                             @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                     </div>
                     <div v-else-if="item.type == 'piles'">
-                        <PileLine :image-size="(item as ScrollerPileLine).imageSize" :input-index="paged.lineIndex(index) * maxPerLine" :item="(item as ScrollerPileLine)"
-                            :index="props.manager.result.index" :hover-border="hoverGroupBorder"
+                        <PileLine :image-size="(item as ScrollerPileLine).imageSize" :item="(item as ScrollerPileLine)"
+                            :result="props.manager.result"
                             :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                             :sha1-scores="props.sha1Scores" :preview="props.preview"
                             @update:selected-image="e => updateImageSelection(e, (item as ImageLine))" @scroll="scrollTo"
@@ -518,6 +494,8 @@ watch(() => props.manager.version.value, triggerUpdate)
             </template>
         </RecycleScroller>
     </InstanceData>
+    <CellHoverTip :tip="cellHover.tip.value" @hide="cellHover.hideTip" />
+    <component :is="'style'" v-if="hoverBorderCss">{{ hoverBorderCss }}</component>
 </template>
 
 <style scoped>

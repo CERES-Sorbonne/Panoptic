@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
-import { Group, GroupType, SelectedImages } from '@/core/GroupManager';
+import { Group, GroupType } from '@/core/GroupManager';
+import type { GroupInspector } from '@/core/group/inspector'
 import { GroupLine } from '@/components/scrollers/types';
 import { getGroupParents } from '@/utils/utils';
-import { Ref, computed } from 'vue';
-import { useColumnStore } from '@/data/stores/columnStore';
+import { computed } from 'vue';
 
 
 
 const props = defineProps<{
   item: GroupLine
+  manager: GroupInspector
   width: number
 }>()
 
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
 
-const columnStore = useColumnStore()
-
-const closed = computed(() => getGroupParents(props.item.data).some(g => g.view.closed) || props.item.data.view.closed)
+// The tree is plain (not reactive), so the version tick stands in for its changes. Only the
+// group's own flag matters: GridScroller makes no line under a closed parent.
+const closed = computed(() => (props.manager.version.value, props.item.data.view.closed))
 
 function toggleClosed() {
     if (closed.value) {
@@ -29,10 +30,9 @@ function toggleClosed() {
     }
 }
 
-const selected = computed(() => {
-    columnStore.selectionVersion  // reactive dep on global selection (step 2)
-    return !props.item.data.slots.some(s => !columnStore.isSelected(s))
-})
+// Same answer as the tree's group lines, in the manager's selection namespace. Reactive via
+// the namespace's selection tick, read inside isGroupSelected.
+const selected = computed(() => props.manager.isGroupSelected(props.item.data))
 
 // A cluster group has no property values, so it is labelled by its name instead.
 type Label = { value?: Group['meta']['propertyValues'][number], name?: string }

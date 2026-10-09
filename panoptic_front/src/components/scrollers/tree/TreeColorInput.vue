@@ -3,7 +3,8 @@
 import { computed, ref } from 'vue'
 import TreeCellFrame from './TreeCellFrame.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
-import { Colors, greyColor, PropertyType } from '@/data/models'
+import { Colors, PropertyType } from '@/data/models'
+import { colorFill, iconColorOn } from './cellDisplay'
 
 const props = defineProps<{
     modelValue?: number
@@ -14,23 +15,8 @@ const emits = defineEmits(['update:modelValue', 'focus', 'blur', 'tab'])
 const dropdownElem = ref(null)
 const isOpen = ref(false)
 
-const color = computed(() => {
-    if (props.modelValue == undefined) return undefined
-    const value = Number(props.modelValue)
-    if (isNaN(value) || value < 0 || value >= Colors.length) return greyColor.color
-    return Colors[value].color
-})
-
-// Icon sits on top of the chip: flip it to white once the fill is dark enough that the
-// default grey would disappear into it. Relative luminance, sRGB coefficients.
-const iconColor = computed(() => {
-    if (!color.value) return undefined
-    const hex = color.value.replace('#', '')
-    if (hex.length !== 6) return undefined
-    const [r, g, b] = [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
-    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    return lum > 0.55 ? '#333' : '#fff'
-})
+const color = computed(() => colorFill(props.modelValue))
+const iconColor = computed(() => iconColorOn(color.value))
 
 function focus() {
     dropdownElem.value?.show()
@@ -47,6 +33,9 @@ function set(value, hide) {
     emits('update:modelValue', value)
     hide()
 }
+
+// focus() opens the palette: what a cell opened from its read-only row, or by Tab, needs.
+defineExpose({ focus })
 </script>
 
 <template>

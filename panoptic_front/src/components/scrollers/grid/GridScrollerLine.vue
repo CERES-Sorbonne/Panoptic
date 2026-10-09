@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ref, computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { type Property } from '@/data/models'
 import { PileRowLine, type GroupLine, type RowLine, type ScrollerLine } from '@/components/scrollers/types'
 
@@ -20,10 +20,10 @@ const props = defineProps<{
     missingWidth: number,
     properties: Property[],
     showImages: boolean,
+    rowHeight: number,
 }>()
 
 const emits = defineEmits({
-    'resizeHeight': Number,
     'close:group': String,
     'open:group': String,
     'toggle:image': Object,
@@ -31,7 +31,6 @@ const emits = defineEmits({
 })
 
 const columnStore = useColumnStore()
-const loaded = ref(true)
 
 const selected = computed(() => {
     columnStore.selectionVersion  // reactive dep on global selection (step 2)
@@ -42,43 +41,34 @@ const selected = computed(() => {
     }
 })
 
-function reload() {
-    loaded.value = false
-    nextTick(() => nextTick(() => loaded.value = true))
-}
-
-// onMounted(reload)
-watch(() => props.item.id, reload)
+// A recycled view keeps its row components and only gets a new `item`: everything below is
+// derived from props, and DBInput remounts its cell editor when the instance changes. (This
+// used to unmount and remount the whole row on every item change, which made scrolling and
+// opening groups rebuild every visible cell.)
 
 </script>
 
 <template>
-    <template v-if="loaded" class="container">
-        <div v-if="item.type == 'group'">
-            <GroupLineVue :prop-values="item.data.propertyValues" :item="(item as GroupLine)" :width="props.width"
-                @close:group="e => emits('close:group', e)"
-                @open:group="e => emits('open:group', e)" @toggle:group="e => emits('toggle:group', e)" />
-        </div>
-        <div v-if="item.type == 'image'">
-            <!-- <div class="border-top position-absolute border-warning" style="width: 100%;"></div> -->
-            <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
-                :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
-                @toggle:image="e => emits('toggle:image', e)" :selected="selected" />
-        </div>
-        <div v-if="item.type == 'pile'">
-            <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
-                :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)" :selected="selected"
-                @toggle:image="e => emits('toggle:image', { groupId: (item as PileRowLine).data.groupId, imageIndex: (item as PileRowLine).data.pileIndex })" />
-        </div>
-        <div v-if="item.type == 'filler'" style="height: 1000px;">
+    <div v-if="item.type == 'group'">
+        <GroupLineVue :item="(item as GroupLine)" :manager="props.manager" :width="props.width"
+            @close:group="e => emits('close:group', e)"
+            @open:group="e => emits('open:group', e)" @toggle:group="e => emits('toggle:group', e)" />
+    </div>
+    <div v-if="item.type == 'image'">
+        <!-- <div class="border-top position-absolute border-warning" style="width: 100%;"></div> -->
+        <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
+            :missing-width="props.missingWidth" :row-height="props.rowHeight"
+            @toggle:image="e => emits('toggle:image', e)" :selected="selected" />
+    </div>
+    <div v-if="item.type == 'pile'">
+        <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
+            :missing-width="props.missingWidth" :row-height="props.rowHeight" :selected="selected"
+            @toggle:image="e => emits('toggle:image', { groupId: (item as PileRowLine).data.groupId, imageIndex: (item as PileRowLine).data.pileIndex })" />
+    </div>
+    <div v-if="item.type == 'filler'" style="height: 1000px;">
 
-        </div>
-    </template>
+    </div>
 </template>
 
 <style scoped>
-.container {
-    margin: 0;
-    padding: 0;
-}
 </style>

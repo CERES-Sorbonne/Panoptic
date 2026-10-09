@@ -24,17 +24,26 @@ const valid = ref(true)
 
 let dbAction: Promise<any> | null = null
 
-async function set(value: any) {
+async function set(value: any, instance: InstanceEntry) {
     // very important to avoid setting values of old input to new input params
     // creates the crazy UI bug where everythings gets set around
     if (!valid.value) return
-    if (JSON.stringify(value) === JSON.stringify(propValue.value)) return
-    localValue.value = value
-    dbAction = data.setPropertyValue(props.propertyId, props.instance, value)
+    if (JSON.stringify(value) === JSON.stringify(instance.properties?.[props.propertyId])) return
+    if (instance === props.instance) localValue.value = value
+    dbAction = data.setPropertyValue(props.propertyId, instance, value)
     await dbAction
     dbAction = null
     loadValue()
 }
+
+// The setter given to the slot is bound to the instance it was rendered for. Recycled rows keep
+// this component and only swap `instance`; an editor of the previous instance that commits late
+// (CellTextInput commits a tick after blur) must still write where the user typed, not into the
+// instance the row shows now.
+const boundSet = computed(() => {
+    const instance = props.instance
+    return (value: any) => set(value, instance)
+})
 
 function loadValue() {
     localValue.value = propValue.value
@@ -57,7 +66,7 @@ watch(() => props.instance.id, forceUpdate)
 
 <template>
     <template v-if="valid">
-        <slot :set="set" :value="localValue" :status="status"></slot>
+        <slot :set="boundSet" :value="localValue" :status="status"></slot>
     </template>
 </template>
 

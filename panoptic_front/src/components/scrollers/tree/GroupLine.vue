@@ -26,7 +26,6 @@ const props = defineProps<{
     item: GroupLine
     manager: GroupInspector
     parentIds: number[];
-    hoverBorder: number,
     data: GroupTree,
     hideOptions: boolean
 }>()
@@ -110,7 +109,9 @@ function clear() {
 
 // open/close mutate `view.closed` in place on the plain tree, so they must emit
 // (bump `version`) — the scroller event alone rebuilds lines but leaves every
-// tree-derived computed in this and every other line component stale.
+// tree-derived computed in this and every other line component stale. Bump first, then emit:
+// the scroller rebuilds on the event and stamps the bumped version, which is what lets it skip
+// the rebuild its version watcher would otherwise queue for the same change.
 function toggleClosed() {
     if (closed.value) {
         props.manager.toggleGroup(props.item.data.id, true)
@@ -227,7 +228,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
         @mouseenter="hoverGroup = true" @mouseleave="hoverGroup = false">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
-            <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"> </div>
+            <div class="group-line-border" :data-border-group="parentId"> </div>
         </div>
         <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 0px;"></i>
@@ -371,6 +372,10 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 .group-line {
     /* position: relative; */
     height: 30px;
+    /* Already overflow-hidden, and every dropdown/tooltip here is teleported: containing it is
+       free, and the hover row showing/hiding stays local to the line. Not `strict`: size
+       containment would leave the width to whatever the scroller's item wrapper gives it. */
+    contain: layout paint style;
     /* line-height: 25px; */
     align-items: center;
 }
@@ -379,10 +384,6 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
     height: 30px;
     border-left: 1px solid var(--border-color);
     padding-left: 10px;
-}
-
-.active {
-    border-left: 1px solid blue;
 }
 
 .cluster-close {

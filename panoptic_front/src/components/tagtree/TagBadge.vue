@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/stores/dataStore';
-import { Colors, greyColor, Tag } from '@/data/models';
 import { computed } from 'vue';
-import WithToolTip from '../tooltips/withToolTip.vue';
+import { tagChipStyle, tagColor } from './tagColors';
 
 const data = useDataStore()
 
@@ -15,30 +14,7 @@ const props = defineProps<{
 
 const tag = computed(() => data.tags[props.id])
 
-const color = computed(() => {
-    if (props.color >= 0 && props.color <= 12) return Colors[props.color].color
-    if (!tag.value) return greyColor.color
-    if (tag.value.color < 0 || tag.value.color > 12) return greyColor.color
-    return Colors[tag.value.color].color
-})
-
-function rgb(hex: string) {
-    const h = hex.replace('#', '')
-    return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16))
-}
-
-// Blend towards white (amount > 0) or black (amount < 0).
-function mix(hex: string, amount: number) {
-    const target = amount > 0 ? 255 : 0
-    const t = Math.abs(amount)
-    const [r, g, b] = rgb(hex).map(c => Math.round(c + (target - c) * t))
-    return `rgb(${r}, ${g}, ${b})`
-}
-
-// Pastel chip: a washed-out tint of the tag colour, with the text a deep version of the same
-// hue so it stays readable instead of fighting the fill.
-const background = computed(() => mix(color.value, 0.72))
-const textColor = computed(() => mix(color.value, -0.55))
+const chip = computed(() => tagChipStyle(tagColor(tag.value, props.color)))
 
 const name = computed(() => {
     if (props.name) return props.name
@@ -50,7 +26,7 @@ const name = computed(() => {
 
 
 <template>
-    <div class="badge tag-badge" :title="name" :style="{ backgroundColor: background, color: textColor }">
+    <div class="badge tag-badge" :title="name" :style="chip">
 
         <span class="m-0 p-0 label">
             <span>{{ name }}</span>
