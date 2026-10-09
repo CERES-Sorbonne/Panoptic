@@ -95,6 +95,10 @@ export interface MapOptions {
     gridDensity?: number
     // In the grid, thumbnails fill their cell with a centred square crop.
     fillCells?: boolean
+    // Tag brush of the grid layout: the tag property and tag it paints.
+    paintPropertyId?: number | null
+    paintTagId?: number | null
+    paintCollapsed?: boolean
     previewCollapsed?: boolean
     groupsCollapsed?: boolean
     minimapCollapsed?: boolean

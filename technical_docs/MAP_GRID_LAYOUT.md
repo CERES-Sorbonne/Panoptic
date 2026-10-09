@@ -176,6 +176,51 @@ Nouveau dossier `panoptic_front/test/map/` (même principe de bundle que `test/g
 4. Raffinement par fenêtres + Web Worker pour les grands projets.
 5. Transition animée + option pour la désactiver.
 
+## Sélection par cases
+
+Outil de la barre flottante (`bi-bounding-box`), visible seulement en mode grille ; le lasso reste
+l'outil du mode nuage, avec la même règle (clic gauche : ajoute, clic droit : retire). Un curseur
+carré de N × N cases suit la souris :
+
+- clic / glisser gauche : ajoute les images couvertes à la sélection ; clic droit : les retire ;
+- Shift (au clic ou pendant le glisser) : rectangle entre la case de départ et la case courante.
+  Firefox ouvre toujours son menu sur Shift + clic droit, sans transmettre l'événement à la page :
+  on y fait clic droit puis Shift ;
+- Ctrl + molette : taille du curseur (1 → 128, +1 par cran jusqu'à 8 puis ×1.25). Seul le vrai
+  Ctrl compte (`keyState.ctrl`) : un pincement de trackpad envoie `ctrlKey` sans `keydown` et
+  continue de zoomer. La vignette zoomée (Ctrl au survol) est coupée avec cet outil ;
+- Espace + glisser : déplace la carte (dans tous les modes).
+
+Pendant le geste, les cases couvertes qui contiennent une image sont teintées (une texture d'un
+texel par case posée sur toute la grille) ; la sélection n'est modifiée qu'au relâchement, en une
+fois. Un glissé rapide est comblé par une ligne de Bresenham entre deux positions du curseur.
+L'aperçu HD agrandi est coupé (il cacherait le curseur), l'aperçu du panneau de droite suit
+toujours l'image survolée.
+
+Logique pure dans `GridBrush.ts` (testée), rendu et geste dans `GridBrushLayer.ts`, événements
+dans `MapControl.ts`. `MapView` fournit la table case → image (`gridCells`, construite par
+`applyLayout`).
+
+### Pinceau à tags
+
+Deuxième outil de la grille (`bi-brush`), sur le même moteur et avec les mêmes gestes : il pose le
+tag choisi au lieu de sélectionner, le clic droit le retire.
+
+- Une section « Pinceau » s'ajoute en haut du panneau de droite : propriété de tags (modifiable,
+  hors mode fichier), puis le `TagInput` de l'édition sous les images, en `forceMono` : recherche,
+  création d'un tag à la volée, couleur ; la croix du badge désélectionne. Propriété et tag sont
+  persistés dans `MapOptions` (`paintPropertyId`, `paintTagId`, `paintCollapsed`).
+- Le curseur et les cases couvertes prennent la couleur du tag (bleu de la sélection pour un tag
+  sans couleur, que le gris des autres images noierait).
+- Tant que l'outil est actif avec un tag choisi, la carte montre ce qui est peint : bordure de la
+  couleur du tag sur les images qui le portent, les autres en gris (`PAINT_BORDER`,
+  `PAINT_DESATURATE`). La colonne de la propriété est chargée en entier pour ça.
+- Un geste = un seul commit (`paintTag.ts`, via `setPropertyValues`) = une entrée d'historique,
+  annulable par Ctrl+Z. Seules les images dont la valeur change sont envoyées. Une propriété à tag
+  unique voit sa valeur remplacée, une propriété multi-tags reçoit le tag en plus.
+- Les valeurs du geste s'affichent tout de suite, avant la réponse du serveur ; le surlignage suit
+  ensuite `data.onChange` (geste, annulation, modifications venues d'ailleurs).
+
 ## Easter egg
 
 En mode grille, pointeur au-dessus de la carte, le Konami code (↑ ↑ ↓ ↓ ← → ← → B A) lance un

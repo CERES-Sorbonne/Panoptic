@@ -13,6 +13,8 @@ import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
 import { imageWorldSize } from '@/mixins/mapview/MapRenderer'
 import { cellCenter, DEFAULT_GRID_DENSITY, mapGrid, type MapGrid } from '@/mixins/mapview/GridLayout'
 import { konamiMatcher, SnakeGame, type Cell, type SnakeDir, type SnakeState } from '@/mixins/mapview/GridSnake'
+import { isCellTool, nextBrushSize } from '@/mixins/mapview/GridBrush'
+import { paintableProperty, paintTag } from './paintTag'
 import { keyState } from '@/data/composables/keyState'
 import { newZoomOwner, zoomModal } from '../modals/zoomModal'
 import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
@@ -26,6 +28,7 @@ import InstanceData from '../data/InstanceData.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
 import NumText from '../utils/NumText.vue'
+import TagInput from '../property_inputs/TagInput.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
 const DEFAULT_HOVER_SCALE = 2.0
@@ -52,6 +55,9 @@ const SCORE_FULL = 0.85
 // Within a tier, more similar images are lifted in front (stays under the 0.5 tier gap with
 // AtlasLayer's STACK_Z_RANGE).
 const SCORE_Z_RANGE = 0.3
+// Tag brush: images carrying the painted tag get a border of its colour, the others are greyed.
+const PAINT_BORDER = 0.08
+const PAINT_DESATURATE = 0.7
 
 const data = useDataStore()
 const media = useMediaStore()
@@ -77,6 +83,8 @@ const groupListIslandRef = ref<HTMLElement | null>(null)
 
 // State
 const mouseMode = ref('pan')
+// Side of the cell tool's square cursor, in cells.
+const brushSize = ref(1)
 const defaultColor = '#777777'
 
 // Border width of the rendered images, adjustable via the header-bar slider. Persisted per view
@@ -120,9 +128,10 @@ const hoverImage = computed<Instance | null>(() => lastHoverId.value != null ? (
 // scrollers' images (keyState.ctrl also covers Option on mac). It follows the hovered point
 // and closes on release or once the cursor is off every point.
 const zoomOwner = newZoomOwner()
-watch([() => keyState.ctrl, hoverInstanceId], ([held, id]) => {
+// Not with the cell tools, where Ctrl + wheel sizes the cursor.
+watch([() => keyState.ctrl, hoverInstanceId, mouseMode], ([held, id, mode]) => {
     const ours = zoomModal.open && zoomModal.owner === zoomOwner
-    if (held && id != null) {
+    if (held && id != null && !isCellTool(mode)) {
         if (!zoomModal.open || (ours && zoomModal.image?.id !== id)) {
             zoomModal.show({ id } as Instance, zoomOwner)
         }
@@ -149,6 +158,9 @@ let pointOfSlot = new Int32Array(0)
 let baseZ = new Float32Array(0)
 // Bumped whenever points move or restyle in place, so the minimap redraws.
 const pointsVersion = ref(0)
+// In the grid layout, the index in `points` of the image in each cell (-1: empty), for the cell
+// tool.
+let gridCells: { cols: number, rows: number, cellPoint: Int32Array } | null = null
 
 // ── Atlas status ──────────────────────────────────────────────────────────────
 
@@ -271,7 +283,10 @@ function updateColors() {
         baseZ[i] = BASE_Z
     }
 
-    for (const leaf of leaves.value) {
+    // A point in several leaves (multi-tag grouping) takes the smallest one's colour, written last:
+    // the most specific tag, which a bigger group would otherwise hide.
+    const bySize = [...leaves.value].sort((a, b) => b.points.length - a.points.length)
+    for (const leaf of bySize) {
         for (const point of leaf.points) {
             point.border = borderWidth.value
             point.borderColor = leaf.color
@@ -296,10 +311,15 @@ function updateColors() {
                 // remove. Only the focused leaf's border should survive.
                 p.border = 0.0
                 p.borderColor = defaultColor
+            } else {
+                // A point in several leaves (multi-tag grouping) took the colour of the last one.
+                p.border = borderWidth.value
+                p.borderColor = activeLeaf.color
             }
         }
     }
 
+    applyPaintHighlight()
     const hasScores = applyScoreOpacity()
 
     if (renderer.value) {
@@ -311,6 +331,34 @@ function updateColors() {
     updateSelection(!!activeLeaf || hadActiveLeaf || hasScores || hadScores)
     hadActiveLeaf = !!activeLeaf
     hadScores = hasScores
+}
+
+function applyPaintHighlight() {
+    const propId = paintProperty.value?.id
+    const tag = paintTagValue.value
+    if (mouseMode.value !== 'paint' || propId == null || !tag || paintColumnReady.value !== propId) return
+    const pts = points.value
+    const painted = new Uint8Array(pts.length)
+    const mark = (slot: number) => {
+        const i = pointOfSlot[slot]
+        if (i < 0 || painted[i]) return
+        const value = columnStore.readSlot(propId, slot)
+        if (Array.isArray(value) && value.includes(tag.id)) painted[i] = 1
+    }
+    if (builtSlots) for (const slot of builtSlots) mark(slot)
+    else for (let slot = 0; slot < pointOfSlot.length; slot++) mark(slot)
+
+    for (let i = 0; i < pts.length; i++) {
+        const p = pts[i]
+        if (paintPending.get(p) ?? painted[i]) {
+            p.border = Math.max(borderWidth.value, PAINT_BORDER)
+            p.borderColor = paintColor.value
+        } else {
+            p.border = 0.0
+            p.borderColor = defaultColor
+            p.desaturate = Math.max(p.desaturate, PAINT_DESATURATE)
+        }
+    }
 }
 
 // Opacity of each point from the active similarity search's scores.
@@ -410,13 +458,29 @@ function applyLayout(pts: PointData[], mapId: number) {
     if (layout.value === 'grid' && data) {
         const grid = mapGrid(toRaw(data), gridDensity.value)
         const size = imageWorldSize(props.imageSize)
-        for (const p of pts) [p.x, p.y] = cellCenter(grid, grid.cells.get(p.sha1)!, size)
+        const cellPoint = new Int32Array(grid.cols * grid.rows).fill(-1)
+        pts.forEach((p, i) => {
+            const cell = grid.cells.get(p.sha1)!
+            cellPoint[cell] = i
+            ;[p.x, p.y] = cellCenter(grid, cell, size)
+        })
+        gridCells = { cols: grid.cols, rows: grid.rows, cellPoint }
     } else {
         for (const p of pts) {
             p.x = p.sx
             p.y = p.sy
         }
+        gridCells = null
     }
+}
+
+// Call once `points` holds the points applyLayout placed.
+function syncBrushGrid() {
+    renderer.value?.setBrushGrid(gridCells && {
+        ...gridCells,
+        cellSize: imageWorldSize(props.imageSize),
+        points: points.value,
+    })
 }
 
 // Re-places the points after a layout or density change, framing the images that were on screen.
@@ -424,6 +488,7 @@ function relayout() {
     if (builtMapId == null || !points.value.length) return
     const inView = renderer.value?.getPointsInView() ?? []
     applyLayout(points.value, builtMapId)
+    syncBrushGrid()
     pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
@@ -433,6 +498,7 @@ function relayout() {
 function rescaleGrid(imageSize: number, previous: number) {
     if (layout.value !== 'grid' || builtMapId == null || !points.value.length) return
     applyLayout(points.value, builtMapId)
+    syncBrushGrid()
     pointsVersion.value++
     if (!renderer.value) return
     renderer.value.updateLayout(points.value)
@@ -537,6 +603,7 @@ async function showMap(mapId: number, force = false) {
     sha1ToPoint = newSha1ToPoint
     pointOfSlot = newPointOfSlot
     points.value = res
+    syncBrushGrid()
     builtMapId = mapId
     builtRoot = root
     builtSlots = slots
@@ -565,15 +632,97 @@ async function showMap(mapId: number, force = false) {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-const handleLasso = (selectedPoints: PointData[]) => {
-    // A point stands for its sha1, so the lasso takes every instance sharing it (sha1-pile rule).
+// A point stands for its sha1, so this takes every instance sharing it (sha1-pile rule).
+function selectPoints(selectedPoints: PointData[], remove: boolean) {
     const ids: number[] = []
     for (const point of selectedPoints) {
         const instanceIds = columnStore.getInstancesBySha1(point.sha1)
         if (instanceIds.length) ids.push(...instanceIds)
     }
-    if (mouseMode.value == 'lasso-plus') props.collection.selectImages(ids)
-    if (mouseMode.value == 'lasso-minus') props.collection.unselectImages(ids)
+    if (remove) props.collection.unselectImages(ids)
+    else props.collection.selectImages(ids)
+}
+
+
+// ── Tag brush ─────────────────────────────────────────────────────────────────
+
+const paintProperties = computed(() => data.propertyList.filter(paintableProperty))
+const paintProperty = computed(() => {
+    const id = props.mapOptions.paintPropertyId
+    return paintProperties.value.find(p => p.id === id) ?? null
+})
+const paintTagValue = computed(() => {
+    const tag = props.mapOptions.paintTagId != null ? data.tags[props.mapOptions.paintTagId] : undefined
+    return tag && tag.propertyId === paintProperty.value?.id ? tag : null
+})
+// A tag without a colour paints in the selection blue: grey would not stand out from the greyed
+// images.
+const paintColor = computed(() => {
+    const color = paintTagValue.value?.color
+    return (color != null && color >= 0 && Colors[color]?.color) || SELECTED_TINT
+})
+// Property whose full column is loaded, so the highlight can read every image's value.
+const paintColumnReady = ref<number | null>(null)
+// Values a stroke is writing, shown until the commit lands in the column store.
+const paintPending = new Map<PointData, boolean>()
+
+async function paintPoints(selectedPoints: PointData[], remove: boolean) {
+    const property = paintProperty.value
+    const tag = paintTagValue.value
+    if (!property || !tag) return
+    for (const p of selectedPoints) paintPending.set(p, !remove)
+    updateColors()
+    try {
+        await paintTag(property.id, tag.id, selectedPoints.map(p => p.sha1), remove)
+    } catch (e) {
+        console.error('tag brush: commit failed', e)
+    } finally {
+        for (const p of selectedPoints) paintPending.delete(p)
+        updateColors()
+    }
+}
+
+function onBrushCommit(selectedPoints: PointData[], remove: boolean) {
+    if (mouseMode.value === 'paint') paintPoints(selectedPoints, remove)
+    else selectPoints(selectedPoints, remove)
+}
+
+// Value writes (strokes, undo, other views) restyle the highlight once per frame at most.
+let paintRefresh = 0
+function onDataChange() {
+    if (mouseMode.value !== 'paint' || paintRefresh) return
+    paintRefresh = requestAnimationFrame(() => {
+        paintRefresh = 0
+        updateColors()
+    })
+}
+data.onChange.addListener(onDataChange)
+onUnmounted(() => {
+    data.onChange.removeListener(onDataChange)
+    cancelAnimationFrame(paintRefresh)
+})
+
+watch([mouseMode, paintProperties], ([mode, list]) => {
+    if (mode === 'paint' && !paintProperty.value) props.mapOptions.paintPropertyId = list[0]?.id ?? null
+}, { immediate: true })
+watch([mouseMode, () => paintProperty.value?.id], async ([mode, propId]) => {
+    if (mode !== 'paint' || propId == null || paintColumnReady.value === propId) return
+    try {
+        await columnStore.requireFullColumn(propId)
+    } catch (e) {
+        console.error('tag brush: could not load the property values', e)
+        return
+    }
+    if (paintProperty.value?.id === propId) paintColumnReady.value = propId
+}, { immediate: true })
+watch([mouseMode, paintTagValue, paintColumnReady], () => updateColors())
+watch([mouseMode, paintTagValue, paintColor, renderer], ([mode, tag, color]) => {
+    renderer.value?.setBrushColor(mode === 'paint' && tag ? color : null)
+})
+
+function choosePaintProperty(id: number) {
+    props.mapOptions.paintPropertyId = id
+    props.mapOptions.paintTagId = null
 }
 
 async function deleteMap(mapId: number) {
@@ -826,6 +975,7 @@ onUnmounted(stopFind)
 
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
+watch(brushSize, (size) => renderer.value?.setBrushSize(size))
 watch(() => columnStore.selectionTick(selectNamespace.value), () => updateSelection())
 watch(selectedGroupId, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
@@ -836,6 +986,7 @@ watch(() => props.imageSize, (val, old) => {
 })
 watch(layout, (val) => {
     renderer.value?.setDetailEnabled(val === 'grid')
+    if (val !== 'grid' && isCellTool(mouseMode.value)) mouseMode.value = 'pan'
     relayout()
 })
 watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
@@ -845,8 +996,12 @@ watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 
 watch(renderer, (r) => {
     if (r) {
-        r.onPointSelection = handleLasso
+        r.onPointSelection = selectPoints
         r.onPointClick = onFindClick
+        r.onBrushCommit = onBrushCommit
+        r.onBrushResize = (dir) => { brushSize.value = nextBrushSize(brushSize.value, dir) }
+        r.setBrushSize(brushSize.value)
+        r.setMouseMode(mouseMode.value)
         r.atlasLayers.onProgress = (p) => { atlasLoad.value = p }
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
@@ -854,6 +1009,7 @@ watch(renderer, (r) => {
         r.setDetailEnabled(layout.value === 'grid')
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
         // not when it was queued: the showPoints watcher had no renderer to reach in between.
+        syncBrushGrid()
         if (pendingCreateMap) {
             r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, props.mapOptions.showPoints)
             pendingCreateMap = null
@@ -917,16 +1073,40 @@ onMounted(async () => {
                         <i class="bi bi-hand-index-thumb"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="map.lasso_add">
-                    <div class="tool" :class="{ selected: mouseMode == 'lasso-plus' }" @click="mouseMode = 'lasso-plus'">
+                <WithToolTip v-if="layout == 'grid'" message="map.cell_select">
+                    <div class="tool" :class="{ selected: mouseMode == 'cells' }" @click="mouseMode = 'cells'">
+                        <i class="bi bi-bounding-box"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip v-if="layout == 'grid'" message="map.paint">
+                    <div class="tool" :class="{ selected: mouseMode == 'paint' }" @click="mouseMode = 'paint'">
+                        <i class="bi bi-brush"></i>
+                    </div>
+                </WithToolTip>
+                <WithToolTip message="map.lasso">
+                    <div class="tool" :class="{ selected: mouseMode == 'lasso' }" @click="mouseMode = 'lasso'">
                         <i class="bi bi-plus-circle-dotted"></i>
                     </div>
                 </WithToolTip>
-                <WithToolTip message="map.lasso_remove">
-                    <div class="tool" :class="{ selected: mouseMode == 'lasso-minus' }" @click="mouseMode = 'lasso-minus'">
-                        <i class="bi bi-dash-circle-dotted"></i>
-                    </div>
-                </WithToolTip>
+            </div>
+
+            <div v-if="mouseMode == 'cells' && !snakeState" class="snake-hud cell-hud">
+                <i class="bi bi-bounding-box"></i>
+                <span class="num">{{ brushSize }}×{{ brushSize }}</span>
+                <span class="snake-hint">{{ $t('map.cell_select_hint') }}</span>
+            </div>
+
+            <div v-if="mouseMode == 'paint' && !snakeState" class="snake-hud cell-hud">
+                <template v-if="paintTagValue">
+                    <span class="paint-dot" :style="{ backgroundColor: paintColor }"></span>
+                    <span class="paint-hud-tag">{{ paintTagValue.value }}</span>
+                    <span class="num">{{ brushSize }}×{{ brushSize }}</span>
+                    <span class="snake-hint">{{ $t('map.paint_hint') }}</span>
+                </template>
+                <template v-else>
+                    <i class="bi bi-brush"></i>
+                    <span class="snake-hint">{{ $t('map.paint_pick_tag') }}</span>
+                </template>
             </div>
 
             <div v-if="snakeState" class="snake-hud">
@@ -953,7 +1133,30 @@ onMounted(async () => {
                 </button>
             </div>
 
-            <div v-if="hoverImage || leaves.length || showMinimap" ref="groupListIslandRef" class="group-list-island">
+            <div v-if="hoverImage || leaves.length || showMinimap || mouseMode == 'paint'" ref="groupListIslandRef" class="group-list-island">
+                <template v-if="mouseMode == 'paint'">
+                    <div class="section-header" :class="{ collapsed: props.mapOptions.paintCollapsed }"
+                        @click="props.mapOptions.paintCollapsed = !props.mapOptions.paintCollapsed">
+                        <i class="bi section-chevron" :class="props.mapOptions.paintCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                        <span class="flex-grow-1">{{ $t('map.paint_title') }}</span>
+                    </div>
+                    <div v-if="!props.mapOptions.paintCollapsed" class="paint-body">
+                        <div v-if="!paintProperties.length" class="find-hint">{{ $t('map.paint_no_property') }}</div>
+                        <template v-else>
+                            <select class="paint-input" :value="paintProperty?.id ?? ''"
+                                @change="choosePaintProperty(Number(($event.target as HTMLSelectElement).value))">
+                                <option v-for="p in paintProperties" :key="p.id" :value="p.id">{{ p.name }}</option>
+                            </select>
+                            <!-- The tag editor used under the images: search, create on the fly, colour.
+                                 One tag at a time; its badge's cross clears it. -->
+                            <TagInput v-if="paintProperty" :key="paintProperty.id" class="paint-tags"
+                                :property="paintProperty" :model-value="paintTagValue ? [paintTagValue.id] : []"
+                                :force-mono="true" :can-create="true" :can-customize="true"
+                                @update:model-value="(v: number[]) => props.mapOptions.paintTagId = v[0] ?? null" />
+                        </template>
+                    </div>
+                </template>
+
                 <template v-if="hoverImage || showMinimap">
                     <div class="section-header" :class="{ collapsed: props.mapOptions.previewCollapsed }"
                         @click="props.mapOptions.previewCollapsed = !props.mapOptions.previewCollapsed">
@@ -1353,6 +1556,49 @@ onMounted(async () => {
 
 .snake-hint {
     color: var(--text-secondary);
+}
+
+/* Lets the cell tool work under it. */
+.cell-hud {
+    pointer-events: none;
+}
+
+.paint-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.paint-hud-tag {
+    font-weight: var(--font-weight-semibold);
+}
+
+.paint-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px;
+    border-bottom: 1px solid var(--border-color);
+    min-height: 0;
+    flex: 1;
+}
+
+.paint-input {
+    width: 100%;
+    padding: 3px 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.paint-tags {
+    min-height: 0;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
 }
 
 .cursor-grab {
