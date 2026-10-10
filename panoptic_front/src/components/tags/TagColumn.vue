@@ -206,7 +206,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
             <div v-else class="text-secondary">{{ $t('modals.tags.click_any') }}</div>
         </div>
         <div v-if="!filterMatch && filterValue && !props.noCreate" class="d-flex ps-2"
-            :class="selectedTag == -1 ? 'bg-selected' : ''" style="cursor: pointer;" @click="">
+            :class="selectedTag == -1 ? 'bg-selected' : ''" style="cursor: pointer;" @mousedown.prevent @click="createTag">
             <div class="me-1">Create Tag</div>
             <div>
                 <TagBadge :name="filterValue" :color="-1" />

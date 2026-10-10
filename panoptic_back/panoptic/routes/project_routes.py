@@ -1077,19 +1077,24 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), us
     new_tags = [t for t in req.tags if t.id < 0]
     upd_tags  = [t for t in req.tags if t.id >= 0]
 
-    if new_tags:
-        ids = _to_ids(project.allocate_tags(len(new_tags)), len(new_tags))
-        for t, tid in zip(new_tags, ids):
-            list_id = prop_id_map.get(t.property_id, t.property_id)
-            upsert.tags[tid] = Tag(
-                id=tid, list_id=list_id, parents=t.parents,
-                value=t.value or '', color=t.color,
-                commit_id=0, operation=OP_CREATE,
-            )
+    new_tag_ids = list(_to_ids(project.allocate_tags(len(new_tags)), len(new_tags))) if new_tags else []
+    tag_id_map = {t.id: tid for t, tid in zip(new_tags, new_tag_ids)}
+
+    # A parent may be a tag created by this same commit, referenced by its temporary id.
+    def _parents(t):
+        return [tag_id_map.get(p, p) for p in t.parents] if t.parents else t.parents
+
+    for t, tid in zip(new_tags, new_tag_ids):
+        list_id = prop_id_map.get(t.property_id, t.property_id)
+        upsert.tags[tid] = Tag(
+            id=tid, list_id=list_id, parents=_parents(t),
+            value=t.value or '', color=t.color,
+            commit_id=0, operation=OP_CREATE,
+        )
     for t in upd_tags:
         list_id = prop_id_map.get(t.property_id, t.property_id)
         upsert.tags[t.id] = Tag(
-            id=t.id, list_id=list_id, parents=t.parents,
+            id=t.id, list_id=list_id, parents=_parents(t),
             value=t.value or '', color=t.color,
             commit_id=0, operation=OP_UPDATE,
         )

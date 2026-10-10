@@ -137,38 +137,36 @@ function openChildren() {
 }
 
 const saving = ref(false)
-async function saveHirachy(ignoreParents?: boolean) {
+// tree: tags keep the cluster hierarchy as parents
+// flat: one tag per cluster without parents, images also carry the tags of their ancestor clusters
+// leaves: only the leaf clusters become tags
+type SaveMode = 'tree' | 'flat' | 'leaves'
+
+async function saveClusters(saveMode: SaveMode) {
     if (saving.value) return
     saving.value = true
 
     const children = group().children
     const mode = allChildrenSha1Groups(group()) ? PropertyMode.sha1 : PropertyMode.id
 
-    // Count how many tags are needed before allocating
-    const tagCount = countTags(children, ignoreParents)
-
-    // Allocate real IDs for the property and all tags in parallel
     const property: Property = { id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: mode }
     const [realTagIds, realPropId] = await Promise.all([
-        apiAllocateTags(tagCount),
+        apiAllocateTags(countTags(children, saveMode)),
         data.sendCommit({ properties: [property] }).then(res => res.properties[0].id),
     ])
 
-    // Build tags directly with real IDs using an index into the allocated range
-    let idxRef = { i: 0 }
-    const nextId = () => realTagIds[idxRef.i++]
-    const tagToImages: { [tagId: number]: any[] } = {}
-    const tags = childrenToTags(children, nextId, undefined, tagToImages, realPropId, ignoreParents)
+    let idx = 0
+    const nextId = () => realTagIds[idx++]
+    const imageTags: { id: number, tags: number[] }[] = []
+    const tags = childrenToTags(children, nextId, 'Clustering_' + children.length, undefined, [], imageTags, realPropId, saveMode)
 
     const instanceValues: InstancePropertyValue[] = []
     const imageValues: ImagePropertyValue[] = []
-    for (const tagId in tagToImages) {
-        for (const img of tagToImages[tagId]) {
-            if (mode == PropertyMode.id) {
-                instanceValues.push({ propertyId: realPropId, instanceId: img.id, value: [Number(tagId)] })
-            } else {
-                imageValues.push({ propertyId: realPropId, sha1: data.getSysField(img.id, 'sha1'), value: [Number(tagId)] })
-            }
+    for (const img of imageTags) {
+        if (mode == PropertyMode.id) {
+            instanceValues.push({ propertyId: realPropId, instanceId: img.id, value: img.tags })
+        } else {
+            imageValues.push({ propertyId: realPropId, sha1: data.getSysField(img.id, 'sha1'), value: img.tags })
         }
     }
 
@@ -176,13 +174,12 @@ async function saveHirachy(ignoreParents?: boolean) {
     saving.value = false
 }
 
-function countTags(children: Group[], ignoreParents?: boolean): number {
+function countTags(children: Group[], saveMode: SaveMode): number {
     let count = 0
     for (const child of children) {
-        const hasSubgroups = child.children.length > 0
-        if (hasSubgroups) {
-            if (!ignoreParents) count++ // parent tag
-            count += countTags(child.children, ignoreParents)
+        if (child.children.length) {
+            if (saveMode != 'leaves') count++
+            count += countTags(child.children, saveMode)
         } else {
             count++
         }
@@ -190,31 +187,28 @@ function countTags(children: Group[], ignoreParents?: boolean): number {
     return count
 }
 
-function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag | undefined, tagToImages: { [tagId: number]: any[] }, propertyId: number, ignoreParents?: boolean) {
+function childrenToTags(children: Group[], nextId: () => number, prefix: string, parentTag: Tag | undefined, ancestors: number[],
+    imageTags: { id: number, tags: number[] }[], propertyId: number, saveMode: SaveMode) {
     const res: Tag[] = []
-    const prefix = parentTag?.value ?? ('Clustering_' + children.length)
-    const parentIds = parentTag && !ignoreParents ? [parentTag.id] : []
+    const parentIds = parentTag && saveMode == 'tree' ? [parentTag.id] : []
+    const ids = columnStore.instanceIds()
 
     for (let i = 0; i < children.length; i++) {
         const child = children[i]
-        const hasSubgroups = child.children.length > 0
+        const name = prefix + '.' + i
 
-        if (hasSubgroups && ignoreParents) {
-            // Skip intermediate parent tags — recurse directly without creating a tag for this level
-            const subRes = childrenToTags(child.children, nextId, parentTag, tagToImages, propertyId, ignoreParents)
-            res.push(...subRes)
+        if (child.children.length && saveMode == 'leaves') {
+            res.push(...childrenToTags(child.children, nextId, name, parentTag, ancestors, imageTags, propertyId, saveMode))
+            continue
+        }
+
+        const tag = buildTag(nextId(), propertyId, name, parentIds)
+        res.push(tag)
+        if (child.children.length) {
+            res.push(...childrenToTags(child.children, nextId, name, tag, [...ancestors, tag.id], imageTags, propertyId, saveMode))
         } else {
-            const tag = buildTag(nextId(), propertyId, prefix + '.' + i, parentIds)
-            res.push(tag)
-
-            if (hasSubgroups) {
-                const subRes = childrenToTags(child.children, nextId, tag, tagToImages, propertyId, ignoreParents)
-                res.push(...subRes)
-            } else {
-                const childSlots = child.slots ?? []
-                const ids = columnStore.instanceIds()
-                tagToImages[tag.id] = childSlots.map(slot => ({ id: ids[slot] }))
-            }
+            const value = saveMode == 'flat' ? [tag.id, ...ancestors] : [tag.id]
+            for (const slot of child.slots ?? []) imageTags.push({ id: ids[slot], tags: value })
         }
     }
     return res
@@ -263,6 +257,54 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
         <template v-if="!closed && !props.hideOptions">
             <template v-if="isClusterGroup">
                 <div class="ms-1">
+                    <Dropdown :teleport="true">
+                        <template #button>
+                            <WithToolTip message="btn.save-clusters">
+                                <div class="sb opt-btn">
+                                    <div v-if="saving" class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    <i v-else class="bi bi-floppy2-fill" />
+                                </div>
+                            </WithToolTip>
+                        </template>
+                        <template #popup="{ hide }">
+                            <div class="opt-menu">
+                                <div class="opt-row" @click="saveClusters('tree'); hide();">
+                                    <span class="opt-icon">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">
+                                            <rect x="6" y="1" width="4" height="4" rx="1" stroke="none" />
+                                            <path d="M8 5v3M3 8h10M3 8v3M13 8v3" fill="none" stroke-width="1.2" />
+                                            <rect x="1" y="11" width="4" height="4" rx="1" stroke="none" />
+                                            <rect x="11" y="11" width="4" height="4" rx="1" stroke="none" />
+                                        </svg>
+                                    </span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters-tree') }}</span>
+                                </div>
+                                <div class="opt-row" @click="saveClusters('flat'); hide();">
+                                    <span class="opt-icon">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                            <rect x="0.5" y="6" width="4" height="4" rx="1" />
+                                            <rect x="6" y="6" width="4" height="4" rx="1" />
+                                            <rect x="11.5" y="6" width="4" height="4" rx="1" />
+                                        </svg>
+                                    </span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters-flat') }}</span>
+                                </div>
+                                <div class="opt-row" @click="saveClusters('leaves'); hide();">
+                                    <span class="opt-icon">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">
+                                            <rect x="6.5" y="1.5" width="3" height="3" rx="0.8" fill="none" stroke-dasharray="1.5 1" opacity="0.7" />
+                                            <path d="M8 5v3M3 8h10M3 8v3M13 8v3" fill="none" stroke-width="1" stroke-dasharray="1.5 1.2" opacity="0.55" />
+                                            <rect x="1" y="11" width="4" height="4" rx="1" stroke="none" />
+                                            <rect x="11" y="11" width="4" height="4" rx="1" stroke="none" />
+                                        </svg>
+                                    </span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters-leaves') }}</span>
+                                </div>
+                            </div>
+                        </template>
+                    </Dropdown>
+                </div>
+                <div class="ms-1">
                     <WithToolTip message="btn.close-clusters">
                         <div class="sb opt-btn" @click="clear">
                             <i class="bi bi-x-lg" />
@@ -309,16 +351,6 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                                 <span class="opt-label">{{ $t('main.menu.reco_tooltip') }}</span>
                             </div>
 
-                            <template v-if="isClusterGroup">
-                                <div class="opt-row" @click="saveHirachy(); hide();">
-                                    <span class="opt-icon"><i class="bi bi-diagram-3" /></span>
-                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
-                                </div>
-                                <div class="opt-row" @click="saveHirachy(true); hide();">
-                                    <span class="opt-icon"><i class="bi bi-floppy2-fill" /></span>
-                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
-                                </div>
-                            </template>
                         </div>
                     </template>
                 </Dropdown>

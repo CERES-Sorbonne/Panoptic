@@ -478,8 +478,9 @@ watch(tagList, reDraw)
                 <div class="d-flex m-2" style="z-index: 1;" ref="colElem">
                     <div v-for="tags in tagColumns" class="me-5">
                         <div v-for="tag, i in tags" style="height: 25px;">
-                            <span v-if="tag" :ref="e => tagElems[tag.id] = e">
-                                <TagBadge :id="tag.id" style="z-index: 10;" @mousedown="onClickTag(tag)"
+                            <!-- positioned so it sits above the svg overlay and receives the pointer -->
+                            <span v-if="tag" :ref="e => tagElems[tag.id] = e" style="position: relative; z-index: 3;">
+                                <TagBadge :id="tag.id" @mousedown="onClickTag(tag)"
                                     @mouseup="onSelectTag(tag)" @mouseenter="hoveredTag = tag.id"
                                     @mouseleave="hoveredTag = -1" :class="tagClass[tag.id]" />
                             </span>

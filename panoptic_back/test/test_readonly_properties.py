@@ -210,3 +210,23 @@ def test_create_update_and_delete_normal_property(project):
 
     delete_commit_route(DeleteRequest(empty_properties=[pid]), project)
     assert not any(p.id == pid for p in project.get_properties())
+
+
+def test_new_parent_tag_temp_id_is_remapped(project):
+    res = upsert_commit_route(
+        UpsertRequest(properties=[{'id': -1, 'name': 'tags', 'type': 'multi_tags', 'mode': 'sha1'}]),
+        project)
+    pid = res['properties'][0]['id']
+    child = upsert_commit_route(
+        UpsertRequest(tags=[{'id': -1, 'property_id': pid, 'value': 'child'}]), project)['tags'][0]
+
+    # Same shape as TagModal.createTagParent: the new parent and the child that points to it.
+    res = upsert_commit_route(UpsertRequest(tags=[
+        {'id': -1, 'property_id': pid, 'value': 'parent'},
+        {'id': child['id'], 'property_id': pid, 'value': 'child', 'parents': [-1]},
+    ]), project)
+
+    parent_id = next(t['id'] for t in res['tags'] if t['value'] == 'parent')
+    assert parent_id >= 0
+    stored = {t.id: t for t in project.get_tags()}
+    assert stored[child['id']].parents == [parent_id]
