@@ -223,6 +223,8 @@ async function acceptRecommend(images: Instance[]) {
     if (!images.length) return
     const imageValues: ImagePropertyValue[] = []
     const instanceValues: InstancePropertyValue[] = []
+    // Images of the same sha1 pile write a sha1 value only once
+    const writtenSha1 = new Set<string>()
 
     images.forEach(image => {
         propertyValues.forEach(v => {
@@ -230,19 +232,24 @@ async function acceptRecommend(images: Instance[]) {
             const prop = data.properties[v.propertyId]
             let value = v.value
             if (prop.type == PropertyType.multi_tags) {
-                value = valueOf(image, v.propertyId) ?? []
-                value = [...value, v.value]
+                const current = valueOf(image, v.propertyId) ?? []
+                if (current.includes(v.value)) return
+                value = [...current, v.value]
             } else if (prop.type == PropertyType.tag) {
                 value = [value]
             }
             if (prop.mode == PropertyMode.id) {
                 instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
             } else {
-                imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
+                const sha1 = sha1Of(image)
+                const key = prop.id + ':' + sha1
+                if (writtenSha1.has(key)) return
+                writtenSha1.add(key)
+                imageValues.push({ propertyId: prop.id, sha1, value })
             }
         })
     })
-    await data.setPropertyValues(instanceValues, imageValues)
+    if (instanceValues.length || imageValues.length) await data.setPropertyValues(instanceValues, imageValues)
     // The images now match the group; keep them out of the queue without
     // blacklisting them (they belong to the group now).
     images.forEach(image => matchingIds(image).forEach(id => accepted.add(id)))

@@ -387,7 +387,7 @@ function applyScoreOpacity(): boolean {
         for (const p of pts) p.opacity = 1.0
         return false
     }
-    // Through the slots, not p.id: the spatial index overwrites it with its own index.
+    // Through the slots, not p.id: p.id is one instance of the pile, scores are per instance.
     const pointScore = new Float64Array(pts.length).fill(NaN)
     const ids = columnStore.instanceIds()
     const read = (slot: number) => {
