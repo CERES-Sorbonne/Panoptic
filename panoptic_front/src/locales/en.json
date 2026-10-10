@@ -102,9 +102,14 @@
                 "confirm": "Convert \"{name}\" to the current format?\n\nA backup of the old data is kept in the project folder. The undo history is not kept."
             },
             "legacy": {
-                "banner": "Projects from an older version were found",
-                "banner_button": "Convert"
-            }
+                "section": "Older version projects",
+                "banner_button": "Convert",
+                "confirm": "Convert \"{name}\"?\n\nA converted copy will be created in:\n{dest}\n\nThe original project is not modified.",
+                "failed": "Conversion failed",
+                "retry": "Retry",
+                "done": "Converted"
+            },
+            "no_projects": "No project yet"
         },
         "status": {
             "no_project": "No open Panoptic project"
@@ -449,6 +454,8 @@
             "plugin_stop": "Stop plugin",
             "plugin_start": "Start plugin",
             "plugin_stopped_hint": "Its actions and tasks are unavailable until it is started again. It starts again when the project is reopened.",
+            "pluginNoSettings": "This plugin has no settings.",
+            "applied": "Applied",
             "reset": "Reset",
             "update": "Update",
             "registeredVectorTypes": "Registered Vector Types",
@@ -766,19 +773,47 @@
         "data": "Data",
         "show_image": "Show images",
         "show_points": "Show points",
+        "grid_layout": "Grid layout",
+        "group_outlines": "Group outlines and names",
+        "fill_cells": "Fill cells (square crop)",
+        "snake": {
+            "score": "Score: {score}",
+            "hint": "Arrows to steer · Esc to quit",
+            "over": "Game over! Space to replay · Esc to quit",
+            "won": "You won! Space to replay · Esc to quit"
+        },
+        "grid_density": "Empty cells between groups",
         "show_boxes": "Show boxes",
         "pan": "Pan",
-        "lasso_add": "Lasso add",
-        "lasso_remove": "Lasso remove",
+        "cell_select": "Cell selection",
+        "cell_select_hint": "Ctrl + wheel: size · Shift: rectangle · Right click: remove · Space: pan",
+        "paint": "Tag brush",
+        "paint_title": "Brush",
+        "paint_hint": "Ctrl + wheel: size · Shift: rectangle · Right click: remove the tag · Space: pan",
+        "paint_pick_tag": "Pick a tag in the right panel",
+        "paint_no_property": "No editable tag property",
+        "lasso": "Lasso (right click: remove)",
         "delete_map": "Delete map",
         "display": "Display",
         "group_property": "Groups",
         "group_cluster": "Clusters",
         "groups": "Groups",
+        "minimap": "Minimap",
+        "find": {
+            "play": "Mini-game: find the image on the map",
+            "stop": "Stop the game",
+            "reveal": "Hint: the area, then the image",
+            "score": "{score} found · {misses} missed",
+            "hint": "Find this image and click it",
+            "hover_hint": "Hover an image"
+        },
+        "preview": "Preview",
         "border_width": "Border width",
         "hover_scale": "Hover zoom size",
         "atlas": "Thumbnail atlas",
         "atlas_none": "The map needs an atlas to draw images.",
+        "no_match_title": "No image matches the filters",
+        "no_match": "Change or remove the filters to show images on the map.",
         "atlas_generate": "Generate atlas",
         "atlas_regenerate": "Regenerate atlas",
         "atlas_generating": "Generating…",

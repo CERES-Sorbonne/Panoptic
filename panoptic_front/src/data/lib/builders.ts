@@ -1,10 +1,14 @@
+import { DEFAULT_GRID_DENSITY } from "@/mixins/mapview/GridLayout";
 import { ClusterOptions, GraphOptions, MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, RecoOptions } from "@/data/models";
 
 export function createMapOptions(): MapOptions {
     return {
         showPoints: false,
         selectedMap: 0,
-        borderWidth: 0.05
+        borderWidth: 0.05,
+        layout: 'grid',
+        gridDensity: DEFAULT_GRID_DENSITY,
+        fillCells: true
     }
 }
 

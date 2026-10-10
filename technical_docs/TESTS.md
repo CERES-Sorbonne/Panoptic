@@ -10,6 +10,8 @@ cd panoptic_back && python -m pytest test panoptic/core/task/tests
 
 - `python -m pytest` (pas `pytest` seul) : c'est ce qui rend `panoptic` importable sans l'installer.
 - `panoptic/core/task/tests` contient les tests du cycle de vie des plugins.
+- Les écritures d'un plugin via `PluginProjectInterface` (`test_plugin_interface.py`) : elles
+  préviennent les clients (callback de commit du projet), création de groupes de propriétés.
 - Les bases (`*_db.py`), le modèle undo / redo (`test_undo_redo.py`), la migration des anciens
   projets (`test_legacy_migration.py`, `test_conversion.py`), l'import de dossier et l'import / export
   CSV (`test_import_export.py`, sur les images et CSV de `test/data`).
@@ -19,15 +21,21 @@ cd panoptic_back && python -m pytest test panoptic/core/task/tests
   des routes filesystem / images (y compris `..` et liens symboliques).
 - `test/scripts/` contient des benchmarks, ce ne sont pas des tests.
 
-### Frontend (`panoptic_front/test/group`, node)
+### Frontend (`panoptic_front/test/group`, `panoptic_front/test/map`, node)
 
 ```sh
 cd panoptic_front
-npm test          # suite de non-régression du grouping / clustering
-npm run test:sim  # simulation aléatoire
+npm test            # grouping / clustering (test/group) + vue spatiale (test/map)
+npm run test:sim    # simulation aléatoire du grouping
+npm run bench:grid  # qualité et temps de calcul du mode grille (hors CI)
 ```
 
-Nécessite Node 24. Détails dans `test/group/README.md`.
+Nécessite Node 24. Détails dans `test/group/README.md` et `test/map/README.md`.
+
+`test/map` couvre le placement en grille de la vue spatiale (`src/mixins/mapview/GridLayout.ts`) :
+une case distincte par image (cas limites compris), déterminisme, et la conservation de la
+projection mesurée sur des nuages synthétiques (voisinages, corrélation des distances, groupes
+d'un seul tenant, groupes distincts qui ne se touchent pas), ainsi que le cache de grille par carte, la géométrie de l'outil de sélection par cases (curseur, rectangle, tracé continu), les contours et îlots de groupes et les règles du snake caché dans le mode grille.
 
 ### Action « Tests » (`.github/workflows/tests.yml`)
 

@@ -2,6 +2,14 @@ import * as THREE from 'three'
 import { LassoLayer } from './LassoLayer'
 import { SpatialIndex } from './SpatialIndex'
 import { PointData, ZoomParams } from '@/data/models'
+import { keyState } from '@/data/composables/keyState'
+import { isCellTool } from './GridBrush'
+
+// Wheel delta (px) per brush size step: one notch of a mouse wheel.
+const BRUSH_WHEEL_STEP = 100
+// Some platforms fire contextmenu on mouseup, possibly over an overlay: it stays blocked this long
+// after a right-button gesture.
+const CONTEXT_MENU_GRACE_MS = 300
 
 export class MapControls {
     private camera: THREE.OrthographicCamera
@@ -11,17 +19,31 @@ export class MapControls {
     private mode: string = 'pan'
     private isDragging = false
     private isLassoing = false
+    private isBrushing = false
+    // Space held: a press drags the map whatever the mode.
+    private spaceHeld = false
+    private brushWheel = 0
+    private rightGestureUntil = 0
     private prevPos = { x: 0, y: 0 }
     private mouse = new THREE.Vector2()
     private animationId: number | null = null
     private isMouseInCanvas = false // Track if mouse is inside the canvas
 
     private lasso: LassoLayer
-    public minZoom = 0.01
+    public minZoom = 0.002
     public maxZoom = 20
     public zoomSpeed = 0.001
 
     public onUpdate: () => void = () => { }
+    // A pan-mode press released without moving the camera.
+    public onClick: () => void = () => { }
+    // Cell tools ('cells', 'paint'): left press adds, right press removes, Shift draws a rectangle.
+    public onBrushStart: (world: THREE.Vector3, remove: boolean, rect: boolean) => void = () => { }
+    public onBrushMove: (world: THREE.Vector3, rect: boolean) => void = () => { }
+    public onBrushEnd: () => void = () => { }
+    public onBrushCancel: () => void = () => { }
+    public onBrushResize: (dir: 1 | -1) => void = () => { }
+    private downPos = { x: 0, y: 0 }
 
     constructor(
         camera: THREE.OrthographicCamera, 
@@ -41,8 +63,44 @@ export class MapControls {
         this.domElement.addEventListener('mousedown', this.handleMouseDown)
         this.domElement.addEventListener('mouseenter', this.handleMouseEnter)
         this.domElement.addEventListener('mouseleave', this.handleMouseLeave)
+        window.addEventListener('contextmenu', this.handleContextMenu, true)
         window.addEventListener('mousemove', this.handleMouseMove)
         window.addEventListener('mouseup', this.handleMouseUp)
+        window.addEventListener('keydown', this.handleKeyDown)
+        window.addEventListener('keyup', this.handleKeyUp)
+        window.addEventListener('blur', this.handleBlur)
+    }
+
+    // Right click removes in the lasso and cell tools. Firefox still opens its menu on
+    // Shift + right click: it never sends that one to the page.
+    private handleContextMenu = (e: MouseEvent) => {
+        const overCanvas = e.target instanceof Node && this.domElement.contains(e.target)
+        if (this.isLassoing || this.isBrushing || performance.now() < this.rightGestureUntil
+            || (overCanvas && this.usesRightButton())) e.preventDefault()
+    }
+
+    private usesRightButton() {
+        return isCellTool(this.mode) || this.mode === 'lasso'
+    }
+
+    private handleKeyDown = (e: KeyboardEvent) => {
+        if (e.code !== 'Space' || isTyping(e)) return
+        // Keeps the page from scrolling and a focused button from firing.
+        if (this.isMouseInCanvas || this.isDragging) e.preventDefault()
+        if (this.spaceHeld) return
+        this.spaceHeld = true
+        this.updateCursor()
+    }
+
+    private handleKeyUp = (e: KeyboardEvent) => {
+        if (e.code !== 'Space' || !this.spaceHeld) return
+        this.spaceHeld = false
+        this.updateCursor()
+    }
+
+    private handleBlur = () => {
+        this.spaceHeld = false
+        this.updateCursor()
     }
 
     private handleMouseEnter = () => {
@@ -64,7 +122,13 @@ export class MapControls {
             return
         }
 
-        if (this.isDragging && this.mode === 'pan') {
+        if (this.isBrushing) {
+            this.onBrushMove(this.getMouseWorldPos(), e.shiftKey)
+            this.onUpdate()
+            return
+        }
+
+        if (this.isDragging) {
             const dx = e.clientX - this.prevPos.x
             const dy = e.clientY - this.prevPos.y
             const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom
@@ -81,26 +145,16 @@ export class MapControls {
     // zoom overlay): that overlay fires the canvas's mouseleave, which would otherwise drop the
     // hovered point and with it the overlay itself. The cursor still has to be over the canvas.
     public hoverThroughOverlays = false
+    // Thumbnails are square crops (AtlasLayer fill), so the hit box is the full square.
+    public fillCells = false
 
     public getHoveredPoint(zoomParams: ZoomParams): PointData | null {
         if (this.mode.startsWith('lasso')) return null
         
-        // Return null if mouse is outside the canvas
-        const overCanvas = this.isMouseInCanvas || (this.hoverThroughOverlays
-            && Math.abs(this.mouse.x) <= 1 && Math.abs(this.mouse.y) <= 1)
-        if (!overCanvas) return null
+        if (!this.isOverCanvas()) return null
 
         const worldPos = this.getMouseWorldPos()
-        const currentZoom = this.camera.zoom
-        const { h, z1, z2 } = zoomParams
-
-        // Replicate shader scaling logic
-        let zoomScale = h
-        if (currentZoom >= z1 && currentZoom < z2) {
-            zoomScale = h * (z1 / currentZoom)
-        } else if (currentZoom >= z2) {
-            zoomScale = h * (z1 / z2)
-        }
+        const zoomScale = this.zoomScale(zoomParams)
 
         const nearbyPoints = this.spatialIndex.getPointsInRect({
             minX: worldPos.x - zoomScale,
@@ -117,21 +171,49 @@ export class MapControls {
         })
 
         for (const p of nearbyPoints) {
-            const vW = p.ratio > 1.0 ? 1.0 : p.ratio
-            const vH = p.ratio > 1.0 ? 1.0 / p.ratio : 1.0
-            const halfW = (vW * zoomScale) / 2.0
-            const halfH = (vH * zoomScale) / 2.0
-
-            if (worldPos.x >= p.x - halfW && worldPos.x <= p.x + halfW &&
-                worldPos.y >= p.y - halfH && worldPos.y <= p.y + halfH) {
-                return p
-            }
+            if (this.contains(p, worldPos, zoomScale)) return p
         }
         return null
     }
 
+    public isOverCanvas() {
+        return this.isMouseInCanvas || (this.hoverThroughOverlays
+            && Math.abs(this.mouse.x) <= 1 && Math.abs(this.mouse.y) <= 1)
+    }
+
+    // Whether the cursor is over the point's thumbnail, grown by `scale` (the hover preview).
+    public isMouseOver(p: PointData, zoomParams: ZoomParams, scale = 1): boolean {
+        if (this.mode.startsWith('lasso') || !this.isOverCanvas()) return false
+        return this.contains(p, this.getMouseWorldPos(), this.zoomScale(zoomParams) * scale)
+    }
+
+    // Replicates the shader's thumbnail size at the current zoom.
+    private zoomScale({ h, z1, z2 }: ZoomParams) {
+        const currentZoom = this.camera.zoom
+        if (currentZoom >= z2) return h * (z1 / z2)
+        if (currentZoom >= z1) return h * (z1 / currentZoom)
+        return h
+    }
+
+    private contains(p: PointData, pos: { x: number, y: number }, size: number) {
+        const ratio = this.fillCells ? 1.0 : p.ratio
+        const halfW = (ratio > 1.0 ? 1.0 : ratio) * size / 2.0
+        const halfH = (ratio > 1.0 ? 1.0 / ratio : 1.0) * size / 2.0
+        return Math.abs(pos.x - p.x) <= halfW && Math.abs(pos.y - p.y) <= halfH
+    }
+
     private handleWheel = (e: WheelEvent) => {
         e.preventDefault()
+        // keyState.ctrl follows the real key: a trackpad pinch sends ctrlKey wheel events without
+        // it, and keeps zooming.
+        if (isCellTool(this.mode) && keyState.ctrl) {
+            this.brushWheel += e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 33 : e.deltaY
+            if (Math.abs(this.brushWheel) >= BRUSH_WHEEL_STEP) {
+                this.onBrushResize(this.brushWheel < 0 ? 1 : -1)
+                this.brushWheel = 0
+            }
+            return
+        }
         const before = this.getMouseWorldPos()
         const zoomAmount = e.deltaY * -this.zoomSpeed * this.camera.zoom
         this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom + zoomAmount))
@@ -144,21 +226,34 @@ export class MapControls {
     }
 
     private handleMouseDown = (e: MouseEvent) => {
-        if (this.mode.startsWith('lasso')) {
-            this.isLassoing = true
-            this.lasso.start(this.getMouseWorldPos(), { x: e.clientX, y: e.clientY })
-        } else if (this.mode === 'pan') {
+        if (this.isBrushing) return
+        if (this.mode === 'pan' || this.spaceHeld) {
             this.isDragging = true
             this.prevPos = { x: e.clientX, y: e.clientY }
+            this.downPos = { x: e.clientX, y: e.clientY }
+        } else if (this.mode === 'lasso' && (e.button === 0 || e.button === 2)) {
+            this.isLassoing = true
+            this.lasso.start(this.getMouseWorldPos(), { x: e.clientX, y: e.clientY }, e.button === 2)
+        } else if (isCellTool(this.mode) && (e.button === 0 || e.button === 2)) {
+            this.isBrushing = true
+            this.onBrushStart(this.getMouseWorldPos(), e.button === 2, e.shiftKey)
         }
         this.updateCursor()
         this.onUpdate()
     }
 
-    private handleMouseUp = () => {
+    private handleMouseUp = (e: MouseEvent) => {
+        if (e.button === 2 && (this.isLassoing || this.isBrushing)) this.rightGestureUntil = performance.now() + CONTEXT_MENU_GRACE_MS
         if (this.isLassoing) {
             this.isLassoing = false
             this.lasso.end()
+        }
+        if (this.isBrushing) {
+            this.isBrushing = false
+            this.onBrushEnd()
+        }
+        if (this.isDragging && this.mode === 'pan' && Math.hypot(e.clientX - this.downPos.x, e.clientY - this.downPos.y) < 5) {
+            this.onClick()
         }
         this.isDragging = false
         this.updateCursor()
@@ -167,7 +262,9 @@ export class MapControls {
 
     public setMode(mode: string) {
         if (this.isLassoing) this.lasso.clear()
+        if (this.isBrushing) this.onBrushCancel()
         this.isLassoing = false
+        this.isBrushing = false
         this.isDragging = false
         this.mode = mode
         this.updateCursor()
@@ -176,9 +273,9 @@ export class MapControls {
     public getMode() { return this.mode }
 
     private updateCursor() {
-        if (this.isLassoing || this.mode.startsWith('lasso')) this.domElement.style.cursor = 'crosshair'
-        else if (this.isDragging) this.domElement.style.cursor = 'grabbing'
-        else if (this.mode === 'pan') this.domElement.style.cursor = 'grab'
+        if (this.isDragging) this.domElement.style.cursor = 'grabbing'
+        else if (this.mode === 'pan' || (this.spaceHeld && !this.isLassoing && !this.isBrushing)) this.domElement.style.cursor = 'grab'
+        else if (this.isLassoing || this.mode.startsWith('lasso') || isCellTool(this.mode)) this.domElement.style.cursor = 'crosshair'
         else this.domElement.style.cursor = 'default'
     }
 
@@ -189,6 +286,14 @@ export class MapControls {
         worldPos.x = this.camera.position.x + (this.mouse.x * worldWidth) / 2
         worldPos.y = this.camera.position.y + (this.mouse.y * worldHeight) / 2
         return worldPos
+    }
+
+    public panTo(x: number, y: number) {
+        if (this.animationId) cancelAnimationFrame(this.animationId)
+        this.animationId = null
+        this.camera.position.x = x
+        this.camera.position.y = y
+        this.onUpdate()
     }
 
     public lookAtRect(
@@ -269,7 +374,16 @@ export class MapControls {
         this.domElement.removeEventListener('mousedown', this.handleMouseDown)
         this.domElement.removeEventListener('mouseenter', this.handleMouseEnter)
         this.domElement.removeEventListener('mouseleave', this.handleMouseLeave)
+        window.removeEventListener('contextmenu', this.handleContextMenu, true)
         window.removeEventListener('mousemove', this.handleMouseMove)
         window.removeEventListener('mouseup', this.handleMouseUp)
+        window.removeEventListener('keydown', this.handleKeyDown)
+        window.removeEventListener('keyup', this.handleKeyUp)
+        window.removeEventListener('blur', this.handleBlur)
     }
+}
+
+function isTyping(e: KeyboardEvent) {
+    const el = e.target as HTMLElement | null
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
 }

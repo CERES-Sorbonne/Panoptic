@@ -31,8 +31,16 @@
   user-select: none;
 }
 
-/* Equal-width digits so stacked or changing numbers line up */
-.tabular-nums {
+/* Every number shown in the UI (counts, progress, sizes, scores) uses the mono font,
+   so digits are equal width and stacked or changing numbers line up. Number inputs use
+   it too, so a value keeps its font while it is edited, and so does the value bubble of
+   @vueform/slider.
+   Canvas charts can't read CSS variables, so they copy the font stack (CHART_NUMBER_FONT in
+   graphview/chartPalette.ts). Keep the two in sync. */
+.num,
+input[type="number"],
+.slider-tooltip {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

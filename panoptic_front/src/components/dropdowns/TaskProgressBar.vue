@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/data/stores/projectStore'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
+import NumText from '@/components/utils/NumText.vue'
 import type { TaskState } from '@/data/models'
 
 const project = useProjectStore()
@@ -53,15 +54,19 @@ function taskMessage(t: TaskState) {
     return t.detail ? `${step}: ${t.detail}` : step
 }
 
-function taskSubtitle(t: TaskState) {
-    if (t.cancelled) return $t('dropdown.tasks.stopping')
-    const parts: string[] = []
+// Subtitle parts, shown joined by " · ". Plain text, or a translation whose values are
+// numbers (rendered by NumText so the numbers get the number font).
+type SubtitlePart = string | { keypath: string, values: Record<string, string | number> }
+
+function taskSubtitle(t: TaskState): SubtitlePart[] {
+    if (t.cancelled) return [$t('dropdown.tasks.stopping')]
+    const parts: SubtitlePart[] = []
     const message = taskMessage(t)
     if (message) parts.push(message)
-    if (t.workers) parts.push($t('dropdown.tasks.workers', { count: t.workers }))
-    if (t.rate) parts.push($t('dropdown.tasks.rate', { rate: t.rate.toFixed(1) }))
-    if (t.eta_seconds) parts.push($t('dropdown.tasks.eta', { time: formatEta(t.eta_seconds) }))
-    return parts.join(' · ')
+    if (t.workers) parts.push({ keypath: 'dropdown.tasks.workers', values: { count: t.workers } })
+    if (t.rate) parts.push({ keypath: 'dropdown.tasks.rate', values: { rate: t.rate.toFixed(1) } })
+    if (t.etaSeconds) parts.push({ keypath: 'dropdown.tasks.eta', values: { time: formatEta(t.etaSeconds) } })
+    return parts
 }
 
 function finishedMessage(t: TaskState) {
@@ -82,17 +87,17 @@ function formatEta(seconds: number) {
 </script>
 
 <template>
-    <Dropdown v-if="showAny" placement="bottom" :offset="6">
+    <Dropdown v-if="showAny" placement="bottom-start" :offset="6">
         <template #button>
             <wTT message="dropdown.tasks.info">
                 <div class="task-progress-btn">
                     <i class="bi bi-cpu" />
                     <span v-if="activePrimary" class="task-progress-name">{{ taskLabel(activePrimary) }}</span>
-                    <span v-if="remainingCount > 0" class="task-progress-queue">+{{ remainingCount }}</span>
+                    <span v-if="remainingCount > 0" class="task-progress-queue num">+{{ remainingCount }}</span>
                     <div v-if="activePrimary" class="task-progress-track">
                         <div class="task-progress-fill" :style="{ width: primaryPct + '%' }" />
                     </div>
-                    <span v-if="activePrimary" class="task-progress-pct">{{ primaryPct }}%</span>
+                    <span v-if="activePrimary" class="task-progress-pct num">{{ primaryPct }}%</span>
                 </div>
             </wTT>
         </template>
@@ -102,14 +107,20 @@ function formatEta(seconds: number) {
                 <div v-for="t in running" :key="t.id" class="task-row">
                     <div class="task-row-header">
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
-                        <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
-                        <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
+                        <span class="task-row-counts num">{{ t.done }}/{{ t.total }}</span>
+                        <span v-if="t.failed > 0" class="task-row-failed"><NumText keypath="dropdown.tasks.failed" :values="{ count: t.failed }" /></span>
                         <wTT v-if="!t.cancelled" message="dropdown.tasks.stop">
                             <i class="bi bi-stop-circle task-row-action" @click.stop="stop(t)" />
                         </wTT>
                         <span v-else class="spinner-border task-row-spinner" />
                     </div>
-                    <div v-if="taskSubtitle(t)" class="task-row-subtitle">{{ taskSubtitle(t) }}</div>
+                    <div v-if="taskSubtitle(t).length" class="task-row-subtitle">
+                        <template v-for="(part, i) in taskSubtitle(t)" :key="i">
+                            <template v-if="i"> · </template>
+                            <template v-if="typeof part == 'string'">{{ part }}</template>
+                            <NumText v-else v-bind="part" />
+                        </template>
+                    </div>
                     <div class="task-row-track">
                         <div class="task-row-fill" :style="{ width: taskPct(t) + '%' }" />
                         <div v-if="t.failed > 0" class="task-row-fill task-row-fill--danger"
@@ -123,13 +134,20 @@ function formatEta(seconds: number) {
                     <div class="task-row-header">
                         <i class="bi bi-hourglass task-pending-icon" />
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
-                        <span v-if="t.total" class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
-                        <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
+                        <span v-if="t.total" class="task-row-counts num">{{ t.done }}/{{ t.total }}</span>
+                        <span v-if="t.failed > 0" class="task-row-failed"><NumText keypath="dropdown.tasks.failed" :values="{ count: t.failed }" /></span>
                         <wTT message="dropdown.tasks.cancel">
                             <i class="bi bi-x-circle task-row-action" @click.stop="stop(t)" />
                         </wTT>
                     </div>
-                    <div class="task-row-subtitle">{{ taskSubtitle(t) || $t('dropdown.tasks.waiting') }}</div>
+                    <div class="task-row-subtitle">
+                        <template v-for="(part, i) in taskSubtitle(t)" :key="i">
+                            <template v-if="i"> · </template>
+                            <template v-if="typeof part == 'string'">{{ part }}</template>
+                            <NumText v-else v-bind="part" />
+                        </template>
+                        <template v-if="!taskSubtitle(t).length">{{ $t('dropdown.tasks.waiting') }}</template>
+                    </div>
                 </div>
 
                 <div v-if="finished.length > 0" class="task-section-label task-section-label--row"
@@ -142,8 +160,8 @@ function formatEta(seconds: number) {
                         <i v-if="t.cancelled" class="bi bi-stop-circle-fill task-done-icon" />
                         <i v-else class="bi bi-check-circle-fill task-done-icon" />
                         <span class="task-row-name">{{ taskLabel(t) }}</span>
-                        <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
-                        <span v-if="t.failed > 0" class="task-row-failed">{{ $t('dropdown.tasks.failed', { count: t.failed }) }}</span>
+                        <span class="task-row-counts num">{{ t.done }}/{{ t.total }}</span>
+                        <span v-if="t.failed > 0" class="task-row-failed"><NumText keypath="dropdown.tasks.failed" :values="{ count: t.failed }" /></span>
                         <wTT message="dropdown.tasks.dismiss">
                             <i class="bi bi-x task-row-action" @click.stop="project.dismissTask(t.id)" />
                         </wTT>

@@ -442,7 +442,7 @@ watch(tagList, reDraw)
             </div>
             <div class="bbb" v-if="props.selectedTags.length" @click="clearSelected">
                 <wTT message="modals.tags.unselect_tree">
-                    <i class="bi bi-x" /> {{ props.selectedTags.length }} selected
+                    <i class="bi bi-x" /> <span class="num">{{ props.selectedTags.length }}</span> selected
                 </wTT>
             </div>
             <div class="ms-2">

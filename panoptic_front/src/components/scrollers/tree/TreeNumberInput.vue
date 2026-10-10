@@ -65,7 +65,7 @@ defineExpose({ focus })
         <input v-if="editing" ref="inputElem" class="field" type="number" v-model="localValue"
             @focus="emits('focus')" @blur="onBlur" @keydown.enter.prevent="e => (e.target as HTMLElement).blur()"
             @keydown.esc.stop="onEscape" @keydown.tab.stop.prevent="emits('tab')" />
-        <span v-else-if="value !== undefined" class="value">{{ value }}</span>
+        <span v-else-if="value !== undefined" class="value num">{{ value }}</span>
     </TreeCellFrame>
 </template>
 
@@ -81,7 +81,9 @@ defineExpose({ focus })
     border: none;
     outline: none;
     background: transparent;
-    font: inherit;
+    /* not the font shorthand: number inputs get the number font (see .num in main.css) */
+    font-size: inherit;
+    font-weight: inherit;
     line-height: inherit;
     color: inherit;
 }

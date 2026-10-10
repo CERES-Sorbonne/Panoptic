@@ -16,6 +16,18 @@ export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
 
+const NUMERIC_TYPES = new Set<PropertyType>([
+    PropertyType.number,
+    PropertyType._width,
+    PropertyType._height,
+    PropertyType._id,
+])
+
+/** Property types whose values are numbers. */
+export function isNumeric(type: PropertyType) {
+    return NUMERIC_TYPES.has(type)
+}
+
 
 export function computedPropValue(property: Ref<Property>, image: Ref<InstanceEntry>) {
     const propValue = computed(() => {

@@ -15,7 +15,7 @@ import { BarChart, LineChart, ScatterChart } from 'echarts/charts'
 import { DataZoomComponent, GridComponent, LegendComponent, MarkAreaComponent } from 'echarts/components'
 import type { GraphOptions } from '@/data/models'
 import type { ChartModel } from './chartModel'
-import { CHART_CHROME } from './chartPalette'
+import { CHART_CHROME, CHART_NUMBER_FONT } from './chartPalette'
 
 use([
     CanvasRenderer, GridComponent, LegendComponent, DataZoomComponent, MarkAreaComponent,
@@ -76,11 +76,12 @@ export function buildChartOption(
     const stacked = options.stacked && series.length > 1
     const layout = chartLayout(model)
     const axisText = { color: CHART_CHROME.label, fontSize: 10 }
+    const numberText = { ...axisText, fontFamily: CHART_NUMBER_FONT }
 
     const xAxis: any = {
         axisLine: { lineStyle: { color: CHART_CHROME.axis } },
         axisTick: { show: false },
-        axisLabel: { ...axisText, hideOverlap: true },
+        axisLabel: { ...(xKind === 'value' ? numberText : axisText), hideOverlap: true },
         splitLine: { show: false },
     }
     if (xKind === 'category') {
@@ -228,7 +229,7 @@ export function buildChartOption(
             minInterval: 1,
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { ...axisText, formatter: compactNumber },
+            axisLabel: { ...numberText, formatter: compactNumber },
             splitLine: { lineStyle: { color: CHART_CHROME.grid, width: 1, type: 'solid' } },
         },
         // No tooltip component on purpose: the readout is a Vue overlay (ChartTooltip.vue).
@@ -260,7 +261,11 @@ export function buildChartOption(
                 },
                 handleStyle: { color: '#fff', borderColor: CHART_CHROME.axis },
                 moveHandleStyle: { color: CHART_CHROME.axis },
-                textStyle: { color: CHART_CHROME.label, fontSize: 9 },
+                textStyle: {
+                    color: CHART_CHROME.label,
+                    fontSize: 9,
+                    ...(xKind === 'value' ? { fontFamily: CHART_NUMBER_FONT } : {}),
+                },
                 filterMode: 'filter',
             }] : []),
         ],

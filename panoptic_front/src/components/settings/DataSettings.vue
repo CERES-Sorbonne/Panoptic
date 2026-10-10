@@ -92,8 +92,8 @@ defineExpose({ refresh })
                                 :checked="!!commit.active" :disabled="busy" @change="toggle(commit)" />
                         </div>
                     </td>
-                    <td class="p-1" :style="commit.active ? '' : 'text-decoration: line-through;'">{{ commit.id }}</td>
-                    <td class="p-1">{{ formatWhen(commit.timestamp) }}</td>
+                    <td class="p-1 num" :style="commit.active ? '' : 'text-decoration: line-through;'">{{ commit.id }}</td>
+                    <td class="p-1 num">{{ formatWhen(commit.timestamp) }}</td>
                     <td class="p-1">{{ commit.author || commit.source }}</td>
                     <td class="p-1"><span class="badge bg-light text-secondary">{{ commit.source }}</span></td>
                     <td class="p-1 text-end">

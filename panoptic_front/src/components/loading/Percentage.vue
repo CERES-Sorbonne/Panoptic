@@ -17,7 +17,7 @@ const percentage = computed(() => {
 </script>
 
 <template>
-    <span>{{ percentage }}</span>
+    <span class="num">{{ percentage }}</span>
 </template>
 
 <style scoped>

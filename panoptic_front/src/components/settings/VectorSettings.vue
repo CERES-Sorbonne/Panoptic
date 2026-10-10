@@ -18,6 +18,16 @@ async function deleteType(id: number) {
     await media.deleteVectorType(id)
 }
 
+// Width of each number, in characters: enough for the total, so the counts keep their
+// place while they update.
+const numberWidth = computed(() => String(media.vectorStats.sha1Count).length + 'ch')
+
+// Share of the project's images with a vector of this type
+function coveragePercent(vecType: VectorType) {
+    const total = media.vectorStats.sha1Count
+    return total > 0 ? Math.round(100 * media.vectorCount(vecType.id) / total) : 0
+}
+
 async function computeVectors(vecType: VectorType) {
     await actions.callComputeVector(vecType)
 }
@@ -45,12 +55,20 @@ onMounted(() => media.updateVectorStats())
             <tbody>
                 <tr v-for="vecType in media.vectorTypes" :key="vecType.id">
                     <td><i class="bb bi bi-x" @click="deleteType(vecType.id)" /></td>
-                    <td>{{ vecType.id }}</td>
+                    <td class="num">{{ vecType.id }}</td>
                     <td>
-                        <div>
-                            <ComputeVectorButton v-if="media.vectorStats.count[vecType.id] != media.vectorStats.sha1Count" :vector-type="vecType" class="me-2" />
-                            <span v-if="media.vectorStats.count[vecType.id] != undefined">{{ media.vectorStats.count[vecType.id] }} / {{ media.vectorStats.sha1Count }}</span>
-                            <span v-else>0 / {{ media.vectorStats.sha1Count }}</span>
+                        <div class="d-flex align-items-center">
+                            <span class="counts num">
+                                <span class="count" :style="{ width: numberWidth }">{{ media.vectorCount(vecType.id) }}</span>
+                                /
+                                <span class="count" :style="{ width: numberWidth }">{{ media.vectorStats.sha1Count }}</span>
+                            </span>
+                            <div class="count-action ms-2">
+                                <div v-if="media.vectorTask(vecType.id)" class="task-track">
+                                    <div class="task-fill" :style="{ width: coveragePercent(vecType) + '%' }" />
+                                </div>
+                                <ComputeVectorButton v-else-if="media.vectorCount(vecType.id) != media.vectorStats.sha1Count" :vector-type="vecType" />
+                            </div>
                         </div>
                     </td>
                     <td>{{ vecType.source }}</td>
@@ -85,6 +103,39 @@ onMounted(() => media.updateVectorStats())
 <style scoped>
 .main {
     padding: 5px;
+}
+
+.counts {
+    white-space: nowrap;
+}
+
+.count {
+    display: inline-block;
+    text-align: right;
+}
+
+/* Minimum width so the column keeps its size between the button and the bar.
+   It still grows when the translated button label is longer. */
+.count-action {
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.task-track {
+    position: relative;
+    width: 80px;
+    height: 5px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.task-fill {
+    height: 100%;
+    background: #4dabf7;
+    transition: width 0.2s linear;
 }
 
 table {

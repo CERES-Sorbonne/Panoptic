@@ -114,6 +114,8 @@ export interface ActionResult {
     notifs?: Notif[]
     errors?: string[]
     value?: any
+    // Id of a task queued by the action, to follow its progress in the task list
+    taskId?: string
 }
 
 export interface IgnoredPlugins {

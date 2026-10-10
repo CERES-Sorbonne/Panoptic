@@ -49,7 +49,7 @@ watch(realChildren, updateLocal)
         <template v-slot:button>
             <span class="text-nowrap  sm-btn">
                 <i class="bi bi-node-plus me-1" style="position: relative; top: 1.5px;"></i>
-                <span style="font-size: 10px;">{{ realChildren.length }}</span>
+                <span class="num" style="font-size: 10px;">{{ realChildren.length }}</span>
             </span>
         </template>
         <template v-slot:popup>

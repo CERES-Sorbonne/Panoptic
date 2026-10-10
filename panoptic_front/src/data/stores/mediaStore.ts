@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, triggerRef } from 'vue'
+import { computed, ref, shallowRef, triggerRef, watch } from 'vue'
 import { useProjectStore } from './projectStore'
 import { useColumnStore } from './columnStore'
-import { ImageAtlas, MapIndex, PointMap, VectorStats, VectorType } from '../models'
+import { ImageAtlas, MapIndex, PointMap, TaskState, VectorStats, VectorType } from '../models'
 import {
     apiDeleteMap, apiDeleteVectorType, apiGenerateAtlas, apiGetAtlas, apiGetMap,
     apiGetVectorStats, apiGetVectorTypes, apiListMaps,
@@ -28,6 +28,47 @@ export const useMediaStore = defineStore('mediaStore', () => {
     const atlasTaskPercent = computed(() => {
         const t = atlasTask.value
         return t && t.total > 0 ? Math.round(100 * t.done / t.total) : 0
+    })
+
+    // Unfinished compute task of each vector type, by vector type id. Comes from the task
+    // list, so it survives page reloads and includes tasks the plugin queued by itself.
+    const vectorTasks = computed(() => {
+        const res: Record<number, TaskState> = {}
+        for (const t of useProjectStore().state?.tasks ?? []) {
+            if (t.vectorTypeId != null && !t.finished) res[t.vectorTypeId] = t
+        }
+        return res
+    })
+
+    function vectorTask(typeId: number): TaskState | null {
+        return vectorTasks.value[typeId] ?? null
+    }
+
+    // For each vector task, by task id: the part of its `done` that `vectorStats` already
+    // counts. Set to the task's `done` at each stats reload. A task without an entry is
+    // counted in full if it is finished, and not at all if it is still running.
+    let statsCountedDone: Record<string, number> = {}
+
+    // Vectors stored for a vector type: the loaded stats plus what its tasks wrote since.
+    // Compute tasks only count vectors once they are written, so this matches the database.
+    function vectorCount(typeId: number): number {
+        let count = vectorStats.value.count[typeId] ?? 0
+        for (const t of useProjectStore().state?.tasks ?? []) {
+            if (t.vectorTypeId !== typeId) continue
+            const counted = statsCountedDone[t.id]
+            if (counted !== undefined) count += t.done - counted
+            else if (!t.finished) count += t.done
+        }
+        return Math.min(count, vectorStats.value.sha1Count)
+    }
+
+    // Reload the vector counts when a compute task finishes (or is dismissed). Until the
+    // reload returns, the finished task still adds its vectors to the old counts.
+    watch(() => Object.values(vectorTasks.value).map(t => t.id), (ids, oldIds) => {
+        const gone = oldIds?.filter(id => !ids.includes(id)) ?? []
+        if (!gone.length) return
+        gone.forEach(id => statsCountedDone[id] ??= 0)
+        updateVectorStats()
     })
 
     // How many of the project's distinct images the atlas holds. Walks every slot, so it only
@@ -86,7 +127,13 @@ export const useMediaStore = defineStore('mediaStore', () => {
     }
 
     async function updateVectorStats() {
-        vectorStats.value = await apiGetVectorStats()
+        const stats = await apiGetVectorStats()
+        const counted: Record<string, number> = {}
+        for (const t of useProjectStore().state?.tasks ?? []) {
+            if (t.vectorTypeId != null) counted[t.id] = t.done
+        }
+        statsCountedDone = counted
+        vectorStats.value = stats
     }
 
     async function loadMaps(mapList?: PointMap[]) {
@@ -121,6 +168,7 @@ export const useMediaStore = defineStore('mediaStore', () => {
     function clear() {
         vectorTypes.value = []
         vectorStats.value = { count: {}, sha1Count: 0 }
+        statsCountedDone = {}
         maps.value        = {}
         atlas.value       = undefined
         atlasFetched.value = false
@@ -128,11 +176,11 @@ export const useMediaStore = defineStore('mediaStore', () => {
 
     return {
         // State
-        vectorTypes, vectorStats, maps, atlas, atlasFetched,
+        vectorTypes, vectorStats, vectorTasks, maps, atlas, atlasFetched,
         // Computed
         hasMaps, hasAtlas, atlasTask, atlasTaskPercent, atlasCoverage, atlasRequested,
         // Actions
-        init, clear,
+        init, clear, vectorTask, vectorCount,
         importVectorTypes, loadAtlas, generateAtlas,
         updateVectorTypes, deleteVectorType, updateVectorStats,
         loadMaps, loadMapData, deleteMap,

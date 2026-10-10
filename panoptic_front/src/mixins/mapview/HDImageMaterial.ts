@@ -10,6 +10,13 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
     private _radius = { value: 0.05 };
     private _tint = { value: new THREE.Color(0xFFFFFF) };
     private _tintAlpha = { value: 0.0 };
+    // Texture lookup: uv * xy + zw. Crops or flips the image without a new texture.
+    private _uvTransform = { value: new THREE.Vector4(1, 1, 0, 0) };
+    private _desaturate = { value: 0.0 };
+    // 1: the tint covers the border too, as on the grid thumbnails.
+    private _tintBorder = { value: 0.0 };
+    // Fades towards the white scene background like the atlas thumbnails' vOpacity.
+    private _fade = { value: 1.0 };
 
     constructor(parameters: THREE.MeshBasicMaterialParameters) {
         super(parameters);
@@ -23,6 +30,10 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
             shader.uniforms.uRadius = this._radius;
             shader.uniforms.uTint = this._tint;
             shader.uniforms.uTintAlpha = this._tintAlpha;
+            shader.uniforms.uUvTransform = this._uvTransform;
+            shader.uniforms.uDesaturate = this._desaturate;
+            shader.uniforms.uTintBorder = this._tintBorder;
+            shader.uniforms.uFade = this._fade;
 
             shader.vertexShader = `
                 varying vec2 vRawUv;
@@ -74,6 +85,10 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uRadius;
                 uniform vec3 uTint;
                 uniform float uTintAlpha;
+                uniform vec4 uUvTransform;
+                uniform float uDesaturate;
+                uniform float uTintBorder;
+                uniform float uFade;
 
                 float sdRoundedBox(vec2 p, vec2 b, float r) {
                     vec2 q = abs(p) - b + r;
@@ -106,10 +121,15 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 float borderW = uBorderWidth * max(borderScale, MIN_BORDER_RATIO);
                 float borderMask = smoothstep(edgeSoftness, 0.0, d + borderW);
 
-                vec4 texelColor = texture2D( map, vRawUv );
+                vec4 texelColor = texture2D( map, vRawUv * uUvTransform.xy + uUvTransform.zw );
 
-                vec3 tintedColor = mix(texelColor.rgb, uTint, uTintAlpha);
-                vec3 finalRGB = mix(uBorderColor, tintedColor, borderMask);
+                float luminance = dot(texelColor.rgb, vec3(0.299, 0.587, 0.114));
+                vec3 desaturatedColor = mix(texelColor.rgb, vec3(luminance), uDesaturate);
+                vec3 fadedColor = mix(vec3(1.0), desaturatedColor, uFade);
+                vec3 fadedBorder = mix(vec3(1.0), uBorderColor, uFade);
+                vec3 tintedColor = mix(fadedColor, uTint, uTintAlpha);
+                vec3 borderColor = mix(fadedBorder, uTint, uTintAlpha * uTintBorder);
+                vec3 finalRGB = mix(borderColor, tintedColor, borderMask);
 
                 // opacity is MeshBasicMaterial's own uniform (declared upstream in the
                 // unmodified part of this shader) — folded in here since this replace fully
@@ -146,5 +166,21 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
     public setTint(tint: string | undefined, alpha: number | undefined) {
         this._tint.value.set(tint || '#FFFFFF')
         this._tintAlpha.value = alpha ?? 0.0
+    }
+
+    public setUvTransform(scaleX: number, scaleY: number, offsetX: number, offsetY: number) {
+        this._uvTransform.value.set(scaleX, scaleY, offsetX, offsetY)
+    }
+
+    public setDesaturate(amount: number | undefined) {
+        this._desaturate.value = amount ?? 0.0
+    }
+
+    public setTintBorder(tintBorder: boolean) {
+        this._tintBorder.value = tintBorder ? 1.0 : 0.0
+    }
+
+    public setFade(amount: number | undefined) {
+        this._fade.value = amount ?? 1.0
     }
 }

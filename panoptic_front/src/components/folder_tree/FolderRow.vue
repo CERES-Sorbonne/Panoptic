@@ -86,7 +86,7 @@ function handleExpand(e: MouseEvent) {
             <span v-else class="tree-caret-spacer">&nbsp;</span>
         </span>
         <span class="tree-label">{{ folder.name }}</span>
-        <span v-if="getCount(folder.id) > 0" class="tree-count tabular-nums">{{ getCount(folder.id) }}</span>
+        <span v-if="getCount(folder.id) > 0" class="tree-count num">{{ getCount(folder.id) }}</span>
         <span class="folder-option">
             <FolderOptionDropdown :folder="folder" @show="menuOpen = true" @hide="menuOpen = false" />
         </span>

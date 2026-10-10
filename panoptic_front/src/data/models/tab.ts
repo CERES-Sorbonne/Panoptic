@@ -79,6 +79,8 @@ export interface TabState {
     isSelection?: boolean
 }
 
+export type MapLayout = 'scatter' | 'grid'
+
 export interface MapOptions {
     showPoints: boolean
     selectedMap: number
@@ -87,6 +89,21 @@ export interface MapOptions {
     borderWidth?: number
     // How much the HD preview grows over the hovered point. Optional for the same reason.
     hoverScale?: number
+    // Projection as computed, or one image per grid cell. Optional for the same reason.
+    layout?: MapLayout
+    // Grid cells per image: 1 fills the grid, more leaves empty cells between distant groups.
+    gridDensity?: number
+    // In the grid, thumbnails fill their cell with a centred square crop.
+    fillCells?: boolean
+    // In the grid, lines between groups and group names over their islands.
+    groupOutlines?: boolean
+    // Tag brush of the grid layout: the tag property and tag it paints.
+    paintPropertyId?: number | null
+    paintTagId?: number | null
+    paintCollapsed?: boolean
+    previewCollapsed?: boolean
+    groupsCollapsed?: boolean
+    minimapCollapsed?: boolean
 }
 
 // Per-view options for the group recommendation view. Stores which group the

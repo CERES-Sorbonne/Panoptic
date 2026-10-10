@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { FileSource } from '@/data/models';
 import Dropdown from './Dropdown.vue';
+import NumText from '@/components/utils/NumText.vue';
 import { i18n } from '@/locales/i18n';
 import { useDataStore } from '@/data/stores/dataStore';
 
@@ -59,12 +60,12 @@ function deleteFileSource(hide: () => void) {
                     </div>
                 </template>
                 <div class="sync-row" v-if="source.syncStatus">
-                    <div>{{ $t('main.nav.fileSources.sync.counts', {
+                    <div><NumText keypath="main.nav.fileSources.sync.counts" :values="{
                         folders: source.syncStatus.folderCount, files: source.syncStatus.fileCount
-                    }) }}</div>
-                    <div>{{ $t('main.nav.fileSources.sync.lastSynced', {
+                    }" /></div>
+                    <div><NumText keypath="main.nav.fileSources.sync.lastSynced" :values="{
                         date: formatSyncDate(source.syncStatus.lastSyncedAt)
-                    }) }}</div>
+                    }" /></div>
                 </div>
                 <div class="sync-row" v-else>{{ $t('main.nav.fileSources.sync.neverSynced') }}</div>
                 <div class="menu-item" @click="resyncFileSource(hide)">

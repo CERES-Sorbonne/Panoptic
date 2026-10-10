@@ -87,13 +87,13 @@ onMounted(load)
                     </td>
                     <td>{{ type.name }}</td>
                     <td>{{ type.format }}</td>
-                    <td>{{ type.width ?? '∞' }} px</td>
+                    <td><span class="num">{{ type.width ?? '∞' }}</span> px</td>
                     <td>
                         <input type="checkbox" :checked="type.autoGen" @change="toggleAutoGen(type)" />
                     </td>
                     <td>
-                        <span v-if="counts[type.id] != undefined">{{ counts[type.id] }} / {{ sha1Count }}</span>
-                        <span v-else>0 / {{ sha1Count }}</span>
+                        <span v-if="counts[type.id] != undefined" class="num">{{ counts[type.id] }} / {{ sha1Count }}</span>
+                        <span v-else class="num">0 / {{ sha1Count }}</span>
                     </td>
                 </tr>
             </tbody>

@@ -14,7 +14,7 @@ import { Colors, DateUnit, Property, PropertyType, Tag } from '@/data/models'
 import { GroupType, type Group } from '@/core/group/types'
 import type { GroupInspector } from '@/core/group/inspector'
 import { isNoValue } from '@/core/group/valueParser'
-import { isTag, pad } from '@/utils/utils'
+import { isNumeric, isTag, pad } from '@/utils/utils'
 import { CHART_PALETTE, OTHER_COLOR } from './chartPalette'
 
 /** How the first grouping level maps onto an x axis. */
@@ -98,13 +98,6 @@ export interface ChartDataSource {
 const MAX_SERIES = 12
 /** Upper bound on instances we keep loaded for thumbnails, whatever the bucket count. */
 const MAX_SAMPLES = 1500
-
-const NUMERIC_TYPES = new Set<PropertyType>([
-    PropertyType.number,
-    PropertyType._width,
-    PropertyType._height,
-    PropertyType._id,
-])
 
 export function buildChartModel(
     inspector: GroupInspector,
@@ -216,7 +209,7 @@ export function buildChartModel(
 
     // A numeric second level reads top to bottom like the x axis reads left to right:
     // sort the series ascending by value, whatever order the tree keeps them in.
-    if (seriesProp && NUMERIC_TYPES.has(seriesProp.type)) {
+    if (seriesProp && isNumeric(seriesProp.type)) {
         list.sort((a, b) => seriesNumericValue(a.key) - seriesNumericValue(b.key))
     }
 
@@ -323,7 +316,7 @@ export function bucketInstanceIds(bucket: ChartBucket, max: number, instanceIds:
 
 function axisKind(property: Property): XKind {
     if (property.type === PropertyType.date) return 'time'
-    if (NUMERIC_TYPES.has(property.type)) return 'value'
+    if (isNumeric(property.type)) return 'value'
     return 'category'
 }
 

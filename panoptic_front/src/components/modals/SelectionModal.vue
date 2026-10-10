@@ -34,7 +34,7 @@ function onHide() {
     <Modal2 :id="ModalId.SELECTION" @show="onShow" @hide="onHide">
         <template #title>
             <div class="d-flex align-items-center ps-2">
-                <span class="me-3">{{ instances.length }} selected images</span>
+                <span class="me-3"><span class="num">{{ instances.length }}</span> selected images</span>
                 <div class="d-flex align-items-center">
                     <div class="bi bi-aspect-ratio me-1" />
                     <RangeInput :min="60" :max="250" v-model="imageSize" />

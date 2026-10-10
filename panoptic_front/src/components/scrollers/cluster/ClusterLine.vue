@@ -312,7 +312,7 @@ function groupScore(group: Group): number | null {
                     <span v-if="isClusterCard(entry.group)" class="cc-name"
                         :class="{ 'cc-name-leftover': isLeftoverCard(entry.group) }">{{ clusterName(entry.group) }}</span>
                     <ClusterBadge v-if="groupScore(entry.group) != null" class="cc-score"
-                        :value="groupScore(entry.group)" />
+                        :value="groupScore(entry.group)" :score="entry.group.score" />
                 </div>
 
                 <!-- Hover action pill, centered over the image: subdivide · inspect · clear. -->
@@ -341,7 +341,7 @@ function groupScore(group: Group): number | null {
 
                 <!-- Bottom-left counts: self-contained chips, so no full-width scrim is needed.
                      Images, then the sub-group count on a card that holds a (closed) subtree. -->
-                <div class="cc-counts tabular-nums">
+                <div class="cc-counts num">
                     <span class="cc-chip">
                         <i class="bi bi-images me-1" />{{ imageCount(entry.group) }}<wTT
                             v-if="entry.group.meta?.maskedCount"

@@ -102,7 +102,7 @@ watch(selectedPage, () => changed.value = false)
                         </div>
                         <ImageSettings v-if="page == PAGE.Images" v-model:changed="changed" ref="pageElem"/>
                         <VectorSettings v-if="page == PAGE.Vectors" />
-                        <PluginSettingsWindow v-if="page == PAGE.Plugins" v-model:changed="changed" ref="pageElem"/>
+                        <PluginSettingsWindow v-if="page == PAGE.Plugins" />
                         <DataSettings v-if="page == PAGE.Data" />
                     </template>
                 </PageWindow>

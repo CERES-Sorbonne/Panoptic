@@ -102,9 +102,14 @@
                 "confirm": "Convertir « {name} » au format actuel ?\n\nUne sauvegarde des anciennes données est conservée dans le dossier du projet. L'historique d'annulation n'est pas conservé."
             },
             "legacy": {
-                "banner": "Des projets d'une ancienne version ont été trouvés",
-                "banner_button": "Convertir"
-            }
+                "section": "Projets d'une ancienne version",
+                "banner_button": "Convertir",
+                "confirm": "Convertir « {name} » ?\n\nUne copie convertie sera créée dans :\n{dest}\n\nLe projet d'origine n'est pas modifié.",
+                "failed": "Échec de la conversion",
+                "retry": "Réessayer",
+                "done": "Converti"
+            },
+            "no_projects": "Aucun projet pour l'instant"
         },
         "status": {
             "no_project": "Aucun projet Panoptic ouvert"
@@ -454,6 +459,8 @@
             "plugin_stop": "Arrêter le plugin",
             "plugin_start": "Démarrer le plugin",
             "plugin_stopped_hint": "Ses actions et ses tâches sont indisponibles jusqu'à son redémarrage. Il redémarre à la réouverture du projet.",
+            "pluginNoSettings": "Ce plugin n'a pas de paramètres.",
+            "applied": "Appliqué",
             "reset": "Réinitialiser",
             "update": "Actualiser",
             "registeredVectorTypes": "Vecteurs disponibles",
@@ -776,19 +783,47 @@
         "data": "Données",
         "show_image": "Afficher les images",
         "show_points": "Afficher les points",
+        "grid_layout": "Disposition en grille",
+        "group_outlines": "Contours et noms des groupes",
+        "fill_cells": "Remplir les cases (recadrage carré)",
+        "snake": {
+            "score": "Score : {score}",
+            "hint": "Flèches pour diriger · Échap pour quitter",
+            "over": "Perdu ! Espace pour rejouer · Échap pour quitter",
+            "won": "Gagné ! Espace pour rejouer · Échap pour quitter"
+        },
+        "grid_density": "Cases vides entre les groupes",
         "show_boxes": "Afficher les boites",
         "pan": "Déplacer",
-        "lasso_add": "Ajouter au lasso",
-        "lasso_remove": "Retirer au lasso",
+        "cell_select": "Sélection par cases",
+        "cell_select_hint": "Ctrl + molette : taille · Shift : rectangle · Clic droit : retirer · Espace : déplacer",
+        "paint": "Pinceau à tags",
+        "paint_title": "Pinceau",
+        "paint_hint": "Ctrl + molette : taille · Shift : rectangle · Clic droit : retirer le tag · Espace : déplacer",
+        "paint_pick_tag": "Choisissez un tag dans le panneau de droite",
+        "paint_no_property": "Aucune propriété de tags modifiable",
+        "lasso": "Lasso (clic droit : retirer)",
         "delete_map": "Supprimer la carte",
         "display": "Affichage",
         "group_property": "Groupes",
         "group_cluster": "Clusters",
         "groups": "Groupes",
+        "minimap": "Minimap",
+        "find": {
+            "play": "Mini-jeu : retrouver l'image sur la carte",
+            "stop": "Arrêter le jeu",
+            "reveal": "Indice : la zone, puis l'image",
+            "score": "{score} trouvée(s) · {misses} raté(s)",
+            "hint": "Retrouvez cette image et cliquez dessus",
+            "hover_hint": "Survolez une image"
+        },
+        "preview": "Aperçu",
         "border_width": "Largeur de bordure",
         "hover_scale": "Taille au survol",
         "atlas": "Atlas de vignettes",
         "atlas_none": "La carte a besoin d'un atlas pour afficher les images.",
+        "no_match_title": "Aucune image ne correspond aux filtres",
+        "no_match": "Modifiez ou retirez les filtres pour afficher des images sur la carte.",
         "atlas_generate": "Générer l'atlas",
         "atlas_regenerate": "Régénérer l'atlas",
         "atlas_generating": "Génération…",

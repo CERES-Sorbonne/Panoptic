@@ -2,7 +2,7 @@
 import { Colors, DateUnit, PropertyType, PropertyValue, Tag } from '@/data/models';
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import { pad } from '@/utils/utils'
+import { isNumeric, pad } from '@/utils/utils'
 import { useDataStore } from '@/data/stores/dataStore';
 
 const data = useDataStore()
@@ -98,7 +98,7 @@ function mapTag(id: number | string): Tag[] {
         </span>
         <span v-else-if="property.type == PropertyType.date"> undefined </span>
         <span v-else-if="!isTag">
-            <span v-if="props.value.value != undefined">{{ props.value.value }}</span>
+            <span v-if="props.value.value != undefined" :class="{ num: isNumeric(type) }">{{ props.value.value }}</span>
             <span v-else class="text-secondary">indéfini</span>
         </span>
         <span v-else class="tag-list">

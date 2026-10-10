@@ -68,7 +68,7 @@ const score = computed(() => {
         <Zoomable v-if="!hideImg && instanceId !== undefined" :image="inst">
             <div class="img-container" :style="`width: ${w + 2}px; height: ${props.size}px;`"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)">
-                <div v-if="score != undefined" class="simi-ratio">{{ score.toFixed(2) }}</div>
+                <div v-if="score != undefined" class="simi-ratio num">{{ score.toFixed(2) }}</div>
                 <CenteredImage :instance-id="instanceId" :width="w" :height="props.size"
                     style="position: absolute; top: 0" />
 
@@ -95,7 +95,7 @@ const score = computed(() => {
              flow so it doesn't add an empty line box (which would overflow the row). -->
         <div v-if="props.image.slots?.length > 1" class="image-count-wrap">
             <wTT message="main.view.instances_tooltip" :click="false">
-                <div class="image-count">{{ props.image.slots.length }}</div>
+                <div class="image-count num">{{ props.image.slots.length }}</div>
             </wTT>
         </div>
 

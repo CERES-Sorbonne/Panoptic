@@ -19,6 +19,7 @@ import InstanceData from '@/components/data/InstanceData.vue'
 import LineChart from './LineChart.vue'
 import ChartToolbar from './ChartToolbar.vue'
 import ChartTooltip from './ChartTooltip.vue'
+import NumText from '@/components/utils/NumText.vue'
 import {
     bucketInstanceIds, buildChartModel, thumbnailsAvailable, ChartModel, ChartErrorKind,
 } from './chartModel'
@@ -111,10 +112,10 @@ const chartHeight = computed(() => Math.max(120, props.height - TOOLBAR_HEIGHT -
 const notes = computed(() => {
     const current = model.value
     if (!current) return []
-    const list: string[] = []
-    if (current.ignoredLevels > 0) list.push(t('main.graph-view.ignored_levels'))
-    if (current.foldedSeries > 0) list.push(t('main.graph-view.folded', { count: current.foldedSeries }))
-    if (current.skippedNoValue > 0) list.push(t('main.graph-view.skipped_no_value', { count: current.skippedNoValue }))
+    const list: { keypath: string, values: Record<string, number> }[] = []
+    if (current.ignoredLevels > 0) list.push({ keypath: 'main.graph-view.ignored_levels', values: {} })
+    if (current.foldedSeries > 0) list.push({ keypath: 'main.graph-view.folded', values: { count: current.foldedSeries } })
+    if (current.skippedNoValue > 0) list.push({ keypath: 'main.graph-view.skipped_no_value', values: { count: current.skippedNoValue } })
     return list
 })
 </script>
@@ -137,8 +138,8 @@ const notes = computed(() => {
 
                 <div class="footer">
                     <span class="hint">{{ $t('main.graph-view.hint') }}</span>
-                    <span v-for="note in notes" :key="note" class="note">
-                        <i class="bi bi-info-circle"></i> {{ note }}
+                    <span v-for="note in notes" :key="note.keypath" class="note">
+                        <i class="bi bi-info-circle"></i> <NumText v-bind="note" />
                     </span>
                 </div>
             </template>
