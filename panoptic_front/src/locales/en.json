@@ -812,6 +812,8 @@
         "hover_scale": "Hover zoom size",
         "atlas": "Thumbnail atlas",
         "atlas_none": "The map needs an atlas to draw images.",
+        "no_match_title": "No image matches the filters",
+        "no_match": "Change or remove the filters to show images on the map.",
         "atlas_generate": "Generate atlas",
         "atlas_regenerate": "Regenerate atlas",
         "atlas_generating": "Generating…",

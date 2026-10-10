@@ -822,6 +822,8 @@
         "hover_scale": "Taille au survol",
         "atlas": "Atlas de vignettes",
         "atlas_none": "La carte a besoin d'un atlas pour afficher les images.",
+        "no_match_title": "Aucune image ne correspond aux filtres",
+        "no_match": "Modifiez ou retirez les filtres pour afficher des images sur la carte.",
         "atlas_generate": "Générer l'atlas",
         "atlas_regenerate": "Régénérer l'atlas",
         "atlas_generating": "Génération…",

@@ -157,6 +157,8 @@ const points = shallowRef<PointData[]>([])
 let pointOfSlot = new Int32Array(0)
 // Each point's z before the selection lifts it: BASE_Z, or DIM_Z while a soloed group dims it.
 let baseZ = new Float32Array(0)
+// Each point's desaturation before the tag brush greys it, so the highlight can be redone alone.
+let baseDesaturate = new Float32Array(0)
 // Bumped whenever points move or restyle in place, so the minimap redraws.
 const pointsVersion = ref(0)
 // In the grid layout, the index in `points` of the image in each cell (-1: empty), for the cell
@@ -182,6 +184,8 @@ const mapMissingCount = ref(0)
 const atlasUnusable = computed(() => media.atlasFetched && media.atlasCoverage.total > 0
     && (!media.hasAtlas || media.atlasCoverage.inAtlas === 0))
 const showMinimap = computed(() => points.value.length > 0 && !atlasUnusable.value)
+// The filters keep no image, so the map is empty on purpose.
+const noMatch = ref(false)
 
 // Tracks the latest showMap call to cancel stale concurrent invocations
 let showMapToken = 0
@@ -328,6 +332,7 @@ function updateColors() {
         }
     }
 
+    baseDesaturate = Float32Array.from(pts, p => p.desaturate)
     applyPaintHighlight()
     syncGroupRegions()
     const hasScores = applyScoreOpacity()
@@ -343,10 +348,11 @@ function updateColors() {
     hadScores = hasScores
 }
 
-function applyPaintHighlight() {
+// Returns whether the highlight is shown.
+function applyPaintHighlight(): boolean {
     const propId = paintProperty.value?.id
     const tag = paintTagValue.value
-    if (mouseMode.value !== 'paint' || propId == null || !tag || paintColumnReady.value !== propId) return
+    if (mouseMode.value !== 'paint' || propId == null || !tag || paintColumnReady.value !== propId) return false
     const pts = points.value
     const painted = new Uint8Array(pts.length)
     const mark = (slot: number) => {
@@ -363,12 +369,34 @@ function applyPaintHighlight() {
         if (paintPending.get(p) ?? painted[i]) {
             p.border = Math.max(borderWidth.value, PAINT_BORDER)
             p.borderColor = paintColor.value
+            p.desaturate = baseDesaturate[i]
         } else {
             p.border = 0.0
             p.borderColor = defaultColor
-            p.desaturate = Math.max(p.desaturate, PAINT_DESATURATE)
+            p.desaturate = Math.max(baseDesaturate[i], PAINT_DESATURATE)
         }
     }
+    return true
+}
+
+// Restyle after tag values changed in paint mode: only borders and desaturation depend on them,
+// so groups, outlines, scores and positions are left alone.
+function refreshPaint() {
+    if (baseDesaturate.length !== points.value.length) return updateColors()
+    if (!applyPaintHighlight()) return
+    renderer.value?.updateBorder()
+    renderer.value?.updateDesaturation()
+    pointsVersion.value++
+}
+
+// Value writes (strokes, undo, other views) restyle the highlight once per frame at most.
+let paintRefresh = 0
+function schedulePaintRefresh() {
+    if (mouseMode.value !== 'paint' || paintRefresh) return
+    paintRefresh = requestAnimationFrame(() => {
+        paintRefresh = 0
+        refreshPaint()
+    })
 }
 
 // Opacity of each point from the active similarity search's scores.
@@ -574,9 +602,9 @@ async function showMap(mapId: number, force = false) {
 
     // The map draws exactly what the tree holds: the root's slots, mapped to sha1 (one point per
     // sha1, first slot wins). No second membership source — this is the same set the scrollers
-    // iterate.
+    // iterate. A filter matching nothing draws nothing.
     const sha1ToId: { [sha1: string]: number } = {}
-    if (slots?.length) {
+    if (slots) {
         for (let i = 0; i < slots.length; i++) {
             const sha1 = allSha1s[slots[i]]
             if (sha1 && !(sha1 in sha1ToId)) sha1ToId[sha1] = allIds[slots[i]]
@@ -642,6 +670,7 @@ async function showMap(mapId: number, force = false) {
     builtRoot = root
     builtSlots = slots
     builtSlotCount = slots?.length ?? -1
+    noMatch.value = slots?.length === 0
     buildLeaves()
 
     const atlas = media.atlas
@@ -705,14 +734,14 @@ async function paintPoints(selectedPoints: PointData[], remove: boolean) {
     const tag = paintTagValue.value
     if (!property || !tag) return
     for (const p of selectedPoints) paintPending.set(p, !remove)
-    updateColors()
+    refreshPaint()
     try {
         await paintTag(property.id, tag.id, selectedPoints.map(p => p.sha1), remove)
     } catch (e) {
         console.error('tag brush: commit failed', e)
     } finally {
         for (const p of selectedPoints) paintPending.delete(p)
-        updateColors()
+        schedulePaintRefresh()
     }
 }
 
@@ -721,18 +750,9 @@ function onBrushCommit(selectedPoints: PointData[], remove: boolean) {
     else selectPoints(selectedPoints, remove)
 }
 
-// Value writes (strokes, undo, other views) restyle the highlight once per frame at most.
-let paintRefresh = 0
-function onDataChange() {
-    if (mouseMode.value !== 'paint' || paintRefresh) return
-    paintRefresh = requestAnimationFrame(() => {
-        paintRefresh = 0
-        updateColors()
-    })
-}
-data.onChange.addListener(onDataChange)
+data.onChange.addListener(schedulePaintRefresh)
 onUnmounted(() => {
-    data.onChange.removeListener(onDataChange)
+    data.onChange.removeListener(schedulePaintRefresh)
     cancelAnimationFrame(paintRefresh)
 })
 
@@ -1173,6 +1193,12 @@ onMounted(async () => {
                 <button v-else class="atlas-generate" :disabled="media.atlasRequested" @click="media.generateAtlas()">
                     {{ media.hasAtlas ? $t('map.atlas_regenerate') : $t('map.atlas_generate') }}
                 </button>
+            </div>
+
+            <div v-else-if="noMatch" class="atlas-empty">
+                <i class="bi bi-funnel atlas-empty-icon"></i>
+                <div class="atlas-empty-title">{{ $t('map.no_match_title') }}</div>
+                <div class="atlas-empty-text">{{ $t('map.no_match') }}</div>
             </div>
 
             <div v-if="hoverImage || leaves.length || showMinimap || mouseMode == 'paint'" ref="groupListIslandRef" class="group-list-island">
