@@ -53,18 +53,35 @@ export function computeGridAssignment(xs: ArrayLike<number>, ys: ArrayLike<numbe
         v[i] = h > 0 ? (y - minY) / h * rows : rows / 2
     }
 
-    const idx = new Int32Array(n)
-    for (let i = 0; i < n; i++) idx[i] = i
+    // Points sorted once along each axis. Every region holds the same points in [lo, hi) of both
+    // orders; a split keeps both sorted by partitioning them stably, instead of re-sorting.
     const byU = (a: number, b: number) => (u[a] - u[b]) || (v[a] - v[b]) || (a - b)
     const byV = (a: number, b: number) => (v[a] - v[b]) || (u[a] - u[b]) || (a - b)
+    const orderU = new Int32Array(n)
+    for (let i = 0; i < n; i++) orderU[i] = i
+    const orderV = orderU.slice()
+    orderU.sort(byU)
+    orderV.sort(byV)
+    const isLow = new Uint8Array(n)
+    const scratch = new Int32Array(n)
+
+    const partition = (order: Int32Array, lo: number, hi: number) => {
+        let w = lo, h = 0
+        for (let i = lo; i < hi; i++) {
+            const p = order[i]
+            if (isLow[p]) order[w++] = p
+            else scratch[h++] = p
+        }
+        order.set(scratch.subarray(0, h), w)
+    }
 
     const place = (c0: number, c1: number, r0: number, r1: number, lo: number, hi: number) => {
         const count = hi - lo
         if (count === 0) return
         const width = c1 - c0, height = r1 - r0
         if (width * height === 1) {
-            col[idx[lo]] = c0
-            row[idx[lo]] = r0
+            col[orderU[lo]] = c0
+            row[orderU[lo]] = r0
             return
         }
         const splitCols = width >= height
@@ -74,18 +91,20 @@ export function computeGridAssignment(xs: ArrayLike<number>, ys: ArrayLike<numbe
         const across = splitCols ? height : width
         const mid = start + Math.floor(length / 2)
 
-        const seg = idx.subarray(lo, hi)
-        seg.sort(splitCols ? byU : byV)
-
-        let a = 0, b = count
+        const sorted = splitCols ? orderU : orderV
+        let a = lo, b = hi
         while (a < b) {
             const m = (a + b) >> 1
-            if (key[seg[m]] < mid) a = m + 1
+            if (key[sorted[m]] < mid) a = m + 1
             else b = m
         }
         const capLow = (mid - start) * across
         const capHigh = (start + length - mid) * across
-        const k = Math.max(count - capHigh, Math.min(a, capLow))
+        const k = Math.max(count - capHigh, Math.min(a - lo, capLow))
+
+        for (let i = lo; i < lo + k; i++) isLow[sorted[i]] = 1
+        partition(splitCols ? orderV : orderU, lo, hi)
+        for (let i = lo; i < lo + k; i++) isLow[sorted[i]] = 0
 
         if (splitCols) {
             place(c0, mid, r0, r1, lo, lo + k)
