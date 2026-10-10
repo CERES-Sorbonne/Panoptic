@@ -245,6 +245,10 @@ export class MapRenderer {
         this.detailLayer.setView(points, pixelSize)
     }
 
+    public setDetailSizes(sizes: number[]) {
+        this.detailLayer.setSizes(sizes)
+    }
+
     public setDetailEnabled(enabled: boolean) {
         this.detailEnabled = enabled
         this.invalidateDetail()

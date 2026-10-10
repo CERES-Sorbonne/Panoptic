@@ -14,8 +14,16 @@ const DETAIL_RENDER_ORDER = 1000
 export const MAX_DETAIL_TILES = 300
 // Detail images start once a thumbnail is drawn this much bigger than its atlas cell.
 const MIN_UPSCALE = 1.25
-// Requested sizes (longest side, px). The smallest one that covers the screen size is used.
-const SIZES = [128, 256, 512, 1024, 2048]
+// Requested sizes (longest side, px) until the project's image types are known. The smallest one
+// that covers the screen size is used.
+const DEFAULT_SIZES = [128, 256, 512, 1024, 2048]
+
+// Longest side of each stored image type, so requests match a stored thumbnail instead of making
+// the server send the original. A type without width and height is full size: Infinity.
+export function imageTypeSizes(types: { width: number | null, height: number | null }[]): number[] {
+    const sizes = new Set(types.map(t => Math.max(t.width ?? 0, t.height ?? 0) || Infinity))
+    return [...sizes].sort((a, b) => a - b)
+}
 const MAX_PARALLEL_LOADS = 6
 // GPU memory for cached detail textures, mipmaps included.
 const TEXTURE_BUDGET_BYTES = 384 * 1024 * 1024
@@ -56,6 +64,8 @@ export class DetailLayer {
     // Points to draw, closest to the screen centre first, and the size to load them at.
     private view: PointData[] = []
     private size = 0
+    private pixelSize = 0
+    private sizes = DEFAULT_SIZES
     private dirty = false
     private frame = 0
 
@@ -104,8 +114,14 @@ export class DetailLayer {
     // `points` closest to the screen centre first; `pixelSize` is their longest side on screen.
     public setView(points: PointData[], pixelSize: number) {
         this.view = points
-        this.size = SIZES.find(s => s >= pixelSize) ?? SIZES[SIZES.length - 1]
+        this.pixelSize = pixelSize
+        this.size = this.sizes.find(s => s >= pixelSize) ?? this.sizes[this.sizes.length - 1]
         this.dirty = true
+    }
+
+    public setSizes(sizes: number[]) {
+        this.sizes = sizes.length ? sizes : DEFAULT_SIZES
+        this.setView(this.view, this.pixelSize)
     }
 
     public updatePositions() {
@@ -165,13 +181,14 @@ export class DetailLayer {
 
     // The cached image closest to the wanted size, preferring bigger ones.
     private bestTexture(sha1: string): string | null {
-        const wanted = SIZES.indexOf(this.size)
-        for (let i = wanted; i < SIZES.length; i++) {
-            const key = textureKey(sha1, SIZES[i])
+        const sizes = this.sizes
+        const wanted = sizes.indexOf(this.size)
+        for (let i = wanted; i < sizes.length; i++) {
+            const key = textureKey(sha1, sizes[i])
             if (this.textures.has(key)) return key
         }
         for (let i = wanted - 1; i >= 0; i--) {
-            const key = textureKey(sha1, SIZES[i])
+            const key = textureKey(sha1, sizes[i])
             if (this.textures.has(key)) return key
         }
         return null
@@ -255,7 +272,9 @@ export class DetailLayer {
         this.loads.set(key, controller)
         const [sha1, size] = parseKey(key)
         try {
-            const res = await fetch(`${this.baseImgUrl}by_size/${sha1}?size=${size}`, { signal: controller.signal })
+            // No size for a full-size type: the server then sends its largest stored image.
+            const query = Number.isFinite(size) ? `?size=${size}` : ''
+            const res = await fetch(`${this.baseImgUrl}by_size/${sha1}${query}`, { signal: controller.signal })
             if (!res.ok) throw new Error(`${res.status}`)
             const bitmap = await downscale(await createImageBitmap(await res.blob()), size)
             if (this.disposed) {

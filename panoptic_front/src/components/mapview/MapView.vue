@@ -11,6 +11,8 @@ import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
 import { imageWorldSize } from '@/mixins/mapview/MapRenderer'
+import { imageTypeSizes } from '@/mixins/mapview/DetailLayer'
+import { apiGetImageTypes } from '@/data/api/projectApi'
 import { cellCenter, DEFAULT_GRID_DENSITY, mapGrid, type MapGrid } from '@/mixins/mapview/GridLayout'
 import { konamiMatcher, SnakeGame, type Cell, type SnakeDir, type SnakeState } from '@/mixins/mapview/GridSnake'
 import { isCellTool, nextBrushSize } from '@/mixins/mapview/GridBrush'
@@ -1074,6 +1076,13 @@ watch(renderer, (r) => {
         }
     }
 })
+
+// Sizes of the stored thumbnails, which the detail layer loads instead of the original files.
+const detailSizes = ref<number[]>([])
+apiGetImageTypes()
+    .then(types => { detailSizes.value = imageTypeSizes(types) })
+    .catch(e => console.error('map: could not load the image types', e))
+watch([renderer, detailSizes], ([r, sizes]) => r?.setDetailSizes(sizes))
 
 watch(() => media.atlas, () => showMap(props.mapOptions.selectedMap, true))
 
