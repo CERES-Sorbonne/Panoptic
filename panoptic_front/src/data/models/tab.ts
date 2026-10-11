@@ -104,8 +104,9 @@ export interface MapOptions {
     previewCollapsed?: boolean
     groupsCollapsed?: boolean
     minimapCollapsed?: boolean
-    // the whole right-hand panel folded to a thin strip against the edge
+    // the whole right-hand panel hidden; reopened from a button over the map
     sidePanelCollapsed?: boolean
+    sidePanelWidth?: number
 }
 
 // Per-view options for the group recommendation view. Stores which group the

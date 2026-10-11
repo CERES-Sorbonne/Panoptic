@@ -183,6 +183,41 @@ const mapMissingCount = ref(0)
 const atlasUnusable = computed(() => media.atlasFetched && media.atlasCoverage.total > 0
     && (!media.hasAtlas || media.atlasCoverage.inAtlas === 0))
 const showMinimap = computed(() => points.value.length > 0 && !atlasUnusable.value)
+
+// Right panel: resized by dragging its left edge, never narrower than its min width.
+const SIDE_PANEL_MIN = 240
+const SIDE_PANEL_MAX = 600
+const SIDE_PANEL_DEFAULT = 240
+const sidePanelWidth = computed(() => props.mapOptions.sidePanelWidth ?? SIDE_PANEL_DEFAULT)
+const hasSidePanel = computed(() => !!(hoverImage.value || leaves.value.length || showMinimap.value || mouseMode.value == 'paint'))
+// Preview image box follows the panel width (minus the inspector padding), at a fixed height.
+const previewSize = computed(() => {
+    const width = Math.max(100, sidePanelWidth.value - 50)
+    return { width, height: 160 }
+})
+let sidePanelDrag: { x: number, width: number } | null = null
+
+function startSidePanelResize(e: PointerEvent) {
+    e.preventDefault()
+    sidePanelDrag = { x: e.clientX, width: sidePanelWidth.value }
+    window.addEventListener('pointermove', onSidePanelResize)
+    window.addEventListener('pointerup', stopSidePanelResize)
+    document.body.style.cursor = 'col-resize'
+}
+
+function onSidePanelResize(e: PointerEvent) {
+    if (!sidePanelDrag) return
+    const width = sidePanelDrag.width + sidePanelDrag.x - e.clientX
+    props.mapOptions.sidePanelWidth = Math.max(SIDE_PANEL_MIN, Math.min(SIDE_PANEL_MAX, width))
+}
+
+function stopSidePanelResize() {
+    sidePanelDrag = null
+    window.removeEventListener('pointermove', onSidePanelResize)
+    window.removeEventListener('pointerup', stopSidePanelResize)
+    document.body.style.cursor = ''
+}
+onUnmounted(stopSidePanelResize)
 // The filters keep no image, so the map is empty on purpose.
 const noMatch = ref(false)
 
@@ -1106,6 +1141,14 @@ onMounted(async () => {
                     <div ref="canvasContainer" class="canvas-wrapper"></div>
                 </div>
 
+                <div v-if="hasSidePanel && props.mapOptions.sidePanelCollapsed" class="panel-open">
+                    <WithToolTip message="map.open_panel">
+                        <div class="tool" @click="props.mapOptions.sidePanelCollapsed = false">
+                            <i class="bi bi-layout-sidebar-inset-reverse"></i>
+                        </div>
+                    </WithToolTip>
+                </div>
+
                 <div class="floating-toolbar">
                     <WithToolTip message="map.show_points">
                         <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
@@ -1204,17 +1247,19 @@ onMounted(async () => {
 
                 </div>
 
-                <!-- thin handle on the panel's left edge: folds the panel against the side and back -->
-                <div v-if="hoverImage || leaves.length || showMinimap || mouseMode == 'paint'" class="side-panel-handle"
-                    @click="props.mapOptions.sidePanelCollapsed = !props.mapOptions.sidePanelCollapsed">
-                    <i class="bi" :class="props.mapOptions.sidePanelCollapsed ? 'bi-chevron-left' : 'bi-chevron-right'"></i>
-                </div>
-                <div v-if="(hoverImage || leaves.length || showMinimap || mouseMode == 'paint') && !props.mapOptions.sidePanelCollapsed" class="side-panel">
+                <div v-if="hasSidePanel && !props.mapOptions.sidePanelCollapsed" class="side-panel"
+                    :style="{ flexBasis: sidePanelWidth + 'px' }">
+                    <div class="side-panel-resizer" @pointerdown="startSidePanelResize"></div>
                     <template v-if="showMinimap">
                         <div class="section-header" :class="{ collapsed: props.mapOptions.minimapCollapsed }"
                             @click="props.mapOptions.minimapCollapsed = !props.mapOptions.minimapCollapsed">
                             <i class="bi section-chevron" :class="props.mapOptions.minimapCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
                             <span class="flex-grow-1">{{ $t('map.minimap') }}</span>
+                            <WithToolTip message="map.collapse_panel">
+                                <div class="panel-toggle" @click.stop="props.mapOptions.sidePanelCollapsed = true">
+                                    <i class="bi bi-layout-sidebar-inset-reverse"></i>
+                                </div>
+                            </WithToolTip>
                         </div>
                         <Minimap v-if="!props.mapOptions.minimapCollapsed" :renderer="renderer" :points="points"
                             :version="pointsVersion" :point-size="imageWorldSize(props.imageSize)" />
@@ -1239,7 +1284,7 @@ onMounted(async () => {
                         <template v-if="!props.mapOptions.previewCollapsed">
                             <InstanceData v-if="findTarget" :instance-ids="[findTarget.id]" :prop-ids="[]">
                                 <div class="group-inspector find-target" :class="findFeedback ? 'find-' + findFeedback : ''">
-                                    <CenteredImage :instance-id="findTarget.id" :width="190" :height="150" />
+                                    <CenteredImage :instance-id="findTarget.id" :width="previewSize.width" :height="previewSize.height" />
                                     <span class="find-hint">{{ $t('map.find.hint') }}</span>
                                     <span class="section-count num">
                                         {{ $t('map.find.score', { score: findScore, misses: findMisses }) }}
@@ -1249,7 +1294,7 @@ onMounted(async () => {
                             <InstanceData v-else-if="hoverImage" :instance-ids="[hoverImage.id]" :prop-ids="[]">
                                 <div class="group-inspector">
                                     <Zoomable :image="hoverImage">
-                                        <CenteredImage :instance-id="hoverImage.id" :width="190" :height="150" />
+                                        <CenteredImage :instance-id="hoverImage.id" :width="previewSize.width" :height="previewSize.height" />
                                     </Zoomable>
                                 </div>
                             </InstanceData>
@@ -1392,29 +1437,57 @@ onMounted(async () => {
     min-height: 0;
 }
 
-.side-panel-handle {
-    flex: 0 0 14px;
+.panel-open {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 2;
+    padding: 4px;
+    background: var(--island-surface);
+    border: 1px solid var(--island-border);
+    border-radius: var(--island-radius);
+    box-shadow: var(--island-shadow);
+}
+
+.panel-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
     color: var(--text-tertiary);
-    background: var(--bg-primary);
-    border-left: 1px solid var(--border-color);
-    cursor: pointer;
 }
 
-.side-panel-handle:hover {
+.panel-toggle:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary);
+}
+
+/* Drag zone on the panel's left edge. */
+.side-panel-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 6px;
+    z-index: 3;
+    cursor: col-resize;
+}
+
+.side-panel-resizer:hover {
+    background-color: var(--primary);
+    opacity: 0.4;
 }
 
 /* Right column beside the map (not over it): the canvas shrinks to make room. */
 .side-panel {
     flex: 0 0 240px;
+    position: relative;
     display: flex;
     flex-direction: column;
     background: var(--bg-primary);
+    border-left: 1px solid var(--border-color);
     overflow-y: auto;
 }
 

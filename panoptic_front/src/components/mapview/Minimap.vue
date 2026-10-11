@@ -4,8 +4,7 @@ import type { PointData } from '@/data/models'
 import type { MapRenderer } from '@/mixins/mapview/MapRenderer'
 
 const DEFAULT_WIDTH = 200
-const MIN_HEIGHT = 60
-const MAX_HEIGHT = 200
+const HEIGHT = 160
 const MIN_DOT = 1.5
 const MAX_DOT = 6
 const DIM_COLOR = 'rgba(128, 128, 128, 0.35)'
@@ -24,7 +23,7 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 const pointsCanvas = document.createElement('canvas')
 
 // World → minimap transform of the last points draw.
-let frame = { minX: 0, maxY: 0, scale: 1, offX: 0, offY: 0, width: DEFAULT_WIDTH, height: MIN_HEIGHT }
+let frame = { minX: 0, maxY: 0, scale: 1, offX: 0, offY: 0, width: DEFAULT_WIDTH, height: HEIGHT }
 let pointsDirty = true
 let primary = '#5DACFF'
 let lastView = ''
@@ -45,7 +44,7 @@ function computeFrame() {
     minX -= pad; minY -= pad; maxX += pad; maxY += pad
     const bw = maxX - minX, bh = maxY - minY
     const width = canvasRef.value?.parentElement?.clientWidth || DEFAULT_WIDTH
-    const height = Math.round(Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, width * bh / bw)))
+    const height = HEIGHT
     const scale = Math.min(width / bw, height / bh)
     frame = {
         minX, maxY, scale, width, height,
@@ -163,8 +162,17 @@ function markDirty() {
 
 watch(() => [props.points, props.version, props.pointSize], markDirty)
 
-onMounted(() => loop())
-onUnmounted(() => { if (rafId != null) cancelAnimationFrame(rafId) })
+// The side panel is resizable: refit the canvas to its new width.
+const resizeObserver = new ResizeObserver(markDirty)
+onMounted(() => {
+    const parent = canvasRef.value?.parentElement
+    if (parent) resizeObserver.observe(parent)
+    loop()
+})
+onUnmounted(() => {
+    resizeObserver.disconnect()
+    if (rafId != null) cancelAnimationFrame(rafId)
+})
 </script>
 
 <template>

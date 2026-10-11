@@ -836,6 +836,8 @@
         "group_cluster": "Clusters",
         "groups": "Groups",
         "minimap": "Minimap",
+        "collapse_panel": "Collapse panel",
+        "open_panel": "Open panel",
         "find": {
             "play": "Mini-game: find the image on the map",
             "stop": "Stop the game",
