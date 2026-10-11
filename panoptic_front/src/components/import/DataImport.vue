@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import CsvDropZone from './CsvDropZone.vue';
 import { computed, Ref, ref, watch } from 'vue';
-import { ModalId, UploadConfirm } from '@/data/models';
-import { useDataStore } from '@/data/stores/dataStore';
-import wTT from '@/components/tooltips/withToolTip.vue'
-import FusionModeDropdown from '../dropdowns/FusionModeDropdown.vue';
+import { ModalId, PropertyMode, UploadConfirm } from '@/data/models';
 import { objValues } from '@/utils/utils';
 import { apiParseImport, apiConfirmImport, apiUploadPropertyCsv } from '@/data/api/projectApi';
 
 const panoptic = usePanopticStore()
-const data = useDataStore()
 
-const lastFile = ref(null)
-const inputElem = ref(null)
-const filename = ref(null)
+const fusionModes = ['first', 'last', 'all', 'new']
+const helpTypes = ['multi_tags', 'tag', 'number', 'text', 'checkbox', 'color', 'date', 'url']
+const helpExample = 'path;categories[multi_tags];score[number]\nimages/cat.jpg;animal,cute;12\nimages/car.jpg;vehicle;7'
+// Unmatched rows can number in the thousands; the list only needs to show the first ones.
+const MISSING_SHOWN = 500
+
+const file = ref<File | null>(null)
+const uploading = ref(false)
 const uploadConfirm: Ref<UploadConfirm> = ref(null)
 const take = ref({})
 const loading = ref(false)
@@ -36,6 +38,16 @@ const uploadHasKeyError = computed(() => {
     return false
 })
 
+const columns = computed(() => {
+    if (!uploadConfirm.value) return []
+    return Object.entries(uploadConfirm.value.colToProperty).map(([col, prop]) => ({ col: Number(col), prop }))
+})
+
+const takenCount = computed(() => columns.value.filter(c => take.value[c.col]).length)
+const allTaken = computed(() => takenCount.value == columns.value.length)
+
+const canImport = computed(() => uploadConfirm.value && !uploadHasKeyError.value && takenCount.value > 0 && !loading.value)
+
 const params = computed(() => {
     const properties = uploadConfirm.value.colToProperty
     const exclude = Object.keys(properties).filter(i => !take.value[i]).map(Number)
@@ -48,55 +60,61 @@ const params = computed(() => {
     return params
 })
 
-async function importFile() {
-    loading.value = true
-    const properties = uploadConfirm.value.colToProperty
-    const exclude = Object.keys(properties).filter(i => !take.value[i]).map(Number)
-    const res = await apiParseImport(params.value)
-    missing.value = res.missingRows
-    loading.value = false
-    if (!missing.value.length) {
-        confirmImport()
-    }
-    proposeReparse.value = false
+function toggleAll() {
+    const value = !allTaken.value
+    columns.value.forEach(c => take.value[c.col] = value)
 }
 
-async function reParse() {
-    importFile()
+async function importFile() {
+    loading.value = true
+    try {
+        const res = await apiParseImport(params.value)
+        missing.value = res.missingRows
+    } finally {
+        loading.value = false
+    }
+    proposeReparse.value = false
+    if (!missing.value.length) {
+        await confirmImport()
+    }
 }
 
 async function confirmImport() {
     loading.value = true
-    await apiConfirmImport(params.value)
-    loading.value = false
-    clear()
+    try {
+        await apiConfirmImport(params.value)
+    } finally {
+        loading.value = false
+    }
     panoptic.hideModal(ModalId.IMPORT)
 }
 
-async function updloadFileClick(e) {
-    const file = e.target.files[0]
-    if (file == undefined) return
-    await uploadFile(file)
+function onPrimary() {
+    if (missing.value?.length) confirmImport()
+    else importFile()
 }
 
-async function uploadFile(file) {
-    lastFile.value = file
-    const res = await apiUploadPropertyCsv(file)
-    uploadConfirm.value = res
-    filename.value = file.name
+async function setFile(f: File | null) {
+    clear()
+    if (!f) return
+    file.value = f
+    uploading.value = true
+    try {
+        uploadConfirm.value = await apiUploadPropertyCsv(f)
+    } finally {
+        uploading.value = false
+    }
     Object.keys(uploadConfirm.value.colToProperty).forEach(k => take.value[k] = true)
 }
 
 function clear() {
+    file.value = null
     uploadConfirm.value = null
-    filename.value = null
-    inputElem.value.value = null
     take.value = {}
     relative.value = true
     fusion.value = 'first'
     loading.value = false
     missing.value = null
-    lastFile.value = null
     proposeReparse.value = false
 }
 
@@ -104,218 +122,347 @@ watch(relative, () => proposeReparse.value = true)
 </script>
 
 <template>
-    <div class="h-100 d-flex flex-column">
-        <div class="d-flex p-2">
-            <div class="me-1">File</div>
-            <input type="file" ref="inputElem" accept="text/csv" @change="updloadFileClick" hidden />
-            <div v-if="filename" class="sbb" @click="clear">{{ filename }}<i class="bi bi-x"
-                    style="position:relative; top:1px" /></div>
-            <div v-if="!filename" class="sbc" @click="inputElem.click()">Upload <i
-                    class="bi bi-file-earmark-arrow-up" />
-            </div>
-            <br>
-        </div>
+    <div class="import-page">
+        <div class="import-body">
 
-        <div v-if="uploadConfirm" class="p-2 overflow-auto">
-            <div v-if="uploadHasError" class="mb-3" :class="(uploadHasKeyError ? 'text-danger' : 'text-warning')">
-                Errors:
-                <div v-for="error, col in uploadConfirm.errors">
-                    column: <span class="num">{{ Number(col) }}</span> : {{ error }}
-                </div>
-            </div>
-            <table v-if="!uploadHasKeyError">
-                <tbody>
-                    <tr>
-                        <th class="border">Import</th>
-                        <th class="border">Col</th>
-                        <th class="border">Property</th>
-                        <th class="border">Type</th>
-                        <th class="border">Exist</th>
-                        <th class="border">Mode</th>
-                    </tr>
-
-                    <tr v-for="p, i in uploadConfirm.colToProperty" class="border"
-                        :class="!take[i] ? 'dimmed' : ''">
-                        <td class="border text-center"><input v-if="Number(i) != 0" type="checkbox" v-model="take[i]" />
-                        </td>
-                        <td class="border text-center num">{{ i }}</td>
-                        <td class="border">
-                            <PropertyIcon :type="p.type" /> {{ p.name }}
-                        </td>
-                        <td class="border">
-                            {{ p.type }}
-                        </td>
-                        <td class="border text-center">
-                            <div v-if="p.id > 0" class="exist"></div>
-                        </td>
-                        <td class="border">
-                            <span v-if="p.id < 0">
-                                <select id="base" name="base" v-model="p.mode" :disabled="!take[i]">
-                                    <option value="sha1">Image</option>
-                                    <option value="id">Instance</option>
-                                </select>
-                            </span>
-                            <span v-else>
-                                <span v-if="p.mode == 'id'">Instance</span>
-                                <span v-if="p.mode == 'sha1'">Image</span>
-                            </span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <div v-if="uploadConfirm.key == 'path'">
-                <div class="d-flex mt-3">
-                    <div class="me-1">{{ $t('modals.import.fusion.title') }}</div>
-                    <FusionModeDropdown :model-value="fusion" @update:model-value="e => fusion = e" />
-                    <wTT :icon="true" message="modals.import.fusion.tooltip"></wTT>
-                </div>
-                <div class="d-flex mt-3">
-                    {{ $t('modals.import.fusion.path') }}
-                    <input type="checkbox" :style="{ 'margin-left': '0.5rem' }" v-model="relative" />
-                    <wTT :icon="true" message="modals.import.fusion.path_tooltip"></wTT>
-                </div>
+            <div class="field">
+                <div class="field-label">{{ $t('modals.import.file') }}</div>
+                <CsvDropZone :file="file" :loading="uploading" @update:file="setFile">
+                    <template #meta>
+                        <span v-if="uploadConfirm?.key">
+                            {{ $t('modals.import.key') }} <code>{{ uploadConfirm.key }}</code>
+                        </span>
+                    </template>
+                </CsvDropZone>
             </div>
 
-            <div v-if="!uploadHasKeyError">
-                <div class="d-flex mt-2 flex-center w-20" style="width: 300px;">
-                    <div v-if="!missing" class="d-flex mt-2 flex-center w-100">
-                        <div v-if="!loading" class="bbb text-center w-100" @click="importFile">Import
-                        </div>
-                        <div v-if="loading" class="text-center w-100 border rounded">
-                            <div class="spinner-border spinner-border-sm" style="position: relative; top: -1px"
-                                role="status">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="missing?.length">
-                <div class="text-warning mb-2">
-                    <span class="num">{{ missing.length }}</span> {{ $t('modals.import.not_found') }}
-                </div>
-                <div class="d-flex flex-row">
-                    <div v-if="!loading" style="width: 300px;" class="bbb text-center" @click="confirmImport">{{
-                        $t('confirm') }}
-                    </div>
-                    <div v-if="!loading && proposeReparse" style="width: 300px;" class="bbb text-center ms-4"
-                        @click="reParse">{{
-                            $t('modals.import.reparse') }}
-                    </div>
-                </div>
-
-                <div class="mt-2 p-2"
-                    style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color);">
-                    <div v-for="lines in missing">
-                        {{ $t('modals.import.row') }}: <span class="num">{{ lines[0] + 1 }}</span> {{ $t('modals.import.key') }}: {{ lines[1]
-                        }}
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="loading" class="text-center w-100 border rounded">
-                <div class="spinner-border spinner-border-sm" style="position: relative; top: -1px" role="status">
-                </div>
-            </div>
-
-        </div>
-        
-        <div v-else class="m-4 overflow-auto">
-            {{ $t('modals.import.help.0') }}
-            <ul>
-                <li>
-                    {{ $t('modals.import.help.1') }}
-                </li>
-                <li>
-                    {{ $t('modals.import.help.2') }}
+            <!-- Format reference, shown until a file is chosen -->
+            <div v-if="!file" class="field">
+                <div class="field-label">{{ $t('modals.import.format') }}</div>
+                <div class="help-card">
+                    <div>{{ $t('modals.import.help.0') }}</div>
                     <ul>
+                        <li>{{ $t('modals.import.help.1') }}</li>
                         <li>
-                            {{ $t('modals.import.help.3') }}
+                            {{ $t('modals.import.help.2') }}
+                            <ul>
+                                <li>{{ $t('modals.import.help.3') }}</li>
+                                <li>{{ $t('modals.import.help.4') }}</li>
+                            </ul>
                         </li>
-                        <li>
-                            {{ $t('modals.import.help.4') }}
-                        </li>
+                        <li>{{ $t('modals.import.help.5') }} <code>name[type]</code></li>
+                        <li>{{ $t('modals.import.help.7') }}</li>
                     </ul>
-                </li>
-                <li>
-                    {{ $t('modals.import.help.5') }}
-                    <br>
-                    {{ $t('modals.import.help.6') }}
-                </li>
-                <li>
-                    {{ $t('modals.import.help.7') }}
-                </li>
-            </ul>
-            {{ $t('modals.import.help.8') }}
+                    <pre class="help-example">{{ helpExample }}</pre>
+                    <div>{{ $t('modals.import.help.8') }}</div>
+                    <div class="type-grid">
+                        <div v-for="type in helpTypes" :key="type" class="type-item">
+                            <PropertyIcon :type="type" class="type-icon" />
+                            <span class="type-name">{{ $t('modals.properties.' + type) }}</span>
+                            <code>{{ type }}</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            <table>
-                <tbody>
-                    <tr>
-                        <th class="border">{{ $t("modals.import.help.9") }} </th>
-                        <th class="border">{{ $t("modals.import.help.10") }} </th>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.multi_tags") }} </td>
-                        <td class="border text-center">multi_tags</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.tag") }} </td>
-                        <td class="border text-center">tag</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.number") }} </td>
-                        <td class="border text-center">number</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.text") }} </td>
-                        <td class="border text-center">text</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.checkbox") }} </td>
-                        <td class="border text-center">checkbox</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.color") }} </td>
-                        <td class="border text-center">color</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.date") }} </td>
-                        <td class="border text-center">date</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.url") }} </td>
-                        <td class="border text-center">url</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div v-if="uploadHasError" class="callout" :class="uploadHasKeyError ? 'ko' : 'warn'">
+                <i class="bi bi-exclamation-triangle callout-icon" />
+                <div class="callout-body">
+                    <div class="callout-title">
+                        {{ uploadHasKeyError ? $t('modals.import.key_error') : $t('modals.import.errors') }}
+                    </div>
+                    <div v-for="error, col in uploadConfirm.errors" :key="col" class="callout-line">
+                        <span v-if="Number(col) > 0">{{ $t('modals.import.column') }} <span class="num">{{ col }}</span> · </span>
+                        {{ error }}
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="uploadConfirm && !uploadHasKeyError && columns.length" class="field">
+                <div class="label-row">
+                    <span class="field-label">{{ $t('modals.import.columns') }}</span>
+                    <span class="count num">{{ takenCount }} / {{ columns.length }}</span>
+                </div>
+                <div class="column-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="cell-check">
+                                    <input type="checkbox" class="checkbox" :checked="allTaken"
+                                        :indeterminate="takenCount > 0 && !allTaken" @change="toggleAll" />
+                                </th>
+                                <th class="cell-col">{{ $t('modals.import.col') }}</th>
+                                <th>{{ $t('modals.import.property') }}</th>
+                                <th>{{ $t('modals.import.type') }}</th>
+                                <th>{{ $t('modals.import.status') }}</th>
+                                <th>{{ $t('modals.import.mode') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="{ col, prop } in columns" :key="col" :class="{ dimmed: !take[col] }">
+                                <td class="cell-check">
+                                    <input type="checkbox" class="checkbox" v-model="take[col]" />
+                                </td>
+                                <td class="cell-col num">{{ col }}</td>
+                                <td class="cell-name">
+                                    <PropertyIcon :type="prop.type" class="type-icon" />
+                                    <span class="prop-name">{{ prop.name }}</span>
+                                </td>
+                                <td class="cell-type">
+                                    {{ helpTypes.includes(prop.type) ? $t('modals.properties.' + prop.type) : prop.type }}
+                                </td>
+                                <td>
+                                    <span v-if="prop.id > 0" class="badge existing">
+                                        <i class="bi bi-check2" />{{ $t('modals.import.existing') }}
+                                    </span>
+                                    <span v-else class="badge new">
+                                        <i class="bi bi-plus" />{{ $t('modals.import.new') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div v-if="prop.id < 0" class="segmented mini"
+                                        :class="{ disabled: !take[col] }">
+                                        <div class="segment" :class="{ selected: prop.mode == PropertyMode.sha1 }"
+                                            @click="prop.mode = PropertyMode.sha1">
+                                            {{ $t('modals.import.mode_image') }}
+                                        </div>
+                                        <div class="segment" :class="{ selected: prop.mode == PropertyMode.id }"
+                                            @click="prop.mode = PropertyMode.id">
+                                            {{ $t('modals.import.mode_instance') }}
+                                        </div>
+                                    </div>
+                                    <span v-else class="mode-text">
+                                        {{ prop.mode == 'id' ? $t('modals.import.mode_instance') : $t('modals.import.mode_image') }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <template v-if="uploadConfirm?.key == 'path' && !uploadHasKeyError">
+                <div class="field">
+                    <div class="field-label">{{ $t('modals.import.fusion.title') }}</div>
+                    <div class="segmented">
+                        <div v-for="mode in fusionModes" :key="mode" class="segment"
+                            :class="{ selected: fusion == mode }" @click="fusion = mode">
+                            {{ $t('modals.import.fusion.' + mode) }}
+                        </div>
+                    </div>
+                    <div class="field-hint">{{ $t('modals.import.fusion.' + fusion + '_tooltip') }}</div>
+                </div>
+
+                <label class="switch-row">
+                    <div>
+                        <div>{{ $t('modals.import.fusion.path') }}</div>
+                        <div class="field-hint">{{ $t('modals.import.fusion.path_tooltip') }}</div>
+                    </div>
+                    <input type="checkbox" class="switch" v-model="relative" />
+                </label>
+            </template>
+
+            <div v-if="missing?.length" class="callout warn">
+                <i class="bi bi-exclamation-triangle callout-icon" />
+                <div class="callout-body">
+                    <div class="callout-title">
+                        <span class="num">{{ missing.length }}</span> {{ $t('modals.import.not_found') }}
+                    </div>
+                    <div class="missing-list">
+                        <div v-for="line in missing.slice(0, MISSING_SHOWN)" :key="line[0]" class="missing-row">
+                            <span class="missing-line num">{{ $t('modals.import.row') }} {{ line[0] + 1 }}</span>
+                            <span class="missing-key">{{ line[1] }}</span>
+                        </div>
+                        <div v-if="missing.length > MISSING_SHOWN" class="missing-row count num">
+                            … +{{ missing.length - MISSING_SHOWN }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="import-footer">
+            <div v-if="missing?.length && proposeReparse" class="btn-action" :class="{ disabled: loading }"
+                @click="importFile">
+                <i class="bi bi-arrow-repeat" />
+                {{ $t('modals.import.reparse') }}
+            </div>
+            <div class="btn-action primary" :class="{ disabled: !canImport }" @click="onPrimary">
+                <span v-if="loading" class="spinner-border spinner-border-sm" role="status" />
+                <i v-else class="bi" :class="missing?.length ? 'bi-check2' : 'bi-box-arrow-in-down'" />
+                {{ missing?.length ? $t('confirm') : $t('modals.import.import') }}
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.exist {
-    width: 10px;
-    height: 10px;
-    background-color: green;
-    border-radius: 50%;
-    display: inline-block;
+/* --- format help --- */
+.type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 16px;
 }
 
-.base-btn {
-    /* border: 1px solid var(--border-color); */
-    background-color: hsl(0, 0%, 95%);
+.type-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
 }
 
-.dimmed {
-    background-color: rgb(214, 214, 214);
-    color: grey;
+.type-icon {
+    flex: none;
+    color: var(--text-secondary);
 }
 
-td {
-    padding: 2px 3px;
+.type-name {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- column mapping table --- */
+.column-table {
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
 th {
-    padding: 2px 3px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+td {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background-color: var(--hover-bg);
+}
+
+tr.dimmed td:not(.cell-check) {
+    opacity: 0.45;
+}
+
+.cell-check {
+    width: 28px;
+    text-align: center;
+}
+
+.cell-col {
+    width: 40px;
+    color: var(--text-tertiary);
+}
+
+.cell-name {
+    max-width: 180px;
+}
+
+.cell-name .prop-name {
+    margin-left: 4px;
+}
+
+.cell-name,
+.cell-type {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cell-type,
+.mode-text {
+    color: var(--text-secondary);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px 1px 4px;
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    border-radius: 8px;
+}
+
+.badge.existing {
+    color: var(--success);
+    background-color: color-mix(in srgb, var(--success) 12%, transparent);
+}
+
+.badge.new {
+    color: var(--primary);
+    background-color: var(--primary-light);
+}
+
+.segmented.mini {
+    display: inline-flex;
+    padding: 1px;
+}
+
+.segmented.mini .segment {
+    padding: 1px 8px;
+    font-size: 12px;
+}
+
+.segmented.mini.disabled {
+    pointer-events: none;
+}
+
+/* --- unmatched rows --- */
+.missing-list {
+    max-height: 160px;
+    margin-top: 6px;
+    overflow-y: auto;
+    font-size: 12px;
+    border-top: 1px solid var(--border-light);
+}
+
+.missing-row {
+    display: flex;
+    gap: 10px;
+    padding: 2px 0;
+}
+
+.missing-line {
+    flex: none;
+    min-width: 64px;
+    color: var(--text-tertiary);
+}
+
+.missing-key {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 </style>

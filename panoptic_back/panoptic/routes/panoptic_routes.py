@@ -312,11 +312,12 @@ def _list_contents(full_path: str = '/') -> dict:
         os.path.join(full_path, p) if full_path != '/' else full_path + p
         for p in os.listdir(full_path)
     ]
+    # No per-subfolder image count: it lists every child folder, which can take
+    # seconds when one is large or on a slow volume (symlink to a USB/exFAT drive).
     directories = [
         {
             'path': p,
             'name': pathlib.Path(p).name,
-            'images': len(_images_in_folder(p)),
             'isProject': os.path.exists(os.path.join(p, 'project.db')),
         }
         for p in paths if os.path.isdir(p)

@@ -1,186 +1,132 @@
 /**
- * Row lines of the grid scroller, kept per leaf between rebuilds.
+ * The grid scroller's content, as a LayoutSource for the VirtualScroller, and its row objects.
  *
- * The grid draws one row per image (or per sha1 pile), and each row names its image: unlike the
- * tree's range lines, a block of rows is a function of the leaf's CONTENT. Every version bump
- * used to rebuild one row object (and one id string) per image of the whole tree — a group
- * open/close included, which changes no content at all.
+ * The grid draws one row per image (or per sha1 pile) of every open leaf, under a header line per
+ * leaf. It used to build one row object (and one id string) per image of the whole tree on every
+ * version bump. Now the tree is the layout (gridSource: a leaf's row count is its slot or pile
+ * count), and a row object is made only for the rows on screen (gridRow), from the leaf itself.
  *
- * Invariant: a leaf's cached block is handed back only when it still matches the leaf —
- *  - fast path, O(1): nothing structural happened since it was built (the host's `rev` is the
- *    same — every tree/order change bumps it, open/close does not), the leaf is the same node with
- *    the same `slots` array and length, the same pile overlay, and the row size is the same;
- *  - otherwise its rows are compared with the leaf, O(rows) integer compares and no allocation:
- *    groups are mutated in place (ClusterManager.drain filters `slots`, the overlay refills a
- *    pile's `slots` without replacing the array), so identity alone cannot say "unchanged". A
- *    block that still matches is restamped and reused, so a change to one bucket re-rows that
- *    bucket only.
- * Rows fit their content (see rowHeights.ts), so a row's size is its measured height once it has
- * been on screen, and the row size handed in is only the estimate for the rows never measured.
- * Measured heights are looked up per image (a pile row by its first image) when rows are made,
- * so a re-rowed leaf keeps them. `resize` sets every cached row back to an estimate, in place.
+ * Rows fit their content: the VirtualScroller measures them (`measure`) and the layout keeps the
+ * sizes per leaf; the row size handed in is the estimate for the rows not measured yet.
  *
  * Pure on purpose (no Vue, no stores): the scroller adapts it, and the tests drive it.
  */
 import type { Group, GroupIndex } from '@/core/group/types'
 import type { PileData } from '@/core/sha1Piles'
-import type { PileRowLine, RowLine, ScrollerLine } from '../types'
+import type { GroupLine, PileRowLine, RowLine } from '../types'
+import type { LayoutSource, LineRef, ScrollLayout } from '../virtual/scrollLayout'
+import type { CellWalk } from '../cellNavigation'
 
 export interface GridLineHost {
     readonly index: GroupIndex
     readonly pileIndex: Map<number, PileData>
-    readonly rev: number
+    readonly root?: Group
 }
 
-interface GridBlock {
-    rev: number
-    group: Group
-    slots: number[]
-    count: number
-    pile: PileData | undefined
-    size: number
-    lines: ScrollerLine[]
-}
+// Height of a leaf's header line.
+export const GRID_GROUP_LINE_SIZE = 35
 
-// The rows of a leaf, flat: one per slot. Ids stay `<group>-img:<instance>` — unique (the same
-// image can sit in several groups) and stable across rebuilds, which RecycleScroller's key-field
-// and the per-cell keys rely on; a string per row is only paid when the block is (re)built.
-// The height last measured for a row showing this image, if any.
-export type MeasuredHeight = (instanceId: number) => number | undefined
-
-const NOT_MEASURED: MeasuredHeight = () => undefined
-
-// The image a grid row shows the values of: its own, or a pile's first.
-export function rowInstanceId(line: ScrollerLine, ids: ArrayLike<number>): number | undefined {
-    if (line.type === 'image') return (line as RowLine).data.id
-    if (line.type === 'pile') return ids[(line as PileRowLine).data.slots[0]]
-    return undefined
-}
-
-function flatRows(group: Group, ids: ArrayLike<number>, size: number, measured: MeasuredHeight): ScrollerLine[] {
-    const lines: ScrollerLine[] = new Array(group.slots.length)
-    for (let i = 0; i < group.slots.length; i++) {
-        const instanceId = ids[group.slots[i]]
-        lines[i] = {
-            id: group.id + '-img:' + instanceId,
-            data: { id: instanceId, imageUrl: '' },
-            type: 'image',
-            size: measured(instanceId) ?? size,
-            index: i,
-            groupId: group.id,
-        } as RowLine
+/**
+ * The tree as the grid draws it: an inner group has no line of its own (closed, it hides its whole
+ * subtree); a leaf has a header (but the root) and, open, one row per image or pile.
+ */
+export function gridSource(host: () => GridLineHost, rowSize: () => number): LayoutSource {
+    const group = (id: number) => host().index[id]
+    return {
+        root: () => host().root?.id,
+        childCount: id => group(id)?.children.length ?? 0,
+        child: (id, i) => group(id).children[i].id,
+        isOpen: id => !group(id)?.view.closed,
+        headerSize: id => {
+            const g = group(id)
+            return g && !g.children.length && id !== 0 ? GRID_GROUP_LINE_SIZE : 0
+        },
+        bodyLines: id => {
+            const g = group(id)
+            if (!g || g.children.length || !g.slots?.length) return 0
+            const pile = host().pileIndex.get(id)
+            return pile ? pile.bounds.length - 1 : g.slots.length
+        },
+        lineEstimate: () => rowSize(),
+        lineType: (id, index) => index < 0 ? 'group' : host().pileIndex.has(id) ? 'pile' : 'image',
     }
-    return lines
 }
 
-function pileRows(group: Group, pile: PileData, ids: ArrayLike<number>, size: number, measured: MeasuredHeight): ScrollerLine[] {
-    const pileCount = pile.bounds.length - 1
-    const lines: ScrollerLine[] = new Array(pileCount)
-    for (let i = 0; i < pileCount; i++) {
-        const slots = pile.order.slice(pile.bounds[i], pile.bounds[i + 1])
-        lines[i] = {
+export function gridGroupLine(group: Group, previous?: GroupLine): GroupLine {
+    // GroupManager rebuilds the tree with new Group objects: a line holding the old one is stale.
+    if (previous && previous.data === group) return previous
+    return { id: group.id, data: group, type: 'group', size: GRID_GROUP_LINE_SIZE, nbClusters: 10, groupId: group.id }
+}
+
+/**
+ * Row `ref.index` of leaf `ref.node`: its image (flat leaf) or its pile. `previous` is handed back
+ * while it still shows the same thing. Undefined when the leaf no longer has that row.
+ */
+export function gridRow(host: GridLineHost, ids: ArrayLike<number>, ref: LineRef, previous?: RowLine | PileRowLine): RowLine | PileRowLine | undefined {
+    const group = host.index[ref.node]
+    if (!group || group.children.length || ref.index < 0) return undefined
+    const pile = host.pileIndex.get(ref.node)
+    if (pile) {
+        if (ref.index >= pile.bounds.length - 1) return undefined
+        const from = pile.bounds[ref.index], to = pile.bounds[ref.index + 1]
+        if (previous?.type === 'pile') {
+            const handle = (previous as PileRowLine).data
+            let same = handle.groupId === group.id && handle.pileIndex === ref.index && handle.slots.length === to - from
+            for (let j = 0; same && j < handle.slots.length; j++) same = handle.slots[j] === pile.order[from + j]
+            if (same) return previous
+        }
+        const slots = pile.order.slice(from, to)
+        return {
             id: group.id + '-sha1:' + ids[slots[0]],
-            data: { groupId: group.id, pileIndex: i, slots },
+            data: { groupId: group.id, pileIndex: ref.index, slots },
             type: 'pile',
-            size: measured(ids[slots[0]]) ?? size,
+            size: 0,
         } as PileRowLine
     }
-    return lines
+    if (ref.index >= group.slots.length) return undefined
+    const instanceId = ids[group.slots[ref.index]]
+    if (previous?.type === 'image' && previous.groupId === group.id && previous.index === ref.index
+        && (previous as RowLine).data.id === instanceId) return previous
+    return {
+        id: group.id + '-img:' + instanceId,
+        data: { id: instanceId, imageUrl: '' },
+        type: 'image',
+        size: 0,
+        index: ref.index,
+        groupId: group.id,
+    } as RowLine
 }
 
-// Do these rows still draw exactly this leaf (same images, same piles, same order)?
-function sameRows(lines: ScrollerLine[], group: Group, pile: PileData | undefined, ids: ArrayLike<number>): boolean {
-    if (!pile) {
-        const slots = group.slots
-        if (lines.length !== slots.length) return false
-        for (let i = 0; i < slots.length; i++) {
-            const line = lines[i]
-            if (line.type !== 'image' || line.groupId !== group.id || (line as RowLine).data.id !== ids[slots[i]]) return false
-        }
-        return true
-    }
-    const pileCount = pile.bounds.length - 1
-    if (lines.length !== pileCount) return false
-    for (let i = 0; i < pileCount; i++) {
-        const line = lines[i]
-        if (line.type !== 'pile') return false
-        const handle = (line as PileRowLine).data
-        const from = pile.bounds[i], to = pile.bounds[i + 1]
-        if (handle.groupId !== group.id || handle.slots.length !== to - from) return false
-        for (let j = 0; j < handle.slots.length; j++) if (handle.slots[j] !== pile.order[from + j]) return false
-    }
-    return true
+// The image a grid row edits and shows the values of: its own, or a pile's first.
+export function rowInstanceId(row: RowLine | PileRowLine, ids: ArrayLike<number>): number | undefined {
+    if (row.type === 'pile') return ids[(row as PileRowLine).data.slots[0]]
+    return (row as RowLine).data.id
 }
 
-const NO_LINES: ScrollerLine[] = []
-
-export class GridLineCache {
-    private blocks = new Map<number, GridBlock>()
-    private host: GridLineHost | undefined
-
-    // The rows open leaf `group` draws (none when it holds no image). `size` is the estimate for
-    // the rows `measured` has no height for.
-    leafLines(host: GridLineHost, group: Group, ids: ArrayLike<number>, size: number, measured = NOT_MEASURED): ScrollerLine[] {
-        if (host !== this.host) {
-            this.blocks.clear()
-            this.host = host
-        }
-        if (!group.slots.length) return NO_LINES
-        const pile = host.pileIndex.get(group.id)
-        const block = this.blocks.get(group.id)
-        if (block && block.size === size) {
-            if (block.rev === host.rev && block.group === group && block.slots === group.slots
-                && block.count === group.slots.length && block.pile === pile) return block.lines
-            if (sameRows(block.lines, group, pile, ids)) {
-                this.stamp(block, host, group, pile)
-                return block.lines
-            }
-        }
-        const lines = pile ? pileRows(group, pile, ids, size, measured) : flatRows(group, ids, size, measured)
-        const next = { lines, size } as GridBlock
-        this.stamp(next, host, group, pile)
-        this.blocks.set(group.id, next)
-        return lines
+// Row of leaf `group` showing `instanceId` (a pile row by its first image), or -1.
+export function rowIndexOf(host: GridLineHost, ids: ArrayLike<number>, group: Group, instanceId: number): number {
+    const pile = host.pileIndex.get(group.id)
+    if (pile) {
+        for (let i = 0; i < pile.bounds.length - 1; i++) if (ids[pile.order[pile.bounds[i]]] === instanceId) return i
+        return -1
     }
+    for (let i = 0; i < group.slots.length; i++) if (ids[group.slots[i]] === instanceId) return i
+    return -1
+}
 
-    private stamp(block: GridBlock, host: GridLineHost, group: Group, pile: PileData | undefined) {
-        block.rev = host.rev
-        block.group = group
-        block.slots = group.slots
-        block.count = group.slots.length
-        block.pile = pile
-    }
-
-    // The rows' layout changed (row height, columns): every cached row goes back to the estimate
-    // `size`, in place, except those in `keep` — the rows on screen, which measure themselves
-    // again when their height changes and are still right when it does not. Whether any changed.
-    resize(size: number, keep?: ReadonlySet<ScrollerLine>): boolean {
-        let changed = false
-        for (const block of this.blocks.values()) {
-            block.size = size
-            for (const line of block.lines) {
-                if (line.size === size || keep?.has(line)) continue
-                line.size = size
-                changed = true
-            }
-        }
-        return changed
-    }
-
-    // Drop the blocks of groups the tree no longer holds. O(cached leaves).
-    prune(host: GridLineHost) {
-        if (host !== this.host) return
-        for (const id of this.blocks.keys()) {
-            if (!host.index[id]) this.blocks.delete(id)
-        }
-    }
-
-    clear() {
-        this.blocks.clear()
-        this.host = undefined
-    }
-
-    get size() {
-        return this.blocks.size
+// One cell per image or pile row, in display order, for Tab. A pile row edits its first image.
+export function gridCellWalk(host: GridLineHost, layout: ScrollLayout, ids: ArrayLike<number>): CellWalk<LineRef> {
+    return {
+        find: from => {
+            const group = host.index[from.groupId]
+            if (!group || group.children.length) return undefined
+            const index = rowIndexOf(host, ids, group, from.instanceId)
+            const line = { node: group.id, index }
+            return index >= 0 && layout.isShown(line) ? { line, index: 0 } : undefined
+        },
+        cells: line => line.index >= 0 && gridRow(host, ids, line) ? 1 : 0,
+        at: line => ({ instanceId: rowInstanceId(gridRow(host, ids, line)!, ids)!, groupId: line.node }),
+        next: line => layout.next(line),
+        prev: line => layout.prev(line),
     }
 }

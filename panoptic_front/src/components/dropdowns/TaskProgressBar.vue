@@ -233,8 +233,10 @@ function formatEta(seconds: number) {
 /* Popup with the task list */
 .task-dropdown {
     padding: 6px;
-    min-width: 220px;
-    max-width: 300px;
+    /* Fixed width: the popup must not resize as counts and rates change. */
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
 }
 
 .task-section-label {

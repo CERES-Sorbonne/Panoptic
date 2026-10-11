@@ -492,12 +492,12 @@
         "import": {
             "data": "Données",
             "upload_file": "Selectionez un Fichier",
-            "target_property": "Propriété",
-            "import_tags": "Importer les Tags",
+            "target_property": "Propriété cible",
+            "import_tags": "Importer les tags",
             "tags": "Tags",
             "title": "Importer Fichier",
             "fusion": {
-                "title": "Mode de fusion: ",
+                "title": "Mode de fusion",
                 "tooltip": "Si la propriété est déjà renseignée pour une instance, quel doit être le comportement pour gérer les valeurs ?",
                 "first": "Remplacer première",
                 "first_tooltip": "Ecraser les données de la plus ancienne instance enregistrée dans panoptic, et remplacer ses données par celles renseignées dans le csv",
@@ -507,7 +507,7 @@
                 "new_tooltip": "On écrase aucune donnée et on créé de nouvelles instances qui s'ajouteront à celles existantes",
                 "all": "Remplacer toutes",
                 "all_tooltip": "On écrase toutes les instances actuelles pour en créer seulement avec les valeurs renseignées dans le csv",
-                "path": "Chemin relatif ? ",
+                "path": "Chemins relatifs",
                 "path_tooltip": "Est ce que le chemin renseigné dans le csv pour identifier les images est relatif par rapport au dossier importé dans panoptic, ou absolu (depuis la racine du disque dur) ?"
             },
             "help": {
@@ -526,7 +526,35 @@
             "not_found": "Ligne(s) ne correspondent a aucune instance d'image dans la DB. Veuillez confirmer l'import afin de continuer.",
             "row": "Ligne",
             "key": "Identifiant",
-            "reparse": "Verifier"
+            "reparse": "Verifier",
+            "drop": "Déposez un fichier CSV ici ou cliquez pour parcourir",
+            "drop_hint": "Fichier CSV, séparateur ';'",
+            "file": "Fichier",
+            "format": "Format attendu",
+            "columns": "Colonnes",
+            "col": "Col.",
+            "property": "Propriété",
+            "type": "Type",
+            "status": "Statut",
+            "mode": "Mode",
+            "existing": "Existante",
+            "new": "Nouvelle",
+            "mode_image": "Image",
+            "mode_instance": "Instance",
+            "options": "Options",
+            "column": "Colonne",
+            "errors": "Certaines colonnes seront ignorées",
+            "key_error": "Ce fichier ne peut pas être importé",
+            "import": "Importer",
+            "target_property_hint": "Les tags du fichier sont ajoutés à cette propriété. Les tags existants sont conservés.",
+            "invalid_type": "La propriété doit être de type Tag ou MultiTags.",
+            "import_failed": "L'import a échoué.",
+            "tags_help": {
+                "intro": "Un fichier de tags est un .csv sans en-tête, séparateur ';', avec un tag par ligne :",
+                "name": "nom du tag",
+                "color": "indice de couleur de 0 à 11 (optionnel, aléatoire si vide)",
+                "parents": "noms des tags parents, séparés par des virgules (optionnel)"
+            }
         },
         "first": {
             "introduction": "Bienvenue sur Panoptic, logiciel proposant d'explorer de grands corpus d'images en les manipulant par leurs propriétés et à l'aide d'outils de machine learning. Ces derniers ne sont pas installés de base pour limiter la taille de panoptic dans le cas où ils ne vous intéresseraient pas. Il est cependant recommandé de les installer pour profiter des pleines fonctionnalités de Panoptic.",

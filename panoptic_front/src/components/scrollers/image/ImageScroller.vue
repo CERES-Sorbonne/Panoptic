@@ -7,17 +7,19 @@
 // SortableJS group, so an image can be dragged out of any visible line and dropped into
 // any other — including a line in the other scroller. On a drop we don't mutate our own
 // list; we emit what changed and let the owning parent update the source/target arrays,
-// then recompute the lines. RecycleScroller virtualization is preserved (lists can be huge).
-import { ref, nextTick, onMounted, onUnmounted, watch, computed, Ref, shallowRef, provide } from 'vue';
+// then recompute the lines. The list stays virtualized (it can be huge).
+import { ref, nextTick, onMounted, onUnmounted, watch, computed, shallowRef, provide } from 'vue';
 import ImageCell from './ImageCell.vue';
-import { RecycleScroller } from 'vue-virtual-scroller';
 import draggableComponent from 'vuedraggable';
 import { Property, PropertyMode, ModalId, Instance } from '@/data/models';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
 import { keyState } from '@/data/composables/keyState';
-import { usePagedLines } from '@/components/scrollers/usePagedLines';
+import VirtualScroller from '@/components/scrollers/virtual/VirtualScroller.vue';
+import { ScrollLayout, lineKey } from '@/components/scrollers/virtual/scrollLayout';
+import type { LayoutSource, LineRef } from '@/components/scrollers/virtual/scrollLayout';
+import type { ViewRange } from '@/components/scrollers/virtual/virtualView';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
@@ -71,12 +73,12 @@ function openInstance(instance: Instance) {
 // Drag is live only when a group to exchange with was named AND the consumer didn't opt out.
 const dragEnabled = computed(() => !!props.dragGroup && !props.noDrag)
 
-// The line model this scroller builds. Image lines hold cells; a trailing 'filler' line
-// (empty, but droppable) covers the pane's remaining height so a sparse/empty list still
-// offers a large drop target.
+// The line model handed to a row: the instances of one line. Made only for the lines on screen
+// (lineItem); the list itself is a single node of the scroller's layout, with one body line per
+// `perLine` instances.
 interface ImgLine {
     id: string
-    type: 'images' | 'filler'
+    type: 'images'
     data: Instance[]
     startIndex: number
     depth: number
@@ -89,15 +91,6 @@ interface ImgLine {
 provide('inputKey', props.inputKey)
 const selectNs = computed(() => props.selectNamespace ?? 'global')
 provide('selectNamespace', selectNs)
-
-const imageLines = shallowRef([]) as Ref<ImgLine[]>
-const scroller = ref(null)
-
-// The scroller only gets the lines around the viewport plus padding (see usePagedLines), so
-// a huge list does not go past the browser's height limit. imageLines stays the full list.
-const paged = usePagedLines<ImgLine>({ scroller, viewportHeight: () => props.height })
-const windowLines = paged.windowLines
-watch(imageLines, lines => paged.setLines(lines), { flush: 'sync' })
 
 const GAP = 8 // must match the "me-2" margin applied to cells
 const BORDER = 2 // ImageCell's 1px border on each side, added on top of its width style
@@ -119,32 +112,6 @@ function imageLineSizeFor(imgSize: number) {
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 provide('hideImg', hideFromModal)
 
-// ── Window-level batch registration ──────────────────────────────────────────
-const windowIds = computed(() => {
-    const ids: number[] = []
-    const lines = imageLines.value
-    if (!lines.length) return ids
-    // Clamp the rendered window and expand it ±5 lines to prefetch just off-screen rows.
-    const range = paged.windowRange.value
-    const start = Math.max(0, Math.min(range.start, lines.length - 1) - 5)
-    const end   = Math.min(lines.length - 1, Math.max(0, range.end) + 5)
-    for (let i = start; i <= end; i++) {
-        for (const inst of lines[i].data) ids.push(inst.id)
-    }
-    return ids
-})
-const windowPropIds = computed(() => props.properties?.map(p => p.id) ?? [])
-
-defineExpose({ computeLines, clear, scrollToTop })
-
-function scrollToTop() {
-    paged.scrollToPosition(0)
-}
-
-function clear() {
-    imageLines.value = []
-}
-
 // Per-cell widths that exactly fill a line (identical logic to TreeScroller): flooring the
 // cell size leaves up to (itemsPerLine - 1) leftover px, handed out 1px at a time to the
 // leading columns so grid columns stay aligned line-to-line.
@@ -158,77 +125,111 @@ function fillWidths(lineWidth: number, itemsPerLine: number): { lineImgSize: num
     return { lineImgSize, cardWidths }
 }
 
+// ── Layout ────────────────────────────────────────────────────────────────────
+// What every line shares; set by computeLines.
+let geo = { perLine: 1, lineImgSize: 1, cardWidths: [] as number[], size: 1 }
+// The instances the layout was last read with (the parent mutates its array in place on a move).
+let lineCount = 0
+
+const source: LayoutSource = {
+    root: () => 0,
+    childCount: () => 0,
+    child: () => 0,
+    isOpen: () => true,
+    headerSize: () => 0,
+    bodyLines: () => lineCount,
+    lineEstimate: () => geo.size,
+    lineType: () => 'images',
+}
+const layout = new ScrollLayout(source)
+const vs = ref<InstanceType<typeof VirtualScroller>>()
+
+// Below the images, when drops are allowed and they do not fill the pane: an empty but droppable
+// filler covering the leftover height. Without it an empty pane has no draggable target and a
+// near-empty one only accepts drops on its few cells.
+const filler = shallowRef(0)
+const fillerList: Instance[] = []
+
 // Two lines are interchangeable when rendering them produces the same DOM. When that holds
 // we keep the PREVIOUS line object so its cell references stay stable (no flash/re-render).
-function sameLine(a: ImgLine, b: ImgLine): boolean {
-    if (!a || a.type !== b.type || a.size !== b.size || a.startIndex !== b.startIndex) return false
+function sameLine(a: ImgLine | undefined, b: ImgLine): boolean {
+    if (!a || a.size !== b.size || a.startIndex !== b.startIndex || a.imageSize !== b.imageSize) return false
+    if (a.cardWidths.length !== b.cardWidths.length || a.cardWidths.some((w, i) => w !== b.cardWidths[i])) return false
     const ad = a.data, bd = b.data
     if (ad.length !== bd.length) return false
     for (let i = 0; i < ad.length; i++) if (ad[i].id !== bd[i].id) return false
     return true
 }
 
-function reconcileLines(prev: ImgLine[], next: ImgLine[]): ImgLine[] {
-    if (!prev.length) return next
-    const byId = new Map<string, ImgLine>()
-    for (const l of prev) byId.set(l.id, l)
-    for (let i = 0; i < next.length; i++) {
-        const old = byId.get(next[i].id)
-        if (old && sameLine(old, next[i])) next[i] = old
+const items = new Map<string, ImgLine>()
+
+function lineItem(line: LineRef): ImgLine | undefined {
+    const insts = props.instances ?? []
+    const start = line.index * geo.perLine
+    if (line.index < 0 || start >= insts.length) return undefined
+    const data = insts.slice(start, start + geo.perLine)
+    const item: ImgLine = {
+        id: 'img-' + start,
+        type: 'images',
+        data,
+        startIndex: start,
+        depth: 0,
+        imageSize: geo.lineImgSize,
+        emptyCount: geo.perLine - data.length,
+        cardWidths: geo.cardWidths,
+        size: geo.size,
     }
-    return next
+    const key = lineKey(line)
+    const previous = items.get(key)
+    if (sameLine(previous, item)) return previous
+    if (items.size > 2000) items.clear()
+    items.set(key, item)
+    return item
 }
 
-let _computingLines = false
-function computeLines() {
-    // Pause rebuilds while a drag is in flight so RecycleScroller doesn't recycle the
-    // dragged line out from under SortableJS.
-    if (_computingLines || dragging.value) return
-    _computingLines = true
-    try {
-        const insts = props.instances ?? []
-        const lineWidth = contentWidth.value
-        const itemsPerLine = Math.max(1, Math.floor(lineWidth / (props.imageSize + BORDER + GAP)))
-        const { lineImgSize, cardWidths } = fillWidths(lineWidth, itemsPerLine)
-        const size = imageLineSizeFor(lineImgSize)
+// ── Instance data for the lines around the viewport ──────────────────────────
+const range = shallowRef<ViewRange | null>(null)
+const windowIds = computed(() => {
+    const r = range.value
+    if (!r) return []
+    const insts = props.instances ?? []
+    const ids: number[] = []
+    const from = r.prefetch[0].index * geo.perLine
+    const to = Math.min(insts.length, (r.prefetch[1].index + 1) * geo.perLine)
+    for (let i = Math.max(0, from); i < to; i++) ids.push(insts[i].id)
+    return ids
+})
+const windowPropIds = computed(() => props.properties?.map(p => p.id) ?? [])
 
-        const lines: ImgLine[] = []
-        for (let i = 0; i < insts.length; i += itemsPerLine) {
-            const slice = insts.slice(i, i + itemsPerLine)
-            lines.push({
-                id: 'img-' + i,
-                type: 'images',
-                data: slice,
-                startIndex: i,
-                depth: 0,
-                imageSize: lineImgSize,
-                emptyCount: itemsPerLine - slice.length,
-                cardWidths,
-                size,
-            })
-        }
+defineExpose({ computeLines, clear, scrollToTop })
 
-        // When drops are allowed and the images don't fill the pane, append an empty but
-        // droppable filler covering the leftover height. Without it an empty pane has no
-        // draggable target and a near-empty one only accepts drops on its few cells.
-        const usedHeight = lines.length * size
-        if (dragEnabled.value && usedHeight < props.height) {
-            lines.push({
-                id: 'filler',
-                type: 'filler',
-                data: [],
-                startIndex: insts.length,
-                depth: 0,
-                imageSize: lineImgSize,
-                emptyCount: 0,
-                cardWidths,
-                size: props.height - usedHeight,
-            })
-        }
-        imageLines.value = reconcileLines(imageLines.value, lines)
-    } finally {
-        _computingLines = false
-    }
+function scrollToTop() {
+    vs.value?.scrollToOffset(0)
+}
+
+function clear() {
+    items.clear()
+    layout.clear()
+    vs.value?.relayout({ rerender: true })
+}
+
+// `scale`: when only the line height changed, keep the same fraction of the top line in view.
+function computeLines(anchor: 'pixels' | 'scale' = 'pixels') {
+    // Pause while a drag is in flight so the dragged line is not handed another range out from
+    // under SortableJS.
+    if (dragging.value) return
+    const insts = props.instances ?? []
+    const lineWidth = contentWidth.value
+    const perLine = Math.max(1, Math.floor(lineWidth / (props.imageSize + BORDER + GAP)))
+    const { lineImgSize, cardWidths } = fillWidths(lineWidth, perLine)
+    geo = { perLine, lineImgSize, cardWidths, size: imageLineSizeFor(lineImgSize) }
+    lineCount = Math.ceil(insts.length / perLine)
+    // One node: rebuilding is O(1).
+    layout.rebuild()
+    filler.value = dragEnabled.value ? Math.max(0, props.height - layout.height) : 0
+    // Whatever SortableJS dropped in it: the parent has it in its list now.
+    fillerList.length = 0
+    vs.value?.relayout({ anchor, rerender: true })
 }
 
 // ── Selection (namespaced, via columnStore — same mechanism as the tree cell) ─────────
@@ -267,13 +268,13 @@ const dragGroupOpt = computed(() =>
 
 function onDragEnd() {
     dragging.value = false
-    nextTick(computeLines)
+    nextTick(() => computeLines())
 }
 
 // vuedraggable @change (mirrors PropertyGroup.vue): translate a line-local drop into a flat
 // operation on the master list. We only emit; the parent owns the arrays and mutates them,
 // which re-flows `instances` and rebuilds the lines cleanly (discarding Sortable's splice).
-function onLineChange(e: any, item: ImgLine) {
+function onLineChange(e: any, item: { startIndex: number }) {
     if (e.added) {
         emit('instance-added', { instance: e.added.element, index: item.startIndex + e.added.newIndex })
     }
@@ -285,14 +286,14 @@ function onLineChange(e: any, item: ImgLine) {
         emit('instance-removed', { instance: e.moved.element })
         emit('instance-added', { instance: e.moved.element, index: item.startIndex + e.moved.newIndex })
     }
-    nextTick(computeLines)
+    nextTick(() => computeLines())
 }
 
 let _triggerHandle: ReturnType<typeof setTimeout> | undefined
 function triggerUpdate() {
     if (dragging.value) return
     clearTimeout(_triggerHandle)
-    _triggerHandle = setTimeout(computeLines, 50)
+    _triggerHandle = setTimeout(() => computeLines(), 50)
 }
 
 // Only a namespace this scroller created is disposed on unmount. A namespace that already
@@ -307,98 +308,69 @@ onUnmounted(() => {
     if (ownsNs) columnStore.disposeNamespace(selectNs.value)
 })
 
-// Follow the input list itself (reference or contents) — the parent mutates it on a move.
-watch(() => props.instances, () => nextTick(computeLines), { deep: false })
+// Follow the input list itself: a new array, or the same one mutated in place (the parent moves
+// images between lists by splicing them).
+watch(() => props.instances, () => nextTick(() => computeLines()), { deep: false })
 watch(() => props.instances?.length, triggerUpdate)
-watch(() => props.imageSize, () => nextTick(computeLines))
+watch(() => props.imageSize, () => nextTick(() => computeLines('scale')))
 // Height drives the trailing filler's size (and whether it exists at all).
-watch(() => props.height, () => nextTick(computeLines))
-
-const margin_scroll_offset = 0
-watch(visiblePropertiesNb, () => {
-    const lines = imageLines.value
-    if (!lines.length) return
-
-    // Snapshot scroll position and preserve the item at the viewport top across the
-    // line-height change (same technique as TreeScroller).
-    const scrollPos = paged.getScrollTop() + margin_scroll_offset
-    let topItemIdx = lines.length - 1
-    let cumSize = 0
-    for (let i = 0; i < lines.length; i++) {
-        if (cumSize + lines[i].size > scrollPos) { topItemIdx = i; break }
-        cumSize += lines[i].size
-    }
-    const delta = scrollPos - cumSize
-    // The filler keeps its own height; only image lines resize with the property count.
-    const newSizeOf = (l: ImgLine) => l.type === 'filler' ? l.size : imageLineSizeFor(l.imageSize)
-
-    let newScrollPos = 0
-    for (let i = 0; i < topItemIdx; i++) newScrollPos += newSizeOf(lines[i])
-    const oldTopSize = lines[topItemIdx].size
-    const newTopSize = newSizeOf(lines[topItemIdx])
-    newScrollPos += oldTopSize > 0 ? delta * (newTopSize / oldTopSize) : delta
-
-    let imgHeight = 0
-    for (const l of lines) {
-        if (l.type === 'images') { l.size = imageLineSizeFor(l.imageSize); imgHeight += l.size }
-    }
-    // Re-fit the filler to the pane's new leftover height.
-    const filler = lines.find(l => l.type === 'filler')
-    if (filler) filler.size = Math.max(0, props.height - imgHeight)
-    imageLines.value = [...lines]
-    paged.scrollToPosition(newScrollPos - margin_scroll_offset)
-})
+watch(() => props.height, () => nextTick(() => computeLines()))
+// Only the line height: the same fraction of the top line stays in view.
+watch(visiblePropertiesNb, () => computeLines('scale'))
 
 let resizeWidthHandler: ReturnType<typeof setTimeout> | undefined
 watch(contentWidth, () => {
     clearTimeout(resizeWidthHandler)
-    resizeWidthHandler = setTimeout(computeLines, 200)
+    resizeWidthHandler = setTimeout(() => computeLines('scale'), 200)
 })
 </script>
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
-    <RecycleScroller :items="windowLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="400" :min-item-size="0" :page-mode="false" :prerender="0">
-        <template v-slot="{ item }">
-            <!-- Drag disabled: a plain row, so no SortableJS instance per visible line. -->
-            <div v-if="!dragEnabled && item.type == 'images'" class="d-flex flex-row image-drop"
-                :style="{ minHeight: item.size + 'px' }">
-                <ImageCell v-for="element, i in item.data" :key="element.id" :instance="element"
-                    :size="item.imageSize" :width="item.cardWidths[i]" :properties="props.properties"
-                    :selected="isSelectedId(element.id)" :selected-preview="props.preview?.[element.id]"
-                    :score="props.scores?.[element.id]" :count="props.piles?.[element.id]?.length"
-                    :idx="item.startIndex + i" @open="openInstance"
-                    @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
-            </div>
-
-            <!-- A line's draggable spans the full width (cells are fixed-width, left-aligned),
-                 so the whole row is a drop zone — not just the occupied cells. -->
-            <draggable-component v-else-if="item.type == 'images'" :list="item.data" :group="dragGroupOpt"
-                item-key="id" class="d-flex flex-row image-drop" :style="{ minHeight: item.size + 'px' }"
-                :force-fallback="true" :fallback-on-body="true" :scroll="true"
-                handle=".image-drag-handle" :disabled="!props.dragGroup"
-                @start="dragging = true" @end="onDragEnd" @change="e => onLineChange(e, item)">
-                <template #item="{ element, index: i }">
-                    <ImageCell :instance="element" :size="item.imageSize" :width="item.cardWidths[i]"
-                        :properties="props.properties" :selected="isSelectedId(element.id)"
-                        :selected-preview="props.preview?.[element.id]" :score="props.scores?.[element.id]"
-                        :count="props.piles?.[element.id]?.length"
-                        :idx="item.startIndex + i" @open="openInstance"
+    <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="400" :tail="filler" @range="r => range = r">
+        <template #default="{ line }">
+            <template v-if="lineItem(line)">
+                <!-- Drag disabled: a plain row, so no SortableJS instance per visible line. -->
+                <div v-if="!dragEnabled" class="d-flex flex-row image-drop"
+                    :style="{ minHeight: lineItem(line)!.size + 'px' }">
+                    <ImageCell v-for="element, i in lineItem(line)!.data" :key="element.id" :instance="element"
+                        :size="lineItem(line)!.imageSize" :width="lineItem(line)!.cardWidths[i]" :properties="props.properties"
+                        :selected="isSelectedId(element.id)" :selected-preview="props.preview?.[element.id]"
+                        :score="props.scores?.[element.id]" :count="props.piles?.[element.id]?.length"
+                        :idx="lineItem(line)!.startIndex + i" @open="openInstance"
                         @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
-                </template>
-            </draggable-component>
+                </div>
 
-            <!-- Empty, droppable region filling the pane's leftover height so a sparse/empty
-                 list still accepts drops anywhere below the images. -->
-            <draggable-component v-else-if="item.type == 'filler'" :list="item.data" :group="dragGroupOpt"
-                item-key="id" class="image-drop" :style="{ height: item.size + 'px' }"
+                <!-- A line's draggable spans the full width (cells are fixed-width, left-aligned),
+                     so the whole row is a drop zone — not just the occupied cells. -->
+                <draggable-component v-else :list="lineItem(line)!.data" :group="dragGroupOpt"
+                    item-key="id" class="d-flex flex-row image-drop" :style="{ minHeight: lineItem(line)!.size + 'px' }"
+                    :force-fallback="true" :fallback-on-body="true" :scroll="true"
+                    handle=".image-drag-handle" :disabled="!props.dragGroup"
+                    @start="dragging = true" @end="onDragEnd" @change="e => onLineChange(e, lineItem(line)!)">
+                    <template #item="{ element, index: i }">
+                        <ImageCell :instance="element" :size="lineItem(line)!.imageSize" :width="lineItem(line)!.cardWidths[i]"
+                            :properties="props.properties" :selected="isSelectedId(element.id)"
+                            :selected-preview="props.preview?.[element.id]" :score="props.scores?.[element.id]"
+                            :count="props.piles?.[element.id]?.length"
+                            :idx="lineItem(line)!.startIndex + i" @open="openInstance"
+                            @update:selected="v => toggleSelect(element.id, v)" class="me-2 mb-2" />
+                    </template>
+                </draggable-component>
+            </template>
+        </template>
+
+        <!-- Empty, droppable region filling the pane's leftover height so a sparse/empty
+             list still accepts drops anywhere below the images. -->
+        <template #tail="{ height }">
+            <draggable-component :list="fillerList" :group="dragGroupOpt"
+                item-key="id" class="image-drop" :style="{ height: height + 'px' }"
                 :force-fallback="true" :fallback-on-body="true" :scroll="true" :disabled="!props.dragGroup"
-                @start="dragging = true" @end="onDragEnd" @change="e => onLineChange(e, item)">
+                @start="dragging = true" @end="onDragEnd" @change="e => onLineChange(e, { startIndex: props.instances?.length ?? 0 })">
                 <template #item="{ element }"><div :key="element.id"></div></template>
             </draggable-component>
         </template>
-    </RecycleScroller>
+    </VirtualScroller>
     </InstanceData>
 </template>
 

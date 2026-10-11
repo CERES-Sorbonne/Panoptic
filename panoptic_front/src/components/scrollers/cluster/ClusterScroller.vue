@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, shallowRef, provide, getCurrentInstance } from 'vue';
 import ClusterLineVue from './ClusterLine.vue';
 import { Group } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/composables/keyState';
 import { Property, ModalId } from '@/data/models';
 import { ClusterLine, GroupViewMode, mosaicSlotCount } from '@/components/scrollers/types';
-import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import InstanceData from '@/components/data/InstanceData.vue';
-import { usePagedLines } from '@/components/scrollers/usePagedLines';
+import VirtualScroller from '@/components/scrollers/virtual/VirtualScroller.vue';
+import { ScrollLayout, lineKey } from '@/components/scrollers/virtual/scrollLayout';
+import type { LayoutSource, LineRef } from '@/components/scrollers/virtual/scrollLayout';
+import type { ViewRange } from '@/components/scrollers/virtual/virtualView';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
@@ -43,28 +45,25 @@ const emit = defineEmits(['reco', 'open-cluster', 'open-group', 'close-group', '
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.manager?.selectionNamespace ?? 'global'))
 
-const clusterLines = shallowRef([]) as Ref<ClusterLine[]>
-
 const hoverGroupBorder = ref(-1)
 
-const scroller = ref(null)
-const MARGIN_STEP = 20
+// The hovered group's indent borders are lit by one CSS rule written here rather than a prop handed
+// to every line (each hover re-rendered every line on screen). Scoped to this scroller.
+const borderScope = 'cluster-' + getCurrentInstance()!.uid
+const hoverBorderCss = computed(() => hoverGroupBorder.value < 0 ? '' :
+    `.vscroller[data-border-scope="${borderScope}"] [data-border-group="${hoverGroupBorder.value}"] { border-left-color: blue; }`)
 
-// The scroller only gets the lines around the viewport plus padding (see usePagedLines), so
-// a huge list does not go past the browser's height limit. clusterLines stays the full list.
-const paged = usePagedLines<ClusterLine>({ scroller, viewportHeight: () => props.height })
-const windowLines = paged.windowLines
-watch(clusterLines, lines => paged.setLines(lines), { flush: 'sync' })
+const MARGIN_STEP = 20
 
 const GAP = 8 // must match the .cluster-card "me-2" margin in ClusterLine.vue
 const BORDER = 2 // .cluster-card's 1px border on each side, added on top of its width style
 const INPUT_ROW = 26 // .cc-input-row height below each card's image (must match ClusterLine.vue)
-const SCROLLBAR = 8 // RecycleScroller's vertical scrollbar (theme.css ::-webkit-scrollbar width)
+const SCROLLBAR = 8 // the scroller's vertical scrollbar (theme.css ::-webkit-scrollbar width)
 
-// The `width` prop is the box this scroller occupies. RecycleScroller scrolls vertically,
-// so its scrollbar eats SCROLLBAR px off the usable content width — subtract it up front so
-// the line math matches what's actually available. No ResizeObserver: the prop is the single
-// source of truth, and every per-card size is precomputed here (never inside ClusterLine).
+// The `width` prop is the box this scroller occupies; its scrollbar eats SCROLLBAR px off the
+// usable content width — subtract it up front so the line math matches what's actually available.
+// No ResizeObserver: the prop is the single source of truth, and every per-card size is precomputed
+// here (never inside ClusterLine).
 const contentWidth = computed(() => Math.max(0, props.width - SCROLLBAR))
 // The width the image size is derived from. Falls back to the actual width when no stable
 // width is supplied, so a standalone scroller behaves exactly as before.
@@ -80,42 +79,51 @@ const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId 
 
 provide('hideImg', hideFromModal)
 
+// Handed to every line: the same array while the prop is unset (`?? []` in the template would be a
+// new one, i.e. a changed prop for every line, on each render).
+const NONE: number[] = []
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+// The cards (computeLines), and what every line of them shares. The list is a single node of the
+// scroller's layout with one body line per `perLine` cards; a line object is only made for the
+// lines on screen (lineItem).
+let candidates: ClusterEntry[] = []
+let rootGroup: Group | undefined
+let geo = { perLine: 1, frozenHeight: 1, cardWidths: [] as number[], size: 1 }
+let lineCount = 0
+const empty = shallowRef(true)
+
+const source: LayoutSource = {
+    root: () => 0,
+    childCount: () => 0,
+    child: () => 0,
+    isOpen: () => true,
+    headerSize: () => 0,
+    bodyLines: () => lineCount,
+    lineEstimate: () => geo.size,
+    lineType: () => 'cluster',
+}
+const layout = new ScrollLayout(source)
+const vs = ref<InstanceType<typeof VirtualScroller>>()
+
+const range = shallowRef<ViewRange | null>(null)
+
 const windowIds = computed(() => {
+    const r = range.value
+    if (!r) return []
     const ids: number[] = []
-    const lines = clusterLines.value
-    if (!lines.length) return ids
-
-    const range = paged.windowRange.value
-    let start = Math.max(0, Math.min(range.start, lines.length - 1))
-    let end   = Math.max(0, Math.min(range.end, lines.length - 1))
-
-    let preCount = 0
-    while (start > 0 && preCount < 5) {
-        start--
-        if (lines[start].type === 'cluster') preCount++
-    }
-
-    let postCount = 0
-    while (end < lines.length - 1 && postCount < 5) {
-        end++
-        if (lines[end].type === 'cluster') postCount++
-    }
-
-    for (let i = start; i <= end; i++) {
-        const line = lines[i]
-        if (line.type === 'cluster') {
-            for (const entry of (line as ClusterLine).data) {
-                // A mosaic card shows the group's first images, so preload all of them —
-                // otherwise only the representative one has its data ready.
-                const count = mosaicSlotCount(props.viewMode ?? 'single')
-                const slots = count > 1 ? (entry.group.slots ?? []).slice(0, count) : [entry.slot]
-                for (const slot of slots) {
-                    const instanceId = columnStore.instanceIds()[slot]
-                    if (instanceId !== undefined && !isNaN(instanceId)) {
-                        ids.push(instanceId)
-                    }
-                }
-            }
+    const colIds = columnStore.instanceIds()
+    // A mosaic card shows the group's first images, so preload all of them — otherwise only the
+    // representative one has its data ready.
+    const count = mosaicSlotCount(props.viewMode ?? 'single')
+    const from = Math.max(0, r.prefetch[0].index * geo.perLine)
+    const to = Math.min(candidates.length, (r.prefetch[1].index + 1) * geo.perLine)
+    for (let i = from; i < to; i++) {
+        const entry = candidates[i]
+        const slots = count > 1 ? (entry.group.slots ?? []).slice(0, count) : [entry.slot]
+        for (const slot of slots) {
+            const instanceId = colIds[slot]
+            if (instanceId !== undefined && !isNaN(instanceId)) ids.push(instanceId)
         }
     }
     return ids
@@ -129,30 +137,49 @@ defineExpose({
 })
 
 function clear() {
-    clusterLines.value = []
+    candidates = []
+    lineCount = 0
+    empty.value = true
+    items.clear()
+    layout.clear()
+    vs.value?.relayout({ rerender: true })
 }
 
-function sameLine(a: ClusterLine, b: ClusterLine): boolean {
+function sameLine(a: ClusterLine | undefined, b: ClusterLine): boolean {
     if (!a || a.type !== b.type || a.size !== b.size) return false
-    if (a.id !== b.id) return false
+    if (a.id !== b.id || a.imageSize !== b.imageSize) return false
     if (a.cardWidths[0] !== b.cardWidths[0] || a.cardWidths.length !== b.cardWidths.length) return false
     const ad = a.data, bd = b.data
     if (ad.length !== bd.length) return false
     for (let i = 0; i < ad.length; i++) {
-        if (ad[i].slot !== bd[i].slot || ad[i].group.id !== bd[i].group.id) return false
+        if (ad[i].slot !== bd[i].slot || ad[i].group !== bd[i].group) return false
     }
     return true
 }
 
-function reconcileLines(prev: ClusterLine[], next: ClusterLine[]): ClusterLine[] {
-    if (!prev.length) return next
-    const byId = new Map<any, ClusterLine>()
-    for (const l of prev) byId.set(l.id, l)
-    for (let i = 0; i < next.length; i++) {
-        const old = byId.get(next[i].id)
-        if (old && sameLine(old, next[i])) next[i] = old
+const items = new Map<string, ClusterLine>()
+
+function lineItem(line: LineRef): ClusterLine | undefined {
+    const start = line.index * geo.perLine
+    if (line.index < 0 || start >= candidates.length || !rootGroup) return undefined
+    const chunk = candidates.slice(start, start + geo.perLine)
+    const item: ClusterLine = {
+        id: rootGroup.id + '|cli-' + line.index,
+        type: 'cluster',
+        data: chunk,
+        groupId: rootGroup.id,
+        depth: rootGroup.depth + 1,
+        imageSize: geo.frozenHeight,
+        emptyCount: geo.perLine - chunk.length,
+        cardWidths: geo.cardWidths,
+        size: geo.size,
     }
-    return next
+    const key = lineKey(line)
+    const previous = items.get(key)
+    if (sameLine(previous, item)) return previous
+    if (items.size > 2000) items.clear()
+    items.set(key, item)
+    return item
 }
 
 type ClusterEntry = { group: Group, slot: number }
@@ -174,89 +201,77 @@ function collectCandidates(group: Group, out: ClusterEntry[]) {
     }
 }
 
-let _computingLines = false
 function computeLines() {
-    if (_computingLines) return
-    _computingLines = true
-    try {
-        const root = props.manager.result.root
-        if (!root) {
-            clusterLines.value = []
-            return
+    const root = props.manager.result.root
+    rootGroup = root
+    const found: ClusterEntry[] = []
+    if (root) {
+        collectCandidates(root, found)
+        if (found.length === 0 && root.slots && root.slots.length > 0) {
+            found.push({ group: root, slot: root.slots[0] })
         }
-        const candidates: ClusterEntry[] = []
-        collectCandidates(root, candidates)
-        if (candidates.length === 0 && root.slots && root.slots.length > 0) {
-            candidates.push({ group: root, slot: root.slots[0] })
-        }
-
-        // Reserve one MARGIN_STEP per parent-border column that ClusterLine will
-        // actually render. That count comes from getClusterLineParents, which returns
-        // NOTHING when the (rooted) tree's root id is 0 — the flat cluster-view case —
-        // because it early-returns on the falsy id. Mirror that here so we don't reserve
-        // indent width for columns that never get drawn (which left a ~20px gap).
-        const borderCols = root.id ? getParents(root).length + 1 : 0
-        // The image HEIGHT is frozen against the STABLE line width (the full workspace), so it does
-        // NOT change when the inspector opens and narrows the pane. The ACTUAL line width sets how
-        // many cards fit and how WIDE each one stretches to fill the pane — only the width flexes,
-        // so the vertical rhythm stays perfectly stable while the space is still fully used.
-        const stableLineWidth = layoutContentWidth.value - (borderCols * MARGIN_STEP)
-        const actualLineWidth = contentWidth.value - (borderCols * MARGIN_STEP)
-
-        // imageSize sets how many cards fit a full (stable) line...
-        // (+BORDER accounts for .cluster-card's 1px border on each side, which is added
-        // on top of the image-size we set as its width)
-        const rawItemWidth = props.imageSize + BORDER + GAP
-        const stableItemsPerLine = Math.max(1, Math.floor(stableLineWidth / rawItemWidth))
-        // ...and the frozen HEIGHT is derived to fill that full line. This one number is the stable
-        // image height used on every line, independent of the current pane width.
-        const stableCardArea = stableLineWidth - GAP * (stableItemsPerLine - 1)
-        const frozenHeight = Math.max(1, Math.floor(stableCardArea / stableItemsPerLine) - BORDER)
-        const frozenOuter = frozenHeight + BORDER
-
-        // How many cards fit the CURRENT pane, targeting the frozen size. Fewer columns when the
-        // pane narrows; the WIDTH of each then stretches to fill (below).
-        const itemsPerLine = Math.max(1, Math.floor((actualLineWidth + GAP) / (frozenOuter + GAP)))
-
-        // Stretch the card WIDTHS to fill the actual line exactly (fixed gap). Flooring leaves up
-        // to (itemsPerLine - 1) leftover px; hand those out 1px at a time to the leading columns so
-        // the line covers the full width with no trailing whitespace. Height stays frozenHeight, so
-        // cards become slightly wider than tall when a column is dropped, never taller/shorter.
-        const cardArea = actualLineWidth - GAP * (itemsPerLine - 1) // px for card OUTER widths
-        const baseOuter = Math.floor(cardArea / itemsPerLine)
-        const extraCount = cardArea - baseOuter * itemsPerLine
-        const lineImageWidth = Math.max(1, baseOuter - BORDER)
-        const cardWidths: number[] = []
-        for (let c = 0; c < itemsPerLine; c++) cardWidths.push(lineImageWidth + (c < extraCount ? 1 : 0))
-
-        const lines: ClusterLine[] = []
-        let groupLineIndex = 0
-        for (let i = 0; i < candidates.length; i += itemsPerLine) {
-            const chunk = candidates.slice(i, i + itemsPerLine)
-            lines.push({
-                id: root.id + '|cli-' + groupLineIndex++,
-                type: 'cluster',
-                data: chunk,
-                groupId: root.id,
-                depth: root.depth + 1,
-                imageSize: frozenHeight,
-                emptyCount: itemsPerLine - chunk.length,
-                cardWidths,
-                // card == image height + one typed property-input row (INPUT_ROW) per grouping
-                // level; +10 for the card's bottom margin (mb-2) + gap
-                size: frozenHeight + INPUT_ROW * inputRows.value + 10
-            })
-        }
-
-        clusterLines.value = reconcileLines(clusterLines.value, lines)
-    } finally {
-        _computingLines = false
     }
+    candidates = found
+    empty.value = found.length === 0
+    if (!root || !found.length) {
+        lineCount = 0
+        layout.rebuild()
+        vs.value?.relayout({ rerender: true })
+        return
+    }
+
+    // Reserve one MARGIN_STEP per parent-border column that ClusterLine will
+    // actually render. That count comes from clusterLineParents, which returns
+    // NOTHING when the (rooted) tree's root id is 0 — the flat cluster-view case —
+    // because it early-returns on the falsy id. Mirror that here so we don't reserve
+    // indent width for columns that never get drawn (which left a ~20px gap).
+    const borderCols = root.id ? getParents(root).length + 1 : 0
+    // The image HEIGHT is frozen against the STABLE line width (the full workspace), so it does
+    // NOT change when the inspector opens and narrows the pane. The ACTUAL line width sets how
+    // many cards fit and how WIDE each one stretches to fill the pane — only the width flexes,
+    // so the vertical rhythm stays perfectly stable while the space is still fully used.
+    const stableLineWidth = layoutContentWidth.value - (borderCols * MARGIN_STEP)
+    const actualLineWidth = contentWidth.value - (borderCols * MARGIN_STEP)
+
+    // imageSize sets how many cards fit a full (stable) line...
+    // (+BORDER accounts for .cluster-card's 1px border on each side, which is added
+    // on top of the image-size we set as its width)
+    const rawItemWidth = props.imageSize + BORDER + GAP
+    const stableItemsPerLine = Math.max(1, Math.floor(stableLineWidth / rawItemWidth))
+    // ...and the frozen HEIGHT is derived to fill that full line. This one number is the stable
+    // image height used on every line, independent of the current pane width.
+    const stableCardArea = stableLineWidth - GAP * (stableItemsPerLine - 1)
+    const frozenHeight = Math.max(1, Math.floor(stableCardArea / stableItemsPerLine) - BORDER)
+    const frozenOuter = frozenHeight + BORDER
+
+    // How many cards fit the CURRENT pane, targeting the frozen size. Fewer columns when the
+    // pane narrows; the WIDTH of each then stretches to fill (below).
+    const itemsPerLine = Math.max(1, Math.floor((actualLineWidth + GAP) / (frozenOuter + GAP)))
+
+    // Stretch the card WIDTHS to fill the actual line exactly (fixed gap). Flooring leaves up
+    // to (itemsPerLine - 1) leftover px; hand those out 1px at a time to the leading columns so
+    // the line covers the full width with no trailing whitespace. Height stays frozenHeight, so
+    // cards become slightly wider than tall when a column is dropped, never taller/shorter.
+    const cardArea = actualLineWidth - GAP * (itemsPerLine - 1) // px for card OUTER widths
+    const baseOuter = Math.floor(cardArea / itemsPerLine)
+    const extraCount = cardArea - baseOuter * itemsPerLine
+    const lineImageWidth = Math.max(1, baseOuter - BORDER)
+    const cardWidths: number[] = []
+    for (let c = 0; c < itemsPerLine; c++) cardWidths.push(lineImageWidth + (c < extraCount ? 1 : 0))
+
+    // card == image height + one typed property-input row (INPUT_ROW) per grouping level; +10 for
+    // the card's bottom margin (mb-2) + gap
+    geo = { perLine: itemsPerLine, frozenHeight, cardWidths, size: frozenHeight + INPUT_ROW * inputRows.value + 10 }
+    lineCount = Math.ceil(found.length / itemsPerLine)
+    // One node: rebuilding is O(1).
+    layout.rebuild()
+    vs.value?.relayout({ rerender: true })
 }
 
-function scrollTo(groupId) {
-    const idx = clusterLines.value.findIndex(l => l.groupId === groupId)
-    if (idx >= 0) paged.scrollToIndex(idx)
+function scrollTo(groupId: number) {
+    if (groupId === rootGroup?.id) return vs.value?.scrollToOffset(0)
+    const i = candidates.findIndex(e => e.group.id === groupId)
+    if (i >= 0) vs.value?.scrollTo({ node: 0, index: Math.floor(i / geo.perLine) })
 }
 
 function updateHoverBorder(value) {
@@ -275,10 +290,15 @@ function getParents(group: Group) {
     return ids
 }
 
-function getClusterLineParents(item: ClusterLine) {
-    if (!item.groupId) return []
-    const parentGroup = props.manager.result.index[item.groupId]
-    return parentGroup ? [...getParents(parentGroup), item.groupId] : [item.groupId]
+// The same array while the chain is the same: a new one is a changed prop for every line.
+let parentsCache: number[] = []
+function clusterLineParents(): number[] {
+    const id = rootGroup?.id
+    if (!id) return NONE
+    const parentGroup = props.manager.result.index[id]
+    const ids = parentGroup ? [...getParents(parentGroup), id] : [id]
+    if (ids.length !== parentsCache.length || ids.some((v, i) => v !== parentsCache[i])) parentsCache = ids
+    return parentsCache
 }
 
 function toggleClusterSelect(groupId: number) {
@@ -315,36 +335,35 @@ watch(() => props.manager.version.value, triggerUpdate)
 
 <template>
     <div style="width: 100%; min-width: 0;">
-        <div v-if="clusterLines.length === 0" class="p-3 text-secondary">{{ $t('main.group.no_lines') }}</div>
+        <div v-if="empty" class="p-3 text-secondary">{{ $t('main.group.no_lines') }}</div>
         <InstanceData v-else :instance-ids="windowIds" :prop-ids="windowPropIds">
-        <RecycleScroller :items="windowLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-            :buffer="400" :min-item-size="0" :page-mode="false" :prerender="0">
-            <template v-slot="{ item, index, active }">
-                <div v-if="item.type == 'cluster'">
-                    <ClusterLineVue :image-size="item.imageSize" :input-index="paged.lineIndex(index) * maxPerLine" :item="item"
-                        :parent-ids="getClusterLineParents(item)"
-                        :hover-border="hoverGroupBorder"
-                        :manager="props.manager"
-                        :properties="props.properties"
-                        :target-property-ids="props.targetPropertyIds ?? []"
-                        :highlight-ids="props.highlightIds ?? []"
-                        :opened-ids="props.openedIds ?? []"
-                        :view-mode="props.viewMode ?? 'single'"
-                        @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = -1"
-                        @select-cluster="toggleClusterSelect"
-                        @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
-                        @open-group="id => emit('open-group', id)"
-                        @close-group="id => emit('close-group', id)"
-                        @clear-clusters="id => emit('clear-clusters', id)"
-                        @assign-cluster-value="(id, val, propId) => emit('assign-cluster-value', id, val, propId)"
-                        @choose-target="(id, propId) => emit('choose-target', id, propId)"
-                        @create-target="id => emit('create-target', id)"
-                        @scroll="scrollTo"
-                        @reco="emit('reco', $event)" />
-                </div>
+        <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="400"
+            :data-border-scope="borderScope" @range="r => range = r">
+            <template #default="{ line }">
+                <ClusterLineVue v-if="lineItem(line)" :image-size="lineItem(line)!.imageSize" :input-index="line.index * maxPerLine"
+                    :item="lineItem(line)!"
+                    :parent-ids="clusterLineParents()"
+                    :manager="props.manager"
+                    :properties="props.properties"
+                    :target-property-ids="props.targetPropertyIds ?? NONE"
+                    :highlight-ids="props.highlightIds ?? NONE"
+                    :opened-ids="props.openedIds ?? NONE"
+                    :view-mode="props.viewMode ?? 'single'"
+                    @hover="updateHoverBorder"
+                    @unhover="hoverGroupBorder = -1"
+                    @select-cluster="toggleClusterSelect"
+                    @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
+                    @open-group="id => emit('open-group', id)"
+                    @close-group="id => emit('close-group', id)"
+                    @clear-clusters="id => emit('clear-clusters', id)"
+                    @assign-cluster-value="(id, val, propId) => emit('assign-cluster-value', id, val, propId)"
+                    @choose-target="(id, propId) => emit('choose-target', id, propId)"
+                    @create-target="id => emit('create-target', id)"
+                    @scroll="scrollTo"
+                    @reco="emit('reco', $event)" />
             </template>
-        </RecycleScroller>
+        </VirtualScroller>
         </InstanceData>
+        <component :is="'style'" v-if="hoverBorderCss">{{ hoverBorderCss }}</component>
     </div>
 </template>

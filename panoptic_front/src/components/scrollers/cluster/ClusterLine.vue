@@ -29,7 +29,6 @@ const props = defineProps<{
     inputIndex: number
     item: ClusterLine
     parentIds: number[]
-    hoverBorder: number
     manager: GroupInspector
     properties: any[]
     // Group ids currently open in the right-side inspector panel.
@@ -218,7 +217,9 @@ function groupScore(group: Group): number | null {
     <div class="d-flex flex-row">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
-            <div class="cluster-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
+            <!-- Lit on hover by a CSS rule of ClusterScroller (data-border-group), not by a prop that
+                 would re-render every line on each hover. -->
+            <div class="cluster-line-border" :data-border-group="parentId"></div>
         </div>
         <div
             v-for="(entry, i) in props.item.data"
@@ -390,10 +391,6 @@ function groupScore(group: Group): number | null {
     height: 100%;
     border-left: 1px solid var(--border-color);
     padding-left: 10px;
-}
-
-.active {
-    border-left: 1px solid blue;
 }
 
 .cluster-card:last-child {

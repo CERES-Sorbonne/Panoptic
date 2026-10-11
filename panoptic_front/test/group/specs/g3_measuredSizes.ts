@@ -1,130 +1,99 @@
 /**
- * G3 — grid rows fit their content: measured heights are applied in one batch, in place, and the
- * line at the top of the viewport stays where it is on screen.
+ * G3 — grid rows fit their content: measured heights are applied in one batch, and the line at
+ * the top of the viewport stays where it is on screen.
  *
  * The old adaptive rows froze the table: each cell measured itself with a forced layout, each
  * report refreshed the scroller (a new list, every mounted row re-rendered), which moved the
  * window, mounted more rows that measured again. Now one ResizeObserver per scroller reports the
- * rows whose height changed, all at once (RowHeights), and usePagedLines.updateSizes lays the
- * same window out again (RecycleScroller's `restoreCache(null)`, see its header) unless the window
- * no longer covers what the scroller mounts.
+ * rows whose height changed, all at once (RowHeights); VirtualScroller hands them to
+ * ScrollLayout.setMeasured (one leaf each, O(log)) and lays the slots out again in one relayout:
+ * no slot is given another line by it.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { effectScope, nextTick, shallowRef } from 'vue'
-import { usePagedLines, PAD_TYPE } from '@/components/scrollers/usePagedLines'
 import { RowHeights, RowHeightsEnv, entryHeight } from '@/components/scrollers/grid/rowHeights'
 import type { ScrollerLine } from '@/components/scrollers/types'
+import { LayoutSource, LineRef, ScrollLayout, lineKey } from '@/components/scrollers/virtual/scrollLayout'
+import { Slot, ViewHost, VirtualView } from '@/components/scrollers/virtual/virtualView'
 
 const VH = 900
 
-interface Line { id: number, type: string, size: number }
-
-const rows = (n: number, size = 28): Line[] => Array.from({ length: n }, (_, id) => ({ id, type: 'image', size }))
-
-function setup(lines: Line[]) {
-    let onScroll: (() => void) | undefined
-    const el = {
-        scrollTop: 0,
-        addEventListener: (_: string, f: () => void) => { onScroll = f },
-        removeEventListener: () => { },
+/** VirtualScroller's measuring loop on a flat list of `n` rows of 28px, minus the DOM. */
+function measuredView(n: number) {
+    const src: LayoutSource = {
+        root: () => 0, childCount: () => 0, child: () => 0, isOpen: () => true, headerSize: () => 0,
+        bodyLines: () => n, lineEstimate: () => 28, lineType: () => 'image',
     }
-    const calls = { restoreCache: 0, updateVisibleItems: 0 }
-    const scroller = {
-        $el: el,
-        restoreCache: (snapshot: unknown) => { assert.equal(snapshot, null); calls.restoreCache++ },
-        updateVisibleItems: (force: boolean) => { assert.equal(force, false); calls.updateVisibleItems++ },
+    const layout = new ScrollLayout(src)
+    layout.rebuild()
+    let scrollTop = 0, renders = 0
+    const host: ViewHost = {
+        viewportHeight: () => VH,
+        scrollTop: () => scrollTop,
+        setScrollTop: px => { scrollTop = px },
+        setContentHeight: () => { },
+        createSlot: (id, type) => {
+            let value: LineRef | null = null
+            return {
+                id, type, key: null, top: 0, size: 0,
+                line: { get value() { return value }, set value(v) { if (v !== value) { value = v; if (v) renders++ } } },
+            } as Slot
+        },
+        place: () => { },
+        now: () => 0,
+        setTimer: () => 0,
+        clearTimer: () => { },
     }
-    const scope = effectScope()
-    const paged = scope.run(() => usePagedLines<Line>({ scroller: shallowRef(scroller), viewportHeight: () => VH, minBuffer: 300 }))!
-    paged.setLines(lines)
+    const view = new VirtualView(layout, host, { overscan: 300, lead: 1, measured: true, tail: 0, fastSpeed: 3, idleDelay: 120 })
+    view.relayout()
+    // What the component does with a batch.
+    const apply = (changes: Map<LineRef, number>) => {
+        let changed = false
+        for (const [line, px] of changes) changed = layout.setMeasured(line, px) || changed
+        if (changed) view.relayout()
+        return changed
+    }
     return {
-        paged, el, calls,
-        scroll(top: number) { el.scrollTop = top; onScroll!() },
-        stop: () => scope.stop(),
+        layout, view, apply,
+        get renders() { return renders },
+        scroll(top: number) { scrollTop = top; view.onScroll() },
+        mounted: () => view.slots.filter(s => s.key !== null),
     }
 }
 
-/** On-screen y of line `i`'s top, as the scroller would draw it now. */
-const screenTop = (s: ReturnType<typeof setup>, i: number) => s.paged.lineOffset(i) - s.paged.getScrollTop()
-
-test('G3: measured sizes are applied in place — same window, no new list, the scroller re-reads its sizes', async () => {
-    const lines = rows(2000)
-    const s = setup(lines)
-    await nextTick()    // setLines' own scrollTop, before scrolling
+test('G3: measured sizes are applied in one relayout; no mounted row is handed another line', () => {
+    const s = measuredView(2000)
     s.scroll(28 * 500)
-    await nextTick()
-    const before = s.paged.windowLines.value
-    const { start } = s.paged.windowRange.value
-    const changed = s.paged.updateSizes(() => {
-        for (let i = 500; i < 510; i++) lines[i].size = 80
-        return true
-    })
-    assert.ok(changed)
-    assert.equal(s.paged.windowLines.value, before, 'the same array: RecycleScroller keeps every view on its line')
-    assert.equal(s.calls.restoreCache, 1)
-    assert.equal(s.paged.lineOffset(510), 28 * 510 + 52 * 10)
-    // The pads hold the space above and below the window: still exactly the rest of the list.
-    const items = s.paged.windowLines.value
-    const top = items[0], bottom = items[items.length - 1]
-    assert.equal(top.type, PAD_TYPE)
-    assert.equal(top.size, s.paged.lineOffset(start))
-    assert.equal(bottom.type, PAD_TYPE)
-    const total = s.paged.lineOffset(lines.length)
-    assert.equal(items.reduce((a, l) => a + l.size, 0), total)
-    await nextTick()
-    assert.equal(s.calls.updateVisibleItems, 0, 'rows below the top line changed: scrollTop stays, nothing more to do')
-    s.stop()
+    const before = new Map(s.mounted().map(slot => [slot.key, slot.line.value]))
+    const renders = s.renders
+    const changes = new Map<LineRef, number>()
+    for (const slot of s.mounted()) if (slot.line.value!.index < 510) changes.set(slot.line.value!, 80)
+    assert.ok(s.apply(changes))
+    // Rows still in range keep their slot and LineRef; rows that grew push others out of range.
+    for (const slot of s.mounted()) if (before.has(slot.key)) assert.equal(slot.line.value, before.get(slot.key))
+    assert.ok(s.renders - renders <= 2, 'growing rows only drops lines out of range')
+    for (const [line] of changes) assert.equal(s.layout.sizeOf(line), 80)
 })
 
-test('G3: rows above the viewport changing do not move what is on screen', async () => {
-    const lines = rows(2000)
-    const s = setup(lines)
-    await nextTick()    // setLines' own scrollTop, before scrolling
-    s.scroll(28 * 500 + 10)    // line 500 is at the top, 10px of it scrolled past
-    await nextTick()
-    const anchorY = screenTop(s, 500), belowY = screenTop(s, 520)
-    // In the buffer above the viewport: grows. On screen below the anchor: grows too.
-    s.paged.updateSizes(() => {
-        for (let i = 490; i < 500; i++) lines[i].size = 100
-        lines[505].size = 60
-        return true
-    })
-    assert.equal(screenTop(s, 500), anchorY, 'the top line keeps its place')
-    assert.equal(screenTop(s, 520), belowY + 32, 'lines below a grown row move down by its growth only')
-    await nextTick()
-    assert.equal(s.el.scrollTop, s.paged.getScrollTop(), 'scrollTop set to the anchored position')
-    assert.equal(s.calls.updateVisibleItems, 1, 'and the scroller brought there in the same frame')
-
-    // Shrinking above: same.
-    s.paged.updateSizes(() => {
-        for (let i = 490; i < 500; i++) lines[i].size = 28
-        return true
-    })
-    assert.equal(screenTop(s, 500), anchorY)
-    s.stop()
+test('G3: rows above the viewport changing do not move what is on screen', () => {
+    const s = measuredView(2000)
+    s.scroll(28 * 500 + 10)
+    const top = s.layout.locate(s.view.virtualTop)!
+    const screenY = s.layout.offsetOf(top) - s.view.virtualTop
+    // Rows 490..499, mounted in the overscan above the viewport, measure taller.
+    const above = s.mounted().map(slot => slot.line.value!).filter(l => l.index >= 490 && l.index < 500)
+    assert.ok(above.length > 0)
+    s.apply(new Map(above.map(l => [l, 60])))
+    assert.equal(s.layout.offsetOf(top) - s.view.virtualTop, screenY, 'the top row did not move on screen')
+    assert.equal(s.layout.height, 2000 * 28 + above.length * 32)
 })
 
-test('G3: nothing changed, nothing done; a window that no longer covers is rebuilt', async () => {
-    const lines = rows(2000, 200)
-    const s = setup(lines)
-    await nextTick()    // setLines' own scrollTop, before scrolling
-    s.scroll(200 * 1000)
-    await nextTick()
-    assert.equal(s.paged.updateSizes(() => false), false)
-    assert.equal(s.calls.restoreCache, 0)
-    // Every line collapses to 28px: the window (sized for 200px lines) no longer reaches the
-    // bottom of what the scroller mounts, so it gets a new one.
-    const before = s.paged.windowLines.value
-    s.paged.updateSizes(() => { for (const l of lines) l.size = 28; return true })
-    assert.notEqual(s.paged.windowLines.value, before)
-    const { start, end } = s.paged.windowRange.value
-    const top = s.paged.getScrollTop()
-    assert.ok(s.paged.lineOffset(start) <= top - 300 && s.paged.lineOffset(end + 1) >= top + VH + 300)
-    s.stop()
+test('G3: nothing changed, nothing done', () => {
+    const s = measuredView(100)
+    const line = s.mounted()[0].line.value!
+    assert.equal(s.apply(new Map([[line, 28]])), false)
+    assert.equal(lineKey(line), '0:0')
 })
-
-// ── RowHeights ───────────────────────────────────────────────────────────────
 
 interface FakeEntry { target: object, borderBoxSize: { blockSize: number, inlineSize: number }[], contentRect: { height: number } }
 

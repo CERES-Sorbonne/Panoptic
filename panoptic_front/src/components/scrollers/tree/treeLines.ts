@@ -8,10 +8,10 @@
  * one). Iterators are made by the line component for the lines on screen (lineIterators), and
  * the instance ids of a line are read straight off the leaf (lineFirstSlots).
  *
- * Since a line holds no image, a leaf's block of lines depends only on how many positions the
- * leaf has, whether it is piled, its depth, and the sizes — see LeafKey. TreeLineCache keeps
- * each leaf's block under that key, so a rebuild walks the groups and reuses the blocks of every
- * leaf whose key did not change: O(groups) plus the concatenation, whatever the image count.
+ * Since a line holds no image, a leaf's lines depend only on how many positions the leaf has,
+ * whether it is piled, its depth and the sizes (TreeGeometry, per depth). So the tree is handed to
+ * the VirtualScroller as a LayoutSource (treeSource) — a group's line count is a division — and a
+ * line object is only made for the lines on screen (leafLine).
  *
  * Pure on purpose (no Vue, no stores): the scroller adapts it, and the tests drive it over a
  * real GroupManager.
@@ -21,6 +21,8 @@ import type { Group, GroupIndex } from '@/core/group/types'
 import type { PileData } from '@/core/sha1Piles'
 import type { ImageIterator } from '@/core/group/GroupIterator'
 import type { ImageLine } from '../types'
+import type { LayoutSource, LineRef, ScrollLayout } from '../virtual/scrollLayout'
+import type { CellWalk } from '../cellNavigation'
 
 // What the lines are read against: the GroupResult (the iterator host of every manager).
 export interface LineHost {
@@ -30,10 +32,10 @@ export interface LineHost {
     getImageIterator(groupId?: number, imageIdx?: number): ImageIterator
 }
 
-// Bumped by the scroller every time it hands out a new line list. The line components read it in
-// the computed that makes their iterators: a line object is kept across rebuilds while its range
-// is unchanged (see TreeLineCache), but the images at that range may not be — the tree is mutated
-// in place — so the iterators are re-checked after each rebuild, not only when `item` changes.
+// Bumped by the scroller every time the tree is read again. The line components read it in the
+// computed that makes their iterators: a line object is kept across rebuilds while its range is
+// unchanged (see leafLine), but the images at that range may not be — the tree is mutated in
+// place — so the iterators are re-checked after each rebuild, not only when `item` changes.
 export const treeLinesBuiltKey: InjectionKey<Ref<number>> = Symbol('treeLinesBuilt')
 
 // One indent column as ImageLine/PileLine actually render it: .ps-2 (8) + .image-line's
@@ -73,78 +75,13 @@ export function positionCount(host: LineHost, group: Group): number {
     return pile ? pile.bounds.length - 1 : group.slots.length
 }
 
-// Everything a leaf's block of lines is a function of. Nothing about WHICH images the leaf holds:
-// the lines only carry ranges, so two leaves with the same key get identical lines.
-export interface LeafKey {
-    positions: number
-    piled: boolean
-    depth: number
-    // Usable line width once the leaf's indent is taken off.
-    width: number
-    imageSize: number
-    // Properties drawn under each card: all visible ones on image lines, the sha1 ones on piles.
-    propertyCount: number
-}
-
-export function sameKey(a: LeafKey, b: LeafKey): boolean {
-    return a.positions === b.positions && a.piled === b.piled && a.depth === b.depth
-        && a.width === b.width && a.imageSize === b.imageSize && a.propertyCount === b.propertyCount
-}
-
-// Two lines that draw the same range at the same geometry render the same DOM: the previous
-// object is kept so its `:item` stays the same reference and the line is not re-rendered.
-function sameRangeLine(a: ImageLine, b: ImageLine): boolean {
-    if (!a || a.type !== b.type || a.groupId !== b.groupId || a.start !== b.start || a.count !== b.count) return false
-    if (a.size !== b.size || a.depth !== b.depth || a.imageSize !== b.imageSize || a.emptyCount !== b.emptyCount) return false
-    const aw = a.cardWidths, bw = b.cardWidths
-    if (aw === bw) return true
-    if (aw.length !== bw.length) return false
-    for (let i = 0; i < aw.length; i++) if (aw[i] !== bw[i]) return false
-    return true
-}
-
-// The lines of leaf `groupId` under `key`. `previous` is the leaf's last block: lines that come
-// out the same are taken from it (by index — a leaf's line k is always its positions
-// [k * perLine, ...)), so a leaf that only grew at its end keeps the objects of its first lines.
-export function buildLeafLines(groupId: number, key: LeafKey, imageSize: number, previous?: ImageLine[]): ImageLine[] {
-    const lines: ImageLine[] = []
-    // Empty leaf: no images, so emit no image line (avoids a blank/spinner row).
-    if (key.positions <= 0) return lines
-
-    // imageSize only decides how many images fit in a line...
-    const itemsPerLine = Math.max(1, Math.floor(key.width / (imageSize + BORDER + GAP)))
-    // ...then images are stretched to exactly fill a FULL line. Every line uses these same
-    // widths — a trailing/partial line (end of group, small group) keeps them too instead of
-    // blowing its images up to fill the leftover space; the empty slots are simulated
-    // (reserved, not rendered) so alignment across lines stays consistent.
-    const { lineImgSize, cardWidths } = fillWidths(key.width, itemsPerLine)
-    const type = key.piled ? 'piles' : 'images'
-    const prefix = groupId + (key.piled ? '|pile-' : '|img-')
-    const size = cardLineSize(lineImgSize, key.propertyCount)
-
-    for (let k = 0, start = 0; start < key.positions; k++, start += itemsPerLine) {
-        const count = Math.min(itemsPerLine, key.positions - start)
-        const line: ImageLine = {
-            id: prefix + k,
-            type,
-            groupId,
-            start,
-            count,
-            depth: key.depth + 1,
-            imageSize: lineImgSize,
-            emptyCount: itemsPerLine - count,
-            cardWidths,
-            size,
-        }
-        const old = previous?.[k]
-        lines.push(old && sameRangeLine(old, line) ? old : line)
-    }
-    return lines
-}
-
-interface LeafBlock {
-    key: LeafKey
-    lines: ImageLine[]
+// The geometry shared by every line of the leaves at one depth (and pile state): how many images a
+// line holds, their widths, the line's height.
+export interface LeafGeometry {
+    perLine: number
+    lineImgSize: number
+    cardWidths: number[]
+    size: number
 }
 
 export interface TreeLineParams {
@@ -155,79 +92,122 @@ export interface TreeLineParams {
     pilePropertyCount: number
 }
 
-const NO_LINES: ImageLine[] = []
+const sameParams = (a: TreeLineParams, b: TreeLineParams) => a.contentWidth === b.contentWidth
+    && a.imageSize === b.imageSize && a.propertyCount === b.propertyCount && a.pilePropertyCount === b.pilePropertyCount
 
 /**
- * The image/pile lines of every leaf, kept between rebuilds.
- *
- * Invariant: a cached block is returned only when the leaf's current LeafKey equals the one it was
- * built under, and a block is a pure function of (group id, LeafKey). Every input is read off the
- * leaf at each call, in O(1), so no change signal from the tree is needed — and none would be
- * reliable: groups are mutated in place (ClusterManager.drain filters `slots`, the overlay
- * refills a pile's `slots` array without replacing it), and open/close bumps `version` without
- * touching any group's content. What the lines do NOT capture — which images sit at each
- * position — is read live by the line components (lineIterators) and the scroller (lineFirstSlots).
- *
- * Line sizes are part of the key (propertyCount) but are also changed in place by `resize`, which
- * the scroller calls instead of rebuilding when the visible properties change: all cached blocks
- * are resized, not only the drawn ones, so the block of a closed group is right when it reopens.
+ * Line geometry per depth: a leaf's lines depend only on its indent (depth), whether it is piled,
+ * and the params — so it is computed once per (depth, piled), not per leaf or line.
  */
-export class TreeLineCache {
-    private blocks = new Map<number, LeafBlock>()
-    private host: LineHost | undefined
+export class TreeGeometry {
+    private cache = new Map<number, LeafGeometry>()
 
-    // The lines leaf `group` draws (an empty list when it draws none). `group` must be an open
-    // leaf; the caller decides that, since closing does not change the block itself.
-    leafLines(host: LineHost, group: Group, params: TreeLineParams): ImageLine[] {
-        if (host !== this.host) {
-            this.blocks.clear()
-            this.host = host
-        }
-        if (!group.slots || group.slots.length === 0) return NO_LINES
-        const piled = host.pileIndex.has(group.id)
-        const key: LeafKey = {
-            positions: positionCount(host, group),
-            piled,
-            depth: group.depth,
-            // An image line draws depth + 1 indent columns (the ancestors and the group itself,
-            // see getImageLineParents), so that many are reserved, not `depth`.
-            width: params.contentWidth - (group.depth + 1) * MARGIN_STEP,
-            imageSize: params.imageSize,
-            propertyCount: piled ? params.pilePropertyCount : params.propertyCount,
-        }
-        const block = this.blocks.get(group.id)
-        if (block && sameKey(block.key, key)) return block.lines
-        const lines = buildLeafLines(group.id, key, params.imageSize, block?.lines)
-        this.blocks.set(group.id, { key, lines })
-        return lines
+    constructor(private params: TreeLineParams) { }
+
+    // Whether anything changed.
+    setParams(params: TreeLineParams): boolean {
+        if (sameParams(params, this.params)) return false
+        this.params = { ...params }
+        this.cache.clear()
+        return true
     }
 
-    // The visible properties changed: resize every cached line in place (line objects kept, so
-    // nothing is re-created) and restamp the blocks with the new counts.
-    resize(propertyCount: number, pilePropertyCount: number) {
-        for (const block of this.blocks.values()) {
-            const n = block.key.piled ? pilePropertyCount : propertyCount
-            if (block.key.propertyCount === n) continue
-            block.key = { ...block.key, propertyCount: n }
-            for (const line of block.lines) line.size = cardLineSize(line.imageSize, n)
-        }
+    get(depth: number, piled: boolean): LeafGeometry {
+        const k = depth * 2 + (piled ? 1 : 0)
+        let g = this.cache.get(k)
+        if (g) return g
+        const p = this.params
+        // An image line draws depth + 1 indent columns (the ancestors and the group itself, see
+        // TreeScroller's imageLineParents), so that many are reserved, not `depth`.
+        const width = p.contentWidth - (depth + 1) * MARGIN_STEP
+        // imageSize only decides how many images fit in a line...
+        const perLine = Math.max(1, Math.floor(width / (p.imageSize + BORDER + GAP)))
+        // ...then images are stretched to exactly fill a FULL line. Every line uses these same
+        // widths — a trailing/partial line (end of group, small group) keeps them too instead of
+        // blowing its images up to fill the leftover space; the empty slots are simulated
+        // (reserved, not rendered) so alignment across lines stays consistent.
+        const { lineImgSize, cardWidths } = fillWidths(width, perLine)
+        const size = cardLineSize(lineImgSize, piled ? p.pilePropertyCount : p.propertyCount)
+        this.cache.set(k, g = { perLine, lineImgSize, cardWidths, size })
+        return g
     }
+}
 
-    // Drop the blocks of groups the tree no longer holds. O(cached leaves).
-    prune(host: LineHost) {
-        if (host !== this.host) return
-        for (const id of this.blocks.keys()) {
-            if (!host.index[id]) this.blocks.delete(id)
-        }
+// Two lines that draw the same range at the same geometry render the same DOM: the previous
+// object is kept so its `:item` stays the same reference and the line is not re-rendered.
+export function sameRangeLine(a: ImageLine | undefined, b: ImageLine): boolean {
+    if (!a || a.type !== b.type || a.groupId !== b.groupId || a.start !== b.start || a.count !== b.count) return false
+    if (a.size !== b.size || a.depth !== b.depth || a.imageSize !== b.imageSize || a.emptyCount !== b.emptyCount) return false
+    const aw = a.cardWidths, bw = b.cardWidths
+    if (aw === bw) return true
+    if (aw.length !== bw.length) return false
+    for (let i = 0; i < aw.length; i++) if (aw[i] !== bw[i]) return false
+    return true
+}
+
+// Lines of a leaf's body: none for a leaf without images.
+export function leafLineCount(host: LineHost, group: Group, geometry: TreeGeometry): number {
+    if (!group.slots?.length) return 0
+    const geo = geometry.get(group.depth, host.pileIndex.has(group.id))
+    return Math.ceil(positionCount(host, group) / geo.perLine)
+}
+
+/**
+ * Line `index` of leaf `groupId`: positions [index * perLine, ...) — slot indices in a flat leaf,
+ * pile indices in a piled one. `previous` is handed back when the line comes out the same.
+ * Undefined when the group is no longer a leaf of the tree.
+ */
+export function leafLine(host: LineHost, groupId: number, index: number, geometry: TreeGeometry, previous?: ImageLine): ImageLine | undefined {
+    const group = host.index[groupId]
+    if (!group || group.children.length) return undefined
+    const piled = host.pileIndex.has(groupId)
+    const geo = geometry.get(group.depth, piled)
+    const start = index * geo.perLine
+    const count = Math.max(0, Math.min(geo.perLine, positionCount(host, group) - start))
+    const line: ImageLine = {
+        id: groupId + (piled ? '|pile-' : '|img-') + index,
+        type: piled ? 'piles' : 'images',
+        groupId,
+        start,
+        count,
+        depth: group.depth + 1,
+        imageSize: geo.lineImgSize,
+        emptyCount: geo.perLine - count,
+        cardWidths: geo.cardWidths,
+        size: geo.size,
     }
+    return sameRangeLine(previous, line) ? previous! : line
+}
 
-    clear() {
-        this.blocks.clear()
-        this.host = undefined
-    }
+// Height of a group line.
+export const GROUP_LINE_SIZE = 30
 
-    get size() {
-        return this.blocks.size
+// What the tree scroller's layout reads: the manager's GroupResult.
+export interface TreeHost extends LineHost {
+    readonly root?: Group
+}
+
+/**
+ * The tree as a LayoutSource: every group has a header line (none with `hideGroup`), an open leaf
+ * has its image (or pile) lines. Each answer is O(1); nothing is built per line.
+ */
+export function treeSource(host: () => TreeHost, geometry: TreeGeometry, hideGroup: () => boolean): LayoutSource {
+    const group = (id: number) => host().index[id]
+    return {
+        root: () => host().root?.id,
+        childCount: id => group(id)?.children.length ?? 0,
+        child: (id, i) => group(id).children[i].id,
+        isOpen: id => !group(id)?.view.closed,
+        headerSize: () => hideGroup() ? 0 : GROUP_LINE_SIZE,
+        bodyLines: id => {
+            const g = group(id)
+            return !g || g.children.length ? 0 : leafLineCount(host(), g, geometry)
+        },
+        lineEstimate: id => {
+            const g = group(id)
+            return g ? geometry.get(g.depth, host().pileIndex.has(id)).size : 1
+        },
+        lineType: (id, index) => index < 0 ? 'group' : host().pileIndex.has(id) ? 'piles' : 'images',
     }
 }
 
@@ -289,4 +269,38 @@ export function lineIterators(host: LineHost, line: ImageLine, previous?: ImageI
     const out: ImageIterator[] = new Array(n)
     for (let i = 0; i < n; i++) out[i] = host.getImageIterator(line.groupId, line.start + i)
     return out
+}
+
+/**
+ * The cells of one property in display order, for Tab: every image of an image line, and every pile
+ * of a pile line when the property is one the piles show (`onPiles`). A cell is found in its own
+ * leaf (a pile by its first image, the one its card edits), never by scanning the whole tree.
+ */
+export function treeCellWalk(host: LineHost, layout: ScrollLayout, geometry: TreeGeometry, ids: ArrayLike<number>, onPiles: boolean): CellWalk<LineRef> {
+    const lineOf = (line: LineRef) => line.index >= 0 ? leafLine(host, line.node, line.index, geometry) : undefined
+    return {
+        find: from => {
+            const group = host.index[from.groupId]
+            if (!group || group.children.length) return undefined
+            const pile = host.pileIndex.get(group.id)
+            if (pile && !onPiles) return undefined
+            const n = positionCount(host, group)
+            for (let pos = 0; pos < n; pos++) {
+                const slot = pile ? pile.order[pile.bounds[pos]] : group.slots[pos]
+                if (ids[slot] !== from.instanceId) continue
+                const perLine = geometry.get(group.depth, !!pile).perLine
+                const line = { node: group.id, index: Math.floor(pos / perLine) }
+                return layout.isShown(line) ? { line, index: pos % perLine } : undefined
+            }
+            return undefined
+        },
+        cells: line => {
+            const item = lineOf(line)
+            if (!item || (item.type === 'piles' && !onPiles)) return 0
+            return item.count
+        },
+        at: (line, i) => ({ instanceId: ids[lineSlot(host, lineOf(line)!, i)!], groupId: line.node }),
+        next: line => layout.next(line),
+        prev: line => layout.prev(line),
+    }
 }

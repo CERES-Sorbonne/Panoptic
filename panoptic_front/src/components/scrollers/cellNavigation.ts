@@ -78,3 +78,41 @@ export function revealOffset(top: number, size: number, scrollTop: number, heigh
     if (top + size > scrollTop + height) return size > height ? top : top + size - height
     return undefined
 }
+
+// The same walk over a scroller that has no flat line list (VirtualScroller): lines are opaque
+// handles, found from the cell and stepped through one by one. `find` locates the cell itself (the
+// scroller knows its group and can compute its line), so nothing is scanned from the top.
+export interface CellWalk<L> {
+    find(from: CellTarget): { line: L, index: number } | undefined
+    cells(line: L): number
+    at(line: L, index: number): CellTarget
+    next(line: L): L | null
+    prev(line: L): L | null
+}
+
+export interface CellAt<L> {
+    line: L
+    index: number
+    cell: CellTarget
+}
+
+// At most this many lines are stepped over looking for the next one with a cell (group headers,
+// closed groups): past that the walk gives up rather than freeze on a huge run of empty groups.
+const MAX_STEPS = 100_000
+
+export function adjacentCellIn<L>(walk: CellWalk<L>, from: CellTarget, backwards: boolean): CellAt<L> | undefined {
+    const pos = walk.find(from)
+    if (!pos) return undefined
+    const index = pos.index + (backwards ? -1 : 1)
+    if (index >= 0 && index < walk.cells(pos.line)) return { line: pos.line, index, cell: walk.at(pos.line, index) }
+    let line = backwards ? walk.prev(pos.line) : walk.next(pos.line)
+    for (let steps = 0; line !== null && steps < MAX_STEPS; steps++) {
+        const n = walk.cells(line)
+        if (n) {
+            const i = backwards ? n - 1 : 0
+            return { line, index: i, cell: walk.at(line, i) }
+        }
+        line = backwards ? walk.prev(line) : walk.next(line)
+    }
+    return undefined
+}

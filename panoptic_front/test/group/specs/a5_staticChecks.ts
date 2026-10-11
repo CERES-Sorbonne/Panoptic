@@ -43,11 +43,11 @@ test('A5: no component calls clearCustomGroups', () => {
         'a view is wiping the authored cluster map to draw itself')
 })
 
-test('A5: GridScroller.onMounted builds its first window with computeLines()', () => {
+test('A5: GridScroller.onMounted builds its first layout with computeLines()', () => {
     const file = path.join(__SRC_DIR__, 'components/scrollers/grid/GridScroller.vue')
     const code = stripComments(fs.readFileSync(file, 'utf8'))
     const mount = code.slice(code.indexOf('onMounted('))
     assert.ok(mount.length > 0, 'GridScroller has an onMounted')
-    assert.match(mount.slice(0, 400), /computeLines\s*\(\s*\)/,
+    assert.match(mount.slice(0, 400), /computeLines\s*\([^)]*\)/,
         'the mount no longer relies on an emit from a destructive op')
 })

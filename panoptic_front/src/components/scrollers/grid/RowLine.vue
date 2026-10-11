@@ -8,13 +8,12 @@ import { PileRowLine, RowLine } from '@/components/scrollers/types';
 import { usePanopticStore } from '@/data/stores/panopticStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import { emptyInstanceEntry, useInstanceStore } from '@/data/stores/instanceStore';
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject } from 'vue';
 import GridPropInput from './GridPropInput.vue';
 import GridCellView from './GridCellView.vue';
 import { TabManager } from '@/core/TabManager';
 import { isTag } from '@/utils/utils';
 import { CellKey, cellEditingKey, openPropertiesOf, useCellEditing } from '../cellEditing';
-import { rowHeightsKey } from './rowHeights';
 
 const panoptic = usePanopticStore()
 const columnStore = useColumnStore()
@@ -80,14 +79,9 @@ function openCell(key: CellKey, property: Property) {
     if (hasEditor(property.type)) cells.openCell(key)
 }
 
-// The row is measured whole, by its scroller (rowHeights.ts): its root is observed for as long as
-// it is mounted, and measured again when the scroller recycles it to another line. Outside a
-// GridScroller nothing measures it; it still fits its content.
-const rowHeights = inject(rowHeightsKey, null)
-const rowElem = ref<HTMLElement | null>(null)
-onMounted(() => { if (rowElem.value) rowHeights?.observe(rowElem.value, () => props.item) })
-onBeforeUnmount(() => { if (rowElem.value) rowHeights?.unobserve(rowElem.value) })
-watch(() => props.item, () => { if (rowElem.value) rowHeights?.remeasure(rowElem.value) }, { flush: 'post' })
+// The row is measured whole by its scroller (VirtualScroller's `measure`): the slot holding it is
+// observed, and measured again when it is given another row. Outside a GridScroller nothing
+// measures it; it still fits its content.
 
 const pile = computed(() => {
     if (props.item.type == 'pile') {
@@ -146,7 +140,7 @@ function showModal() {
 <template>
     <!-- min-height only: the row is as tall as its tallest cell. No height of its own, no item.size,
          no height: 100% (see cellMinHeight). -->
-    <div class="d-flex row-line" :style="{ minHeight: props.rowHeight + 'px' }" ref="rowElem">
+    <div class="d-flex row-line" :style="{ minHeight: props.rowHeight + 'px' }">
         <!-- <div class="left-border" :style="{ height: props.item.size + 'px' }"></div> -->
         <div v-if="showImage" :class="classes" :style="{
             width: (props.imageSize) + 'px', position: 'relative', cursor: 'pointer',
@@ -227,7 +221,7 @@ function showModal() {
 }
 
 /* Cells keep their column's width; the row is as tall as its tallest cell, so nothing is cut
-   vertically (the values cap themselves, see GridCellView). The cell being edited is let out of
+   vertically (see GridCellView). The cell being edited is let out of
    its clip so the editor's focus shadow is not cut, and GridScroller raises its row above the
    next one, which would paint over it. Editors that open a popup (tags, color, date) teleport
    it and are not concerned. */

@@ -72,10 +72,11 @@ invariant report, so every cluster test carries the I1–I5 checks for free.
 | **D2** a tag deletion the view survives | `specs/d2_tagDeletion.ts` | `D2: ...` |
 | **E1** appending a level moves the clusters down | `specs/e1_appendLevel.ts` | `E1: ...` |
 | **G1** a list past the browser's height limit scrolls in a bounded area | `specs/g1_scrollPager.ts` | `G1: ...` |
-| **G2** the scroller's window is rebuilt once per screen and a half and holds what it mounts | `specs/g2_pagedWindow.ts` | `G2: ...` |
-| **G3** grid rows fit their content: measured sizes are batched, applied in place, and anchored to the top line | `specs/g3_measuredSizes.ts` | `G3: ...`, `G3 RowHeights: ...`, `H2 grid: re-rowed leaves ...` |
+| **G3** grid rows fit their content: measured sizes are batched, applied in one relayout, and anchored to the top line | `specs/g3_measuredSizes.ts` | `G3: ...`, `G3 RowHeights: ...` |
 | **H1** Tab between property cells walks the scroller's lines | `specs/h1_cellNavigation.ts` | `H1: ...` |
-| **H2** scroller lines are ranges / per-leaf blocks, rebuilt in proportion to the change | `specs/h2_lineBuilding.ts` | `H2: ...`, `H2 grid: ...` |
+| **H2** scroller lines are made on demand from the tree (tree: ranges, grid: rows), in the old display order | `specs/h2_lineBuilding.ts` | `H2: ...`, `H2 grid: ...` |
+| **V1** ScrollLayout answers like a full line walk (offsets, locate, next/prev, measured lines), O(groups) at most | `specs/v1_scrollLayout.ts` | `V1: ...` |
+| **V2** the VirtualScroller slot pool: kept lines are not re-rendered, the top line stays put, paging, ranges | `specs/v2_virtualView.ts` | `V2: ...` |
 | DEV invariants I1–I5 | `specs/invariants.ts` + `harness/hooks.ts` | `invariants: ...` |
 | the simulation, smoke-sized | `specs/sim_smoke.ts` | `sim: 3 runs x 50 ops ...` |
 

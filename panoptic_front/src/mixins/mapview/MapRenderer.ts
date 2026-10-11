@@ -233,10 +233,13 @@ export class MapRenderer {
 
     private updateHoverState() {
         const params = this.activeZoomParams()
-        // The enlarged preview covers its neighbours: it stays hovered while the cursor is on it.
-        const keep = this.hoverEnabled && this.hoveredPoint && !this.showAsPoint
+        // Hit-test against the real thumbnails first, so moving onto a neighbour switches to it even
+        // though the enlarged preview covers it. Only over empty space does the current preview stay
+        // hovered while the cursor is still on it (otherwise it would vanish under the cursor).
+        const underCursor = this.hoverEnabled ? this.controls.getHoveredPoint(params) : null
+        const keep = !underCursor && this.hoverEnabled && this.hoveredPoint && !this.showAsPoint
             && this.controls.isMouseOver(this.hoveredPoint, params, this.hoverScale)
-        const foundPoint = keep ? this.hoveredPoint : this.hoverEnabled ? this.controls.getHoveredPoint(params) : null
+        const foundPoint = keep ? this.hoveredPoint : underCursor
         this.hoveredPoint = foundPoint
 
         if (foundPoint) {

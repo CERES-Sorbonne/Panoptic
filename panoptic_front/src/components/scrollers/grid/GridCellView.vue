@@ -6,9 +6,8 @@
 // is being edited.
 //
 // Keep the markup and the CSS in step with those inputs: the cell is swapped for one of them on
-// click, and nothing must move when it is. One deliberate difference: text and tags are capped at
-// six lines here (see .capped-text / .capped-tags), the editor shows the whole value, and
-// the row grows to it (rows fit their content, see rowHeights.ts).
+// click, and nothing must move when it is. Text and tags are drawn whole: the row grows to its
+// tallest cell (rows fit their content: VirtualScroller measures them, see rowHeights.ts).
 import { Colors, Property, PropertyType } from '@/data/models'
 import { InstanceEntry } from '@/data/stores/instanceStore'
 import { useDataStore } from '@/data/stores/dataStore'
@@ -67,8 +66,8 @@ function onUrlClick(e: MouseEvent) {
     <!-- GridPropInput's root and DBInput slot wrapper -->
     <div>
         <div style="padding: 2px 0px">
-            <!-- CellTagInput's button, wrapped as its editor wraps it, capped -->
-            <div v-if="isTag(type())" class="btn-class text-wrap capped-tags" :style="{ width: props.width + 'px' }">
+            <!-- CellTagInput's button, wrapped as its editor wraps it -->
+            <div v-if="isTag(type())" class="btn-class text-wrap" :style="{ width: props.width + 'px' }">
                 <span v-for="id in (value() ?? [])"><div v-if="data.tags[id]" class="badge tag-badge me-1"
                         :title="data.tags[id].value" :style="tagChipStyle(tagColor(data.tags[id]))"><span
                             class="m-0 p-0 label"><span>{{ data.tags[id].value }}</span></span></div></span>
@@ -82,9 +81,7 @@ function onUrlClick(e: MouseEvent) {
                 <div v-else class="container m-0 p-0 text-box" :class="{ 'grid-url': type() == PropertyType.url }"
                     :style="{ width: props.width > 0 ? props.width + 'px' : '100%', minHeight: (props.minHeight - 6) + 'px' }"
                     @click="type() == PropertyType.url ? onUrlClick($event) : undefined">
-                    <div class="h-100 w-100 text" :style="{ width: (props.width - 5) + 'px' }">
-                        <div class="capped-text">{{ value() }}</div>
-                    </div>
+                    <div class="h-100 w-100 text" :style="{ width: (props.width - 5) + 'px' }">{{ value() }}</div>
                 </div>
             </div>
 
@@ -144,27 +141,6 @@ function onUrlClick(e: MouseEvent) {
 .btn-class {
     overflow: hidden;
     cursor: pointer;
-}
-
-/* The cap at rest, six lines (of 1.5em, the body line height): a row grows to its tallest
-   cell, and a long note or a hundred tags would otherwise make one row taller than the screen.
-   Six lines shows a paragraph or a few rows of tags while keeping several rows in view, and bounds
-   how far an unmeasured row can be off its estimate. Text ends on an ellipsis (line breaks
-   count as lines). Tags fade out at the cap: the gradient's stops are in px from the top, so
-   content shorter than the cap lies wholly in the opaque part and does not fade. */
-.capped-text {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 6;
-    line-clamp: 6;
-    overflow: hidden;
-}
-
-.capped-tags {
-    --cap: calc(6 * 1.5em);
-    max-height: var(--cap);
-    -webkit-mask-image: linear-gradient(to bottom, black calc(var(--cap) - 1em), transparent var(--cap));
-    mask-image: linear-gradient(to bottom, black calc(var(--cap) - 1em), transparent var(--cap));
 }
 
 /* TagBadge */

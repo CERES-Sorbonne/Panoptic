@@ -11,7 +11,7 @@
  *  - the observer is told about every row at once, after layout and before paint, without any
  *    forced layout; the rows whose height differs from their line's size (by a pixel or more) are
  *    handed over together, once per frame, and the owner applies them in one go
- *    (usePagedLines.updateSizes) — before that frame is painted;
+ *    (VirtualScroller: ScrollLayout.setMeasured, then one relayout) — before that frame is painted;
  *  - a row component is reused for other lines as the scroller recycles it: the element is
  *    observed once, the line it shows is read when it is measured, and it is measured again when it
  *    is given another line (`remeasure`) — the new line's size may be wrong even if the element
@@ -21,10 +21,9 @@
  * are observed from the next frame: observing them during the observer's own delivery would leave
  * notifications undelivered, which the browser reports as an error ("ResizeObserver loop").
  *
- * No Vue, no stores: RowLine registers its element, GridScroller applies the sizes, the tests
- * drive it with a fake observer.
+ * No Vue, no stores: VirtualScroller registers its slot elements (with `measure` on) and applies the
+ * sizes, the tests drive it with a fake observer.
  */
-import type { InjectionKey } from 'vue'
 import type { ScrollerLine } from '../types'
 
 export interface RowHeightsEnv {
@@ -43,9 +42,9 @@ export function entryHeight(entry: Pick<ResizeObserverEntry, 'borderBoxSize' | '
     return Math.round(box ? box.blockSize : entry.contentRect.height)
 }
 
-export class RowHeights {
+export class RowHeights<L = ScrollerLine> {
     // Each observed row element, and the line it shows now.
-    private rows = new Map<Element, () => ScrollerLine | undefined>()
+    private rows = new Map<Element, () => L | undefined>()
     private observer: ReturnType<RowHeightsEnv['createObserver']> | undefined
     // Set while a batch is being applied, until the next frame (see the header).
     private settling = false
@@ -53,12 +52,14 @@ export class RowHeights {
 
     constructor(
         // The rows whose height changed, with their new height. Called at most once per frame.
-        private readonly onResize: (changes: Map<ScrollerLine, number>) => void,
+        private readonly onResize: (changes: Map<L, number>) => void,
         private readonly env: RowHeightsEnv = browserEnv,
+        // The size the line has now, which a measurement is compared with.
+        private readonly sizeOf: (line: L) => number = line => (line as ScrollerLine).size,
     ) { }
 
     /** Starts measuring a row element; `line` gives the line it shows when it is measured. */
-    observe(el: Element, line: () => ScrollerLine | undefined) {
+    observe(el: Element, line: () => L | undefined) {
         this.rows.set(el, line)
         this.watch(el)
     }
@@ -77,8 +78,8 @@ export class RowHeights {
     }
 
     /** The lines on the rows mounted now. */
-    mountedLines(): Set<ScrollerLine> {
-        const lines = new Set<ScrollerLine>()
+    mountedLines(): Set<L> {
+        const lines = new Set<L>()
         for (const line of this.rows.values()) {
             const l = line()
             if (l) lines.add(l)
@@ -104,13 +105,13 @@ export class RowHeights {
     }
 
     private onEntries(entries: readonly ResizeObserverEntry[]) {
-        const changes = new Map<ScrollerLine, number>()
+        const changes = new Map<L, number>()
         for (const entry of entries) {
             const line = this.rows.get(entry.target)?.()
             if (!line) continue
             const height = entryHeight(entry)
             // 0: not laid out (a hidden pane): its last size stands.
-            if (height <= 0 || Math.abs(height - line.size) < 1) continue
+            if (height <= 0 || Math.abs(height - this.sizeOf(line)) < 1) continue
             changes.set(line, height)
         }
         if (!changes.size) return
@@ -125,4 +126,3 @@ export class RowHeights {
     }
 }
 
-export const rowHeightsKey: InjectionKey<RowHeights> = Symbol('rowHeights')
