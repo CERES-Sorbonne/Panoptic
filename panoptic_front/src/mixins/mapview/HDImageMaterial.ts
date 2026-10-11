@@ -119,7 +119,8 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 const float MIN_BORDER_RATIO = 0.15;
                 float borderScale = clamp(uZoomParams.y / max(uZoom, uZoomParams.y), 0.0, 1.0);
                 float borderW = uBorderWidth * max(borderScale, MIN_BORDER_RATIO);
-                float borderMask = smoothstep(edgeSoftness, 0.0, d + borderW);
+                // No border at all at width 0: the anti-aliasing band alone would still draw a thin ring.
+                float borderMask = borderW > 0.0 ? smoothstep(edgeSoftness, 0.0, d + borderW) : 1.0;
 
                 vec4 texelColor = texture2D( map, vRawUv * uUvTransform.xy + uUvTransform.zw );
 

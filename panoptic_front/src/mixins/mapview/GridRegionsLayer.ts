@@ -8,6 +8,8 @@ export interface RegionGrid {
     // Group index per cell (row * cols + col), -1 for an empty cell.
     cellGroup: Int32Array
     groups: { name: string, color: string }[]
+    // Multiplies the outline thickness (follows the border-width slider); 0 hides the outlines.
+    strokeScale: number
 }
 
 // Outline thickness on screen (px), capped at a share of a cell so that, zoomed out, a stroke
@@ -72,7 +74,7 @@ export class GridRegionsLayer {
         this.viewKey = ''
         this.strokes.geometry.dispose()
         this.strokes.geometry = new THREE.BufferGeometry()
-        this.strokes.visible = !!grid
+        this.strokes.visible = !!grid && grid.strokeScale > 0
         this.islands = []
         if (!grid) {
             this.hideLabels(0)
@@ -122,7 +124,7 @@ export class GridRegionsLayer {
 
         const pxPerWorld = width / (view.maxX - view.minX)
         const cellPx = grid.cellSize * pxPerWorld
-        this.thickness.value = Math.min(STROKE_PX / pxPerWorld, STROKE_MAX_CELL * grid.cellSize)
+        this.thickness.value = grid.strokeScale * Math.min(STROKE_PX / pxPerWorld, STROKE_MAX_CELL * grid.cellSize)
         if (cellPx >= LABEL_MAX_CELL_PX) {
             this.hideLabels(0)
             return

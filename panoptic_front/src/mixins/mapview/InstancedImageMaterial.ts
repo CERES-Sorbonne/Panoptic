@@ -186,7 +186,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                     const float MIN_BORDER_RATIO = 0.15;
                     float borderScale = clamp(uZoomParams.y / max(uZoom, uZoomParams.y), 0.0, 1.0);
                     float borderW = vInstanceBorderWidth * max(borderScale, MIN_BORDER_RATIO);
-                    float borderMask = smoothstep(aa, 0.0, d + borderW);
+                    // No border at all at width 0: the anti-aliasing band alone would still draw a thin ring.
+                    float borderMask = borderW > 0.0 ? smoothstep(aa, 0.0, d + borderW) : 1.0;
 
                     float margin = 0.0005;
                     vec2 safeUv = mix(vec2(margin), vec2(1.0 - margin), rawUv);

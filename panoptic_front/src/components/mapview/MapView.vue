@@ -569,6 +569,7 @@ function syncGroupRegions() {
         cellSize: imageWorldSize(props.imageSize),
         cellGroup,
         groups: leaves.value.map(l => ({ name: l.name, color: l.color })),
+        strokeScale: borderWidth.value / DEFAULT_BORDER_WIDTH,
     })
 }
 
