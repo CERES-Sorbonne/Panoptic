@@ -13,7 +13,8 @@ interface ScreenPoint {
 export class LassoLayer {
     private scene: THREE.Scene
     private spatialIndex: SpatialIndex
-    private onLassoComplete: (points: PointData[]) => void
+    private onLassoComplete: (points: PointData[], remove: boolean) => void
+    private remove = false
     
     private lassoPoints: THREE.Vector3[] = []
     private lastScreenPos: ScreenPoint | null = null
@@ -25,6 +26,7 @@ export class LassoLayer {
     private readonly FILL_COLOR = 0x00aaff
     private readonly FILL_OPACITY = 0.3
     private readonly STROKE_COLOR = 0x0077cc
+    private readonly REMOVE_COLOR = 0xd63939
     
     // Smoothing & Filtering Config
     private readonly MIN_PIXEL_DIST_SQ = 100 // 10 pixels squared
@@ -34,7 +36,7 @@ export class LassoLayer {
     constructor(
         scene: THREE.Scene,
         spatialIndex: SpatialIndex,
-        onLassoComplete: (points: PointData[]) => void
+        onLassoComplete: (points: PointData[], remove: boolean) => void
     ) {
         this.scene = scene
         this.spatialIndex = spatialIndex
@@ -72,13 +74,16 @@ export class LassoLayer {
     /**
      * Starts a new lasso drawing sequence.
      */
-    public start(worldPoint: THREE.Vector3, screenPoint: ScreenPoint) {
+    public start(worldPoint: THREE.Vector3, screenPoint: ScreenPoint, remove = false) {
         if (this.clearTimeoutId) {
             clearTimeout(this.clearTimeoutId)
             this.clearTimeoutId = null
         }
 
         this.initMesh()
+        this.remove = remove
+        ;(this.lassoMesh!.material as THREE.MeshBasicMaterial).color.setHex(remove ? this.REMOVE_COLOR : this.FILL_COLOR)
+        ;(this.lassoLine!.material as THREE.LineBasicMaterial).color.setHex(remove ? this.REMOVE_COLOR : this.STROKE_COLOR)
 
         this.lassoPoints = [worldPoint]
         this.lastScreenPos = screenPoint
@@ -205,7 +210,7 @@ export class LassoLayer {
             classifyPoint(formattedPolygon, [p.x, p.y]) <= 0
         )
         
-        this.onLassoComplete(selectedPoints)
+        this.onLassoComplete(selectedPoints, this.remove)
     }
 
     /**

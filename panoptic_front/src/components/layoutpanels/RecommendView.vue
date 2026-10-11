@@ -219,31 +219,40 @@ function valueOf(image: Instance, propertyId: number): any {
     return slot !== undefined ? col.readSlot(propertyId, slot) : undefined
 }
 
-async function acceptRecommend(image: Instance) {
+async function acceptRecommend(images: Instance[]) {
+    if (!images.length) return
     const imageValues: ImagePropertyValue[] = []
     const instanceValues: InstancePropertyValue[] = []
+    // Images of the same sha1 pile write a sha1 value only once
+    const writtenSha1 = new Set<string>()
 
-    propertyValues.forEach(v => {
-        if (v.value != undefined) {
+    images.forEach(image => {
+        propertyValues.forEach(v => {
+            if (v.value == undefined) return
             const prop = data.properties[v.propertyId]
             let value = v.value
             if (prop.type == PropertyType.multi_tags) {
-                value = valueOf(image, v.propertyId) ?? []
-                value = [...value, v.value]
+                const current = valueOf(image, v.propertyId) ?? []
+                if (current.includes(v.value)) return
+                value = [...current, v.value]
             } else if (prop.type == PropertyType.tag) {
                 value = [value]
             }
             if (prop.mode == PropertyMode.id) {
                 instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
             } else {
-                imageValues.push({ propertyId: prop.id, sha1: sha1Of(image), value })
+                const sha1 = sha1Of(image)
+                const key = prop.id + ':' + sha1
+                if (writtenSha1.has(key)) return
+                writtenSha1.add(key)
+                imageValues.push({ propertyId: prop.id, sha1, value })
             }
-        }
+        })
     })
-    await data.setPropertyValues(instanceValues, imageValues)
-    // The image now matches the group; keep it out of the queue without
-    // blacklisting it (it belongs to the group now).
-    matchingIds(image).forEach(id => accepted.add(id))
+    if (instanceValues.length || imageValues.length) await data.setPropertyValues(instanceValues, imageValues)
+    // The images now match the group; keep them out of the queue without
+    // blacklisting them (they belong to the group now).
+    images.forEach(image => matchingIds(image).forEach(id => accepted.add(id)))
 }
 
 // Ids to hide for a recommendation. For a sha1 group every instance sharing the
@@ -303,7 +312,7 @@ function selectedInstances(ns: string): Instance[] {
 }
 
 async function acceptSelected() {
-    for (const img of selectedInstances('reco-queue')) await acceptRecommend(img)
+    await acceptRecommend(selectedInstances('reco-queue'))
     col.clearSelection('reco-queue')
 }
 
@@ -506,7 +515,7 @@ onBeforeUnmount(() => heroObserver?.disconnect())
                     </div>
                     <div v-if="hero" class="hero-actions">
                         <wTT message="main.recommand.accept">
-                            <button class="accept" @click="acceptRecommend(hero)"><span
+                            <button class="accept" @click="acceptRecommend([hero])"><span
                                     class="bi bi-check-lg"></span></button>
                         </wTT>
                         <wTT message="main.recommand.refuse">

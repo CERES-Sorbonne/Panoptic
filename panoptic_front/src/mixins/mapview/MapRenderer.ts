@@ -9,6 +9,9 @@ import { HoverPointLayer } from './HoverPointLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
 import { SnakeLayer } from './SnakeLayer'
+import { GridBrushLayer, type BrushGrid } from './GridBrushLayer'
+import { isCellTool } from './GridBrush'
+import { GridRegionsLayer, type RegionGrid } from './GridRegionsLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
 import { useColumnStore } from '@/data/stores/columnStore'
 
@@ -42,8 +45,13 @@ export class MapRenderer {
     private hoverPointLayer: HoverPointLayer
     private lassoLayer: LassoLayer
     public snakeLayer: SnakeLayer
+    private gridBrush: GridBrushLayer
+    private regions: GridRegionsLayer
     // Off while the snake easter egg runs, so the HD preview never covers the board.
     private hoverEnabled = true
+    // Off with the cell tool: the enlarged preview would cover the cells being worked on. The
+    // hovered image is still reported (onHover) for the side-panel preview.
+    private hoverPreview = true
     private hoveredPoint: PointData | null = null
     private hoverScale = 1
     // World point the camera glides towards each frame (the snake's head), if any.
@@ -55,8 +63,10 @@ export class MapRenderer {
         uZoom: { value: 1.0 }
     }
 
-    public onPointSelection: ((points: PointData[]) => void) | null = null
+    public onPointSelection: ((points: PointData[], remove: boolean) => void) | null = null
     public onPointClick: ((point: PointData) => void) | null = null
+    public onBrushCommit: ((points: PointData[], remove: boolean) => void) | null = null
+    public onBrushResize: ((dir: 1 | -1) => void) | null = null
 
     public onHover = new EventEmitter()
 
@@ -88,16 +98,23 @@ export class MapRenderer {
         this.hoverPointLayer.setZoomReference(this.globalUniforms.uZoom)
         this.hoverPointLayer.setZoomParams(this.activeZoomParams())
 
-        this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points) => {
-            if (this.onPointSelection) this.onPointSelection(points)
+        this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points, remove) => {
+            if (this.onPointSelection) this.onPointSelection(points, remove)
         })
 
         this.snakeLayer = new SnakeLayer(this.scene)
+        this.gridBrush = new GridBrushLayer(this.scene, (points, remove) => this.onBrushCommit?.(points, remove))
+        this.regions = new GridRegionsLayer(this.scene, this.container)
 
         this.controls = new MapControls(this.camera, this.renderer.domElement, this.lassoLayer, this.spatialIndex)
         this.controls.onClick = () => {
             if (this.hoveredPoint) this.onPointClick?.(this.hoveredPoint)
         }
+        this.controls.onBrushStart = (world, remove, rect) => this.gridBrush.start(world, remove, rect)
+        this.controls.onBrushMove = (world, rect) => this.gridBrush.move(world, rect)
+        this.controls.onBrushEnd = () => this.gridBrush.end()
+        this.controls.onBrushCancel = () => this.gridBrush.cancel()
+        this.controls.onBrushResize = (dir) => this.onBrushResize?.(dir)
 
         this.resizeObserver = new ResizeObserver(() => this.onResize())
         this.resizeObserver.observe(this.container)
@@ -181,7 +198,9 @@ export class MapRenderer {
         }
 
         this.updateHoverState()
+        this.gridBrush.hover(isCellTool(this.controls.getMode()) && this.controls.isOverCanvas() ? this.controls.getMouseWorldPos() : null)
         this.syncPixelRatio()
+        this.regions.update(view, this.container.clientWidth, this.container.clientHeight)
         this.updateDetailView()
         this.detailLayer.tick()
         // console.log(this.controls.getMouseWorldPos())
@@ -226,6 +245,10 @@ export class MapRenderer {
         this.detailLayer.setView(points, pixelSize)
     }
 
+    public setDetailSizes(sizes: number[]) {
+        this.detailLayer.setSizes(sizes)
+    }
+
     public setDetailEnabled(enabled: boolean) {
         this.detailEnabled = enabled
         this.invalidateDetail()
@@ -238,13 +261,16 @@ export class MapRenderer {
         // hovered while the cursor is still on it (otherwise it would vanish under the cursor).
         const underCursor = this.hoverEnabled ? this.controls.getHoveredPoint(params) : null
         const keep = !underCursor && this.hoverEnabled && this.hoveredPoint && !this.showAsPoint
-            && this.controls.isMouseOver(this.hoveredPoint, params, this.hoverScale)
+            && this.controls.isMouseOver(this.hoveredPoint, params, this.hoverPreview ? this.hoverScale : 1)
         const foundPoint = keep ? this.hoveredPoint : underCursor
         this.hoveredPoint = foundPoint
 
         if (foundPoint) {
             const instanceId = useColumnStore().getInstancesBySha1(foundPoint.sha1)[0]
-            if (this.showAsPoint) {
+            if (!this.hoverPreview) {
+                this.hdLayer.unhover()
+                this.hoverPointLayer.unhover()
+            } else if (this.showAsPoint) {
                 this.hoverPointLayer.hover(foundPoint)
             } else {
                 this.hdLayer.hover(foundPoint)
@@ -271,6 +297,26 @@ export class MapRenderer {
 
     public setMouseMode(mode: string) {
         this.controls.setMode(mode)
+        this.hoverPreview = !isCellTool(mode)
+    }
+
+    // Colour of the cell cursor and of the covered cells when adding (default: selection blue).
+    public setBrushColor(color: string | null) {
+        this.gridBrush.setAddColor(color)
+    }
+
+    // The grid the cell tool works on, or null outside the grid layout.
+    public setBrushGrid(grid: BrushGrid | null) {
+        this.gridBrush.setGrid(grid)
+    }
+
+    // Group outlines and labels of the grid layout, or null to hide them.
+    public setGroupRegions(grid: RegionGrid | null) {
+        this.regions.setGrid(grid)
+    }
+
+    public setBrushSize(size: number) {
+        this.gridBrush.setSize(size)
     }
 
     public updateTints() {
@@ -435,6 +481,8 @@ export class MapRenderer {
         this.detailLayer.dispose()
         this.hoverPointLayer?.dispose()
         this.snakeLayer.dispose()
+        this.gridBrush.dispose()
+        this.regions.dispose()
         this.scene.clear()
     }
 }

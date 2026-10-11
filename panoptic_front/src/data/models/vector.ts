@@ -106,6 +106,7 @@ export interface PointData {
     sx: number
     sy: number
     ratio: number,
+    // One instance of the sha1 pile the point draws
     id?: number,
     border?: number
     borderColor?: string
