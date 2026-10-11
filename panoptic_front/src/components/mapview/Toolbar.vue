@@ -76,7 +76,7 @@ async function updateMap(event) {
         </WithToolTip>
 
         <WithToolTip v-if="props.hasMaps" message="map.hover_scale" class="border-width-control d-flex align-items-center">
-            <i class="bi bi-arrows-fullscreen me-1" style="font-size: 13px;"></i>
+            <i class="bi bi-zoom-in me-1" style="font-size: 13px;"></i>
             <RangeInput :min="1" :max="6" :step="0.1" :model-value="props.hoverScale"
                 @update:model-value="emits('update:hoverScale', $event)" />
         </WithToolTip>
