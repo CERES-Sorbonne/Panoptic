@@ -7,7 +7,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { groupSlots } from '@/core/group/groupSlots'
+import { groupSlots, firstSlots } from '@/core/group/groupSlots'
 import { GroupNavigator } from '@/core/group/GroupNavigator'
 import { GroupType, Group } from '@/core/group/types'
 import { handTree, pile, slotsOf } from '../harness/world'
@@ -35,6 +35,31 @@ test('A3 groupSlots: empty and nested-empty cases', () => {
     assert.deepEqual(groupSlots(node('empty', [])), [])
     const deep = node('deep', [], [node('mid', [], [node('leaf', [7, 8])]), node('empty', [])])
     assert.deepEqual(groupSlots(deep), [7, 8])
+})
+
+// A closed sub-clustered pile is still a card in the group view, so it needs images to draw
+// even though it holds none itself: firstSlots reads them from its leaves.
+test('A3 firstSlots: a leaf hands back its own first n', () => {
+    assert.deepEqual(firstSlots(node('leaf', [1, 2, 3]), 2), [1, 2])
+    assert.deepEqual(firstSlots(node('leaf', [1]), 4), [1])
+})
+
+test('A3 firstSlots: a sub-clustered parent reads its leaves in DFS order and stops at n', () => {
+    const deep = node('deep', [], [node('mid', [], [node('empty', []), node('leaf', [7, 8])]), node('b', [9, 10])])
+    assert.deepEqual(firstSlots(deep, 1), [7])
+    assert.deepEqual(firstSlots(deep, 3), [7, 8, 9])
+    assert.deepEqual(firstSlots(deep, 10), [7, 8, 9, 10])
+    assert.deepEqual(firstSlots(node('none', [], [node('empty', [])]), 1), [])
+})
+
+test('A3 firstSlots: a real closed sub-clustered pile still yields a representative image', () => {
+    const { m, b } = handTree()
+    m.clusters.addCustomGroups(b.id, [pile(101, [4, 5, 6])], false)
+    m.clusters.split(101, [pile(111, [4, 5]), pile(112, [6])], false)
+    m.closeGroup(101)
+    const parent = m.result.index[101]
+    assert.deepEqual(parent.slots, [], 'precondition: no slots of its own')
+    assert.deepEqual(firstSlots(parent, 1), [4])
 })
 
 // ── the selection surface, on a real navigator over a real sub-clustered tree ──

@@ -6,12 +6,10 @@ import { keyState } from '@/data/composables/keyState';
 import InputOptions from '../actions/InputOptions.vue';
 import { SelectOption, TextQuery } from '@/data/models';
 import LoadWheel from '../loading/LoadWheel.vue';
-import { useSearchStore } from '@/data/stores/textSearchStore';
 import { TabManager } from '@/core/TabManager';
 import { CollectionManager } from '@/core/CollectionManager';
 
 const actions = useActionStore()
-const searchStore = useSearchStore()
 
 const props = defineProps<{ tab: TabManager, size?: number, collection?: CollectionManager }>()
 const emits = defineEmits(['update:query'])
@@ -28,6 +26,8 @@ const modeOptions = ref<SelectOption[]>([])
 const mode = ref('text')
 const searchText = ref('')
 const size = computed(() => props.size ?? 26)
+// A search is running for this collection (FilterManager.queryStatus).
+const isLoading = computed(() => collection.value.filterManager.queryStatus.running > 0)
 
 const isPluginMode = computed(() => mode.value != 'text' && mode.value != 'regex')
 
@@ -112,13 +112,16 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
         </div>
         <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
         <div class="input-field d-flex align-items-center">
-            <input class="text-input2" :style="{ height: size + 'px' }" type="text" v-model="searchText"
+            <!-- Wide enough for the whole placeholder (+2ch for the caret and the clear button),
+                 in whatever language it is shown. -->
+            <input class="text-input2" type="text" v-model="searchText"
+                :style="{ height: size + 'px', minWidth: ($t('main.menu.search').length + 2) + 'ch' }"
                 :placeholder="$t('main.menu.search')" ref="inputElem" @focusin="isFocus = true"
                 @focusout="isFocus = false" @blur="confirmSearch"
                 @keypress.enter="t => (t.target as HTMLElement).blur()" />
             <div class="toolbar">
-                <div v-if="searchStore.isLoading" :style="{ fontSize: size * 0.63 + 'px' }" style="margin-right: 2px;">
-                    <LoadWheel :loading="searchStore.isLoading" />
+                <div v-if="isLoading" :style="{ fontSize: size * 0.63 + 'px' }" style="margin-right: 2px;">
+                    <LoadWheel :loading="isLoading" />
                 </div>
                 <div v-if="searchText.length" :style="{ fontSize: size * 0.63 + 'px' }" style="margin-right: 2px;"
                     @click="resetSearch"><i class="bi bi-x sb" /></div>
@@ -143,9 +146,9 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     transition: border-color 0.2s, box-shadow 0.2s;
     padding: 0 0px;
     overflow: hidden;
-    min-width: 100px;
-    max-width: 200px;
-    flex: 1 1 100px;
+    /* Sized by its content: the mode select plus an input as wide as its placeholder. A
+       shrinking or capped box clipped the placeholder. */
+    flex: 0 0 auto;
 }
 
 .cont3:hover {
@@ -190,8 +193,7 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 .input-field {
     padding: 0;
     position: relative;
-    flex: 1 1 0;
-    min-width: 40px;
+    flex: 1 0 auto;
 }
 
 .text-input2 {

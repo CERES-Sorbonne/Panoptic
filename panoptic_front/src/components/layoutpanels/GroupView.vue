@@ -73,7 +73,13 @@ const counts = computed(() => {
         if (g.type === GroupType.Cluster && !children.some(c => c.type === GroupType.Cluster)) leafClusters++
         children.forEach(walkAll)
     }
-    for (const g of root?.children ?? []) { walkVisible(g); walkAll(g) }
+    // The root goes through walkVisible too: without children (no grouping) it is the one card
+    // on screen, and so it is when its clusters are folded under it.
+    if (root) {
+        if (rootFolded.value) groups++
+        else walkVisible(root)
+    }
+    for (const g of root?.children ?? []) walkAll(g)
     // Total images in the collection: the root's own slots, independent of grouping.
     return { images: root?.slots?.length ?? 0, groups, leafClusters }
 })
@@ -154,6 +160,9 @@ function markHighlight(groups: Group[]) {
 // it produced. A view that is not mounted when the run lands simply does not highlight; the
 // clusters are there either way.
 function onClusterDone({ targetGroupId, groups }: { targetGroupId: number, groups: Group[] }) {
+    // Clustering opens its target so the new piles replace its card (ClusterManager.applyClusters);
+    // the root's fold lives here, so it is opened here.
+    if (isRoot(targetGroupId)) rootFoldedRaw.value = false
     if (props.collection.result?.index?.[targetGroupId]) markHighlight(groups)
 }
 onMounted(() => props.collection.onCluster.addListener(onClusterDone))
@@ -165,8 +174,26 @@ onUnmounted(() => {
 // Open / close, exactly as in the tree view — the card grid just renders the same open state
 // differently: an open group is replaced by its children, a closed one stands in for them.
 // Closing a group therefore folds its whole children level back into that single parent card.
+//
+// The root is the exception. With no grouping its children are clusters, and folding them gives
+// the flat collection's single card back. That fold is kept here rather than written to
+// root.view.closed: the root's open state is shared with the tree and grid views, and a closed
+// root blanks the grid and stops the image iterators at the root.
+const rootFoldedRaw = ref(false)
+// Only meaningful while the root's children are clusters: a grouping added since, or the
+// clusters dropped, leaves nothing to fold.
+const rootFolded = computed(() => {
+    props.collection.version.value // reactive dep
+    const root = props.collection.result?.root
+    return rootFoldedRaw.value && !!root?.children.some(c => c.type === GroupType.Cluster)
+})
+function isRoot(groupId: number) {
+    return groupId === props.collection.result?.root?.id
+}
+
 function onOpenGroup(groupId: number) {
-    props.collection.openGroup(groupId, true)
+    if (isRoot(groupId)) rootFoldedRaw.value = false
+    else props.collection.openGroup(groupId, true)
     // The cards that just replaced this one — its children, or deeper if any of them is itself
     // open — so it is obvious what the card unfolded into.
     const g = props.collection.result?.index?.[groupId]
@@ -174,7 +201,8 @@ function onOpenGroup(groupId: number) {
 }
 
 function onCloseGroup(groupId: number) {
-    props.collection.closeGroup(groupId, true)
+    if (isRoot(groupId)) rootFoldedRaw.value = true
+    else props.collection.closeGroup(groupId, true)
     // The closed group is now the card standing in for the level that just folded away —
     // highlight it so it is obvious where the children went.
     setHighlight([groupId])
@@ -183,6 +211,7 @@ function onCloseGroup(groupId: number) {
 // Drop a group's clusters, exactly like the tree view's "close clusters" button: the
 // sub-groups disappear and the group becomes a leaf card again.
 function onClearClusters(groupId: number) {
+    if (isRoot(groupId)) rootFoldedRaw.value = false
     props.collection.delCustomGroups(groupId, true)
 }
 
@@ -529,6 +558,7 @@ function closeDetail(idx: number) {
                         :target-property-ids="targetPropertyIds"
                         :view-mode="viewMode"
                         :highlight-ids="highlightIds"
+                        :root-folded="rootFolded"
                         :opened-ids="detailGroupIds"
                         :hide-if-modal="true"
                         @open-cluster="openDetail"
