@@ -80,10 +80,6 @@ const props = defineProps<{
 const canvasContainer = ref<HTMLElement | null>(null)
 const { map: renderer, hoverInstanceId } = useMapRenderer(canvasContainer)
 
-// The group-list island floats over the canvas's right edge — focusGroup needs its on-screen
-// footprint to keep framed groups from panning/zooming in behind it.
-const groupListIslandRef = ref<HTMLElement | null>(null)
-
 // State
 const mouseMode = ref('pan')
 // Side of the cell tool's square cursor, in cells.
@@ -522,10 +518,15 @@ function syncGroupRegions() {
         renderer.value.setGroupRegions(null)
         return
     }
+    // While a group is soloed, only its outline is kept.
+    const activeLi = selectedGroupId.value != null
+        ? leaves.value.findIndex(l => l.id === selectedGroupId.value)
+        : -1
     const cellGroup = new Int32Array(grid.cellPoint.length)
     for (let cell = 0; cell < cellGroup.length; cell++) {
         const i = grid.cellPoint[cell]
-        cellGroup[cell] = i >= 0 ? pointLeaf[i] : -1
+        const li = i >= 0 ? pointLeaf[i] : -1
+        cellGroup[cell] = activeLi >= 0 && li !== activeLi ? -1 : li
     }
     renderer.value.setGroupRegions({
         cols: grid.cols,
@@ -806,18 +807,7 @@ function lookAtPoints(pts: PointData[]) {
 
 function lookAtBounds(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration?: number) {
     if (!renderer.value) return
-    // Reserve the strip the island covers so the framed group doesn't land underneath it.
-    const right = islandStrip()
-    renderer.value.lookAtRect(rect, right > 0 ? { right } : undefined, duration)
-}
-
-// Width of the canvas's right strip covered by the group-list island (its own width plus the gap
-// to the canvas's right edge), in CSS px.
-function islandStrip() {
-    if (!canvasContainer.value || !groupListIslandRef.value) return 0
-    const containerRect = canvasContainer.value.getBoundingClientRect()
-    const islandRect = groupListIslandRef.value.getBoundingClientRect()
-    return Math.max(0, containerRect.right - islandRect.left)
+    renderer.value.lookAtRect(rect, undefined, duration)
 }
 
 // ── Snake easter egg ──────────────────────────────────────────────────────────
@@ -897,8 +887,8 @@ function startSnake() {
     const [x0, y0] = snakeCellToWorld(Math.max(0, head.c - SNAKE_VIEW.c), Math.max(0, head.r - SNAKE_VIEW.r))
     const [x1, y1] = snakeCellToWorld(Math.min(grid.cols - 1, head.c + SNAKE_VIEW.c), Math.min(grid.rows - 1, head.r + SNAKE_VIEW.r))
     lookAtBounds({ minX: x0, minY: y0, maxX: x1, maxY: y1 })
-    // Keep the off-screen arrow clear of the floating toolbar, the HUD and the group-list island.
-    renderer.value.snakeLayer.setInsets({ top: 70, bottom: 60, left: 20, right: islandStrip() + 20 })
+    // Keep the off-screen arrow clear of the floating toolbar and the HUD.
+    renderer.value.snakeLayer.setInsets({ top: 70, bottom: 60, left: 20, right: 20 })
     snakeTimer = window.setTimeout(snakeTick, SNAKE_FIRST_STEP_MS)
 }
 
@@ -1109,211 +1099,219 @@ onMounted(async () => {
             @update:grid-density="props.mapOptions.gridDensity = $event" @delete:map="deleteMap"
             :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
 
-        <div class="map-view-container" @mouseenter="pointerInside = true" @mouseleave="pointerInside = false">
-            <div class="map-container"
-                :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
-                <div ref="canvasContainer" class="canvas-wrapper"></div>
-            </div>
-
-            <div class="floating-toolbar">
-                <WithToolTip message="map.show_points">
-                    <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
-                        @click="props.mapOptions.showPoints = !props.mapOptions.showPoints">
-                        <i class="bi bi-dot"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip message="map.grid_layout">
-                    <div class="tool" :class="{ selected: layout == 'grid' }"
-                        @click="props.mapOptions.layout = layout == 'grid' ? 'scatter' : 'grid'">
-                        <i class="bi bi-grid-3x3"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip v-if="layout == 'grid'" message="map.fill_cells">
-                    <div class="tool" :class="{ selected: fillCells }"
-                        @click="props.mapOptions.fillCells = !props.mapOptions.fillCells">
-                        <i class="bi bi-aspect-ratio"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip v-if="layout == 'grid' && leaves.length" message="map.group_outlines">
-                    <div class="tool" :class="{ selected: groupOutlines }"
-                        @click="props.mapOptions.groupOutlines = !groupOutlines">
-                        <i class="bi bi-map"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip message="map.pan">
-                    <div class="tool" :class="{ selected: mouseMode == 'pan' }" @click="mouseMode = 'pan'">
-                        <i class="bi bi-hand-index-thumb"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip v-if="layout == 'grid'" message="map.cell_select">
-                    <div class="tool" :class="{ selected: mouseMode == 'cells' }" @click="mouseMode = 'cells'">
-                        <i class="bi bi-bounding-box"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip v-if="layout == 'grid'" message="map.paint">
-                    <div class="tool" :class="{ selected: mouseMode == 'paint' }" @click="mouseMode = 'paint'">
-                        <i class="bi bi-brush"></i>
-                    </div>
-                </WithToolTip>
-                <WithToolTip message="map.lasso">
-                    <div class="tool" :class="{ selected: mouseMode == 'lasso' }" @click="mouseMode = 'lasso'">
-                        <i class="bi bi-plus-circle-dotted"></i>
-                    </div>
-                </WithToolTip>
-            </div>
-
-            <div v-if="mouseMode == 'cells' && !snakeState" class="snake-hud cell-hud">
-                <i class="bi bi-bounding-box"></i>
-                <span class="num">{{ brushSize }}×{{ brushSize }}</span>
-                <span class="snake-hint">{{ $t('map.cell_select_hint') }}</span>
-            </div>
-
-            <div v-if="mouseMode == 'paint' && !snakeState" class="snake-hud cell-hud">
-                <template v-if="paintTagValue">
-                    <span class="paint-dot" :style="{ backgroundColor: paintColor }"></span>
-                    <span class="paint-hud-tag">{{ paintTagValue.value }}</span>
-                    <span class="num">{{ brushSize }}×{{ brushSize }}</span>
-                    <span class="snake-hint">{{ $t('map.paint_hint') }}</span>
-                </template>
-                <template v-else>
-                    <i class="bi bi-brush"></i>
-                    <span class="snake-hint">{{ $t('map.paint_pick_tag') }}</span>
-                </template>
-            </div>
-
-            <div v-if="snakeState" class="snake-hud">
-                <i class="bi bi-controller"></i>
-                <NumText keypath="map.snake.score" :values="{ score: snakeScore }" />
-                <span class="snake-hint">{{ $t('map.snake.' + (snakeState === 'running' ? 'hint' : snakeState)) }}</span>
-            </div>
-
-            <div v-if="atlasUnusable" class="atlas-empty">
-                <i class="bi bi-grid-3x3-gap atlas-empty-icon"></i>
-                <div class="atlas-empty-title">
-                    {{ media.hasAtlas ? $t('map.atlas_empty') : $t('map.atlas_none_title') }}
+        <div class="map-body">
+            <div class="map-view-container" @mouseenter="pointerInside = true" @mouseleave="pointerInside = false">
+                <div class="map-container"
+                    :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
+                    <div ref="canvasContainer" class="canvas-wrapper"></div>
                 </div>
-                <div class="atlas-empty-text">{{ $t('map.atlas_none') }}</div>
-                <template v-if="media.atlasTask">
-                    <div class="atlas-empty-progress">
-                        <span>{{ $t('map.atlas_generating') }}</span>
-                        <span class="num">{{ media.atlasTaskPercent }}%</span>
-                    </div>
-                    <div class="atlas-bar"><div :style="{ width: media.atlasTaskPercent + '%' }"></div></div>
-                </template>
-                <button v-else class="atlas-generate" :disabled="media.atlasRequested" @click="media.generateAtlas()">
-                    {{ media.hasAtlas ? $t('map.atlas_regenerate') : $t('map.atlas_generate') }}
-                </button>
-            </div>
 
-            <div v-else-if="noMatch" class="atlas-empty">
-                <i class="bi bi-funnel atlas-empty-icon"></i>
-                <div class="atlas-empty-title">{{ $t('map.no_match_title') }}</div>
-                <div class="atlas-empty-text">{{ $t('map.no_match') }}</div>
-            </div>
+                <div class="floating-toolbar">
+                    <WithToolTip message="map.show_points">
+                        <div class="tool" :class="{ selected: props.mapOptions.showPoints }"
+                            @click="props.mapOptions.showPoints = !props.mapOptions.showPoints">
+                            <i class="bi bi-dot"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip message="map.grid_layout">
+                        <div class="tool" :class="{ selected: layout == 'grid' }"
+                            @click="props.mapOptions.layout = layout == 'grid' ? 'scatter' : 'grid'">
+                            <i class="bi bi-grid-3x3"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip v-if="layout == 'grid'" message="map.fill_cells">
+                        <div class="tool" :class="{ selected: fillCells }"
+                            @click="props.mapOptions.fillCells = !props.mapOptions.fillCells">
+                            <i class="bi bi-aspect-ratio"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip v-if="layout == 'grid' && leaves.length" message="map.group_outlines">
+                        <div class="tool" :class="{ selected: groupOutlines }"
+                            @click="props.mapOptions.groupOutlines = !groupOutlines">
+                            <i class="bi bi-map"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip message="map.pan">
+                        <div class="tool" :class="{ selected: mouseMode == 'pan' }" @click="mouseMode = 'pan'">
+                            <i class="bi bi-hand-index-thumb"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip v-if="layout == 'grid'" message="map.cell_select">
+                        <div class="tool" :class="{ selected: mouseMode == 'cells' }" @click="mouseMode = 'cells'">
+                            <i class="bi bi-bounding-box"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip v-if="layout == 'grid'" message="map.paint">
+                        <div class="tool" :class="{ selected: mouseMode == 'paint' }" @click="mouseMode = 'paint'">
+                            <i class="bi bi-brush"></i>
+                        </div>
+                    </WithToolTip>
+                    <WithToolTip message="map.lasso">
+                        <div class="tool" :class="{ selected: mouseMode == 'lasso' }" @click="mouseMode = 'lasso'">
+                            <i class="bi bi-plus-circle-dotted"></i>
+                        </div>
+                    </WithToolTip>
+                </div>
 
-            <div v-if="hoverImage || leaves.length || showMinimap || mouseMode == 'paint'" ref="groupListIslandRef" class="group-list-island">
-                <template v-if="mouseMode == 'paint'">
-                    <div class="section-header" :class="{ collapsed: props.mapOptions.paintCollapsed }"
-                        @click="props.mapOptions.paintCollapsed = !props.mapOptions.paintCollapsed">
-                        <i class="bi section-chevron" :class="props.mapOptions.paintCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
-                        <span class="flex-grow-1">{{ $t('map.paint_title') }}</span>
-                    </div>
-                    <div v-if="!props.mapOptions.paintCollapsed" class="paint-body">
-                        <div v-if="!paintProperties.length" class="find-hint">{{ $t('map.paint_no_property') }}</div>
-                        <template v-else>
-                            <select class="paint-input" :value="paintProperty?.id ?? ''"
-                                @change="choosePaintProperty(Number(($event.target as HTMLSelectElement).value))">
-                                <option v-for="p in paintProperties" :key="p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
-                            <!-- The tag editor used under the images: search, create on the fly, colour.
-                                 One tag at a time; its badge's cross clears it. -->
-                            <TagInput v-if="paintProperty" :key="paintProperty.id" class="paint-tags"
-                                :property="paintProperty" :model-value="paintTagValue ? [paintTagValue.id] : []"
-                                :force-mono="true" :can-create="true" :can-customize="true"
-                                @update:model-value="(v: number[]) => props.mapOptions.paintTagId = v[0] ?? null" />
-                        </template>
-                    </div>
-                </template>
+                <div v-if="mouseMode == 'cells' && !snakeState" class="snake-hud cell-hud">
+                    <i class="bi bi-bounding-box"></i>
+                    <span class="num">{{ brushSize }}×{{ brushSize }}</span>
+                    <span class="snake-hint">{{ $t('map.cell_select_hint') }}</span>
+                </div>
 
-                <template v-if="hoverImage || showMinimap">
-                    <div class="section-header" :class="{ collapsed: props.mapOptions.previewCollapsed }"
-                        @click="props.mapOptions.previewCollapsed = !props.mapOptions.previewCollapsed">
-                        <i class="bi section-chevron" :class="props.mapOptions.previewCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
-                        <span class="flex-grow-1">{{ $t('map.preview') }}</span>
-                        <WithToolTip v-if="findTarget" message="map.find.reveal">
-                            <div class="group-action-btn" @click.stop="revealFindTarget()">
-                                <i class="bi bi-magic"></i>
-                            </div>
-                        </WithToolTip>
-                        <WithToolTip v-if="showMinimap" :message="findTarget ? 'map.find.stop' : 'map.find.play'">
-                            <div class="group-action-btn" @click.stop="findTarget ? stopFind() : startFind()">
-                                <i class="bi" :class="findTarget ? 'bi-stop-fill' : 'bi-play-fill'"></i>
-                            </div>
-                        </WithToolTip>
-                    </div>
-                    <template v-if="!props.mapOptions.previewCollapsed">
-                        <InstanceData v-if="findTarget" :instance-ids="[findTarget.id]" :prop-ids="[]">
-                            <div class="group-inspector find-target" :class="findFeedback ? 'find-' + findFeedback : ''">
-                                <CenteredImage :instance-id="findTarget.id" :width="190" :height="150" />
-                                <span class="find-hint">{{ $t('map.find.hint') }}</span>
-                                <span class="section-count num">
-                                    {{ $t('map.find.score', { score: findScore, misses: findMisses }) }}
-                                </span>
-                            </div>
-                        </InstanceData>
-                        <InstanceData v-else-if="hoverImage" :instance-ids="[hoverImage.id]" :prop-ids="[]">
-                            <div class="group-inspector">
-                                <Zoomable :image="hoverImage">
-                                    <CenteredImage :instance-id="hoverImage.id" :width="190" :height="150" />
-                                </Zoomable>
-                            </div>
-                        </InstanceData>
-                        <div v-else class="group-inspector find-hint">{{ $t('map.find.hover_hint') }}</div>
+                <div v-if="mouseMode == 'paint' && !snakeState" class="snake-hud cell-hud">
+                    <template v-if="paintTagValue">
+                        <span class="paint-dot" :style="{ backgroundColor: paintColor }"></span>
+                        <span class="paint-hud-tag">{{ paintTagValue.value }}</span>
+                        <span class="num">{{ brushSize }}×{{ brushSize }}</span>
+                        <span class="snake-hint">{{ $t('map.paint_hint') }}</span>
                     </template>
-                </template>
+                    <template v-else>
+                        <i class="bi bi-brush"></i>
+                        <span class="snake-hint">{{ $t('map.paint_pick_tag') }}</span>
+                    </template>
+                </div>
 
-                <template v-if="leaves.length">
-                    <div class="section-header" :class="{ collapsed: props.mapOptions.groupsCollapsed }"
-                        @click="props.mapOptions.groupsCollapsed = !props.mapOptions.groupsCollapsed">
-                        <i class="bi section-chevron" :class="props.mapOptions.groupsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
-                        <span class="flex-grow-1">{{ $t('map.groups') }}</span>
-                        <span class="section-count num">{{ leaves.length }}</span>
+                <div v-if="snakeState" class="snake-hud">
+                    <i class="bi bi-controller"></i>
+                    <NumText keypath="map.snake.score" :values="{ score: snakeScore }" />
+                    <span class="snake-hint">{{ $t('map.snake.' + (snakeState === 'running' ? 'hint' : snakeState)) }}</span>
+                </div>
+
+                <div v-if="atlasUnusable" class="atlas-empty">
+                    <i class="bi bi-grid-3x3-gap atlas-empty-icon"></i>
+                    <div class="atlas-empty-title">
+                        {{ media.hasAtlas ? $t('map.atlas_empty') : $t('map.atlas_none_title') }}
                     </div>
-                    <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
-                        <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
-                            :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
-                            <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
-                            <PropertyValueVue v-if="leaf.value" class="group-name" :value="leaf.value" />
-                            <span v-else class="group-name">{{ leaf.name }}</span>
-                            <span class="group-count num">{{ leaf.points.length }}</span>
-                            <div class="group-actions" @click.stop>
-                                <WithToolTip message="btn.goto-group">
-                                    <div class="group-action-btn" @click="focusGroup(leaf)">
-                                        <i class="bi bi-crosshair"></i>
+                    <div class="atlas-empty-text">{{ $t('map.atlas_none') }}</div>
+                    <template v-if="media.atlasTask">
+                        <div class="atlas-empty-progress">
+                            <span>{{ $t('map.atlas_generating') }}</span>
+                            <span class="num">{{ media.atlasTaskPercent }}%</span>
+                        </div>
+                        <div class="atlas-bar"><div :style="{ width: media.atlasTaskPercent + '%' }"></div></div>
+                    </template>
+                    <button v-else class="atlas-generate" :disabled="media.atlasRequested" @click="media.generateAtlas()">
+                        {{ media.hasAtlas ? $t('map.atlas_regenerate') : $t('map.atlas_generate') }}
+                    </button>
+                </div>
+
+                <div v-else-if="noMatch" class="atlas-empty">
+                    <i class="bi bi-funnel atlas-empty-icon"></i>
+                    <div class="atlas-empty-title">{{ $t('map.no_match_title') }}</div>
+                    <div class="atlas-empty-text">{{ $t('map.no_match') }}</div>
+                </div>
+
+                </div>
+
+                <!-- thin handle on the panel's left edge: folds the panel against the side and back -->
+                <div v-if="hoverImage || leaves.length || showMinimap || mouseMode == 'paint'" class="side-panel-handle"
+                    @click="props.mapOptions.sidePanelCollapsed = !props.mapOptions.sidePanelCollapsed">
+                    <i class="bi" :class="props.mapOptions.sidePanelCollapsed ? 'bi-chevron-left' : 'bi-chevron-right'"></i>
+                </div>
+                <div v-if="(hoverImage || leaves.length || showMinimap || mouseMode == 'paint') && !props.mapOptions.sidePanelCollapsed" class="side-panel">
+                    <template v-if="showMinimap">
+                        <div class="section-header" :class="{ collapsed: props.mapOptions.minimapCollapsed }"
+                            @click="props.mapOptions.minimapCollapsed = !props.mapOptions.minimapCollapsed">
+                            <i class="bi section-chevron" :class="props.mapOptions.minimapCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                            <span class="flex-grow-1">{{ $t('map.minimap') }}</span>
+                        </div>
+                        <Minimap v-if="!props.mapOptions.minimapCollapsed" :renderer="renderer" :points="points"
+                            :version="pointsVersion" :point-size="imageWorldSize(props.imageSize)" />
+                    </template>
+
+                    <template v-if="hoverImage || showMinimap">
+                        <div class="section-header" :class="{ collapsed: props.mapOptions.previewCollapsed }"
+                            @click="props.mapOptions.previewCollapsed = !props.mapOptions.previewCollapsed">
+                            <i class="bi section-chevron" :class="props.mapOptions.previewCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                            <span class="flex-grow-1">{{ $t('map.preview') }}</span>
+                            <WithToolTip v-if="findTarget" message="map.find.reveal">
+                                <div class="group-action-btn" @click.stop="revealFindTarget()">
+                                    <i class="bi bi-magic"></i>
+                                </div>
+                            </WithToolTip>
+                            <WithToolTip v-if="showMinimap" :message="findTarget ? 'map.find.stop' : 'map.find.play'">
+                                <div class="group-action-btn" @click.stop="findTarget ? stopFind() : startFind()">
+                                    <i class="bi" :class="findTarget ? 'bi-stop-fill' : 'bi-play-fill'"></i>
+                                </div>
+                            </WithToolTip>
+                        </div>
+                        <template v-if="!props.mapOptions.previewCollapsed">
+                            <InstanceData v-if="findTarget" :instance-ids="[findTarget.id]" :prop-ids="[]">
+                                <div class="group-inspector find-target" :class="findFeedback ? 'find-' + findFeedback : ''">
+                                    <CenteredImage :instance-id="findTarget.id" :width="190" :height="150" />
+                                    <span class="find-hint">{{ $t('map.find.hint') }}</span>
+                                    <span class="section-count num">
+                                        {{ $t('map.find.score', { score: findScore, misses: findMisses }) }}
+                                    </span>
+                                </div>
+                            </InstanceData>
+                            <InstanceData v-else-if="hoverImage" :instance-ids="[hoverImage.id]" :prop-ids="[]">
+                                <div class="group-inspector">
+                                    <Zoomable :image="hoverImage">
+                                        <CenteredImage :instance-id="hoverImage.id" :width="190" :height="150" />
+                                    </Zoomable>
+                                </div>
+                            </InstanceData>
+                            <div v-else class="group-inspector find-hint">{{ $t('map.find.hover_hint') }}</div>
+                        </template>
+                    </template>
+
+                    <template v-if="mouseMode == 'paint'">
+                        <div class="section-header" :class="{ collapsed: props.mapOptions.paintCollapsed }"
+                            @click="props.mapOptions.paintCollapsed = !props.mapOptions.paintCollapsed">
+                            <i class="bi section-chevron" :class="props.mapOptions.paintCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                            <span class="flex-grow-1">{{ $t('map.paint_title') }}</span>
+                        </div>
+                        <div v-if="!props.mapOptions.paintCollapsed" class="paint-body">
+                            <div v-if="!paintProperties.length" class="find-hint">{{ $t('map.paint_no_property') }}</div>
+                            <template v-else>
+                                <select class="paint-input" :value="paintProperty?.id ?? ''"
+                                    @change="choosePaintProperty(Number(($event.target as HTMLSelectElement).value))">
+                                    <option v-for="p in paintProperties" :key="p.id" :value="p.id">{{ p.name }}</option>
+                                </select>
+                                <!-- The tag editor used under the images: search, create on the fly, colour.
+                                     One tag at a time; its badge's cross clears it. -->
+                                <TagInput v-if="paintProperty" :key="paintProperty.id" class="paint-tags"
+                                    :property="paintProperty" :model-value="paintTagValue ? [paintTagValue.id] : []"
+                                    :force-mono="true" :can-create="true" :can-customize="true" :max-height="150"
+                                    @update:model-value="(v: number[]) => props.mapOptions.paintTagId = v[0] ?? null" />
+                            </template>
+                        </div>
+                    </template>
+
+                    <template v-if="leaves.length">
+                        <div class="section-header" :class="{ collapsed: props.mapOptions.groupsCollapsed }"
+                            @click="props.mapOptions.groupsCollapsed = !props.mapOptions.groupsCollapsed">
+                            <i class="bi section-chevron" :class="props.mapOptions.groupsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+                            <span class="flex-grow-1">{{ $t('map.groups') }}</span>
+                            <span class="section-count num">{{ leaves.length }}</span>
+                        </div>
+                        <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
+                            <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
+                                :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
+                                <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
+                                <PropertyValueVue v-if="leaf.value" class="group-name" :value="leaf.value" />
+                                <span v-else class="group-name">{{ leaf.name }}</span>
+                                <span class="group-count num">{{ leaf.points.length }}</span>
+                                <div class="group-actions" @click.stop>
+                                    <WithToolTip message="btn.goto-group">
+                                        <div class="group-action-btn" @click="focusGroup(leaf)">
+                                            <i class="bi bi-crosshair"></i>
+                                        </div>
+                                    </WithToolTip>
+                                    <div class="group-action-btn cluster-btn">
+                                        <ActionButton2 action="group" :no-border="true" :defer="true"
+                                            :busy="props.collection.isClustering(leaf.id)"
+                                            @submit="(req: ClusterRequest) => props.collection.cluster(leaf.id, req)">
+                                            <i class="bi bi-intersect"></i>
+                                        </ActionButton2>
                                     </div>
-                                </WithToolTip>
-                                <div class="group-action-btn cluster-btn">
-                                    <ActionButton2 action="group" :no-border="true" :defer="true"
-                                        :busy="props.collection.isClustering(leaf.id)"
-                                        @submit="(req: ClusterRequest) => props.collection.cluster(leaf.id, req)">
-                                        <i class="bi bi-intersect"></i>
-                                    </ActionButton2>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </template>
-
-                <template v-if="showMinimap">
-                    <div class="section-header" :class="{ collapsed: props.mapOptions.minimapCollapsed }"
-                        @click="props.mapOptions.minimapCollapsed = !props.mapOptions.minimapCollapsed">
-                        <i class="bi section-chevron" :class="props.mapOptions.minimapCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
-                        <span class="flex-grow-1">{{ $t('map.minimap') }}</span>
-                    </div>
-                    <Minimap v-if="!props.mapOptions.minimapCollapsed" :renderer="renderer" :points="points"
-                        :version="pointsVersion" :point-size="imageWorldSize(props.imageSize)" />
-                </template>
-            </div>
+                    </template>
+                </div>
         </div>
     </div>
 </template>
@@ -1331,6 +1329,7 @@ onMounted(async () => {
     display: flex;
     flex-direction: row;
     flex-grow: 1;
+    min-width: 0;
     overflow: hidden;
     position: relative;
 }
@@ -1386,20 +1385,37 @@ onMounted(async () => {
     background-color: var(--primary);
 }
 
-.group-list-island {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    max-height: calc(100% - 40px);
-    width: 220px;
-    z-index: 2;
+.map-body {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.side-panel-handle {
+    flex: 0 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.side-panel-handle:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+/* Right column beside the map (not over it): the canvas shrinks to make room. */
+.side-panel {
+    flex: 0 0 240px;
     display: flex;
     flex-direction: column;
-    background: var(--island-surface);
-    border: 1px solid var(--island-border);
-    border-radius: var(--island-radius);
-    box-shadow: var(--island-shadow);
-    overflow: hidden;
+    background: var(--bg-primary);
+    overflow-y: auto;
 }
 
 .section-header {
@@ -1407,7 +1423,9 @@ onMounted(async () => {
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-    padding: 8px 10px;
+    /* fixed height: headers with action buttons must not stand taller than plain ones */
+    height: 34px;
+    padding: 0 10px;
     font-size: 13px;
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
@@ -1430,7 +1448,7 @@ onMounted(async () => {
     color: var(--text-tertiary);
 }
 
-.group-list-island > :last-child {
+.side-panel > :last-child {
     border-bottom: none;
 }
 
@@ -1659,8 +1677,9 @@ onMounted(async () => {
     gap: 6px;
     padding: 6px;
     border-bottom: 1px solid var(--border-color);
-    min-height: 0;
-    flex: 1;
+    /* sized by its content (the tag list caps its own height): shrinking it let the list spill
+       over the next section */
+    flex-shrink: 0;
 }
 
 .paint-input {
@@ -1673,11 +1692,18 @@ onMounted(async () => {
     border-radius: var(--radius-sm);
 }
 
+/* The tag list scrolls itself (TagListScroller caps its height): no second scrollbar here. */
 .paint-tags {
-    min-height: 0;
-    overflow-y: auto;
+    flex-shrink: 0;
+    overflow: hidden;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
+}
+
+/* TagBadge takes its host's text size: pinned to the panel's scale, as in PropertyOptions. */
+.paint-tags :deep(.tag-badge) {
+    font-size: var(--font-size-xs);
+    line-height: 18px;
 }
 
 .cursor-grab {

@@ -27,7 +27,9 @@ const props = defineProps<{
     forceMulti?: boolean,
     // Force single-tag (mono) selection even for a multi-tag property: a pick replaces the value.
     forceMono?: boolean,
-    instanceId?: number
+    instanceId?: number,
+    // height cap of the tag list (TagMenu's default when unset)
+    maxHeight?: number
 }>()
 const emits = defineEmits(['update:modelValue', 'select', 'remove', 'tab'])
 defineExpose({
@@ -104,7 +106,7 @@ function focus() {
         </div>
         <TagMenu :property="props.property" :excluded="allExcluded" :can-create="props.canCreate"
             :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete"
-            :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem"
+            :auto-focus="props.autoFocus" :max-height="props.maxHeight" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem"
             @tab="emits('tab')" />
 
     </div>

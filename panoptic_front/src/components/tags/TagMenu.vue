@@ -26,7 +26,9 @@ const props = defineProps({
     // When set, the hint lives in the field itself instead of on its own line under it
     placeholder: String,
     // passed to the list: hosts with a smaller type scale use tighter rows
-    rowHeight: Number
+    rowHeight: Number,
+    // height cap of the tag list, which scrolls past it
+    maxHeight: { type: Number, default: 300 }
 })
 
 const emits = defineEmits(['select', 'create', 'delete', 'tab'])
@@ -166,7 +168,7 @@ watch(filteredTagList, () => {
         <div class="pb-0">
             <TagListScroller ref="listElem" :property="props.property" :tags="filteredTagList"
                 v-model:selected-index="selectedIndex" :can-link="props.canLink" :can-customize="props.canCustomize"
-                :can-delete="props.canDelete" :max-height="300" :row-height="props.rowHeight" @select="index => { selectedIndex = index; selectOption() }"
+                :can-delete="props.canDelete" :max-height="props.maxHeight" :row-height="props.rowHeight" @select="index => { selectedIndex = index; selectOption() }"
                 @delete="id => emits('delete', id)" @hide="focus" />
 
             <div v-if="props.canCreate && isCreatePossible" :class="[optionClass(filteredTagList.length), 'tag-row']"
