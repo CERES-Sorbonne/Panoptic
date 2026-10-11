@@ -835,6 +835,7 @@
         "group_property": "Groups",
         "group_cluster": "Clusters",
         "groups": "Groups",
+        "cluster_all": "Cluster images",
         "minimap": "Minimap",
         "collapse_panel": "Collapse panel",
         "open_panel": "Open panel",

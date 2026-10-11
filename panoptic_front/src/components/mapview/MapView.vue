@@ -1172,7 +1172,7 @@ onMounted(async () => {
                     <WithToolTip v-if="layout == 'grid' && leaves.length" message="map.group_outlines">
                         <div class="tool" :class="{ selected: groupOutlines }"
                             @click="props.mapOptions.groupOutlines = !groupOutlines">
-                            <i class="bi bi-border-outer"></i>
+                            <i class="bi bi-collection"></i>
                         </div>
                     </WithToolTip>
                     <WithToolTip message="map.pan">
@@ -1354,6 +1354,21 @@ onMounted(async () => {
                                         </ActionButton2>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </template>
+                    <!-- No grouping yet: offer to cluster the whole collection (the root). -->
+                    <template v-else-if="props.collection.result?.root">
+                        <div class="section-header no-toggle">
+                            <span class="flex-grow-1">{{ $t('map.groups') }}</span>
+                        </div>
+                        <div class="group-list-body">
+                            <div class="group-item cluster-all cluster-btn">
+                                <ActionButton2 action="group" :no-border="true" :defer="true"
+                                    :busy="props.collection.isClustering(props.collection.result.root.id)"
+                                    @submit="(req: ClusterRequest) => props.collection.cluster(props.collection.result.root.id, req)">
+                                    <i class="bi bi-intersect me-1"></i>{{ $t('map.cluster_all') }}
+                                </ActionButton2>
                             </div>
                         </div>
                     </template>
@@ -1629,6 +1644,10 @@ onMounted(async () => {
 .group-action-btn:hover {
     background-color: var(--island-border);
     color: var(--text-primary);
+}
+
+.section-header.no-toggle {
+    cursor: default;
 }
 
 .cluster-btn :deep(.b-box) {
