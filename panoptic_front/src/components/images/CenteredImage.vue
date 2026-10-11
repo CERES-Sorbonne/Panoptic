@@ -86,13 +86,10 @@ watch([sha1, requestSize], ([s, size]) => {
         loadedUrl.value = url
         return
     }
-    // Genuinely new image → go white instantly, then load it in.
+    // Genuinely new image → straight onto the visible <img>: a hidden 0x0 preload gets a low
+    // fetch priority, then costs a second decode and paint once it swaps in.
     activeUrl.value = ''
-    loadedUrl.value = null
-    loadTimer = setTimeout(() => {
-        activeUrl.value = url
-        loadTimer = null
-    }, 20)
+    loadedUrl.value = url
 }, { immediate: true })
 
 onUnmounted(() => {
@@ -116,6 +113,10 @@ const imageSize = computed(() => {
 
 const loadedImageUrl = computed(() => loadedUrl.value)
 
+function onVisibleLoad() {
+    if (loadedUrl.value) loadedUrlCache.add(loadedUrl.value)
+}
+
 function onLoad() {
     if (!activeUrl.value) return
     loadedUrl.value = activeUrl.value
@@ -129,8 +130,8 @@ function onLoad() {
         <div class="center-content">
             <img v-if="loadedImageUrl" :src="loadedImageUrl"
                 :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px', border: props.border > 0 ? (props.border + 'px solid var(--border-color)') : 'none', borderRadius: props.border > 0 ? '3px' : '' }"
-                @load="onLoad">
-            <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="activeUrl" @load="onLoad" />
+                decoding="async" @load="onVisibleLoad">
+            <img v-if="activeUrl" style="opacity: 0; position: absolute; width: 0; height: 0;" :src="activeUrl" @load="onLoad" />
         </div>
     </div>
 </template>

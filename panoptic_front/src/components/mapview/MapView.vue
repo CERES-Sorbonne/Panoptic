@@ -25,6 +25,7 @@ import CenteredImage from '../images/CenteredImage.vue'
 import InstanceData from '../data/InstanceData.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
+import PropertyValueVue from '../properties/PropertyValue.vue'
 import NumText from '../utils/NumText.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
@@ -137,7 +138,7 @@ onUnmounted(() => zoomModal.hide(zoomOwner))
 let sha1ToPoint: { [sha1: string]: PointData } = {}
 // Display leaves of the current tree, with the colour they paint their points with. A ref (not a
 // plain let) since the group-list island reads it directly in the template.
-const leaves = shallowRef<{ id: number, name: string, color: string, points: PointData[] }[]>([])
+const leaves = shallowRef<{ id: number, name: string, value?: Group['meta']['propertyValues'][number], color: string, points: PointData[] }[]>([])
 const points = shallowRef<PointData[]>([])
 // For each slot, the index in `points` of the point drawing it (-1: none). Built with the
 // geometry, so a selection tick finds its points with typed-array reads.
@@ -232,7 +233,7 @@ function buildLeaves() {
     const sha1s = columnStore.sha1s()
     const colors = generateColors(groups.length)
 
-    const res: { id: number, name: string, color: string, points: PointData[] }[] = []
+    const res: { id: number, name: string, value?: Group['meta']['propertyValues'][number], color: string, points: PointData[] }[] = []
     groups.forEach((g, index) => {
         const color = leafColor(g, colors[index])
         const seen = new Set<PointData>()
@@ -240,7 +241,7 @@ function buildLeaves() {
             const point = sha1ToPoint[sha1s[slot]]
             if (point) seen.add(point)
         }
-        if (seen.size) res.push({ id: g.id, name: leafName(g, index), color, points: Array.from(seen) })
+        if (seen.size) res.push({ id: g.id, name: leafName(g, index), value: g.name ? undefined : g.meta?.propertyValues?.[0], color, points: Array.from(seen) })
     })
     leaves.value = res
 
@@ -998,7 +999,8 @@ onMounted(async () => {
                         <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
                             :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                             <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
-                            <span class="group-name">{{ leaf.name }}</span>
+                            <PropertyValueVue v-if="leaf.value" class="group-name" :value="leaf.value" />
+                            <span v-else class="group-name">{{ leaf.name }}</span>
                             <span class="group-count num">{{ leaf.points.length }}</span>
                             <div class="group-actions" @click.stop>
                                 <WithToolTip message="btn.goto-group">

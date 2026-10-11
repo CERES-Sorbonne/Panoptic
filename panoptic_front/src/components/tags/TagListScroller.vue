@@ -9,8 +9,8 @@
  * tag list made opening the menu cost O(tags) and took hundreds of ms on large properties.
  * With the scroller the cost is bounded by the viewport (~12 rows), whatever the tag count.
  *
- * Rows are a fixed height, so RecycleScroller gets a constant :item-size and needs no
- * measuring pass. Keep ROW_HEIGHT in sync with the .tag-row CSS below.
+ * Rows are a fixed height (rowHeight), so RecycleScroller gets a constant :item-size and needs
+ * no measuring pass. The row's CSS height is bound to the same value.
  */
 
 import { computed, ref } from 'vue';
@@ -32,13 +32,14 @@ const props = withDefaults(defineProps<{
     canLink?: boolean,
     canCustomize?: boolean,
     canDelete?: boolean,
-    maxHeight?: number
-}>(), { maxHeight: 300 })
+    maxHeight?: number,
+    // the badge plus the air around it; hosts with a smaller type scale pass a tighter value
+    rowHeight?: number
+}>(), { maxHeight: 300, rowHeight: 22 })
 
 const emits = defineEmits(['select', 'delete', 'hide', 'update:selectedIndex'])
 
-// padding (3 + 3) + the row's 20px line-height
-const ROW_HEIGHT = 26
+const rowHeight = computed(() => props.rowHeight)
 
 const scroller = ref(null)
 
@@ -46,7 +47,7 @@ defineExpose({ scrollToIndex })
 
 // One viewport tall at most; shorter when there are fewer tags than that, so the menu does
 // not reserve empty space under a two-tag property.
-const viewportHeight = computed(() => Math.min(props.maxHeight, Math.max(ROW_HEIGHT, props.tags.length * ROW_HEIGHT)))
+const viewportHeight = computed(() => Math.min(props.maxHeight, Math.max(rowHeight.value, props.tags.length * rowHeight.value)))
 
 // Own count + the counts of every descendant, computed once per list change rather than once
 // per row per render: the inline expression re-walked allChildren on each hover.
@@ -66,8 +67,8 @@ const totalCounts = computed(() => {
 function scrollToIndex(index: number) {
     const el = scroller.value?.$el
     if (index == undefined || !el) return
-    const top = index * ROW_HEIGHT
-    const bottom = top + ROW_HEIGHT
+    const top = index * rowHeight.value
+    const bottom = top + rowHeight.value
     if (top < el.scrollTop) el.scrollTop = top
     else if (bottom > el.scrollTop + el.clientHeight) el.scrollTop = bottom - el.clientHeight
 }
@@ -87,13 +88,17 @@ const rowClass = (index: number) => props.selectedIndex == index ? 'bg-selected'
 </script>
 
 <template>
-    <RecycleScroller class="tag-list" ref="scroller" :items="props.tags" key-field="id" :item-size="ROW_HEIGHT"
-        :buffer="ROW_HEIGHT * 4" :style="{ height: viewportHeight + 'px' }">
+    <RecycleScroller class="tag-list" ref="scroller" :items="props.tags" key-field="id" :item-size="rowHeight"
+        :buffer="rowHeight * 4" :style="{ height: viewportHeight + 'px' }">
         <template v-slot="{ item, index }">
-            <div :class="[rowClass(index), 'tag-row']" style="cursor: pointer;" @mouseover="setSelected(index)"
+            <div :class="[rowClass(index), 'tag-row']" :style="{ height: rowHeight + 'px' }" @mouseover="setSelected(index)"
                 @mouseleave="endSelection(index)">
-                <div class="ms-2 d-flex align-items-center">
-                    <div class="flex-grow-1" style="overflow: hidden;" @click="emits('select', index)">
+                <div class="ms-2 flex-grow-1 d-flex align-items-center">
+                    <!-- a flex box, not a line box: an inline badge would sit on the baseline of
+                         this div's inherited line height and drop low whenever the host shrinks
+                         the badge below the surrounding text -->
+                    <div class="flex-grow-1 d-flex align-items-center" style="overflow: hidden;"
+                        @click="emits('select', index)">
                         <TagBadge :id="item.id" />
                     </div>
                     <div v-if="props.canLink"
@@ -122,15 +127,17 @@ const rowClass = (index: number) => props.selectedIndex == index ? 'bg-selected'
 }
 
 /* A row is a badge with room around it, not a line of text: without this the badges stack edge
-   to edge and read as one block. The padding is what separates them; the badge itself is then
-   centred in the row it sits in. Total height must stay ROW_HEIGHT. */
+   to edge and read as one block. The height (bound to rowHeight) is what separates them; the
+   content is centred in it, so the air splits evenly above and below the badge. */
 .tag-row {
+    display: flex;
+    align-items: center;
     /* pulled 4px out on each side and given the same back as padding: the row's highlight runs
        wider than its content instead of hugging the badge, while the badge itself does not move */
     margin: 0 -4px;
-    padding: 3px 4px;
+    padding: 0 4px;
     border-radius: 3px;
     box-sizing: border-box;
-    height: 26px;
+    cursor: pointer;
 }
 </style>

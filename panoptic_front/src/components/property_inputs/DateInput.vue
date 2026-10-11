@@ -458,8 +458,8 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="">
-        <div class="d-flex flex-nowrap justify-content-center" style="line-height: 20px;" ref="divElem">
+    <div class="date-input">
+        <div class="d-flex flex-nowrap justify-content-center" style="line-height: 18px;" ref="divElem">
             <template v-for="data, formatIndex in viewFormat">
                 <div v-if="data == 'Y'">
                     <div class="d-flex">
@@ -468,7 +468,7 @@ onMounted(() => {
                             :ref="e => fieldElems[input] = e" @click="clickYear(index)"
                             @keydown.delete.prevent.stop="updateYear({}, index)" @blur="onChangeFocus(input)" />
                     </div>
-                    <div class="text-center text-secondary" style="font-size: 10px;">Y</div>
+                    <div class="text-center text-secondary unit">Y</div>
                 </div>
 
                 <div v-if="data == 'M'">
@@ -480,7 +480,7 @@ onMounted(() => {
                             @blur="onChangeFocus('M1')" @keydown.delete.prevent.stop="updateMonth({}, 1)"
                             :ref="e => fieldElems['M1'] = e" />
                     </div>
-                    <div class="text-center text-secondary" style="font-size: 10px;">M</div>
+                    <div class="text-center text-secondary unit">M</div>
                 </div>
 
                 <div v-if="data == 'D'">
@@ -492,7 +492,7 @@ onMounted(() => {
                             @blur="onChangeFocus('D1')" :ref="e => fieldElems['D1'] = e"
                             @keydown.delete.prevent.stop="updateDay({}, 1)" />
                     </div>
-                    <div class="text-center text-secondary" style="font-size: 10px;">D</div>
+                    <div class="text-center text-secondary unit">D</div>
                 </div>
 
                 <div v-if="data == 'h'">
@@ -504,7 +504,7 @@ onMounted(() => {
                             @blur="onChangeFocus('h1')" :ref="e => fieldElems['h1'] = e"
                             @keydown.delete.prevent.stop="updateHours({}, 1)" />
                     </div>
-                    <div class="text-center text-secondary" style="font-size: 10px;">h</div>
+                    <div class="text-center text-secondary unit">h</div>
                 </div>
 
                 <div v-if="data == 'm'">
@@ -516,7 +516,7 @@ onMounted(() => {
                             @blur="onChangeFocus('m1')" @keydown.delete.prevent.stop="updateMinutes({}, 1)"
                             :ref="e => fieldElems['m1'] = e" />
                     </div>
-                    <div class="text-center text-secondary" style="font-size: 10px;">m</div>
+                    <div class="text-center text-secondary unit">m</div>
                 </div>
 
                 <div v-if="data == 's'">
@@ -528,21 +528,21 @@ onMounted(() => {
                             @blur="onChangeFocus('s1')" @keydown.delete.prevent.stop="updateSeconds({}, 1)"
                             :ref="e => fieldElems['s1'] = e" />
                     </div>
-                    <div class="text-center text-secondary" style="font-size: 10px;">s</div>
+                    <div class="text-center text-secondary unit">s</div>
                 </div>
 
                 <div v-if="'YMD'.includes(viewFormat[formatIndex + 1])" class="slash">/</div>
                 <div v-if="'YMD'.includes(viewFormat[formatIndex]) && 'hms'.includes(viewFormat[formatIndex + 1])"
-                    class="me-2">
+                    class="sep-space">
                 </div>
-                <div v-else-if="'hms'.includes(viewFormat[formatIndex + 1])">:</div>
+                <div v-else-if="'hms'.includes(viewFormat[formatIndex + 1])" class="colon">:</div>
             </template>
         </div>
-        <div class="d-flex">
+        <div class="d-flex align-items-center actions">
             <div><i class="bi bi-x bb" @click="setDate(undefined)" /></div>
             <div><i class="bi bi-calendar3 bb" @click="setDate(getNow())"></i></div>
             <!-- <div> <i class="bi bi-arrow-counterclockwise bb" @click="loadValue(props.modelValue)" /></div> -->
-            <div class="ms-2">
+            <div class="ms-1">
                 <div v-if="!localDate.closest && !localDate.date" style="width: 50px;" class="text-warning">{{ $t("none") }}
                 </div>
                 <div v-if="localDate.closest && !localDate.date" class="text-warning" style="width: 50px;">
@@ -587,11 +587,29 @@ input[type=text]:focus {
     cursor: pointer;
 } */
 
-.slash {
-    font-size: 18px;
-    margin: 0px 1px;
-    position: relative;
-    top: 1.5px;
+.date-input {
+    width: 220px;
+    flex: none;
+}
+
+.slash, .colon {
+    font-size: 13px;
+    margin: 0 1px;
+}
+
+.sep-space {
+    width: 6px;
+}
+
+.unit {
+    font-size: 9px;
+    line-height: 10px;
+}
+
+.actions {
+    margin-top: 2px;
+    gap: 2px;
+    font-size: 13px;
 }
 
 /* for chrome */
@@ -604,11 +622,14 @@ input[type=text]::-webkit-outer-spin-button {
 
 /* for mozilla */
 input[type=text] {
-    font-size: 14px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
     border: none;
-    border-radius: 5px;
+    border-radius: 3px;
+    padding: 0;
+    margin: 0;
     text-align: center;
-    width: 11.5px;
+    width: 8.5px;
     -moz-appearance: textfield;
     caret-color: transparent;
 }

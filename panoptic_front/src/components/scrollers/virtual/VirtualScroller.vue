@@ -45,7 +45,7 @@ const props = withDefaults(defineProps<{
     measure: false,
     maxHeight: MAX_SCROLL_PX,
     fastSpeed: 3,
-    idleDelay: 120,
+    idleDelay: 60,
     tail: 0,
 })
 
@@ -160,6 +160,10 @@ function placeTail() {
     el.style.height = props.tail + 'px'
 }
 
+function onScrollEnd() {
+    view.onScrollEnd()
+}
+
 function onScroll() {
     const offset = view.pager.offset
     view.onScroll()
@@ -194,12 +198,14 @@ const visibility = new ResizeObserver(entries => {
 
 onMounted(() => {
     root.value?.addEventListener('scroll', onScroll, { passive: true })
+    root.value?.addEventListener('scrollend', onScrollEnd, { passive: true })
     if (root.value) visibility.observe(root.value)
     view.relayout()
 })
 
 onBeforeUnmount(() => {
     root.value?.removeEventListener('scroll', onScroll)
+    root.value?.removeEventListener('scrollend', onScrollEnd)
     visibility.disconnect()
     view.dispose()
     measurer?.disconnect()

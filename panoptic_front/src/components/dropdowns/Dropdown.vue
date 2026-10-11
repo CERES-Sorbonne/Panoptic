@@ -12,6 +12,8 @@ const props = withDefaults(defineProps<{
     teleport?: boolean
     placement?: string
     skidding?: number
+    // when true the popup keeps its own width instead of growing to the trigger's width
+    fitContent?: boolean
 }>(), {
     placement: 'bottom',
     autoFocus: true,
@@ -68,7 +70,7 @@ async function focus() {
 
 async function onShow() {
     // 2. Calculate width before showing
-    if (buttonElem.value) {
+    if (buttonElem.value && !props.fitContent) {
         // floor: a fractional trigger width rounds the popup up to the next pixel, which shows
         // as the popup sticking out 1px past the cell it belongs to
         const width = Math.floor(buttonElem.value.getBoundingClientRect().width)

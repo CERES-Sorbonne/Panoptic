@@ -22,7 +22,11 @@ const props = defineProps({
     canCustomize: Boolean,
     canLink: Boolean,
     canDelete: Boolean,
-    autoFocus: Boolean
+    autoFocus: Boolean,
+    // When set, the hint lives in the field itself instead of on its own line under it
+    placeholder: String,
+    // passed to the list: hosts with a smaller type scale use tighter rows
+    rowHeight: Number
 })
 
 const emits = defineEmits(['select', 'create', 'delete', 'tab'])
@@ -150,19 +154,19 @@ watch(filteredTagList, () => {
 <template>
     <div class="m-0 p-0">
         <div class="w-100 search-row">
-            <input type="text" class="w-100 search" v-model="tagFilter" ref="searchElem"
+            <input type="text" class="w-100 search" v-model="tagFilter" ref="searchElem" :placeholder="props.placeholder"
                 style="font-size: 13px; min-width: 100px;" @keydown.down="moveSelected(1)"
                 @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""
                 @keydown.tab.stop.prevent="emits('tab')" />
         </div>
 
         <!-- what the list below is for -->
-        <div class="list-hint">{{ $t('tag_menu_hint') }}</div>
+        <div v-if="!props.placeholder" class="list-hint">{{ $t('tag_menu_hint') }}</div>
 
         <div class="pb-0">
             <TagListScroller ref="listElem" :property="props.property" :tags="filteredTagList"
                 v-model:selected-index="selectedIndex" :can-link="props.canLink" :can-customize="props.canCustomize"
-                :can-delete="props.canDelete" :max-height="300" @select="index => { selectedIndex = index; selectOption() }"
+                :can-delete="props.canDelete" :max-height="300" :row-height="props.rowHeight" @select="index => { selectedIndex = index; selectOption() }"
                 @delete="id => emits('delete', id)" @hide="focus" />
 
             <div v-if="props.canCreate && isCreatePossible" :class="[optionClass(filteredTagList.length), 'tag-row']"
@@ -202,8 +206,12 @@ watch(filteredTagList, () => {
     /* pulled 4px out on each side and given the same back as padding: the row's highlight runs
        wider than its content instead of hugging the badge, while the badge itself does not move */
     margin: 0 -4px;
-    padding: 3px 4px;
+    padding: 0 4px;
     border-radius: 3px;
+    /* same height as TagListScroller's default rows, so it reads as one more of them */
+    height: 22px;
+    display: flex;
+    align-items: center;
 }
 
 .list-hint {

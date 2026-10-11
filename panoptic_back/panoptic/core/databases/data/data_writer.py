@@ -120,18 +120,25 @@ class DataWriter(SQLiteWriter):
             add(self._entity_op(tx, 'tag', t, commit_id))
 
         dtypes = self._dtype_map(tx, data)
-        for iv in data.instance_values:
-            self._value_ops(tx, 'instance_value', 'instance_tag_value',
-                            ('instance_id', iv.instance_id), iv.property_id, iv.value,
-                            dtypes, commit_id, add)
-        for sv in data.sha1_values:
-            self._value_ops(tx, 'sha1_value', 'sha1_tag_value',
-                            ('sha1', sv.sha1), sv.property_id, sv.value,
-                            dtypes, commit_id, add)
-        for fv in data.file_values:
-            # No file-tag junction table: file values are always stored as scalar cells.
-            add(self._scalar_value_op(tx, 'file_value', fv.property_id, ('file_id', fv.file_id),
-                                      fv.value, commit_id))
+        # One entry per value write: (scalar type, tag junction type, anchor field, anchor,
+        # property id, value). No file-tag junction table: file values are always scalar.
+        cells = [('instance_value', 'instance_tag_value', 'instance_id', v.instance_id,
+                  v.property_id, v.value) for v in data.instance_values]
+        cells += [('sha1_value', 'sha1_tag_value', 'sha1', v.sha1, v.property_id, v.value)
+                  for v in data.sha1_values]
+        cells += [('file_value', None, 'file_id', v.file_id, v.property_id, v.value)
+                  for v in data.file_values]
+        cells = [(value_type, tag_type if dtypes.get(pid) in _TAG_DTYPES else None,
+                  anchor_field, anchor, pid, value)
+                 for value_type, tag_type, anchor_field, anchor, pid, value in cells]
+        values, tags = self._current_cells(tx, cells)
+        for value_type, tag_type, anchor_field, anchor, pid, value in cells:
+            if tag_type:
+                self._tag_junction_ops(tag_type, (anchor_field, anchor), pid, value,
+                                       tags.get((tag_type, anchor, pid), set()), commit_id, add)
+            else:
+                add(self._scalar_value_op(value_type, pid, anchor, value,
+                                          values.get((value_type, pid, anchor)), commit_id))
 
         # Cascade deletes (same commit, so undo restores the whole subtree).
         for op in self._cascade_delete_ops(tx, del_prop_ids, del_tag_ids, commit_id):
@@ -156,34 +163,62 @@ class DataWriter(SQLiteWriter):
             return None
         return ChangeOp(entity_type, key, commit_id, op, changes)
 
-    def _scalar_value_op(self, tx: Cursor, entity_type: str, property_id: int, extra: tuple,
-                         value: Any, commit_id: int) -> ChangeOp | None:
+    def _current_cells(self, tx: Cursor, cells: list[tuple]) -> tuple[dict, dict]:
+        """Fetch in bulk what the value cells written by ``cells`` hold now.
+
+        Returns ``(values, tags)``: ``{(value type, property id, anchor): alive row}`` for
+        scalar cells and ``{(tag type, anchor, property id): {alive tag ids}}`` for tag cells.
+        """
+        scalar_pks: dict[str, dict[tuple, None]] = {}
+        tag_anchors: dict[tuple, dict[Any, None]] = {}
+        for value_type, tag_type, anchor_field, anchor, pid, _ in cells:
+            if tag_type:
+                tag_anchors.setdefault((tag_type, anchor_field, pid), {})[anchor] = None
+            else:
+                spec = ENTITY_SPECS[value_type]
+                pk = tuple(pid if f == 'property_id' else anchor for f in spec.pk_fields)
+                scalar_pks.setdefault(value_type, {})[pk] = None
+
+        values: dict[tuple, Any] = {}
+        for value_type, pks in scalar_pks.items():
+            spec = ENTITY_SPECS[value_type]
+            anchor_field = next(f for f in spec.pk_fields if f != 'property_id')
+            for r in spec.schema.get_by_pk(tx, list(pks)):
+                if r.operation != OP_DELETE:
+                    values[(value_type, r.property_id, getattr(r, anchor_field))] = r
+
+        tags: dict[tuple, set] = {}
+        for (tag_type, anchor_field, pid), anchors in tag_anchors.items():
+            # Filtered on `operation` in Python: as a SQL term, SQLite answers it from the
+            # operation index and scans every alive junction row instead of using the key.
+            rows = ENTITY_SPECS[tag_type].schema.get(
+                tx, state=0, property_id=pid, **{anchor_field: list(anchors)})
+            for r in rows:
+                if r.operation == OP_CREATE:
+                    tags.setdefault((tag_type, getattr(r, anchor_field), pid), set()).add(r.tag_id)
+        return values, tags
+
+    @staticmethod
+    def _scalar_value_op(entity_type: str, property_id: int, anchor: Any, value: Any,
+                         current: Any, commit_id: int) -> ChangeOp | None:
+        """``current`` is the cell's alive row, None when it has none."""
         spec = ENTITY_SPECS[entity_type]
-        pk = tuple(property_id if f == 'property_id' else extra[1] for f in spec.pk_fields)
+        pk = tuple(property_id if f == 'property_id' else anchor for f in spec.pk_fields)
         key = encode_key(pk)
         # Re-asserting the value the cell already holds changes nothing — skip it, or the
         # history gets an entry whose undo falls back on the identical previous value.
-        current = self._alive_row(tx, spec, key)
         if current is not None and current.value == value:
             return None
         # A value set asserts existence: model it as OP_CREATE so the last enabled set wins.
         return ChangeOp(entity_type, key, commit_id, OP_CREATE, {'value': value})
 
-    def _value_ops(self, tx: Cursor, value_type: str, tag_type: str, extra: tuple,
-                   property_id: int, value: Any, dtypes: dict, commit_id: int, add) -> None:
-        if dtypes.get(property_id) in _TAG_DTYPES:
-            self._tag_junction_ops(tx, tag_type, extra, property_id, value, commit_id, add)
-        else:
-            add(self._scalar_value_op(tx, value_type, property_id, extra, value, commit_id))
-
-    def _tag_junction_ops(self, tx: Cursor, tag_type: str, extra: tuple, property_id: int,
-                          value: Any, commit_id: int, add) -> None:
+    @staticmethod
+    def _tag_junction_ops(tag_type: str, extra: tuple, property_id: int, value: Any,
+                          existing_tags: set, commit_id: int, add) -> None:
+        """``existing_tags`` is the set of tag ids the cell holds now."""
         spec = ENTITY_SPECS[tag_type]
         anchor_field, anchor_val = extra
         new_tags = set(value or [])
-        existing = spec.schema.get(tx, operation=OP_CREATE,
-                                   **{anchor_field: anchor_val, 'property_id': property_id})
-        existing_tags = {r.tag_id for r in existing}
 
         def key_for(tag_id: int) -> str:
             pk = tuple(anchor_val if f == anchor_field
@@ -293,41 +328,80 @@ class DataWriter(SQLiteWriter):
         rows = spec.schema.get_by_pk(tx, pk_arg)
         return rows[0] if rows else None
 
-    def _materialize(self, tx: Cursor, entity_type: str, key: str, sequence: int) -> None:
-        """Re-resolve one entity from its enabled ops and upsert the result row."""
-        spec = ENTITY_SPECS[entity_type]
-        self._write_result(tx, spec, key,
-                           resolve(spec, key, self._enabled_ops(tx, entity_type, key)), sequence)
+    def _enabled_ops_many(self, tx: Cursor, entity_type: str,
+                          keys: list[str]) -> dict[str, list[ChangeOp]]:
+        """``_enabled_ops`` for many keys of one entity type, in one query per chunk."""
+        out: dict[str, list[ChangeOp]] = {}
+        for i in range(0, len(keys), _SQLITE_MAX_VARS):
+            chunk = keys[i: i + _SQLITE_MAX_VARS]
+            sql = ("SELECT el.entity_key, el.op, el.changes, el.commit_id FROM entity_log el"
+                   " LEFT JOIN commits c ON c.id = el.commit_id"
+                   f" WHERE el.entity_type = ? AND el.entity_key IN ({', '.join(['?'] * len(chunk))})"
+                   " AND (el.commit_id = 0 OR c.active = 1)"
+                   " ORDER BY el.commit_id")
+            for key, op, changes, commit_id in tx.execute(sql, [entity_type, *chunk]).fetchall():
+                out.setdefault(key, []).append(ChangeOp(
+                    entity_type, key, commit_id, op,
+                    json.loads(changes) if changes is not None else None))
+        return out
 
-    def _write_result(self, tx: Cursor, spec, key: str, resolved, sequence: int) -> None:
-        """Upsert one resolved entity into its result table.
+    @staticmethod
+    def _current_rows(tx: Cursor, spec, keys: list[str]) -> dict[str, Any]:
+        """Result rows (tombstones included) of ``keys``, by key."""
+        pks = [decode_key(k) for k in keys]
+        pk_arg = [pk[0] for pk in pks] if len(spec.pk_fields) == 1 else [tuple(pk) for pk in pks]
+        return {key_of(spec, r): r for r in spec.schema.get_by_pk(tx, pk_arg)}
 
-        Writes a fresh ``sequence`` only when the resolved state actually changes, so the
-        delta reported to clients is minimal. A ``resolved`` of ``None`` tombstones a live row.
-        """
-        current = self._current_row(tx, spec, key)
-
+    def _result_change(self, spec, current, resolved):
+        """The row to upsert to move the result table from ``current`` to ``resolved``,
+        or None when the state does not change."""
         if resolved is None:
             if current is not None and current.operation != OP_DELETE:
-                spec.schema.upsert(tx, msgspec.structs.replace(current, operation=OP_DELETE),
-                                   sequence=sequence)
-            return
-
+                return msgspec.structs.replace(current, operation=OP_DELETE)
+            return None
         if current is not None and self._same_state(spec, current, resolved):
-            return
-        spec.schema.upsert(tx, resolved, sequence=sequence)
+            return None
+        return resolved
 
     def _materialize_many(self, tx: Cursor, touched: Iterable[tuple[str, str]],
                           sequence: int) -> None:
-        """Materialize every touched entity, then enforce mono-tag arity on the cells they hit."""
+        """Materialize every touched entity, then enforce mono-tag arity on the cells they hit.
+
+        Each touched entity is re-resolved from its enabled ops and its result row upserted,
+        in bulk per entity type.
+        """
         touched = list(touched)
+        by_type: dict[str, dict[str, None]] = {}
         for et, key in touched:
-            self._materialize(tx, et, key, sequence)
+            by_type.setdefault(et, {})[key] = None
+        for et, keys in by_type.items():
+            spec = ENTITY_SPECS[et]
+            ops = self._enabled_ops_many(tx, et, list(keys))
+            self._write_results(tx, spec, {key: resolve(spec, key, ops.get(key, ()))
+                                           for key in keys}, sequence)
         losers, winners = self._mono_tag_arity(tx, touched)
+        # Disjoint: a junction key belongs to a single cell, which has a single winner
+        fixes: dict[str, dict[str, Any]] = {}
         for et, key in losers:
-            self._write_result(tx, ENTITY_SPECS[et], key, None, sequence)
+            fixes.setdefault(et, {})[key] = None
         for (et, key), resolved in winners.items():
-            self._write_result(tx, ENTITY_SPECS[et], key, resolved, sequence)
+            fixes.setdefault(et, {})[key] = resolved
+        for et, resolved in fixes.items():
+            self._write_results(tx, ENTITY_SPECS[et], resolved, sequence)
+
+    def _write_results(self, tx: Cursor, spec, resolved: dict[str, Any], sequence: int) -> None:
+        """Upsert resolved entities of one type into its result table.
+
+        ``resolved`` maps each key to its resolved row. Writes a fresh ``sequence`` only when
+        the resolved state actually changes, so the delta reported to clients is minimal.
+        A resolved ``None`` tombstones a live row.
+        """
+        keys = list(resolved)
+        for i in range(0, len(keys), _SQLITE_MAX_VARS):
+            chunk = keys[i: i + _SQLITE_MAX_VARS]
+            current = self._current_rows(tx, spec, chunk)
+            rows = [self._result_change(spec, current.get(key), resolved[key]) for key in chunk]
+            spec.schema.upsert(tx, [r for r in rows if r is not None], sequence=sequence)
 
     # ------------------------------------------------------------------
     # Mono-tag arity  (a `tag` property holds at most one tag)

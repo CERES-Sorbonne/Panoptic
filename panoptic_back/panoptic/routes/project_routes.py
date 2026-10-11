@@ -1281,11 +1281,14 @@ async def get_image_by_size(sha1: str, size: int | None = None, project: Project
     When no stored thumbnail is N big, the original file is served instead if it is
     local and a browser can show it, so large views are not an upscaled thumbnail.
     """
-    data, covers = project.get_image_for_size(sha1, size)
+    from starlette.concurrency import run_in_threadpool
+
+    # Sync DB reads: off the event loop, so a screenful of thumbnails is served in parallel.
+    data, covers = await run_in_threadpool(project.get_image_for_size, sha1, size)
     if data and covers:
         return Response(data, media_type='image/jpeg')
     if data:
-        path = project.get_local_original_path(sha1)
+        path = await run_in_threadpool(project.get_local_original_path, sha1)
         if path:
             return FileResponse(path)
         return Response(data, media_type='image/jpeg')
@@ -1865,10 +1868,8 @@ class _ImportConfirmRequest(BaseModel):
 @project_router.post('/import/upload')   # TODO: needs testing
 async def import_upload(file: UploadFile, project: Project = Depends(_dep)):
     """Save the uploaded CSV to the project folder and parse its headers."""
-    content   = await file.read()
-    save_path = project.folder / (file.filename or 'import.csv')
-    save_path.write_bytes(content)
-    return project.importer.parse_headers(str(save_path))
+    content = await file.read()
+    return project.importer.upload(file.filename or 'import.csv', content)
 
 
 @project_router.post('/import/parse')   # TODO: needs testing
@@ -1879,12 +1880,12 @@ def import_parse(req: _ImportParseRequest, project: Project = Depends(_dep)):
 
 @project_router.post('/import/confirm')   # TODO: needs testing
 def import_confirm(req: _ImportConfirmRequest, project: Project = Depends(_dep)):
-    """Write imported CSV data to the database."""
-    project.importer.import_data_and_commit(
+    """Queue a background task writing the imported CSV data to the database."""
+    task = project.importer.start_import(
         exclude=req.exclude,
         properties=req.properties,
     )
-    return {'ok': True}
+    return {'task_id': task.id}
 
 
 @project_router.post('/import/tags')   # TODO: needs testing

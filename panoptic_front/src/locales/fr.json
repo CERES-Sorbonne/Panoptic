@@ -733,13 +733,15 @@
                 "LoadPluginTask": "Chargement des plugins",
                 "ImportSourceTask": "Import des images",
                 "ComputeVectorsTask": "Calculs des vecteurs d'images",
-                "GenerateAtlasTask": "Création d'atlas d'image"
+                "GenerateAtlasTask": "Création d'atlas d'image",
+                "ImportCsvTask": "Import du CSV"
             },
             "steps": {
                 "Loading plugin": "Chargement du plugin",
                 "Scanning folder structure": "Analyse des dossiers",
                 "Reconciling removed files": "Vérification des fichiers supprimés",
-                "Importing files": "Import des fichiers"
+                "Importing files": "Import des fichiers",
+                "Importing values": "Import des valeurs"
             }
         },
         "property_status": {

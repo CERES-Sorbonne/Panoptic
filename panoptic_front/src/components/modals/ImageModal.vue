@@ -72,7 +72,20 @@ const currentInstanceId = computed(() => {
     if (target instanceof ImageIterator && !target.isValid) return undefined
     return col.instanceIds()[target.slot]
 })
-const currentInstanceIds = computed(() => currentInstanceId.value !== undefined ? [currentInstanceId.value] : [])
+// The current instance plus its left / right neighbours, so their values are already in the
+// store when the arrows land on them. Neighbours only when arrows can reach them (canNavigate).
+const currentInstanceIds = computed(() => {
+    const current = currentInstanceId.value
+    if (current === undefined) return []
+    const ids = [current]
+    if (!canNavigate()) return ids
+    const instanceIds = col.instanceIds()
+    for (const neighbour of [navIterator.value.prevImages(), navIterator.value.nextImages()]) {
+        const id = neighbour ? instanceIds[neighbour.slot] : undefined
+        if (id !== undefined && !ids.includes(id)) ids.push(id)
+    }
+    return ids
+})
 const allPropIds = computed(() => data.propertyList.map(p => p.id))
 const image = computed(() => instanceStore.instanceData[currentInstanceId.value])
 

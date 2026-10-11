@@ -194,9 +194,9 @@ watch(() => props.property, () => {
                 </div>
             </template>
         </div>
-        <div v-if="props.open && valuesOpen">
+        <div v-if="props.open && valuesOpen" class="prop-values">
             <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true"
-                :can-link="true" />
+                :can-link="true" :placeholder="$t('tag_menu_hint')" />
         </div>
     </div>
 </template>
@@ -343,5 +343,41 @@ watch(() => props.property, () => {
 .prop-act:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary);
+}
+
+/* Tag values nested under the row. Same horizontal padding as the row: the counts line up
+   with the row's action icons, and the list keeps the panel's full width for long tag names. */
+.prop-values {
+    padding: 2px var(--spacing-sm) 6px var(--spacing-sm);
+}
+
+/* TagMenu's search has no chrome of its own, since it usually sits on a tinted header. On the
+   white panel that leaves a bare caret, so here it gets a field outline, flush with the badges. */
+.prop-values :deep(.search-row) {
+    padding: 2px 0 4px 8px;
+}
+
+.prop-values :deep(.search) {
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    font-size: var(--font-size-xs) !important;
+}
+
+.prop-values :deep(.search:focus) {
+    border-color: var(--primary);
+}
+
+.prop-values :deep(.search::placeholder) {
+    color: var(--text-tertiary);
+}
+
+/* TagBadge takes its host's text size and line height, which here is the body's: chips that
+   tower over the panel's 12px rows. Pinned to the panel's own scale instead. */
+.prop-values :deep(.tag-badge) {
+    font-size: var(--font-size-xs);
+    line-height: 18px;
 }
 </style>

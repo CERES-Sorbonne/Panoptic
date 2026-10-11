@@ -1,19 +1,27 @@
 """CSV importer for Panoptic V2.
 
-Stateful: call parse_headers → verify_mapping → import_data_and_commit in order.
+Stateful: call parse_headers → verify_mapping → start_import (or import_data_and_commit)
+in order.
 """
 from __future__ import annotations
 
+import csv
 import io
 import os
+import uuid
+from array import array
+from contextlib import closing
+from itertools import islice
 from dataclasses import dataclass
+from pathlib import Path
 from random import randint
-from typing import Any, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 
 import polars as pl
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
+    from panoptic.core.task.task import Task
 
 from panoptic.core.databases.data.models import (
     Instance, Property, Tag, InstanceValue, Sha1Value, UpsertCommit,
@@ -41,8 +49,15 @@ _VALID_TYPES = {'text', 'number', 'tag', 'multi_tags', 'url', 'date', 'path', 'c
 _VALID_KEYS  = {'id', 'path'}
 _TAG_TYPES   = {'tag', 'multi_tags'}
 
-# Number of CSV columns to read per disk pass. Higher = fewer reads but more RAM.
-_COL_BATCH = 50
+# Values written per commit. Rows are read from the CSV one commit at a time, so this
+# also bounds the memory the import uses.
+_COMMIT_VALUES = 25_000
+
+# Row with no instance to write to, in Importer._row_ids
+_NO_INSTANCE = -1
+
+# Long text cells must not abort the import (the csv module refuses cells over 128 KB)
+csv.field_size_limit(2**31 - 1)
 
 _PARSERS: dict[str, Any] = {
     'text':       lambda v: str(v) if v else None,
@@ -75,6 +90,17 @@ def _read_csv(file_path: str, columns: list[str] | None = None,
         )
     except Exception:
         return None
+
+
+def _iter_rows(file_path: str) -> Iterator[list[str]]:
+    """Stream the CSV's data rows (header skipped), one list of cells per row.
+
+    Both verify_mapping and the import read rows with this, so row numbers always agree.
+    """
+    with open(file_path, newline='', encoding='utf-8-sig') as f:
+        reader = csv.reader(f, delimiter=';')
+        next(reader, None)
+        yield from reader
 
 
 def _parse_header(index: int, name: str, errors: dict[int, str]):
@@ -138,6 +164,12 @@ class _PathIndex:
 # Importer
 # ---------------------------------------------------------------------------
 
+def _allocate(allocate, n: int) -> range:
+    """Allocate n ids with one of Project's allocate_* methods, as a range."""
+    ids = allocate(n)
+    return ids if isinstance(ids, range) else range(ids, ids + 1)
+
+
 class Importer:
     """Stateful CSV importer for Project.
 
@@ -146,7 +178,7 @@ class Importer:
         importer = project.importer
         confirm  = importer.parse_headers('/path/to/file.csv')
         verify   = importer.verify_mapping(relative=False, fusion='new')
-        importer.import_data_and_commit()
+        task     = importer.start_import()   # or importer.import_data_and_commit()
     """
 
     def __init__(self, project: 'Project'):
@@ -155,8 +187,28 @@ class Importer:
         self.columns:   list[str] = []
         self.file_key:  str | None = None
         self.col_to_prop: dict[int, ImportProp] = {}
-        self._row_to_ids:      list[list[int]] = []
+        # Instance written by each CSV row, _NO_INSTANCE when none
+        self._row_ids:         array = array('q')
         self._new_inst_info:   list[tuple[int, int, str]] = []   # (file_id, inst_id, sha1)
+        # CSV saved by upload() that no import has taken over yet
+        self._upload_path: str | None = None
+
+    # ------------------------------------------------------------------
+    # Step 0 (optional): save an uploaded CSV
+    # ------------------------------------------------------------------
+
+    def upload(self, file_name: str, content: bytes) -> dict:
+        """Save an uploaded CSV in the project folder, then parse its headers.
+
+        Each upload gets its own folder and is deleted once imported, so an import still
+        reading its CSV is not affected by a later upload of a file with the same name.
+        """
+        self._discard_upload()
+        path = self.project.folder / 'imports' / uuid.uuid4().hex / (Path(file_name).name or 'import.csv')
+        path.parent.mkdir(parents=True)
+        path.write_bytes(content)
+        self._upload_path = str(path)
+        return self.parse_headers(self._upload_path)
 
     # ------------------------------------------------------------------
     # Step 1: parse CSV headers
@@ -217,11 +269,7 @@ class Importer:
 
         print(f"[import] verify_mapping  file={self.file_path}  key={self.file_key}  fusion={fusion}  relative={relative}")
 
-        df = _read_csv(self.file_path, columns=[self.file_key])
-        if df is None:
-            raise IOError("Cannot read key column from CSV")
-
-        key_data = df[self.file_key].to_list()
+        key_data = [row[0] if row else '' for row in _iter_rows(self.file_path)]
         print(f"[import] CSV rows: {len(key_data):,}")
 
         from panoptic.core.databases.data.create import (
@@ -286,56 +334,60 @@ class Importer:
         print(f"[import] row matching done  matched={matched:,}  unmatched={len(initial)-matched:,}")
 
         print(f"[import] applying fusion mode '{fusion}' …")
-        row_to_ids:    list[list[int]] = []
-        new_inst_info: list[tuple[int, int, str]] = []
+        row_ids = array('q', [_NO_INSTANCE]) * len(initial)
+        to_copy: list[tuple[int, int]] = []   # (row, instance the row's new instance copies)
 
-        for matches in initial:
-            if fusion == 'first':
-                row_to_ids.append([matches[0]] if matches else [])
-
-            elif fusion == 'last':
-                row_to_ids.append([matches[-1]] if matches else [])
-
+        for row, matches in enumerate(initial):
+            if not matches:
+                continue
+            if fusion == 'last':
+                row_ids[row] = matches[-1]
             elif fusion == 'new':
-                if matches:
-                    reusable = [m for m in matches if m not in non_empty_ids and m not in used_ids]
-                    if reusable:
-                        free_id = reusable[0]
-                        used_ids.add(free_id)
-                        row_to_ids.append([free_id])
-                    elif self.file_key == 'path':
-                        orig_sha1, orig_file_id = instances[matches[0]]
-                        new_id = self.project.allocate_instances(1)
-                        if isinstance(new_id, range):
-                            new_id = new_id.start
-                        row_to_ids.append([new_id])
-                        new_inst_info.append((orig_file_id or 0, new_id, orig_sha1 or ''))
-                    else:
-                        row_to_ids.append([])
-                else:
-                    row_to_ids.append([])
+                free_id = next((m for m in matches if m not in non_empty_ids and m not in used_ids), None)
+                if free_id is not None:
+                    used_ids.add(free_id)
+                    row_ids[row] = free_id
+                elif self.file_key == 'path':
+                    to_copy.append((row, matches[0]))
             else:
-                row_to_ids.append([matches[0]] if matches else [])
+                row_ids[row] = matches[0]
 
-        self._row_to_ids    = row_to_ids
+        new_inst_info: list[tuple[int, int, str]] = []
+        if to_copy:
+            for (row, orig), new_id in zip(to_copy, _allocate(self.project.allocate_instances, len(to_copy))):
+                orig_sha1, orig_file_id = instances[orig]
+                row_ids[row] = new_id
+                new_inst_info.append((orig_file_id or 0, new_id, orig_sha1 or ''))
+
+        self._row_ids       = row_ids
         self._new_inst_info = new_inst_info
 
-        missing = [[i, key_data[i]] for i, ids in enumerate(row_to_ids) if not ids]
-        print(f"[import] verify_mapping done  mapped={len(row_to_ids)-len(missing):,}  missing={len(missing):,}  new_instances={len(new_inst_info):,}")
+        missing = [[i, key_data[i]] for i, inst_id in enumerate(row_ids) if inst_id == _NO_INSTANCE]
+        print(f"[import] verify_mapping done  mapped={len(row_ids)-len(missing):,}  missing={len(missing):,}  new_instances={len(new_inst_info):,}")
         return {'missing_rows': missing, 'new_instances_count': len(new_inst_info)}
 
     # ------------------------------------------------------------------
     # Step 3: read CSV data and commit to DB
     # ------------------------------------------------------------------
 
+    def start_import(self, exclude: list[int] | None = None,
+                     properties: dict[str, dict] | None = None) -> 'Task':
+        """Queue the import of the verified CSV as a background task and return the task."""
+        from panoptic.core.task.import_csv_task import ImportCsvTask
+        return self.project.add_task(ImportCsvTask(self._take_import(exclude, properties)))
+
     def import_data_and_commit(self, exclude: list[int] | None = None,
                                 properties: dict[str, dict] | None = None):
+        """Import the verified CSV in the calling thread."""
+        for _ in self._take_import(exclude, properties).run():
+            pass
+
+    def _take_import(self, exclude: list[int] | None,
+                     properties: dict[str, dict] | None) -> 'CsvImport':
+        """Hand the session over to a CsvImport, and clear it so another import can start."""
         if not self.columns or not self.col_to_prop:
             raise ValueError("Call parse_headers and verify_mapping first")
 
-        print("[import] import_data_and_commit start")
-
-        BATCH = 25_000
         exclude_set = set(exclude or [])
 
         working: dict[int, ImportProp] = {}
@@ -354,152 +406,13 @@ class Importer:
                 working[i] = ImportProp(id=prop.id, name=prop.name,
                                          dtype=prop.dtype, mode=prop.mode)
 
-        if not working:
-            print("[import] no columns to import — aborting")
-            return
-
-        print(f"[import] columns to import: {[f'{p.name}[{p.dtype}]/{p.mode}' for p in working.values()]}")
-
-        if self._new_inst_info:
-            print(f"[import] committing {len(self._new_inst_info):,} new instances …")
-            inst_commit = UpsertCommit()
-            for file_id, inst_id, sha1 in self._new_inst_info:
-                inst_commit.instances[inst_id] = Instance(
-                    id=inst_id, file_id=file_id, sha1=sha1,
-                )
-            self.project.apply_upsert_commit('import', inst_commit)
-            print("[import] new instances committed")
-
-        new_props = [p for p in working.values() if p.id < 0]
-        if new_props:
-            print(f"[import] creating {len(new_props)} new propert{'y' if len(new_props)==1 else 'ies'} …")
-            ids = self.project.allocate_properties(len(new_props))
-            if isinstance(ids, int):
-                ids = range(ids, ids + 1)
-            prop_commit = UpsertCommit()
-            for p, real_id in zip(new_props, ids):
-                p.id = real_id
-                prop_commit.properties[real_id] = Property(
-                    id=real_id, dtype=p.dtype, mode=p.mode,
-                    name=p.name, access='write', tag_list_id=real_id,
-                    commit_id=0, operation=OP_CREATE,
-                )
-            self.project.apply_upsert_commit('import', prop_commit)
-            print(f"[import] properties committed: {[p.name for p in new_props]}")
-
-        from panoptic.core.databases.data.create import INSTANCES_SCHEMA
-
-        print("[import] loading tag cache and sha1 map …")
-        with self.project._data_reader() as reader:
-            tag_cache: dict[int, dict[str, int]] = {}
-            for t in reader.get_tags():
-                if t.list_id is not None:
-                    tag_cache.setdefault(t.list_id, {})[t.value] = t.id
-
-            sha1_map: dict[int, str] = {}
-            if any(p.mode == 'sha1' for p in working.values()):
-                for inst_id, sha1 in INSTANCES_SCHEMA.select(reader.conn, ['id', 'sha1']):
-                    if sha1:
-                        sha1_map[inst_id] = sha1
-        print(f"[import] sha1_map={len(sha1_map):,}  tag_cache lists={len(tag_cache):,}")
-
-        pending         = UpsertCommit()
-        pending_n       = 0
-        total_committed = 0
-        seen_sha1_pairs: set[tuple[int, str]] = set()
-
-        def flush():
-            nonlocal pending, pending_n, seen_sha1_pairs, total_committed
-            if pending_n == 0:
-                return
-            self.project.apply_upsert_commit('import', pending)
-            total_committed += pending_n
-            print(f"[import]   flushed {pending_n:,} values  (total so far: {total_committed:,})")
-            pending         = UpsertCommit()
-            pending_n       = 0
-            seen_sha1_pairs = set()
-
-        prop_items = list(working.items())
-        n_col_chunks = (len(prop_items) + _COL_BATCH - 1) // _COL_BATCH
-
-        for chunk_idx, chunk_start in enumerate(range(0, len(prop_items), _COL_BATCH)):
-            chunk     = prop_items[chunk_start: chunk_start + _COL_BATCH]
-            col_names = [self.columns[col_i] for col_i, _ in chunk]
-            print(f"[import] reading CSV chunk {chunk_idx+1}/{n_col_chunks}: {col_names} …")
-
-            df_chunk = _read_csv(self.file_path, columns=col_names)
-            if df_chunk is None:
-                print(f"[import]   could not read chunk — skipping")
-                continue
-
-            for col_i, prop in chunk:
-                col_name = self.columns[col_i]
-                is_tag   = prop.dtype in _TAG_TYPES
-                parse_fn = _PARSERS.get(prop.dtype, _PARSERS['text'])
-
-                csv_values = df_chunk[col_name].to_list()
-                print(f"[import]   processing '{prop.name}[{prop.dtype}]' ({len(csv_values):,} rows) …")
-
-                for row_i, raw in enumerate(csv_values):
-                    ids = self._row_to_ids[row_i] if row_i < len(self._row_to_ids) else []
-                    if not ids:
-                        continue
-
-                    parsed = parse_fn(raw)
-                    if parsed is None:
-                        continue
-
-                    if is_tag:
-                        names   = parsed if isinstance(parsed, list) else [parsed]
-                        list_id = prop.id
-                        cache   = tag_cache.setdefault(list_id, {})
-                        tag_ids = []
-                        for name in names:
-                            if name in cache:
-                                tag_ids.append(cache[name])
-                            else:
-                                new_tid = self.project.allocate_tags(1)
-                                if isinstance(new_tid, range):
-                                    new_tid = new_tid.start
-                                pending.tags[new_tid] = Tag(
-                                    id=new_tid, list_id=list_id, parents=[],
-                                    value=name, color=randint(0, 11),
-                                    commit_id=0, operation=OP_CREATE,
-                                )
-                                cache[name] = new_tid
-                                tag_ids.append(new_tid)
-                        final_val = tag_ids
-                    else:
-                        final_val = parsed
-
-                    for inst_id in ids:
-                        if prop.mode == 'sha1':
-                            sha1 = sha1_map.get(inst_id)
-                            if sha1:
-                                pair = (prop.id, sha1)
-                                if pair in seen_sha1_pairs:
-                                    continue
-                                seen_sha1_pairs.add(pair)
-                                pending.sha1_values.setdefault(prop.id, []).append(
-                                    Sha1Value(property_id=prop.id, sha1=sha1,
-                                              value=final_val, commit_id=0, operation=OP_UPDATE)
-                                )
-                                pending_n += 1
-                        else:
-                            pending.instance_values.setdefault(prop.id, []).append(
-                                InstanceValue(property_id=prop.id, instance_id=inst_id,
-                                              value=final_val, commit_id=0, operation=OP_UPDATE)
-                            )
-                            pending_n += 1
-
-                    if pending_n >= BATCH:
-                        flush()
-
-            del df_chunk
-
-        flush()
-        print(f"[import] done — total values committed: {total_committed:,}")
+        owns_file = self.file_path == self._upload_path
+        job = CsvImport(self.project, self.file_path, working, self._row_ids,
+                        self._new_inst_info, delete_file=owns_file)
+        if owns_file:
+            self._upload_path = None
         self._clear()
+        return job
 
     # ------------------------------------------------------------------
     # Tag CSV import  (separate from the main CSV flow)
@@ -584,5 +497,194 @@ class Importer:
         self.columns      = []
         self.file_key     = None
         self.col_to_prop  = {}
-        self._row_to_ids  = []
+        self._row_ids     = array('q')
         self._new_inst_info = []
+
+    def _discard_upload(self):
+        """Delete the uploaded CSV no import has taken over."""
+        if self._upload_path:
+            _delete_upload(self._upload_path)
+            self._upload_path = None
+
+
+def _delete_upload(path: str):
+    """Delete a CSV saved by Importer.upload, with the folder made for it."""
+    p = Path(path)
+    p.unlink(missing_ok=True)
+    try:
+        p.parent.rmdir()
+    except OSError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Import job
+# ---------------------------------------------------------------------------
+
+class CsvImport:
+    """Writes one verified CSV into the project. Built by Importer, run by ImportCsvTask.
+
+    Rows are streamed from the CSV and committed every _COMMIT_VALUES values, so memory
+    does not grow with the file. Each commit is applied as soon as it is built: an import
+    that stops early keeps the rows it already wrote.
+    """
+
+    def __init__(self, project: 'Project', file_path: str, props: dict[int, ImportProp],
+                 row_ids: array, new_instances: list[tuple[int, int, str]],
+                 delete_file: bool = False):
+        self.project       = project
+        self.file_path     = file_path
+        self.name          = Path(file_path).name
+        self.props         = props           # CSV column index -> property
+        self.row_ids       = row_ids
+        self.new_instances = new_instances
+        self.delete_file   = delete_file     # the CSV is an upload, delete it once done
+
+    @property
+    def n_rows(self) -> int:
+        return len(self.row_ids)
+
+    def run(self) -> Iterator[tuple[int, int]]:
+        """Import the CSV, yielding (rows done, cells that failed to parse) after each commit.
+
+        Stop iterating to stop the import.
+        """
+        try:
+            yield from self._run()
+        finally:
+            if self.delete_file:
+                _delete_upload(self.file_path)
+
+    def _run(self) -> Iterator[tuple[int, int]]:
+        project = self.project
+        props   = self.props
+        if not props:
+            print("[import] no columns to import — aborting")
+            return
+
+        print(f"[import] importing {self.n_rows:,} rows, columns: "
+              f"{[f'{p.name}[{p.dtype}]/{p.mode}' for p in props.values()]}")
+
+        if self.new_instances:
+            print(f"[import] committing {len(self.new_instances):,} new instances …")
+            inst_commit = UpsertCommit()
+            for file_id, inst_id, sha1 in self.new_instances:
+                inst_commit.instances[inst_id] = Instance(id=inst_id, file_id=file_id, sha1=sha1)
+            project.apply_upsert_commit('import', inst_commit)
+
+        new_props = [p for p in props.values() if p.id < 0]
+        if new_props:
+            prop_commit = UpsertCommit()
+            for p, real_id in zip(new_props, _allocate(project.allocate_properties, len(new_props))):
+                p.id = real_id
+                prop_commit.properties[real_id] = Property(
+                    id=real_id, dtype=p.dtype, mode=p.mode,
+                    name=p.name, access='write', tag_list_id=real_id,
+                    commit_id=0, operation=OP_CREATE,
+                )
+            project.apply_upsert_commit('import', prop_commit)
+            print(f"[import] properties created: {[p.name for p in new_props]}")
+
+        from panoptic.core.databases.data.create import INSTANCES_SCHEMA
+
+        with project._data_reader() as reader:
+            # list id -> tag value -> tag id
+            tag_cache: dict[int, dict[str, int]] = {}
+            for t in reader.get_tags():
+                if t.list_id is not None:
+                    tag_cache.setdefault(t.list_id, {})[t.value] = t.id
+
+            # sha1 of each row's instance, as an index in sha1s (-1 when none)
+            row_sha1 = array('q', [-1]) * self.n_rows
+            sha1s: list[str] = []
+            if any(p.mode == 'sha1' for p in props.values()):
+                inst_sha1 = dict(INSTANCES_SCHEMA.select(reader.conn, ['id', 'sha1']))
+                sha1_index: dict[str, int] = {}
+                for row, inst_id in enumerate(self.row_ids):
+                    sha1 = inst_sha1.get(inst_id) if inst_id != _NO_INSTANCE else None
+                    if sha1:
+                        i = sha1_index.setdefault(sha1, len(sha1s))
+                        if i == len(sha1s):
+                            sha1s.append(sha1)
+                        row_sha1[row] = i
+                del inst_sha1, sha1_index
+
+        # Per sha1-mode property, the images that already got a value: the first row
+        # with a value wins when several rows share an image.
+        seen = {p.id: bytearray(len(sha1s)) for p in props.values() if p.mode == 'sha1'}
+        columns = [(col, prop, _PARSERS.get(prop.dtype, _PARSERS['text']))
+                   for col, prop in props.items()]
+        rows_per_commit = max(1, _COMMIT_VALUES // len(columns))
+
+        done = failed = written = 0
+        # Closed even when the import stops early, so the upload can then be deleted
+        with closing(_iter_rows(self.file_path)) as rows:
+            while batch := list(islice(rows, rows_per_commit)):
+                commit, n_values, n_failed = self._build_commit(
+                    done, batch, columns, tag_cache, row_sha1, sha1s, seen)
+                if n_values:
+                    project.apply_upsert_commit('import', commit)
+                done    += len(batch)
+                failed  += n_failed
+                written += n_values
+                yield done, failed
+
+        print(f"[import] done — {written:,} values written, {failed:,} cells failed to parse")
+
+    def _build_commit(self, start: int, batch: list[list[str]], columns: list[tuple],
+                      tag_cache: dict[int, dict[str, int]], row_sha1: array, sha1s: list[str],
+                      seen: dict[int, bytearray]) -> tuple[UpsertCommit, int, int]:
+        """Commit of the values in ``batch``, the rows starting at row ``start``.
+
+        Returns (commit, number of values, number of cells that failed to parse).
+        """
+        # Parse every cell first, so the new tags of the batch get their ids in one allocation
+        cells: list[tuple[ImportProp, int, int, Any]] = []   # (prop, instance, sha1 index, value)
+        new_tags: dict[tuple[int, str], None] = {}           # (list id, tag value)
+        failed = 0
+        for row, cells_row in enumerate(batch, start):
+            inst_id = self.row_ids[row] if row < self.n_rows else _NO_INSTANCE
+            if inst_id == _NO_INSTANCE:
+                continue
+            for col, prop, parse in columns:
+                try:
+                    value = parse(cells_row[col] if col < len(cells_row) else '')
+                except ValueError:
+                    failed += 1
+                    continue
+                if value is None:
+                    continue
+                sha1 = row_sha1[row]
+                if prop.mode == 'sha1':
+                    if sha1 < 0 or seen[prop.id][sha1]:
+                        continue
+                    seen[prop.id][sha1] = 1
+                if prop.dtype in _TAG_TYPES:
+                    known = tag_cache.get(prop.id, {})
+                    for name in value:
+                        if name not in known:
+                            new_tags[(prop.id, name)] = None
+                cells.append((prop, inst_id, sha1, value))
+
+        commit = UpsertCommit()
+        if new_tags:
+            for (list_id, name), tag_id in zip(new_tags, _allocate(self.project.allocate_tags, len(new_tags))):
+                commit.tags[tag_id] = Tag(
+                    id=tag_id, list_id=list_id, parents=[],
+                    value=name, color=randint(0, 11),
+                    commit_id=0, operation=OP_CREATE,
+                )
+                tag_cache.setdefault(list_id, {})[name] = tag_id
+
+        for prop, inst_id, sha1, value in cells:
+            if prop.dtype in _TAG_TYPES:
+                value = [tag_cache[prop.id][name] for name in value]
+            if prop.mode == 'sha1':
+                commit.sha1_values.setdefault(prop.id, []).append(
+                    Sha1Value(property_id=prop.id, sha1=sha1s[sha1],
+                              value=value, commit_id=0, operation=OP_UPDATE))
+            else:
+                commit.instance_values.setdefault(prop.id, []).append(
+                    InstanceValue(property_id=prop.id, instance_id=inst_id,
+                                  value=value, commit_id=0, operation=OP_UPDATE))
+        return commit, len(cells), failed

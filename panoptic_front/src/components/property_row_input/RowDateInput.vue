@@ -46,7 +46,7 @@ watch(() => props.modelValue, loadValue)
 </script>
 
 <template>
-    <Dropdown :offset="-20" :no-shadow="false" :teleport="props.teleport" @esc="cancel" @enter="submit" placement="bottom"
+    <Dropdown :offset="-20" :no-shadow="false" :teleport="props.teleport" @esc="cancel" @enter="submit" placement="bottom" :fit-content="true"
         @hide="emits('hide')" ref="dropdownElem">
         <template v-slot:button>
             <div ref="previewElem" style="font-size: 14px;">

@@ -240,9 +240,10 @@ export async function apiParseImport(options) {
     return keysToCamel(res.data) as ImportVerify
 }
 
+/** Queues the import as a background task, shown with the other tasks. */
 export async function apiConfirmImport(params) {
     const res = await projectApi.post('/import/confirm', params)
-    return keysToCamel(res.data) as DbCommit
+    return keysToCamel(res.data) as { taskId: string }
 }
 
 export const apiExportProperties = async (name?: string, images?: number[], key?: string, properties?: number[], exportImages = false) => {

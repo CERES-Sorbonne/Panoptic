@@ -75,7 +75,17 @@ function hasEditor(type: PropertyType) {
         || type == PropertyType.date || type == PropertyType.number
 }
 
+// The editor's popup closes on an outside click in the click's capture phase (Dropdown), so by
+// the time that click bubbles to its cell the editor is already closed: a click on the cell's own
+// blank area would close the editor and open it again at once. Whether the cell was open is
+// therefore read on press, before the click, and such a click only closes.
+let openAtPress: number | undefined
+function onCellPress(propertyId: number) {
+    openAtPress = openIds.value.includes(propertyId) ? propertyId : undefined
+}
+
 function openCell(key: CellKey, property: Property) {
+    if (openAtPress === property.id) return
     if (hasEditor(property.type)) cells.openCell(key)
 }
 
@@ -165,7 +175,8 @@ function showModal() {
              (tags wrapped, like at rest) and the row grows with it as it is typed in. -->
         <div v-for="col in columns" :key="col.property.id" class="container22 cell"
             :style="{ width: inputWidth[col.property.id] + 7 + 'px' }"
-            style="padding: 0px 3px; font-size: 14px;" @click="openCell(col.key, col.property)">
+            style="padding: 0px 3px; font-size: 14px;" @mousedown="onCellPress(col.property.id)"
+            @click="openCell(col.key, col.property)">
             <GridPropInput v-if="openIds.includes(col.property.id)" :open="true" :instance="image"
                 :property="col.property" :min-height="cellMinHeight" :width="inputWidth[col.property.id]"
                 @click.stop="" @close="cells.closeCell(col.key)"

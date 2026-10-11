@@ -118,6 +118,90 @@ def test_import_csv_reports_missing_rows(project):
     assert len(mapping['missing_rows']) == 2
 
 
+def test_import_csv_as_task(project):
+    """start_import writes the same values as a direct import, in a background task."""
+    project.importer.parse_headers(str(DATA / 'import.csv'))
+    project.importer.verify_mapping(relative=True, fusion='new')
+    task = project.importer.start_import()
+    task.wait()
+    assert task.state.finished and not task.state.cancelled
+    assert task.state.total == task.state.done == 10
+    assert task.state.failed == 0
+
+    values = _values_by_file(project)
+    assert values['number_7.png']['multi_tags'] == ['7', 'odd']
+    assert all(v.get('string') for v in values.values())
+
+
+def test_import_csv_upload_is_deleted(project):
+    """An uploaded CSV gets its own file, deleted once imported or replaced by another upload."""
+    content = (DATA / 'import.csv').read_bytes()
+    project.importer.upload('import.csv', content)
+    first = Path(project.importer.file_path)
+    assert first.name == 'import.csv' and first.read_bytes() == content
+
+    project.importer.upload('import.csv', content)
+    second = Path(project.importer.file_path)
+    assert not first.exists() and second.exists()
+
+    project.importer.verify_mapping(relative=True, fusion='new')
+    project.importer.start_import().wait()
+    assert not second.exists()
+    assert _values_by_file(project)['number_7.png']['string'] == 'seven'
+
+
+def test_import_csv_stopped_keeps_written_rows(project, monkeypatch):
+    """Stopping an import between commits keeps the rows already written."""
+    from panoptic.core.importer import importer
+    # One CSV row per commit
+    monkeypatch.setattr(importer, '_COMMIT_VALUES', 1)
+    project.importer.parse_headers(str(DATA / 'import.csv'))
+    project.importer.verify_mapping(relative=True, fusion='new')
+    job = project.importer._take_import(None, None)
+    progress = job.run()
+    assert next(progress) == (1, 0)
+    assert next(progress) == (2, 0)
+    progress.close()
+
+    with_string = [name for name, v in _values_by_file(project).items() if v.get('string')]
+    assert sorted(with_string) == ['number_1.png', 'number_7.png']
+
+
+def test_import_csv_counts_unparsable_cells(project, tmp_path):
+    csv_path = tmp_path / 'bad.csv'
+    csv_path.write_text('path;string[text];number[number]\n'
+                        'images/number_1.png;one;not a number\n'
+                        'images/7-10/number_7.png;seven;7\n')
+    project.importer.parse_headers(str(csv_path))
+    project.importer.verify_mapping(relative=True, fusion='new')
+    task = project.importer.start_import()
+    task.wait()
+    assert task.state.failed == 1
+
+    values = _values_by_file(project)
+    assert values['number_1.png'] == {'string': 'one'}
+    assert values['number_7.png']['number'] == 7
+
+
+def test_import_csv_fusion_new_copies_instance(project, tmp_path):
+    """With fusion 'new', a second row for an image whose instance is taken gets a new
+    instance of that image."""
+    csv_path = tmp_path / 'twice.csv'
+    csv_path.write_text('path;note[text]\n'
+                        'images/number_1.png;first\n'
+                        'images/number_1.png;second\n')
+    project.importer.parse_headers(str(csv_path))
+    mapping = project.importer.verify_mapping(relative=True, fusion='new')
+    assert mapping['new_instances_count'] == 1
+    project.importer.import_data_and_commit(properties={'1': {'mode': 'id'}})
+
+    one = next(f for f in project.get_files() if f.name == 'number_1.png')
+    instances = [i.id for i in project.get_instances() if i.file_id == one.id]
+    assert len(instances) == 2
+    notes = {v.value for v in project.get_instance_values() if v.instance_id in instances}
+    assert notes == {'first', 'second'}
+
+
 # ---------------------------------------------------------------------------
 # CSV export
 # ---------------------------------------------------------------------------

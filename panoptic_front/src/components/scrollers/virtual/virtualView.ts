@@ -161,6 +161,12 @@ export class VirtualView {
         this.update()
     }
 
+    // The browser saw the scroll stop (scrollend): no need to wait for the idle timer.
+    onScrollEnd() {
+        this.host.clearTimer(this.idleTimer)
+        if (this.motionState !== 'idle') this.onIdle()
+    }
+
     private onIdle() {
         this.setMotion('idle')
         // The mounted range was widened ahead while moving: back to normal.
@@ -381,7 +387,7 @@ export class VirtualView {
             this.heldTimer ??= this.host.setTimer(() => {
                 this.heldTimer = null
                 this.releaseHeld()
-            }, this.options.fastRangeEvery ?? 100)
+            }, this.options.fastRangeEvery ?? 50)
             return
         }
         this.host.range?.(range)

@@ -125,7 +125,7 @@ onMounted(updateLocal)
 
         <template #popup="{hide}">
             <!-- no padding: the tag input's tinted header runs to the popup's edges -->
-            <div style="max-width: 250px; overflow: hidden; border-radius: 4px;">
+            <div class="tag-popup">
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
@@ -141,5 +141,15 @@ onMounted(updateLocal)
 .btn-class {
     overflow: hidden;
     cursor: pointer;
+}
+
+/* Fills the popup, which is at least as wide as the cell: capped narrower, the tinted header
+   stopped short of the popup's right edge. The popup itself only carries a faint shadow, which
+   vanishes against the grid's white cells, so the outline is drawn here. */
+.tag-popup {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
 }
 </style>
