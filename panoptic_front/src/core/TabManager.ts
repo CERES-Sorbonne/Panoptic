@@ -68,6 +68,21 @@ export class TabManager {
         else this.bindViews()
     }
 
+    // Close one pane of the split. The other one stays and becomes view 0 (the main view):
+    // closing view 0 swaps the pair, so the closed view's state is what sits hidden in
+    // view 1, ready for the next split.
+    closeView(viewIndex: number) {
+        if (!this.state.splitView) return
+        if (viewIndex === 0) {
+            const [first, second] = this.state.views
+            this.state.views[0] = second
+            this.state.views[1] = first
+        }
+        this.state.splitView = false
+        this.activate()
+        this.update()
+    }
+
     // Make view 1 share view 0's collection again; drop the orphaned one.
     private bindViews() {
         if (this.isBound()) return

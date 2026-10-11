@@ -94,6 +94,8 @@ const borderWidth = computed(() => props.mapOptions.borderWidth ?? DEFAULT_BORDE
 const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_SCALE)
 const layout = computed(() => props.mapOptions.layout ?? 'grid')
 const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_DENSITY)
+// Outside the grid, how far the projection is stretched: spreads the images apart.
+const mapSpread = computed(() => props.mapOptions.mapSpread ?? 1)
 const fillCells = computed(() => layout.value === 'grid' && (props.mapOptions.fillCells ?? true))
 const groupOutlines = computed(() => props.mapOptions.groupOutlines ?? true)
 watch(() => props.mapOptions, (opts) => {
@@ -539,8 +541,8 @@ function applyLayout(pts: PointData[], mapId: number) {
         gridCells = { cols: grid.cols, rows: grid.rows, cellPoint }
     } else {
         for (const p of pts) {
-            p.x = p.sx
-            p.y = p.sy
+            p.x = p.sx * mapSpread.value
+            p.y = p.sy * mapSpread.value
         }
         gridCells = null
     }
@@ -672,8 +674,8 @@ async function showMap(mapId: number, force = false) {
 
         const p: PointData = {
             id: instanceId,
-            x: values[i + 1],
-            y: values[i + 2],
+            x: values[i + 1] * mapSpread.value,
+            y: values[i + 2] * mapSpread.value,
             sx: values[i + 1],
             sy: values[i + 2],
             z: BASE_Z,
@@ -1073,6 +1075,7 @@ watch(layout, (val) => {
     relayout()
 })
 watch(gridDensity, () => { if (layout.value === 'grid') relayout() })
+watch(mapSpread, () => { if (layout.value !== 'grid') relayout() })
 watch(fillCells, (val) => renderer.value?.setFillCells(val))
 watch(groupOutlines, () => syncGroupRegions())
 watch(borderWidth, () => updateColors())
@@ -1132,7 +1135,9 @@ onMounted(async () => {
             @update:border-width="props.mapOptions.borderWidth = $event" :hover-scale="hoverScale"
             @update:hover-scale="props.mapOptions.hoverScale = $event"
             :grid-density="layout == 'grid' ? gridDensity : null"
-            @update:grid-density="props.mapOptions.gridDensity = $event" @delete:map="deleteMap"
+            @update:grid-density="props.mapOptions.gridDensity = $event"
+            :map-spread="layout == 'grid' ? null : mapSpread"
+            @update:map-spread="props.mapOptions.mapSpread = $event" @delete:map="deleteMap"
             :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
 
         <div class="map-body">

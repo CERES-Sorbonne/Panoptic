@@ -93,6 +93,8 @@ export interface MapOptions {
     layout?: MapLayout
     // Grid cells per image: 1 fills the grid, more leaves empty cells between distant groups.
     gridDensity?: number
+    // Outside the grid, factor on the projection's coordinates: more spreads the images apart.
+    mapSpread?: number
     // In the grid, thumbnails fill their cell with a centred square crop.
     fillCells?: boolean
     // In the grid, lines between groups and group names over their islands.

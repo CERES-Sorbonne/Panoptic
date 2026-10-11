@@ -22,6 +22,8 @@ const props = defineProps<{
     hoverScale: number
     // Grid cells per image; null outside the grid layout, which hides the slider.
     gridDensity: number | null
+    // Stretch of the projection; null in the grid layout, which hides the slider.
+    mapSpread: number | null
     // Atlas status, shown by the atlas dropdown.
     atlasLoad: AtlasLoadProgress | null
     mapMissing: number
@@ -32,6 +34,7 @@ const emits = defineEmits([
     'update:borderWidth',
     'update:hoverScale',
     'update:gridDensity',
+    'update:mapSpread',
     'delete:map'
 ])
 
@@ -79,9 +82,15 @@ async function updateMap(event) {
         </WithToolTip>
 
         <WithToolTip v-if="props.hasMaps && props.gridDensity != null" message="map.grid_density" class="border-width-control d-flex align-items-center">
-            <i class="bi bi-grid-3x3-gap me-1" style="font-size: 13px;"></i>
-            <RangeInput :min="1" :max="10" :step="0.1" :model-value="props.gridDensity"
+            <i class="bi bi-arrows-angle-expand me-1" style="font-size: 13px;"></i>
+            <RangeInput :min="1" :max="30" :step="0.1" :model-value="props.gridDensity"
                 @update:model-value="emits('update:gridDensity', $event)" />
+        </WithToolTip>
+
+        <WithToolTip v-if="props.hasMaps && props.mapSpread != null" message="map.spread" class="border-width-control d-flex align-items-center">
+            <i class="bi bi-arrows-angle-expand me-1" style="font-size: 13px;"></i>
+            <RangeInput :min="1" :max="10" :step="0.1" :model-value="props.mapSpread"
+                @update:model-value="emits('update:mapSpread', $event)" />
         </WithToolTip>
     </div>
 </template>

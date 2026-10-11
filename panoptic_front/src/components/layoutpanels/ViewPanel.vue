@@ -100,10 +100,14 @@ onUnmounted(() => {
 
                 <div class="flex-grow-1"></div>
 
-                <!-- Toggle split view -->
-                <wTT :message="tab?.state.splitView ? 'main.nav.unsplit_view' : 'main.nav.split_view'" pos="bottom">
-                    <button class="tab-tool" :class="{ active: tab?.state.splitView }"
-                        @click="tab && (tab.state.splitView = !tab.state.splitView)">
+                <!-- Split view: each pane closes on its own, the other one stays -->
+                <wTT v-if="tab?.state.splitView" message="main.nav.close_view" pos="bottom">
+                    <button class="tab-tool" @click="tab?.closeView(props.viewIndex)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </wTT>
+                <wTT v-else message="main.nav.split_view" pos="bottom">
+                    <button class="tab-tool" @click="tab && (tab.state.splitView = true)">
                         <i class="bi bi-columns"></i>
                     </button>
                 </wTT>

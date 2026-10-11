@@ -117,7 +117,7 @@
         "nav": {
             "hide_panel": "Masquer le panneau",
             "split_view": "Diviser à droite",
-            "unsplit_view": "Fusionner la vue",
+            "close_view": "Fermer la vue",
             "toggle_properties": "Afficher ou masquer les propriétés",
             "folders": {
                 "title": "Dossiers",
@@ -826,6 +826,7 @@
             "won": "Gagné ! Espace pour rejouer · Échap pour quitter"
         },
         "grid_density": "Cases vides entre les groupes",
+        "spread": "Écarter les images",
         "show_boxes": "Afficher les boites",
         "pan": "Déplacer",
         "cell_select": "Sélection par cases",

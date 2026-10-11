@@ -117,7 +117,7 @@
         "nav": {
             "hide_panel": "Hide panel",
             "split_view": "Split right",
-            "unsplit_view": "Unsplit",
+            "close_view": "Close view",
             "toggle_properties": "Show / hide properties",
             "folders": {
                 "title": "Folders",
@@ -820,6 +820,7 @@
             "won": "You won! Space to replay · Esc to quit"
         },
         "grid_density": "Empty cells between groups",
+        "spread": "Spread images apart",
         "show_boxes": "Show boxes",
         "pan": "Pan",
         "cell_select": "Cell selection",
