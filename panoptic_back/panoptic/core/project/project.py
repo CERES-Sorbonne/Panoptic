@@ -17,6 +17,7 @@ from panoptic.core.databases.data.models import (
     InstanceTagValue, InstanceValue, Property, Sha1TagValue, Sha1Value, Tag, UpsertCommit,
 )
 from panoptic.core.databases.entity_schema import OP_CREATE
+from panoptic.core.file_source.processing import BROWSER_IMAGE_EXTENSIONS
 from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTIES, SYSTEM_PROPERTY_MAP
 from panoptic.core.plugin.action_registry import ActionRegistry
 from panoptic.core.task.task import Task
@@ -28,9 +29,6 @@ logger = logging.getLogger(__name__)
 
 #: 0.x thumbnail sizes by name, used when a migrated type has no size and no stored image
 LEGACY_THUMBNAIL_SIZES = {'small': 128, 'medium': 256, 'large': 1024}
-
-#: original files a browser can display as they are (no TIFF)
-BROWSER_IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
 
 
 class Project:

@@ -18,6 +18,7 @@ from starlette.responses import FileResponse, Response
 
 from panoptic import __version__ as panoptic_version
 from panoptic.config import get_config, is_allowed_path
+from panoptic.core.file_source.processing import IMAGE_EXTENSIONS
 from panoptic.core.project.conversion import STATUS_OK, check_project
 from panoptic.routes.deps import get_panoptic, get_server, set_dependencies   # re-export
 
@@ -369,7 +370,7 @@ def filesystem_count(path: str = ''):
     folder = os.path.normpath(path)
     count = sum(
         1 for _, _, files in os.walk(folder)
-        for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        for f in files if f.lower().endswith(IMAGE_EXTENSIONS)
     )
     return {'count': count, 'path': path}
 

@@ -5,6 +5,13 @@ from typing import Callable, Optional
 # (type_id, format, max_width, max_height)
 ImageTypeSpec = tuple[int, str, int | None, int | None]
 
+#: original files a browser can display as they are
+BROWSER_IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp')
+
+#: files picked up on import: everything PIL decodes without extra dependencies
+#: (TIFF and JPEG 2000 are only ever shown through their thumbnails)
+IMAGE_EXTENSIONS = BROWSER_IMAGE_EXTENSIONS + ('.tif', '.tiff', '.jp2', '.j2k', '.jpf', '.jpx')
+
 
 def render(img, fmt: str, max_w: int | None, max_h: int | None) -> bytes:
     """Resize to fit within (max_w, max_h) — both optional — then encode."""

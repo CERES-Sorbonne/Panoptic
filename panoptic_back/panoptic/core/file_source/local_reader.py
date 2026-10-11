@@ -3,11 +3,9 @@ import os
 from datetime import datetime
 
 from panoptic.core.file_source.base import FileSourceReader, FolderNode, ItemRef
-from panoptic.core.file_source.processing import ImageTypeSpec, process_bytes
+from panoptic.core.file_source.processing import IMAGE_EXTENSIONS, ImageTypeSpec, process_bytes
 
 logger = logging.getLogger('LocalFileSourceReader')
-
-IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.tif', '.tiff')
 
 
 def _process_local_item(path: str, image_types: list[ImageTypeSpec]) -> dict | None:

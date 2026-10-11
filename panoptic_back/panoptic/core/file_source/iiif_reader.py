@@ -9,7 +9,7 @@ import httpx
 from panoptic.core.databases.data.models import FileSource, UpsertCommit
 from panoptic.core.file_source.base import FileSourceReader, FolderNode, ItemRef, update_file_source
 from panoptic.core.file_source.iiif_config import IIIFSourceConfig
-from panoptic.core.file_source.processing import ImageTypeSpec, process_bytes
+from panoptic.core.file_source.processing import IMAGE_EXTENSIONS, ImageTypeSpec, process_bytes
 
 logger = logging.getLogger('IIIFFileSourceReader')
 
@@ -24,7 +24,6 @@ MAX_BACKOFF = 30.0       # cap for a single backoff sleep (seconds)
 # Every HTTP request across all reader instances is paced to at most one per interval.
 REQUEST_INTERVAL = 0.5
 
-IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.tif', '.tiff')
 
 # IIIF Presentation context markers used to sniff the major version.
 _V3_CTX = 'presentation/3/context.json'
