@@ -124,7 +124,7 @@ export class GridRegionsLayer {
 
         const pxPerWorld = width / (view.maxX - view.minX)
         const cellPx = grid.cellSize * pxPerWorld
-        this.thickness.value = grid.strokeScale * Math.min(STROKE_PX / pxPerWorld, STROKE_MAX_CELL * grid.cellSize)
+        this.thickness.value = Math.min(grid.strokeScale * STROKE_PX / pxPerWorld, STROKE_MAX_CELL * grid.cellSize)
         if (cellPx >= LABEL_MAX_CELL_PX) {
             this.hideLabels(0)
             return
