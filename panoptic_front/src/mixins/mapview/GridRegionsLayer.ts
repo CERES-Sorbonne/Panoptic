@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { ZoomParams } from '@/data/models'
 import { groupIslands, groupStrokes, STROKE_STRIDE, type Island } from './GridRegions'
 
 export interface RegionGrid {
@@ -8,8 +9,9 @@ export interface RegionGrid {
     // Group index per cell (row * cols + col), -1 for an empty cell.
     cellGroup: Int32Array
     groups: { name: string, color: string }[]
-    // Multiplies the outline thickness (follows the border-width slider); 0 hides the outlines.
-    strokeScale: number
+    // Images' border width (the border-width slider): the outline is never thicker than the
+    // images' borders, and 0 hides it.
+    borderWidth: number
 }
 
 // Outline thickness on screen (px), capped at a share of a cell so that, zoomed out, a stroke
@@ -28,6 +30,16 @@ const MAX_LABELS = 60
 const LABEL_CHAR_PX = 7
 const LABEL_PAD_PX = 26
 const LABEL_HEIGHT_PX = 22
+
+// World thickness of an image's border ring, as the image shaders draw it: the width is in units
+// of the image's long side (scaled with the zoom like the image), shrinking as the camera zooms in
+// down to MIN_BORDER_RATIO of it.
+const MIN_BORDER_RATIO = 0.15
+function imageBorderWorld(borderWidth: number, zoom: number, { h, z1, z2 }: ZoomParams) {
+    const size = zoom < z1 ? h : h * z1 / Math.min(zoom, z2)
+    const scale = Math.max(Math.min(1, z1 / Math.max(zoom, z1)), MIN_BORDER_RATIO)
+    return borderWidth * scale * size
+}
 
 /**
  * Group outlines of the grid layout, in each group's colour, and the group's name over each large
@@ -74,7 +86,7 @@ export class GridRegionsLayer {
         this.viewKey = ''
         this.strokes.geometry.dispose()
         this.strokes.geometry = new THREE.BufferGeometry()
-        this.strokes.visible = !!grid && grid.strokeScale > 0
+        this.strokes.visible = !!grid && grid.borderWidth > 0
         this.islands = []
         if (!grid) {
             this.hideLabels(0)
@@ -92,16 +104,25 @@ export class GridRegionsLayer {
             const o = s * STROKE_STRIDE
             const x0 = (strokes[o] - cols / 2) * cellSize, y0 = (strokes[o + 1] - rows / 2) * cellSize
             const x1 = (strokes[o + 2] - cols / 2) * cellSize, y1 = (strokes[o + 3] - rows / 2) * cellSize
-            const nx = strokes[o + 4], ny = strokes[o + 5]
+            const w = strokes[o + 7]
+            const nx = strokes[o + 4] * w, ny = strokes[o + 5] * w
+            // Unit direction of the edge, to push an end out by the thickness at an inner corner.
+            const len = Math.hypot(x1 - x0, y1 - y0)
+            const tx = (x1 - x0) / len, ty = (y1 - y0) / len
+            const ext0 = strokes[o + 8] * w, ext1 = strokes[o + 9] * w
             const color = groupColors[strokes[o + 6]] ?? fallback
             // Two triangles: edge start, edge end, inner end / edge start, inner end, inner start.
-            const corners: [number, number, number][] = [[x0, y0, 0], [x1, y1, 0], [x1, y1, 1], [x0, y0, 0], [x1, y1, 1], [x0, y0, 1]]
-            corners.forEach(([x, y, inner], k) => {
+            // [x, y, inner, extension along the edge]
+            const corners: [number, number, number, number][] = [
+                [x0, y0, 0, -ext0], [x1, y1, 0, ext1], [x1, y1, 1, ext1],
+                [x0, y0, 0, -ext0], [x1, y1, 1, ext1], [x0, y0, 1, -ext0],
+            ]
+            corners.forEach(([x, y, inner, ext], k) => {
                 const v = s * 6 + k
                 positions[v * 3] = x
                 positions[v * 3 + 1] = y
-                offsets[v * 2] = nx * inner
-                offsets[v * 2 + 1] = ny * inner
+                offsets[v * 2] = nx * inner + tx * ext
+                offsets[v * 2 + 1] = ny * inner + ty * ext
                 colors[v * 3] = color.r
                 colors[v * 3 + 1] = color.g
                 colors[v * 3 + 2] = color.b
@@ -115,16 +136,17 @@ export class GridRegionsLayer {
 
     // `view`: the camera's world rect. Called every frame; only re-lays the labels when the view
     // changed.
-    public update(view: { minX: number, maxX: number, minY: number, maxY: number }, width: number, height: number) {
+    public update(view: { minX: number, maxX: number, minY: number, maxY: number }, width: number, height: number,
+        zoom: number, params: ZoomParams) {
         const grid = this.grid
         if (!grid || !width || !height) return
-        const key = `${view.minX},${view.maxX},${view.minY},${view.maxY},${width},${height}`
+        const key = `${view.minX},${view.maxX},${view.minY},${view.maxY},${width},${height},${zoom}`
         if (key === this.viewKey) return
         this.viewKey = key
 
         const pxPerWorld = width / (view.maxX - view.minX)
         const cellPx = grid.cellSize * pxPerWorld
-        this.thickness.value = Math.min(grid.strokeScale * STROKE_PX / pxPerWorld, STROKE_MAX_CELL * grid.cellSize)
+        this.thickness.value = Math.min(STROKE_PX / pxPerWorld, imageBorderWorld(grid.borderWidth, zoom, params), STROKE_MAX_CELL * grid.cellSize)
         if (cellPx >= LABEL_MAX_CELL_PX) {
             this.hideLabels(0)
             return

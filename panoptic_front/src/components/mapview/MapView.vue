@@ -569,7 +569,7 @@ function syncGroupRegions() {
         cellSize: imageWorldSize(props.imageSize),
         cellGroup,
         groups: leaves.value.map(l => ({ name: l.name, color: l.color })),
-        strokeScale: borderWidth.value / DEFAULT_BORDER_WIDTH,
+        borderWidth: borderWidth.value,
     })
 }
 
@@ -1172,7 +1172,7 @@ onMounted(async () => {
                     <WithToolTip v-if="layout == 'grid' && leaves.length" message="map.group_outlines">
                         <div class="tool" :class="{ selected: groupOutlines }"
                             @click="props.mapOptions.groupOutlines = !groupOutlines">
-                            <i class="bi bi-map"></i>
+                            <i class="bi bi-border-outer"></i>
                         </div>
                     </WithToolTip>
                     <WithToolTip message="map.pan">

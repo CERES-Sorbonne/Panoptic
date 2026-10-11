@@ -11,42 +11,56 @@ export interface Island {
 }
 
 // Values per stroke in groupStrokes' output.
-export const STROKE_STRIDE = 7
+export const STROKE_STRIDE = 10
 
 /**
  * Outline strokes of the groups, laid inside each group along its edge against another group or
  * an empty cell: where two groups touch there is one stroke on each side, each of its own group.
- * Flat [x0, y0, x1, y1, nx, ny, group, ...]: a segment in cell units (cell (c, r) spans
- * [c, c + 1) × [r, r + 1)), the unit normal pointing into the group's cells, the group index.
- * Consecutive cell edges of one group along a line are merged into one stroke.
+ * Flat [x0, y0, x1, y1, nx, ny, group, width, ...]: a segment in cell units (cell (c, r) spans
+ * [c, c + 1) × [r, r + 1)), the unit normal pointing into the group's cells, the group index and
+ * the stroke's share of the outline thickness: 1 against an empty cell, 0.5 against another group,
+ * so the two strokes of a shared edge add up to the same thickness as an outer one.
+ * Then two flags, for the start and the end: whether the group goes on past that end on its own
+ * side (an inner corner). There the perpendicular stroke lies beyond the end, so the stroke must be
+ * extended by its thickness to meet it, or the corner shows a notch.
+ * Consecutive cell edges of one group along a line, against the same kind of neighbour, are merged
+ * into one stroke.
  */
 export function groupStrokes(cellGroup: Int32Array, cols: number, rows: number): number[] {
     const g = (c: number, r: number) => (c < 0 || r < 0 || c >= cols || r >= rows) ? -1 : cellGroup[r * cols + c]
     const res: number[] = []
     // One line (x = k across rows, or y = k across columns), one side of it.
     const scan = (length: number, side: (i: number) => number, other: (i: number) => number,
-        push: (start: number, end: number, group: number) => void) => {
-        let start = -1, group = -1
+        push: (start: number, end: number, group: number, width: number) => void) => {
+        let start = -1, group = -1, width = 0
         for (let i = 0; i <= length; i++) {
             const here = i < length ? side(i) : -1
-            const edge = here >= 0 && here !== other(i)
-            if (start >= 0 && (!edge || here !== group)) {
-                push(start, i, group)
+            const there = i < length ? other(i) : -1
+            const edge = here >= 0 && here !== there
+            const w = there >= 0 ? 0.5 : 1
+            if (start >= 0 && (!edge || here !== group || w !== width)) {
+                push(start, i, group, width)
                 start = -1
             }
             if (edge && start < 0) {
                 start = i
                 group = here
+                width = w
             }
         }
     }
+    const inner = (cell: number, group: number) => cell === group ? 1 : 0
     for (let c = 0; c <= cols; c++) {
-        scan(rows, r => g(c - 1, r), r => g(c, r), (r0, r1, group) => res.push(c, r0, c, r1, -1, 0, group))
-        scan(rows, r => g(c, r), r => g(c - 1, r), (r0, r1, group) => res.push(c, r0, c, r1, 1, 0, group))
+        scan(rows, r => g(c - 1, r), r => g(c, r), (r0, r1, group, w) =>
+            res.push(c, r0, c, r1, -1, 0, group, w, inner(g(c - 1, r0 - 1), group), inner(g(c - 1, r1), group)))
+        scan(rows, r => g(c, r), r => g(c - 1, r), (r0, r1, group, w) =>
+            res.push(c, r0, c, r1, 1, 0, group, w, inner(g(c, r0 - 1), group), inner(g(c, r1), group)))
     }
     for (let r = 0; r <= rows; r++) {
-        scan(cols, c => g(c, r - 1), c => g(c, r), (c0, c1, group) => res.push(c0, r, c1, r, 0, -1, group))
-        scan(cols, c => g(c, r), c => g(c, r - 1), (c0, c1, group) => res.push(c0, r, c1, r, 0, 1, group))
+        scan(cols, c => g(c, r - 1), c => g(c, r), (c0, c1, group, w) =>
+            res.push(c0, r, c1, r, 0, -1, group, w, inner(g(c0 - 1, r - 1), group), inner(g(c1, r - 1), group)))
+        scan(cols, c => g(c, r), c => g(c, r - 1), (c0, c1, group, w) =>
+            res.push(c0, r, c1, r, 0, 1, group, w, inner(g(c0 - 1, r), group), inner(g(c1, r), group)))
     }
     return res
 }

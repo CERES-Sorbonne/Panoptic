@@ -51,6 +51,39 @@ test('regions: where two groups touch, each gets its own stroke on its side', ()
     assert.equal(res.length, 8)
 })
 
+test('regions: a shared edge gets two half strokes, an outer edge one full stroke', () => {
+    const { cellGroup, cols, rows } = grid('01.')
+    const flat = groupStrokes(cellGroup, cols, rows)
+    const width = (x0: number, y0: number, x1: number, y1: number, g: number) => {
+        for (let i = 0; i < flat.length; i += STROKE_STRIDE) {
+            const s = flat.slice(i, i + STROKE_STRIDE)
+            if (s[0] === x0 && s[1] === y0 && s[2] === x1 && s[3] === y1 && s[6] === g) return s[7]
+        }
+    }
+    assert.equal(width(1, 0, 1, 1, 0), 0.5)
+    assert.equal(width(1, 0, 1, 1, 1), 0.5)
+    assert.equal(width(2, 0, 2, 1, 1), 1)
+    assert.equal(width(0, 0, 0, 1, 0), 1)
+})
+
+test('regions: a stroke is extended only at an inner corner of its group', () => {
+    // L shape: the inner corner is at (1, 1).
+    const { cellGroup, cols, rows } = grid(
+        '0.',
+        '00',
+    )
+    const flat = groupStrokes(cellGroup, cols, rows)
+    const ext = (x0: number, y0: number, x1: number, y1: number) => {
+        for (let i = 0; i < flat.length; i += STROKE_STRIDE) {
+            const s = flat.slice(i, i + STROKE_STRIDE)
+            if (s[0] === x0 && s[1] === y0 && s[2] === x1 && s[3] === y1) return [s[8], s[9]]
+        }
+    }
+    assert.deepEqual(ext(1, 1, 1, 2), [1, 0], 'right side of the top cell, extended down into the corner')
+    assert.deepEqual(ext(1, 1, 2, 1), [1, 0], 'top of the right cell, extended left into the corner')
+    assert.deepEqual(ext(0, 0, 0, 2), [0, 0], 'outer edge, no extension')
+})
+
 test('regions: no stroke inside a group nor around empty cells', () => {
     const empty = grid('...', '...')
     assert.deepEqual(groupStrokes(empty.cellGroup, empty.cols, empty.rows), [])

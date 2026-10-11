@@ -200,7 +200,7 @@ export class MapRenderer {
         this.updateHoverState()
         this.gridBrush.hover(isCellTool(this.controls.getMode()) && this.controls.isOverCanvas() ? this.controls.getMouseWorldPos() : null)
         this.syncPixelRatio()
-        this.regions.update(view, this.container.clientWidth, this.container.clientHeight)
+        this.regions.update(view, this.container.clientWidth, this.container.clientHeight, this.camera.zoom, this.activeZoomParams())
         this.updateDetailView()
         this.detailLayer.tick()
         // console.log(this.controls.getMouseWorldPos())
