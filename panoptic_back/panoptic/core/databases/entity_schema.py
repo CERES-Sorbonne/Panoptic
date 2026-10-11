@@ -245,17 +245,30 @@ def _parse_filters(filters: dict[str, Any]) -> _ParsedFilters:
     return _ParsedFilters(big_col, big_vals, lists, scalars)
 
 
+def _col_ref(col: str, vals: list) -> str:
+    """The column as written in a WHERE clause.
+
+    Live rows (create/update) are nearly the whole table, but without ANALYZE statistics SQLite
+    still prefers the operation index for `operation = 1` over the primary key: a 1-row lookup
+    became a scan of every live row (~17 ms on 100k tag values, per tag property). The unary `+`
+    keeps that filter off the index; tombstone lookups, which it does narrow, still use it.
+    """
+    if col == "operation" and OP_DELETE not in vals:
+        return "+operation"
+    return col
+
+
 def _fixed_clause(small_lists: dict[str, list], scalars: dict[str, Any]) -> tuple[str, list]:
     parts:  list[str] = []
     params: list      = []
 
     for col, vals in small_lists.items():
         ph = ", ".join(["?"] * len(vals))
-        parts.append(f"{col} IN ({ph})")
+        parts.append(f"{_col_ref(col, vals)} IN ({ph})")
         params.extend(vals)
 
     for col, val in scalars.items():
-        parts.append(f"{col} = ?")
+        parts.append(f"{_col_ref(col, [val])} = ?")
         params.append(val)
 
     return " AND ".join(parts), params
@@ -517,7 +530,7 @@ class EntitySchema(_typing.Generic[T]):
         for i in range(0, len(pf.big_vals), vars_for_big):
             chunk = pf.big_vals[i : i + vars_for_big]
             in_ph = ", ".join(["?"] * len(chunk))
-            parts = [f"{pf.big_col} IN ({in_ph})"]
+            parts = [f"{_col_ref(pf.big_col, chunk)} IN ({in_ph})"]
             if fixed_clause:
                 parts.append(fixed_clause)
             sql    = f"{action} FROM {self.table} WHERE {' AND '.join(parts)}"
@@ -711,7 +724,7 @@ class EntitySchema(_typing.Generic[T]):
             for i in range(0, len(pf.big_vals), vars_for_big):
                 chunk = pf.big_vals[i : i + vars_for_big]
                 in_ph = ", ".join(["?"] * len(chunk))
-                parts = [f"{pf.big_col} IN ({in_ph})"]
+                parts = [f"{_col_ref(pf.big_col, chunk)} IN ({in_ph})"]
                 if fixed_clause:
                     parts.append(fixed_clause)
                 sql    = f"{select} FROM {log_table} WHERE {' AND '.join(parts)}"
@@ -761,7 +774,7 @@ class EntitySchema(_typing.Generic[T]):
             for i in range(0, len(pf.big_vals), vars_for_big):
                 chunk  = pf.big_vals[i : i + vars_for_big]
                 in_ph  = ", ".join(["?"] * len(chunk))
-                parts  = [f"{pf.big_col} IN ({in_ph})"]
+                parts  = [f"{_col_ref(pf.big_col, chunk)} IN ({in_ph})"]
                 if fixed_clause:
                     parts.append(fixed_clause)
                 where        = " AND ".join(parts)
