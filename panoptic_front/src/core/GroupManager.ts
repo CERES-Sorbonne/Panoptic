@@ -785,8 +785,8 @@ export class GroupManager implements ClusterOpsHost, GroupInspector {
         return this.clusters.cluster(targetGroupId, req)
     }
 
-    isClustering(groupId: number) {
-        return this.clusters.isClustering(groupId)
+    isClustering(groupId: number, hook?: string) {
+        return this.clusters.isClustering(groupId, hook)
     }
 
     // Why the last clustering run on this group failed, for the button that started it.

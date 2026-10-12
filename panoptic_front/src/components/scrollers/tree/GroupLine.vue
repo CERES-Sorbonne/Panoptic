@@ -97,6 +97,10 @@ function cluster(req: ClusterRequest) {
     props.manager.cluster(props.item.data.id, req)
 }
 
+// Each button spins only for the run it started (the run remembers its action hook).
+const groupBusy = computed(() => props.manager.isClustering(props.item.data.id, 'group'))
+const executeBusy = computed(() => props.manager.isClustering(props.item.data.id, 'execute'))
+
 // A run that failed stops the spinner and leaves nothing on screen, so the button says why.
 const clusterFailed = computed(() => {
     const error = props.manager.clusterError(props.item.data.id)
@@ -332,7 +336,7 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
                             </StampDropdown>
 
                             <ActionButton2 v-if="!hasSubgroups" action="group" :no-border="true" :defer="true"
-                                :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster">
+                                :busy="groupBusy" @submit="cluster">
                                 <div class="opt-row">
                                     <span class="opt-icon"><i class="bi bi-intersect" /></span>
                                     <span class="opt-label">{{ $t('action.group') }}</span>
@@ -340,7 +344,7 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
                             </ActionButton2>
 
                             <ActionButton2 action="execute" :no-border="true" :defer="true"
-                                :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster">
+                                :busy="executeBusy" @submit="cluster">
                                 <div class="opt-row">
                                     <span class="opt-icon"><i class="bi bi-terminal" /></span>
                                     <span class="opt-label">{{ $t('action.execute') }}</span>
@@ -357,12 +361,12 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
                 </Dropdown>
             </div>
 
-            <!-- Fast-access actions: visible only while hovering the group line.
+            <!-- Fast-access actions: visible while hovering the group line or while one of them is running.
                  Uses v-show (not v-if) so an already-open nested dropdown (teleported
                  elsewhere in the DOM) isn't torn down when the mouse leaves this row.
                  A local "fast-row" class is used instead of bootstrap's d-flex, whose
                  `display: flex !important` would otherwise beat v-show's inline style. -->
-            <div v-show="hoverGroup || openFastPopups > 0" class="fast-row">
+            <div v-show="hoverGroup || openFastPopups > 0 || groupBusy || executeBusy" class="fast-row">
                 <div v-if="!hasSubgroups" class="ms-1">
                     <WithToolTip message="dropdown.stamp.paint_group">
                         <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;"
@@ -371,13 +375,13 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
                 </div>
 
                 <div class="ms-1" v-if="!hasSubgroups">
-                    <ActionButton action="group" :defer="true" :busy="props.manager.isClustering(props.item.data.id)"
+                    <ActionButton action="group" :defer="true" :busy="groupBusy"
                         :message="clusterFailed"
                         @submit="cluster" />
                 </div>
                 <div class="ms-1">
                     <ActionButton2 :no-border="true" action="execute" :defer="true"
-                        :busy="props.manager.isClustering(props.item.data.id)" @submit="cluster"
+                        :busy="executeBusy" @submit="cluster"
                         @show="onFastShow" @hide="onFastHide">
                         <div class="bi bi-terminal"
                             style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">

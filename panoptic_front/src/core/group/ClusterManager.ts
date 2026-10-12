@@ -46,6 +46,8 @@ export interface ClusterRequest {
 export interface ClusterRun {
     token: number
     funcId: string
+    // Action hook that started the run ('group', 'execute', …): lets each button spin only for its own run.
+    hook: string
     running: boolean
     error?: string
 }
@@ -110,11 +112,11 @@ export class ClusterManager implements GroupOpsHost {
         // is replaced, but a group already divided by a property cannot be clustered. Fail here
         // rather than after a pointless round trip to the backend.
         if ((target.children ?? []).some(c => c.type !== GroupType.Cluster)) {
-            this.failRun(targetGroupId, token, req.funcId, 'not-a-leaf')
+            this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'not-a-leaf')
             return
         }
 
-        this.runs[targetGroupId] = { token, funcId: req.funcId, running: true }
+        this.runs[targetGroupId] = { token, funcId: req.funcId, hook: req.hook ?? 'group', running: true }
 
         try {
             // The group IS the set: its visible images, read here, never passed in. A pile that
@@ -131,18 +133,18 @@ export class ClusterManager implements GroupOpsHost {
             // trusting the Group captured above; if it is gone, the result is stale — drop it.
             const current = this.host.result?.index?.[targetGroupId]
             if (!current) {
-                this.failRun(targetGroupId, token, req.funcId, 'group-gone')
+                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'group-gone')
                 return
             }
             // A grouping level appended while we waited divides the group now (its piles, if it
             // had any, moved down to its "no value" child): the result was computed for a leaf
             // that no longer is one, so grafting it would open a container that can never show.
             if (current.children.some(c => c.type !== GroupType.Cluster)) {
-                this.failRun(targetGroupId, token, req.funcId, 'not-a-leaf')
+                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'not-a-leaf')
                 return
             }
             if (!groups?.length) {
-                this.failRun(targetGroupId, token, req.funcId, 'no-groups')
+                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'no-groups')
                 return
             }
 
@@ -152,19 +154,23 @@ export class ClusterManager implements GroupOpsHost {
         } catch (e) {
             console.error(e)
             if (this.runs[targetGroupId]?.token === token) {
-                this.failRun(targetGroupId, token, req.funcId, String(e))
+                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', String(e))
             }
         }
     }
 
     // Record why a run stopped, and say so: the entry is what a button reads back
     // (clusterError), the log is what is left when nobody is looking at that group.
-    private failRun(targetGroupId: number, token: number, funcId: string, error: string) {
-        this.runs[targetGroupId] = { token, funcId, running: false, error }
+    private failRun(targetGroupId: number, token: number, funcId: string, hook: string, error: string) {
+        this.runs[targetGroupId] = { token, funcId, hook, running: false, error }
         console.warn(`cluster: ${funcId} on group ${targetGroupId} failed \u2014 ${clusterErrorText(error)}`)
     }
 
-    isClustering(groupId: number) { return this.runs[groupId]?.running === true }
+    // With a hook, only a run started from that hook counts.
+    isClustering(groupId: number, hook?: string) {
+        const run = this.runs[groupId]
+        return run?.running === true && (hook === undefined || run.hook === hook)
+    }
 
     // Why the last run on this group failed, for the button that started it. Undefined while a
     // run is in flight and once one has succeeded.

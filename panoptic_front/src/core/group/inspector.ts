@@ -49,7 +49,7 @@ export interface GroupInspector {
 
     // Cluster / custom-group ops reachable from group lines
     cluster(targetGroupId: number, req: ClusterRequest): void
-    isClustering(groupId: number): boolean
+    isClustering(groupId: number, hook?: string): boolean
     // Why the last run on this group failed, so a line can say so instead of just stopping
     // its spinner. Undefined while a run is in flight and once one has succeeded.
     clusterError(groupId: number): string | undefined

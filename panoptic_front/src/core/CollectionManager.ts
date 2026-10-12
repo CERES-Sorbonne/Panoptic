@@ -176,7 +176,7 @@ export class CollectionManager implements GroupInspector {
     // Cluster a group. Fire-and-forget from the caller's point of view: the ClusterManager owns
     // the run, so the result lands even if the button that started it is long unmounted.
     cluster(targetGroupId: number, req: ClusterRequest) { return this.groupManager.cluster(targetGroupId, req) }
-    isClustering(groupId: number) { return this.groupManager.isClustering(groupId) }
+    isClustering(groupId: number, hook?: string) { return this.groupManager.isClustering(groupId, hook) }
     clusterError(groupId: number) { return this.groupManager.clusterError(groupId) }
     get onCluster() { return this.groupManager.clusters.onCluster }
 
