@@ -768,6 +768,7 @@
             "dirty": "Actualisation nécessaire\nCliquez pour actualiser"
         },
         "close-clusters": "Retirer les clusters",
+        "clear-all-clusters": "Retirer tous les clusters",
         "save-clusters": "Sauvegarde les clusters dans une propriétés tag",
         "save-clusters-tree": "Avec la hiérarchie",
         "save-clusters-flat": "Sans la hiérarchie",
@@ -857,6 +858,7 @@
         "preview": "Aperçu",
         "border_width": "Largeur de bordure",
         "hover_scale": "Taille au survol",
+        "point_size": "Taille des points",
         "atlas": "Atlas de vignettes",
         "atlas_none": "La carte a besoin d'un atlas pour afficher les images.",
         "no_match_title": "Aucune image ne correspond aux filtres",

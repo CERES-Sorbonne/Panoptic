@@ -24,6 +24,8 @@ export class HoverPointLayer {
     private zoomRef: { value: number } = { value: 1.0 }
     private zoomParams: ZoomParams = { h: 1.0, z1: 0.1, z2: 0.11 }
 
+    private pointSize = 1
+
     private hoveredPoint: PointData | null = null
     private currentScale = 0.0
     private targetScale = 0.0
@@ -39,6 +41,10 @@ export class HoverPointLayer {
 
     public setZoomReference(zoomUniform: { value: number }) {
         this.zoomRef = zoomUniform
+    }
+
+    public setPointSize(size: number) {
+        this.pointSize = size
     }
 
     public setZoomParams(params: ZoomParams) {
@@ -82,7 +88,7 @@ export class HoverPointLayer {
             this.mesh.position.set(this.hoveredPoint.x, this.hoveredPoint.y, Z_OFFSET)
         }
 
-        const pointScale = (this.zoomParams.h / 10.0) / this.zoomRef.value
+        const pointScale = this.pointSize * (this.zoomParams.h / 40.0) / this.zoomRef.value
         const finalScale = pointScale * this.currentScale
         this.mesh.scale.set(finalScale, finalScale, 1.0)
     }

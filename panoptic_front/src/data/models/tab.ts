@@ -89,6 +89,8 @@ export interface MapOptions {
     borderWidth?: number
     // How much the HD preview grows over the hovered point. Optional for the same reason.
     hoverScale?: number
+    // Multiplier on the dot size in point mode. Optional for the same reason.
+    pointSize?: number
     // Projection as computed, or one image per grid cell. Optional for the same reason.
     layout?: MapLayout
     // Grid cells per image: 1 fills the grid, more leaves empty cells between distant groups.

@@ -20,6 +20,8 @@ const props = defineProps<{
     borderWidth: number
     // How much the HD preview grows over the hovered image, same slider treatment.
     hoverScale: number
+    // Dot size multiplier; null outside point mode, which hides the slider.
+    pointSize: number | null
     // Grid cells per image; null outside the grid layout, which hides the slider.
     gridDensity: number | null
     // Stretch of the projection; null in the grid layout, which hides the slider.
@@ -33,6 +35,7 @@ const emits = defineEmits([
     'update:selectedMap',
     'update:borderWidth',
     'update:hoverScale',
+    'update:pointSize',
     'update:gridDensity',
     'update:mapSpread',
     'delete:map'
@@ -81,6 +84,12 @@ async function updateMap(event) {
                 @update:model-value="emits('update:hoverScale', $event)" />
         </WithToolTip>
 
+        <WithToolTip v-if="props.hasMaps && props.pointSize != null" message="map.point_size" class="border-width-control d-flex align-items-center">
+            <i class="bi bi-circle-fill me-1" style="font-size: 9px;"></i>
+            <RangeInput :min="0.2" :max="3" :step="0.05" :model-value="props.pointSize"
+                @update:model-value="emits('update:pointSize', $event)" />
+        </WithToolTip>
+
         <WithToolTip v-if="props.hasMaps && props.gridDensity != null" message="map.grid_density" class="border-width-control d-flex align-items-center">
             <i class="bi bi-arrows-angle-expand me-1" style="font-size: 13px;"></i>
             <RangeInput :min="1" :max="30" :step="0.1" :model-value="props.gridDensity"
@@ -89,7 +98,7 @@ async function updateMap(event) {
 
         <WithToolTip v-if="props.hasMaps && props.mapSpread != null" message="map.spread" class="border-width-control d-flex align-items-center">
             <i class="bi bi-arrows-angle-expand me-1" style="font-size: 13px;"></i>
-            <RangeInput :min="1" :max="10" :step="0.1" :model-value="props.mapSpread"
+            <RangeInput :min="1" :max="50" :step="0.5" :model-value="props.mapSpread"
                 @update:model-value="emits('update:mapSpread', $event)" />
         </WithToolTip>
     </div>

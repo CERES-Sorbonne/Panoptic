@@ -4,15 +4,22 @@ import * as THREE from 'three';
 // Corner radius of the thumbnails, in units of the image's longest side.
 export const IMAGE_RADIUS = 0.05
 
+export enum PointPass { Core = 0, Rim = 1 }
+
 export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
     private _zoomRef: { value: number } = { value: 1.0 };
     private _zoomParams = new THREE.Vector3(1.0, 0.1, 0.11);
     private _radius = { value: IMAGE_RADIUS };
     private _showAsPoint = { value: 0.0 };
     private _fill = { value: 0.0 };
+    private _pointSize = { value: 1.0 };
+    // Point mode is drawn in two passes (see AtlasLayer): the opaque core of every dot, then the
+    // antialiased rims alone. Image mode ignores it.
+    private _pointPass: { value: number };
 
-    constructor(parameters: THREE.MeshBasicMaterialParameters, collNb: number, rowNb: number) {
+    constructor(parameters: THREE.MeshBasicMaterialParameters, collNb: number, rowNb: number, pointPass: PointPass = PointPass.Core) {
         super(parameters);
+        this._pointPass = { value: pointPass };
 
         this.onBeforeCompile = (shader) => {
             shader.uniforms.uGridCols = { value: collNb };
@@ -22,6 +29,8 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
             shader.uniforms.uZoomParams = { value: this._zoomParams };
             shader.uniforms.uShowAsPoint = this._showAsPoint;
             shader.uniforms.uFill = this._fill;
+            shader.uniforms.uPointSize = this._pointSize;
+            shader.uniforms.uPointPass = this._pointPass;
 
             shader.vertexShader = `
                 attribute vec2 vOffset;
@@ -46,6 +55,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
                 uniform float uShowAsPoint;
+                uniform float uPointSize;
 
                 ${shader.vertexShader}
             `.replace(
@@ -62,7 +72,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 // When showing as point, use uniform 1:1 scale
                 if(uShowAsPoint > 0.5) {
                     // Point size is always h/uZoom for consistent sizing
-                    float pointScale = h/10.0 / uZoom;
+                    float pointScale = uPointSize * h/40.0 / uZoom;
                     transformed.xy *= pointScale;
                 } else {
                     // Normal image rendering with zoom scaling
@@ -118,6 +128,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uRadius;
                 uniform float uShowAsPoint;
                 uniform float uFill;
+                uniform float uPointPass;
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
 
@@ -147,6 +158,11 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
     // dots looked soft — worst at 1x DPR where they are only a few pixels wide.
     float aa = max(length(vec2(dFdx(dist), dFdy(dist))), 1e-6);
     float pointMask = clamp((pointRadius - dist) / aa + 0.5, 0.0, 1.0);
+    // Core pass: fully covered pixels only, which write depth so the z tiers order the dots.
+    // Rim pass: the partly covered ring, depth-tested but not written, so it blends over
+    // whatever lies behind instead of punching a pale ring (or the quad's square corners)
+    // into the dots drawn after it.
+    if (uPointPass < 0.5 ? pointMask < 1.0 : (pointMask <= 0.0 || pointMask >= 1.0)) discard;
 
     // Instead of multiplying, use the logic from your image mode:
     // This ensures that if it's visible in image mode, it's visible here.
@@ -237,6 +253,11 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
         this._radius.value = fill ? 0.0 : IMAGE_RADIUS;
     }
 
+    // Multiplier on the point-mode dot size.
+    public setPointSize(size: number) {
+        this._pointSize.value = size;
+    }
+
     public setZoomParams(params: ZoomParams) {
         this._zoomParams.set(params.h, params.z1, params.z2);
         if (this.userData.shader) {
@@ -253,12 +274,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
 
     public setShowAsPoint(show: boolean) {
         this._showAsPoint.value = show ? 1.0 : 0.0;
-        // Point mode drops the depth buffer entirely: dots are flat single-colour discs with
-        // nothing to occlude, so depth ordering buys nothing, while depth-writing antialiased
-        // edges blocked the disc behind them and traced a pale ring around every overlap.
-        // Without depth write the alphaTest cut can go back to ~0, keeping the edges smooth.
-        // Image mode keeps depth (photos really do occlude each other and the z tiers order them).
-        this.depthWrite = !show;
+        // Point mode discards in the shader by pass instead (the rim material never writes depth).
         const alphaTest = show ? 0.0 : 0.5;
         if (this.alphaTest !== alphaTest) {
             // Crossing 0 toggles the USE_ALPHATEST define, so the program must be rebuilt.

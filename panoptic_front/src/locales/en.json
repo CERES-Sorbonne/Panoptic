@@ -756,6 +756,7 @@
             "dirty": "Data is not up to-date, click to reload"
         },
         "close-clusters": "Close clusters",
+        "clear-all-clusters": "Remove all clusters",
         "save-clusters": "Save the clusters in a new property",
         "save-clusters-tree": "With the hierarchy",
         "save-clusters-flat": "Without the hierarchy",
@@ -851,6 +852,7 @@
         "preview": "Preview",
         "border_width": "Border width",
         "hover_scale": "Hover zoom size",
+        "point_size": "Point size",
         "atlas": "Thumbnail atlas",
         "atlas_none": "The map needs an atlas to draw images.",
         "no_match_title": "No image matches the filters",

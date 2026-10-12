@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
-import { InstancedImageMaterial } from './InstancedImageMaterial'
+import { InstancedImageMaterial, PointPass } from './InstancedImageMaterial'
 
 // Total z spread used to break ties between overlapping points *within one priority tier*
 // (MapView.vue's DIM_Z / BASE_Z / SELECTED_Z — dimmed, normal, selected points render in that
@@ -9,11 +9,17 @@ import { InstancedImageMaterial } from './InstancedImageMaterial'
 // the next tier and a fully-stacked atlas layer can never render in front of the HD/hover-dot
 // preview.
 const STACK_Z_RANGE = 0.1
+// Point mode's rim pass runs after every sheet's core pass, so rims blend over finished cores.
+const RIM_RENDER_ORDER = 1
 
 export class AtlasLayer {
     public mesh: THREE.InstancedMesh
     private geometry: THREE.PlaneGeometry
     public material: InstancedImageMaterial
+    // Point mode only: the dots' antialiased rims, drawn after the cores without writing depth.
+    // A child of `mesh`, so it follows its visibility and scene membership.
+    private rimMesh: THREE.InstancedMesh
+    private rimMaterial: InstancedImageMaterial
 
     // Store references to points and atlas for subsequent updates
     private points: PointData[]
@@ -46,6 +52,21 @@ export class AtlasLayer {
             depthWrite: true
         }, gridCols, gridRows)
         this.mesh = new THREE.InstancedMesh(this.geometry, this.material, count)
+
+        this.rimMaterial = new InstancedImageMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: true,
+            depthWrite: false
+        }, gridCols, gridRows, PointPass.Rim)
+        this.rimMesh = new THREE.InstancedMesh(this.geometry, this.rimMaterial, count)
+        // Same instances: share the matrices so updatePositions moves both.
+        this.rimMesh.instanceMatrix = this.mesh.instanceMatrix
+        this.rimMesh.renderOrder = RIM_RENDER_ORDER
+        this.rimMesh.frustumCulled = false
+        this.rimMesh.matrixAutoUpdate = false
+        this.rimMesh.visible = false
+        this.mesh.add(this.rimMesh)
 
         // Initialize attributes with empty arrays
         this.geometry.setAttribute('vOffset', new THREE.InstancedBufferAttribute(new Float32Array(count * 2), 2))
@@ -231,20 +252,30 @@ export class AtlasLayer {
 
     public setZoomReference(zoomUniform: { value: number }) {
         this.material.setZoomReference(zoomUniform)
+        this.rimMaterial.setZoomReference(zoomUniform)
     }
 
     public setZoomParams(params: ZoomParams) {
         this.material.setZoomParams(params)
+        this.rimMaterial.setZoomParams(params)
     }
 
     public setShowAsPoint(show: boolean) {
         this.material.setShowAsPoint(show)
+        this.rimMaterial.setShowAsPoint(show)
+        this.rimMesh.visible = show
+    }
+
+    public setPointSize(size: number) {
+        this.material.setPointSize(size)
+        this.rimMaterial.setPointSize(size)
     }
 
     public setFill(fill: boolean) {
         if (fill === this.fill) return
         this.fill = fill
         this.material.setFill(fill)
+        this.rimMaterial.setFill(fill)
         this.updateUVsAndOffsets()
         this.updateRatios()
     }
@@ -252,6 +283,8 @@ export class AtlasLayer {
     public dispose() {
         this.geometry.dispose()
         this.material.dispose()
+        this.rimMaterial.dispose()
+        this.rimMesh.dispose()
         this.mesh.dispose()
     }
     

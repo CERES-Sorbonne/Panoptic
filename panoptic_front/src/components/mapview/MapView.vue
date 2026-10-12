@@ -5,7 +5,7 @@ import { useDataStore } from '@/data/stores/dataStore'
 import { useMediaStore } from '@/data/stores/mediaStore'
 import { useColumnStore } from '@/data/stores/columnStore'
 import { generateColors, isTag } from '@/utils/utils'
-import { Group } from '@/core/group/types'
+import { Group, GroupType } from '@/core/group/types'
 import { isNoValue } from '@/core/group/valueParser'
 import type { GroupInspector } from '@/core/group/inspector'
 import type { ClusterRequest } from '@/core/group/ClusterManager'
@@ -92,6 +92,7 @@ const defaultColor = '#777777'
 const borderWidth = computed(() => props.mapOptions.borderWidth ?? DEFAULT_BORDER_WIDTH)
 // Same story for how much the HD preview grows on hover.
 const hoverScale = computed(() => props.mapOptions.hoverScale ?? DEFAULT_HOVER_SCALE)
+const pointSize = computed(() => props.mapOptions.pointSize ?? 1)
 const layout = computed(() => props.mapOptions.layout ?? 'grid')
 const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_DENSITY)
 // Outside the grid, how far the projection is stretched: spreads the images apart.
@@ -119,6 +120,7 @@ let hadActiveLeaf = false
 // Same idea, for whether any image was selected — selection also bumps z (SELECTED_Z) now.
 let hadSelected = false
 let hadScores = false
+let hadPainting = false
 
 // Last instance the pointer hovered over a point for — kept sticky (only overwritten on a real
 // hover, never cleared) so the inspector doesn't blank out the moment the cursor leaves a point.
@@ -151,13 +153,15 @@ const zoomedId = computed(() => zoomModal.open && zoomModal.owner === zoomOwner 
 let sha1ToPoint: { [sha1: string]: PointData } = {}
 // Display leaves of the current tree, with the colour they paint their points with. A ref (not a
 // plain let) since the group-list island reads it directly in the template.
-const leaves = shallowRef<{ id: number, name: string, value?: Group['meta']['propertyValues'][number], color: string, points: PointData[] }[]>([])
+const leaves = shallowRef<{ id: number, name: string, value?: Group['meta']['propertyValues'][number], color: string, points: PointData[], clusterParentId?: number }[]>([])
 const points = shallowRef<PointData[]>([])
 // For each slot, the index in `points` of the point drawing it (-1: none). Built with the
 // geometry, so a selection tick finds its points with typed-array reads.
 let pointOfSlot = new Int32Array(0)
 // Each point's z before the selection lifts it: BASE_Z, or DIM_Z while a soloed group dims it.
 let baseZ = new Float32Array(0)
+// baseZ as the group/solo pass left it, before paint mode pushes unpainted points back.
+let groupZ = new Float32Array(0)
 // Each point's desaturation before the tag brush greys it, so the highlight can be redone alone.
 let baseDesaturate = new Float32Array(0)
 // Bumped whenever points move or restyle in place, so the minimap redraws.
@@ -226,7 +230,7 @@ const noMatch = ref(false)
 // Tracks the latest showMap call to cancel stale concurrent invocations
 let showMapToken = 0
 // Stores args needed to call createMap once the renderer is ready
-let pendingCreateMap: { atlas: any; points: PointData[] } | null = null
+let pendingCreateMap: { atlas: any; points: PointData[]; frame: boolean } | null = null
 
 // Geometry cache: what the current `points` array was built from. A point can only move when
 // the map changes or the root's membership changes — every other tree tick (open/close, sort,
@@ -285,6 +289,20 @@ function leafName(group: Group, index: number) {
     return `${property.name}: ${value.value}`
 }
 
+// The group whose clusters a leaf's "remove clusters" button drops: its parent when the leaf is
+// itself a cluster, or the leaf when it is a closed group standing in for clusters.
+function clusterParentOf(group: Group): number | undefined {
+    if (group.type === GroupType.Cluster && group.parent) return group.parent.id
+    if (group.children?.some(c => c.type === GroupType.Cluster)) return group.id
+    return undefined
+}
+
+function removeClusters(groupId: number) {
+    props.collection.delCustomGroups(groupId, true)
+}
+
+const hasClusters = computed(() => leaves.value.some(l => l.clusterParentId != null))
+
 // ── Colouring ─────────────────────────────────────────────────────────────────
 
 function buildLeaves() {
@@ -292,7 +310,7 @@ function buildLeaves() {
     const sha1s = columnStore.sha1s()
     const colors = generateColors(groups.length)
 
-    const res: { id: number, name: string, value?: Group['meta']['propertyValues'][number], color: string, points: PointData[] }[] = []
+    const res: { id: number, name: string, value?: Group['meta']['propertyValues'][number], color: string, points: PointData[], clusterParentId?: number }[] = []
     groups.forEach((g, index) => {
         const color = leafColor(g, colors[index])
         const seen = new Set<PointData>()
@@ -300,7 +318,7 @@ function buildLeaves() {
             const point = sha1ToPoint[sha1s[slot]]
             if (point) seen.add(point)
         }
-        if (seen.size) res.push({ id: g.id, name: leafName(g, index), value: g.name ? undefined : g.meta?.propertyValues?.[0], color, points: Array.from(seen) })
+        if (seen.size) res.push({ id: g.id, name: leafName(g, index), value: g.name ? undefined : g.meta?.propertyValues?.[0], color, points: Array.from(seen), clusterParentId: clusterParentOf(g) })
     })
     leaves.value = res
 
@@ -369,7 +387,8 @@ function updateColors() {
     }
 
     baseDesaturate = Float32Array.from(pts, p => p.desaturate)
-    applyPaintHighlight()
+    groupZ = baseZ.slice()
+    const painting = applyPaintHighlight()
     syncGroupRegions()
     const hasScores = applyScoreOpacity()
 
@@ -379,9 +398,10 @@ function updateColors() {
         renderer.value.updateOpacity()
     }
     // Soloing and scores move points in z: positions must be re-uploaded while either is or was on.
-    updateSelection(!!activeLeaf || hadActiveLeaf || hasScores || hadScores)
+    updateSelection(!!activeLeaf || hadActiveLeaf || hasScores || hadScores || painting || hadPainting)
     hadActiveLeaf = !!activeLeaf
     hadScores = hasScores
+    hadPainting = painting
 }
 
 // Returns whether the highlight is shown.
@@ -406,10 +426,13 @@ function applyPaintHighlight(): boolean {
             p.border = Math.max(borderWidth.value, PAINT_BORDER)
             p.borderColor = paintColor.value
             p.desaturate = baseDesaturate[i]
+            baseZ[i] = groupZ[i]
         } else {
             p.border = 0.0
             p.borderColor = defaultColor
             p.desaturate = Math.max(baseDesaturate[i], PAINT_DESATURATE)
+            // Unpainted points drop behind so the painted ones are never hidden under them.
+            baseZ[i] = DIM_Z
         }
     }
     return true
@@ -422,7 +445,8 @@ function refreshPaint() {
     if (!applyPaintHighlight()) return
     renderer.value?.updateBorder()
     renderer.value?.updateDesaturation()
-    pointsVersion.value++
+    // Painting moves points between z tiers: re-upload positions.
+    updateSelection(true)
 }
 
 // Value writes (strokes, undo, other views) restyle the highlight once per frame at most.
@@ -728,10 +752,11 @@ async function showMap(mapId: number, force = false) {
     // If the renderer isn't ready yet, store args so the renderer watcher can call createMap
     if (renderer.value) {
         renderer.value.createMap(atlas, points.value, props.mapOptions.showPoints)
-        // The grid's extent depends on the map's size, unlike the projection's fixed range.
-        if (mapChanged && layout.value === 'grid') lookAtPoints(res)
+        // A new map is framed whatever the layout: neither the grid's extent nor the
+        // projection's range (scaled by the spread) is centred on the default camera.
+        if (mapChanged) lookAtPoints(res)
     } else {
-        pendingCreateMap = { atlas, points: points.value }
+        pendingCreateMap = { atlas, points: points.value, frame: mapChanged }
     }
 }
 
@@ -1080,6 +1105,7 @@ watch(fillCells, (val) => renderer.value?.setFillCells(val))
 watch(groupOutlines, () => syncGroupRegions())
 watch(borderWidth, () => updateColors())
 watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
+watch(pointSize, (val) => renderer.value?.setPointSize(val))
 
 watch(renderer, (r) => {
     if (r) {
@@ -1092,6 +1118,7 @@ watch(renderer, (r) => {
         r.atlasLayers.onProgress = (p) => { atlasLoad.value = p }
         r.setImageSize(props.imageSize)
         r.setHoverScale(hoverScale.value)
+        r.setPointSize(pointSize.value)
         r.setFillCells(fillCells.value)
         r.setDetailEnabled(layout.value === 'grid')
         // Flush a createMap call that arrived before the renderer was ready. Read the mode now,
@@ -1100,6 +1127,7 @@ watch(renderer, (r) => {
         syncGroupRegions()
         if (pendingCreateMap) {
             r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, props.mapOptions.showPoints)
+            if (pendingCreateMap.frame) lookAtPoints(pendingCreateMap.points)
             pendingCreateMap = null
         } else if (points.value.length > 0 && r.atlasLayers) {
             updateColors()
@@ -1134,9 +1162,11 @@ onMounted(async () => {
             :images="getRootInstances" :border-width="borderWidth"
             @update:border-width="props.mapOptions.borderWidth = $event" :hover-scale="hoverScale"
             @update:hover-scale="props.mapOptions.hoverScale = $event"
+            :point-size="props.mapOptions.showPoints ? pointSize : null"
+            @update:point-size="props.mapOptions.pointSize = $event"
             :grid-density="layout == 'grid' ? gridDensity : null"
             @update:grid-density="props.mapOptions.gridDensity = $event"
-            :map-spread="layout == 'grid' ? null : mapSpread"
+            :map-spread="layout == 'grid' || props.mapOptions.showPoints ? null : mapSpread"
             @update:map-spread="props.mapOptions.mapSpread = $event" @delete:map="deleteMap"
             :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
 
@@ -1336,6 +1366,11 @@ onMounted(async () => {
                             @click="props.mapOptions.groupsCollapsed = !props.mapOptions.groupsCollapsed">
                             <i class="bi section-chevron" :class="props.mapOptions.groupsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
                             <span class="flex-grow-1">{{ $t('map.groups') }}</span>
+                            <WithToolTip v-if="hasClusters" message="btn.clear-all-clusters">
+                                <div class="group-action-btn danger-btn me-1" @click.stop="props.collection.clearCustomGroups(true)">
+                                    <i class="bi bi-x-lg"></i>
+                                </div>
+                            </WithToolTip>
                             <span class="section-count num">{{ leaves.length }}</span>
                         </div>
                         <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
@@ -1358,6 +1393,11 @@ onMounted(async () => {
                                             <i class="bi bi-intersect"></i>
                                         </ActionButton2>
                                     </div>
+                                    <WithToolTip v-if="leaf.clusterParentId != null" message="btn.close-clusters">
+                                        <div class="group-action-btn danger-btn" @click="removeClusters(leaf.clusterParentId)">
+                                            <i class="bi bi-x-lg"></i>
+                                        </div>
+                                    </WithToolTip>
                                 </div>
                             </div>
                         </div>
@@ -1634,6 +1674,10 @@ onMounted(async () => {
     gap: 2px;
     flex-shrink: 0;
     font-size: 13px;
+}
+
+.danger-btn:hover {
+    color: var(--danger, #dc3545) !important;
 }
 
 .group-action-btn {

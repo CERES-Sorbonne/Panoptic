@@ -372,6 +372,11 @@ export class MapRenderer {
         this.camera.position.y *= factor
     }
 
+    public setPointSize(size: number) {
+        this.atlasLayers.setPointSize(size)
+        this.hoverPointLayer.setPointSize(size)
+    }
+
     public setFillCells(fill: boolean) {
         this.fillCells = fill
         this.atlasLayers.setFill(fill)
