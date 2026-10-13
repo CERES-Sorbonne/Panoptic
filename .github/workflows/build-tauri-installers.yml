@@ -2,7 +2,12 @@ name: Build Tauri installers
 
 on:
   workflow_dispatch:
+  # Appelé par « Hatch Build and Publish » après la publication PyPI : l'UI embarquée
+  # dans les installateurs suit chaque release
+  workflow_call:
+  # branches seulement : les tags de release passent par workflow_call
   push:
+    branches: ['**']
     paths:
       - 'panoptic_front/src-tauri/**'
       - 'panoptic_front/src/components/tauri/**'
@@ -92,9 +97,10 @@ jobs:
   publish:
     name: Publish installers
     needs: build
-    # une seule release glissante : seuls les builds de main la mettent à jour
+    # une seule release glissante : seuls les builds de main et des releases la mettent à jour
     # (sur les autres branches, les installateurs restent dans les artefacts du run)
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    concurrency: desktop-latest
     runs-on: ubuntu-latest
     permissions:
       contents: write

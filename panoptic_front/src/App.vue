@@ -6,7 +6,7 @@ import './assets/theme.css';
 import "@vueform/slider/themes/default.css"
 import { usePanopticStore } from './data/stores/panopticStore';
 import { useKeyState } from './data/composables/keyState';
-import { isTauri, useTauriLauncherStore } from './data/tauriLauncherStore';
+import { isEmbeddedUi, isTauri, useTauriLauncherStore } from './data/tauriLauncherStore';
 import TauriLauncher from './components/tauri/TauriLauncher.vue';
 
 const panoptic = usePanopticStore()
@@ -17,7 +17,9 @@ const backendReady = computed(() => !isTauri || launcher.phase === 'ready')
 
 if (isTauri) {
     // sous Tauri le launcher installe/démarre le backend d'abord ;
-    launcher.start()
+    // l'UI servie par le backend arrive une fois le launcher terminé
+    if (isEmbeddedUi) launcher.start()
+    else launcher.attach()
 }
 
 let stopInit: (() => void) | undefined

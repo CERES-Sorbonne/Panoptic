@@ -3,6 +3,8 @@ import { ref } from "vue"
 
 // True when running inside the Tauri desktop app
 export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+// launcher build embedded in the app; otherwise the UI is served by the backend (see openBackendUi)
+export const isEmbeddedUi = import.meta.env.MODE === 'tauri'
 
 export type LauncherPhase = 'checking' | 'installing-uv' | 'ask-install-dir' | 'creating-venv'
     | 'ask-gpu' | 'installing-panoptic' | 'ask-update' | 'updating' | 'loading-versions' | 'ask-versions'
@@ -134,7 +136,7 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
             phase.value = 'checking'
             status.value = await invoke<SetupStatus>('check_status')
             if (status.value.backendRunning) {
-                phase.value = 'ready'
+                await ready(invoke)
                 return
             }
             if (!status.value.uvInstalled) {
@@ -197,6 +199,37 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
                 if (!versionsRequested.value) break
                 await invoke('stop_backend')
             }
+            await ready(invoke)
+        } catch (e) {
+            error.value = String(e)
+            phase.value = 'error'
+        }
+    }
+
+    async function ready(invoke: typeof import('@tauri-apps/api/core').invoke) {
+        // the embedded UI only matches the app's build: switch to the one of the installed
+        // panoptic, unless it predates the desktop app support (kept in the embedded UI then)
+        if (!import.meta.env.DEV && await backendUiSupported()) {
+            await invoke('open_backend_ui')
+            return
+        }
+        phase.value = 'ready'
+    }
+
+    async function backendUiSupported(): Promise<boolean> {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_ROUTE}/`, { cache: 'no-store' })
+            return res.ok && (await res.text()).includes('name="panoptic-desktop"')
+        } catch {
+            return false
+        }
+    }
+
+    // UI served by the backend: the launcher already ran, only the status is needed
+    async function attach() {
+        const { invoke } = await import('@tauri-apps/api/core')
+        try {
+            status.value = await invoke<SetupStatus>('check_status')
             phase.value = 'ready'
         } catch (e) {
             error.value = String(e)
@@ -229,12 +262,14 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
     async function switchDb(path: string | null) {
         const { invoke } = await import('@tauri-apps/api/core')
         await invoke('switch_db', { path })
-        // the reloaded UI goes through the launcher again, which starts the backend on the new db
-        window.location.reload()
+        // the launcher runs again and starts the backend on the new db
+        if (isEmbeddedUi) window.location.reload()
+        else await invoke('show_launcher')
     }
 
     async function retry() {
         const { invoke } = await import('@tauri-apps/api/core')
+        if (!isEmbeddedUi) return invoke('show_launcher')
         error.value = null
         try { await invoke('stop_backend') } catch { }
         // start() re-checks the status, so completed steps are skipped
@@ -243,6 +278,6 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
 
     return {
         phase, logs, error, status, updateInfo, uiVersion, installDir, versionsRequested, versions, selectedVersions,
-        start, retry, answer, browseInstallDir, requestVersions, browseDb, switchDb
+        start, attach, retry, answer, browseInstallDir, requestVersions, browseDb, switchDb
     }
 })

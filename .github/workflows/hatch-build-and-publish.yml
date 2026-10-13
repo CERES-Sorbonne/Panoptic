@@ -193,6 +193,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.REF }}
 
+  # Rebuild des installateurs Tauri (release desktop-latest) avec l'UI de cette release
+  desktop-installers:
+    needs: deploy
+    uses: ./.github/workflows/build-tauri-installers.yml
+
   # Tests rouges : la release publiée qui a créé le tag repasse en brouillon
   revert-release:
     runs-on: ubuntu-latest
