@@ -52,6 +52,8 @@ Lance le script d'installation de chaque OS (Linux, macOS, Windows), puis `insta
   chaque publication (voir plus bas).
 - Installe `panoptic` depuis le checkout de la branche, pas depuis PyPI.
 - Option `panopticml_branch` : branche GitHub de PanopticML à installer (vide : version PyPI).
+- La vérification tourne sur CPU (`PANOPTICML_DEVICE=cpu`) : sur les runners macOS, MPS échoue
+  parfois à compiler ses kernels Metal.
 
 ### Tests avant une release
 
@@ -86,6 +88,7 @@ PYTHONPATH=../Panoptic/panoptic_back pytest tests
 - `PANOPTICML_TEST_MODELS=clip,siglip,dinov3` : ne teste que ces modèles (noms de `ModelEnum`).
   Vide ou `all` : tous les modèles (~11 Go à télécharger au premier lancement).
 - `PANOPTICML_DEVICE=cpu|cuda|mps` : force le device, sinon il est détecté automatiquement.
+  En auto, si un modèle échoue sur MPS au chargement, PanopticML repasse sur CPU.
 - Ne pas lancer `pytest` à la racine : il récupère `mistral_test.py`, qui n'est pas un test.
 
 ### Action « Tests Multi-Plateformes » (`.github/workflows/workflow.yaml`)

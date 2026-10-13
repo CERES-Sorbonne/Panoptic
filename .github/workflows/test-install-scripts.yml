@@ -32,6 +32,9 @@ jobs:
       PANOPTICML_PACKAGE: ${{ inputs.panopticml_branch && format('git+https://github.com/CERES-Sorbonne/PanopticML.git@{0}', inputs.panopticml_branch) || '' }}
       # Les scripts s'arrêtent après la config (panoptic --dry) au lieu de lancer le serveur.
       PANOPTIC_INSTALL_TEST: '1'
+      # Le GPU virtualisé des runners macOS ne supporte pas toujours les kernels MPS de torch
+      # (échec de compilation Metal dans scaled_dot_product_attention) : vectorisation sur CPU.
+      PANOPTICML_DEVICE: cpu
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
