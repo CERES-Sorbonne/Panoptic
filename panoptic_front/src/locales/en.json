@@ -801,8 +801,8 @@
     "map": {
         "select_map": "Select your points",
         "create": "Create",
-        "no_map": "No map available",
-        "no_map_help": "Create a map to use this view. Map creation functions are provided by plugins",
+        "no_map": "No map yet",
+        "no_map_help": "Click \"Create\" in the top bar to build a map from the images.",
         "no_action": "No map creation function was found.",
         "color_prop": "Color by property",
         "color_cluster": "Color by clustering",
