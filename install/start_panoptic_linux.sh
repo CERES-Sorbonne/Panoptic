@@ -28,6 +28,8 @@ echo "Installation de pip..."
 uv pip install pip
 # Vérifier si panoptic est installé, sinon l'installer
 if ! uv pip show panoptic &> /dev/null; then
+    # old uv versions lack --torch-backend; fails harmlessly when uv was not installed by astral's script
+    uv self update || echo "Mise à jour de uv impossible, on continue avec $(uv --version)"
     echo "Installation de panoptic..."
     # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
     uv pip install "${PANOPTIC_PACKAGE:-panoptic}"

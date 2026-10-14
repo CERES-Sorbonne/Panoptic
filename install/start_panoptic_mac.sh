@@ -71,6 +71,8 @@ uv pip install -U pip
 
 # --- INSTALLATION / MISE A JOUR PANOPTIC ---
 if ! uv pip show panoptic &> /dev/null; then
+    # old uv versions lack recent options; fails harmlessly when uv was not installed by astral's script
+    uv self update || echo "Mise a jour de uv impossible, on continue avec $(uv --version)"
     echo "Installation de Panoptic..."
     # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
     uv pip install "${PANOPTIC_PACKAGE:-panoptic}"

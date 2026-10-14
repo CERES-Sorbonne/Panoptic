@@ -485,6 +485,9 @@ async fn install_panoptic(
             .as_deref()
             .map(|v| pinned_requirement("panopticml", v))
             .transpose()?;
+        // best effort: an old uv lacks --torch-backend, and a uv not installed by
+        // astral's installer cannot self-update (the error stays in the install log)
+        let _ = run_streamed(&app, uv_command(&["self", "update"])?, "install-log");
         run_streamed(&app, uv_command(&["pip", "install", &panoptic])?, "install-log")?;
         match gpu_mode.as_str() {
             "cuda" => run_streamed(

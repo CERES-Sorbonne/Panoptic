@@ -53,6 +53,8 @@ run_command("uv pip install pip")
 
 # Vérifier si panoptic est installé, sinon l'installer
 if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
+    # old uv versions lack --torch-backend; fails harmlessly when uv was not installed by astral's script
+    run_command("uv self update")
     # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
     run_command(f'uv pip install "{os.environ.get("PANOPTIC_PACKAGE", "panoptic")}"')
     with_cuda = ask(
