@@ -630,6 +630,14 @@
                 "tabs": "Tabs are not preserved.",
                 "vectors": "Vectors must be recomputed (PanopticML)."
             }
+        },
+        "rename_tag": {
+            "title": "Rename tag",
+            "placeholder": "Tag name",
+            "empty": "The name can't be empty",
+            "exists": "Name already used by",
+            "merge_question": "Merge into it?",
+            "merge": "Merge"
         }
     },
     "tutorial": {

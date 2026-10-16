@@ -26,7 +26,8 @@ const name = computed(() => {
 
 
 <template>
-    <div class="badge tag-badge" :title="name" :style="chip">
+    <!-- data-tag-id lets one global listener (tagRenameShortcut) find the tag on cmd/ctrl-click -->
+    <div class="badge tag-badge" :title="name" :style="chip" :data-tag-id="props.id">
 
         <span class="m-0 p-0 label">
             <span>{{ name }}</span>

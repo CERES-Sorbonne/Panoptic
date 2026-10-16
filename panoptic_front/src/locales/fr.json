@@ -636,6 +636,14 @@
                 "tabs": "Les onglets ne sont pas préservés.",
                 "vectors": "Les vecteurs doivent être recalculés (PanopticML)."
             }
+        },
+        "rename_tag": {
+            "title": "Renommer le tag",
+            "placeholder": "Nom du tag",
+            "empty": "Le nom ne peut pas être vide",
+            "exists": "Nom déjà pris par",
+            "merge_question": "Fusionner dedans ?",
+            "merge": "Fusionner"
         }
     },
     "tutorial": {
