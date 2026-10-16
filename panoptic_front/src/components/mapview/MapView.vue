@@ -31,6 +31,7 @@ import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
 import PropertyValueVue from '../properties/PropertyValue.vue'
 import NumText from '../utils/NumText.vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
 import TagInput from '../property_inputs/TagInput.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
@@ -111,6 +112,8 @@ watch(() => props.mapOptions, (opts) => {
 // other point on the map dims out, giving the click a "solo this group" effect. Click the same
 // group again (or it disappears from the tree) to go back to showing everything normally.
 const selectedGroupId = ref<number | null>(null)
+// Slot height of one row in the virtualised group list (30px item + 2px gap).
+const GROUP_ROW_HEIGHT = 32
 function toggleGroupSelection(leaf: { id: number }) {
     selectedGroupId.value = selectedGroupId.value === leaf.id ? null : leaf.id
 }
@@ -1482,8 +1485,13 @@ onMounted(async () => {
                             </WithToolTip>
                             <span class="section-count num">{{ leaves.length }}</span>
                         </div>
-                        <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
-                            <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
+                        <!-- Virtualised: a clustering can produce thousands of leaves. Rows are a fixed
+                             GROUP_ROW_HEIGHT (the 2px gap lives inside the row's slot). -->
+                        <RecycleScroller v-if="!props.mapOptions.groupsCollapsed" class="group-list-body group-list-virtual"
+                            :items="leaves" key-field="id" :item-size="GROUP_ROW_HEIGHT" :buffer="GROUP_ROW_HEIGHT * 10">
+                            <template v-slot="{ item: leaf }">
+                            <div class="group-row" :style="{ height: GROUP_ROW_HEIGHT + 'px' }">
+                            <div class="group-item"
                                 :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                                 <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                                 <PropertyValueVue v-if="leaf.value" class="group-name" :value="leaf.value" />
@@ -1509,7 +1517,9 @@ onMounted(async () => {
                                     </WithToolTip>
                                 </div>
                             </div>
-                        </div>
+                            </div>
+                            </template>
+                        </RecycleScroller>
                     </template>
                     <!-- No grouping yet: offer to cluster the whole collection (the root). -->
                     <template v-else-if="props.collection.result?.root">
@@ -1735,7 +1745,18 @@ onMounted(async () => {
     overflow-y: auto;
 }
 
+.group-list-virtual {
+    display: block;
+}
+
+.group-row {
+    padding-bottom: 2px;
+}
+
 .group-item {
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
     display: flex;
     align-items: center;
     gap: 8px;
