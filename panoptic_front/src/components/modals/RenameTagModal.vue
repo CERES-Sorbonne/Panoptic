@@ -8,6 +8,7 @@ import TagBadge from '@/components/tagtree/TagBadge.vue'
 import { ModalId } from '@/data/models'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useModalStore } from '@/data/stores/modalStore'
+import { findSameNameTag } from '@/data/lib/tree'
 import { installTagRenameShortcut, uninstallTagRenameShortcut } from '@/components/tags/tagRenameShortcut'
 
 const data = useDataStore()
@@ -42,8 +43,7 @@ async function save() {
     }
     if (value === tag.value) return close()
     // Searched on submit rather than per keystroke: a property can hold many thousands of tags.
-    const taken = Object.values(data.tags).find(t =>
-        t.id !== tag.id && !t.deleted && t.propertyId === tag.propertyId && t.value === value)
+    const taken = findSameNameTag(data.tags, tag, value)
     if (taken) {
         mergeTargetId.value = taken.id
         return

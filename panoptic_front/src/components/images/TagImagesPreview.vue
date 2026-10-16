@@ -20,7 +20,8 @@ const props = defineProps<{
     tagToInstance: { [tId: number]: Instance[] }
 }>()
 
-const emits = defineEmits(['unselect', 'merge'])
+// merge: merge every shown tag; mergeInto: (keepId, removedId) from renaming a tag to another's name
+const emits = defineEmits(['unselect', 'merge', 'mergeInto'])
 
 const instanceIds = computed(() => {
     const instanceSet = new Set<number>()
@@ -61,7 +62,8 @@ function mergeSelected() {
 <template>
     <div class="h-100 w-100 d-flex flex-column overflow-hidden">
         <div class="flex-shrink-0" style="max-height: 222px; overflow-y: auto; overflow-x: auto;">
-            <EditableTag v-for="tag in props.tags" :tag="tag" @unselect="e => emits('unselect', e)" />
+            <EditableTag v-for="tag in props.tags" :key="tag.id" :tag="tag" @unselect="e => emits('unselect', e)"
+                @merge="(keepId, removedId) => emits('mergeInto', keepId, removedId)" />
         </div>
         <div v-if="props.tags.length > 1" style="height: 37px; border-bottom: 1px solid var(--border-color);" class="flex-shrink-0 text-center bb"
         @click="mergeSelected">

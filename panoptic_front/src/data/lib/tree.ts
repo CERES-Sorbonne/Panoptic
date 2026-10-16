@@ -1,4 +1,4 @@
-import { deletedID, Folder, FolderIndex, TagIndex } from "@/data/models"
+import { deletedID, Folder, FolderIndex, Tag, TagIndex } from "@/data/models"
 
 export function buildFolderNodes(folders: Array<Folder>) {
     let res = {} as FolderIndex
@@ -103,4 +103,12 @@ export function wouldCreateTagCycle(tags: TagIndex, childId: number, parentId: n
         if (children) stack.push(...children)
     }
     return false
+}
+// The other live tag of `tag`'s property already named `value`, if any: renaming `tag` to that
+// name would duplicate it, so the UI offers to merge into it instead.
+export function findSameNameTag(tags: TagIndex, tag: Tag, value: string): Tag | undefined {
+    for (const id in tags) {
+        const t = tags[id]
+        if (t.id !== tag.id && !t.deleted && t.id !== deletedID && t.propertyId === tag.propertyId && t.value === value) return t
+    }
 }

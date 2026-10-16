@@ -185,6 +185,20 @@ test('V2: relayout with rerender hands every mounted slot a new LineRef; scale a
     assert.ok(h.renders - renders >= mounted - 2, 're-rendered the mounted lines')
 })
 
+test('V2: relayout with rerender gives the range again, even over the same lines', () => {
+    // The owners read their instance ids off the range: after a rebuild the same lines can hold
+    // other images, and a range kept back as unchanged would leave those images unloaded.
+    const s = setup()
+    s.scroll(3000)
+    s.h.idle()
+    const n = s.h.ranges.length
+    s.view.relayout()
+    assert.equal(s.h.ranges.length, n, 'a plain relayout over the same lines gives no range')
+    s.view.relayout({ rerender: true })
+    assert.equal(s.h.ranges.length, n + 1, 'a rerender gives the range again')
+    assert.notEqual(s.h.ranges.at(-1), s.h.ranges.at(-2), 'as a new object, so a shallowRef sees it')
+})
+
 test('V2: a list past the height limit is paged, and every line can still be reached', () => {
     // 100k groups of 5 lines: ~28M px.
     const s = setup(100_000, () => 5, 2_000_000)
