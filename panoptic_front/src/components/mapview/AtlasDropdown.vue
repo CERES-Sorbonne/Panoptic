@@ -33,7 +33,7 @@ const fmt = (n: number) => n.toLocaleString()
     <Dropdown :auto-focus="false">
         <template #button>
             <WithToolTip message="map.atlas">
-                <div class="atlas-btn">
+                <div class="atlas-btn" :class="{ busy: media.atlasTask || loading }">
                     <i class="bi bi-grid-3x3-gap"></i>
                     <span v-if="media.atlasTask" class="status num">{{ media.atlasTaskPercent }}%</span>
                     <span v-else-if="loading" class="status num">{{ loadPercent }}%</span>
@@ -108,6 +108,11 @@ const fmt = (n: number) => n.toLocaleString()
 .status {
     font-size: 11px;
     color: var(--text-tertiary);
+}
+
+.atlas-btn.busy,
+.atlas-btn.busy .status {
+    color: var(--primary);
 }
 
 .atlas-popup {

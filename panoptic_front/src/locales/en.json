@@ -867,7 +867,13 @@
         "atlas_loaded": "Sheets loaded",
         "atlas_failed": "Sheets failed to load",
         "atlas_none_title": "No thumbnail atlas",
-        "atlas_empty": "The atlas holds none of this project's images"
+        "atlas_empty": "The atlas holds none of this project's images",
+        "atlas_deferred_title": "Map not loaded",
+        "atlas_deferred": "This project has {count} images: loading the map may freeze the interface for a moment.",
+        "prep_loading": "Preparing the map",
+        "prep_loading_text": "Positions and image sizes",
+        "prep_building": "Building the map…",
+        "atlas_load": "Load map"
     },
     "confirm": "Confirm",
     "cancel": "Cancel",
