@@ -3,6 +3,8 @@ name: Build Windows launcher
 on:
   workflow_dispatch:
   push:
+    # paths filters are ignored on tag pushes: restricting to branches excludes tags
+    branches: ['**']
     paths:
       - 'install/windows/panoptic_launcher_uv.py'
 

@@ -102,7 +102,7 @@ const showFirstModal = computed(() => !hasProjects.value && !hasLegacyProjects.v
 // the backend must have answered first: before that "no project" only means "not loaded yet"
 const showTutorial = computed(() => panoptic.isConnected && panoptic.projectsLoaded && !hasProjects.value && !hasLegacyProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourceType == PluginType.PIP && p.sourcePath == 'panopticml'))
+const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourceType == PluginType.PIP && /^panopticml([^\w.-]|$)/i.test(p.sourcePath)))
 
 const usePlugins = computed(() => {
     const res = {}

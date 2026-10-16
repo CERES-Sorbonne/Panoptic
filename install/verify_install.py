@@ -14,13 +14,14 @@ def main() -> int:
     # 2. panopticml est-il importable ?
     print("Vérification de panopticml...")
     import panopticml
-    from panopticml.compute.transformer import CLIPTransformer
+    from panopticml.compute.transformer import get_transformer
 
-    # 3. Vectorisation d'une image de test via CLIPTransformer.to_vector.
+    # 3. Vectorisation d'une image de test via get_transformer (repli CPU si MPS échoue).
     from PIL import Image
 
     print(f"Chargement du modèle CLIP ({MODEL})...")
-    transformer = CLIPTransformer(MODEL)
+    transformer = get_transformer(MODEL)
+    print(f"  Device : {transformer.device}")
 
     print("Vectorisation d'une image de test...")
     image = Image.new("RGB", (224, 224), color=(127, 127, 127))

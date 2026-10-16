@@ -2,11 +2,17 @@ name: Build Tauri installers
 
 on:
   workflow_dispatch:
+  # Only the launcher screen is embedded (the app then loads the UI served by the backend),
+  # so releases don't need a rebuild. Branches only: paths filters are ignored on tag pushes.
   push:
+    branches: ['**']
     paths:
       - 'panoptic_front/src-tauri/**'
       - 'panoptic_front/src/components/tauri/**'
       - 'panoptic_front/src/data/tauriLauncherStore.ts'
+      - 'panoptic_front/src/App.vue'
+      - 'panoptic_front/index.html'
+      - 'panoptic_front/vite.config.mjs'
       - 'panoptic_front/.env.tauri'
       - '.github/workflows/build-tauri-installers.yml'
 
@@ -95,6 +101,7 @@ jobs:
     # une seule release glissante : seuls les builds de main la mettent à jour
     # (sur les autres branches, les installateurs restent dans les artefacts du run)
     if: github.ref == 'refs/heads/main'
+    concurrency: desktop-latest
     runs-on: ubuntu-latest
     permissions:
       contents: write

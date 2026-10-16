@@ -188,6 +188,8 @@ const mapMissingCount = ref(0)
 // project to build an atlas.
 const atlasUnusable = computed(() => media.atlasFetched && media.atlasCoverage.total > 0
     && (!media.hasAtlas || media.atlasCoverage.inAtlas === 0))
+// Atlas ready but no map yet: points to the toolbar's create button instead of an empty canvas.
+const noMaps = computed(() => media.mapsFetched && !media.hasMaps)
 
 // Above this many images, a cold atlas load (sheet download + GPU upload) can freeze the UI for
 // a while, so the map asks before loading instead of doing it as soon as the view opens.
@@ -1353,6 +1355,12 @@ onMounted(async () => {
                     <button v-else class="atlas-generate" :disabled="media.atlasRequested" @click="media.generateAtlas()">
                         {{ media.hasAtlas ? $t('map.atlas_regenerate') : $t('map.atlas_generate') }}
                     </button>
+                </div>
+
+                <div v-else-if="noMaps" class="atlas-empty">
+                    <i class="bi bi-boxes atlas-empty-icon"></i>
+                    <div class="atlas-empty-title">{{ $t('map.no_map') }}</div>
+                    <div class="atlas-empty-text">{{ $t('map.no_map_help') }}</div>
                 </div>
 
                 <div v-else-if="atlasLoadDeferred" class="atlas-empty">

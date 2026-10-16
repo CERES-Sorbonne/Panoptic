@@ -17,6 +17,7 @@ export const useMediaStore = defineStore('mediaStore', () => {
     // Whether the atlas has been fetched at least once — `atlas` stays undefined both before
     // that and when the project has none, and only the latter means "no atlas".
     const atlasFetched = ref(false)
+    const mapsFetched  = ref(false)
 
     const hasMaps  = computed(() => Object.values(maps.value).length > 0)
     const hasAtlas = computed(() => atlas.value?.id !== undefined)
@@ -147,6 +148,7 @@ export const useMediaStore = defineStore('mediaStore', () => {
             if (!idx[m.id]) idx[m.id] = m
         }
         maps.value = idx
+        mapsFetched.value = true
     }
 
     async function loadMapData(mapId: number) {
@@ -172,11 +174,12 @@ export const useMediaStore = defineStore('mediaStore', () => {
         maps.value        = {}
         atlas.value       = undefined
         atlasFetched.value = false
+        mapsFetched.value = false
     }
 
     return {
         // State
-        vectorTypes, vectorStats, vectorTasks, maps, atlas, atlasFetched,
+        vectorTypes, vectorStats, vectorTasks, maps, atlas, atlasFetched, mapsFetched,
         // Computed
         hasMaps, hasAtlas, atlasTask, atlasTaskPercent, atlasCoverage, atlasRequested,
         // Actions

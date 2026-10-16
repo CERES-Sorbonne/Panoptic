@@ -1,12 +1,28 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "embedded launcher: every app command",
   "windows": [
     "main"
   ],
   "permissions": [
     "core:default",
-    "dialog:default"
+    "dialog:default",
+    "allow-check-status",
+    "allow-check-update",
+    "allow-install-uv",
+    "allow-create-venv",
+    "allow-install-panoptic",
+    "allow-update-panoptic",
+    "allow-list-versions",
+    "allow-install-versions",
+    "allow-launch-backend",
+    "allow-stop-backend",
+    "allow-set-install-dir",
+    "allow-set-skip-dev-updates",
+    "allow-switch-db",
+    "allow-open-backend-ui",
+    "allow-show-launcher",
+    "allow-frontend-log"
   ]
 }

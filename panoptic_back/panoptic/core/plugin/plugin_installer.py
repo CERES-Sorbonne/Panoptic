@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,12 +38,20 @@ class PluginInstaller:
     # ------------------------------------------------------------------
 
     def install_from_pip(self, source: str) -> str:
-        """pip install -U <source>, return the resolved install_path."""
-        min_version = PIP_MIN_VERSIONS.get(source)
-        requirement = f'{source}>={min_version}' if min_version else source
+        """pip install -U <source>, return the resolved install_path.
+
+        source is a requirement: a package name, optionally pinned (panopticml==1.0.0rc6).
+        """
+        source = source.strip()
+        match = re.match(r'[A-Za-z0-9][A-Za-z0-9._-]*', source)
+        if not match:
+            raise ValueError(f"Invalid pip requirement {source!r}")
+        name = match.group()
+        min_version = PIP_MIN_VERSIONS.get(name)
+        requirement = f'{name}>={min_version}' if min_version and source == name else source
         subprocess.check_call(self._pip_install_cmd() + ['-U', requirement])
-        dist = metadata.distribution(source)
-        return str(Path(str(dist.locate_file(''))) / source)
+        dist = metadata.distribution(name)
+        return str(Path(str(dist.locate_file(''))) / name)
 
     def install_from_git(self, url: str, name: str = None) -> str:
         """Download zip from GitHub/GitLab/Bitbucket, extract, install requirements.txt."""

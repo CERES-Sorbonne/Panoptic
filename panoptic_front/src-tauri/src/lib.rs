@@ -4,12 +4,15 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, Url, Webview};
 
 const BACKEND_PORT: u16 = 8000;
 const BACKEND_START_TIMEOUT: Duration = Duration::from_secs(120);
 
 struct BackendProcess(Mutex<Option<Child>>);
+
+/// URL of the embedded launcher, saved when the window switches to the backend's UI
+struct LauncherUrl(Mutex<Option<Url>>);
 
 #[derive(Clone, serde::Serialize)]
 struct LogLine {
@@ -482,6 +485,9 @@ async fn install_panoptic(
             .as_deref()
             .map(|v| pinned_requirement("panopticml", v))
             .transpose()?;
+        // best effort: an old uv lacks --torch-backend, and a uv not installed by
+        // astral's installer cannot self-update (the error stays in the install log)
+        let _ = run_streamed(&app, uv_command(&["self", "update"])?, "install-log");
         run_streamed(&app, uv_command(&["pip", "install", &panoptic])?, "install-log")?;
         match gpu_mode.as_str() {
             "cuda" => run_streamed(
@@ -697,6 +703,21 @@ async fn switch_db(app: AppHandle, path: Option<String>) -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
+/// Show the UI served by the backend, so it always matches the installed panoptic version
+#[tauri::command]
+fn open_backend_ui(webview: Webview, launcher: tauri::State<LauncherUrl>) -> Result<(), String> {
+    let backend = Url::parse(&format!("http://localhost:{BACKEND_PORT}/")).map_err(|e| e.to_string())?;
+    *launcher.0.lock().unwrap() = Some(webview.url().map_err(|e| e.to_string())?);
+    webview.navigate(backend).map_err(|e| e.to_string())
+}
+
+/// Back to the embedded launcher (e.g. after switching the database)
+#[tauri::command]
+fn show_launcher(webview: Webview, launcher: tauri::State<LauncherUrl>) -> Result<(), String> {
+    let url = launcher.0.lock().unwrap().clone().ok_or("launcher URL unknown")?;
+    webview.navigate(url).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn frontend_log(message: String) {
     eprintln!("[webview] {message}");
@@ -729,6 +750,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(BackendProcess(Mutex::new(None)))
+        .manage(LauncherUrl(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             check_status,
             check_update,
@@ -743,6 +765,8 @@ pub fn run() {
             set_install_dir,
             set_skip_dev_updates,
             switch_db,
+            open_backend_ui,
+            show_launcher,
             frontend_log
         ])
         .setup(|app| {

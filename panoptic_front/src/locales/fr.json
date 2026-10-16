@@ -807,8 +807,8 @@
     "map": {
         "select_map": "Sélectionnez vos points",
         "create": "Créer",
-        "no_map": "Aucune carte disponible",
-        "no_map_help": "Veuillez creer une carte a visualiser pour pouvoir utiliser cette vue. Les fonctions de creation de carte sont mise a disposition par les plugins",
+        "no_map": "Aucune carte",
+        "no_map_help": "Cliquez sur « Créer » dans la barre du haut pour créer une carte à partir des images.",
         "no_action": "Aucune fonction de creation de carte a été trouvé.",
         "color_prop": "Colorier par propriété",
         "color_cluster": "Colorier par clustering",
