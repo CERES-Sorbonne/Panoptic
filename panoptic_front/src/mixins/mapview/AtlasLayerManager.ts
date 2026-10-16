@@ -186,6 +186,17 @@ export class AtlasLayerManager {
     }
 
     /**
+     * Whether every sheet of this atlas version is already in the texture cache, so loading it
+     * costs no download or GPU upload.
+     */
+    public static isAtlasCached(atlas: ImageAtlas): boolean {
+        for (let s = 0; s < atlas.atlasNb; s++) {
+            if (!AtlasLayerManager.textureCache.has(`${atlas.id}_${atlas.version ?? 0}_${s}`)) return false
+        }
+        return true
+    }
+
+    /**
      * Clears the entire texture cache - useful for memory management
      * Call this when you want to free up GPU memory
      */

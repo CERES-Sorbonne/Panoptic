@@ -873,7 +873,13 @@
         "atlas_loaded": "Planches chargées",
         "atlas_failed": "Planches en échec",
         "atlas_none_title": "Aucun atlas de vignettes",
-        "atlas_empty": "L'atlas ne contient aucune image de ce projet"
+        "atlas_empty": "L'atlas ne contient aucune image de ce projet",
+        "atlas_deferred_title": "Carte non chargée",
+        "atlas_deferred": "Ce projet contient {count} images : charger la carte peut figer l'interface un moment.",
+        "prep_loading": "Préparation de la carte",
+        "prep_loading_text": "Positions et tailles des images",
+        "prep_building": "Construction de la carte…",
+        "atlas_load": "Charger la carte"
     },
     "none": "Vide...",
     "tag_menu_hint": "Ajoutez ou créez des tags",

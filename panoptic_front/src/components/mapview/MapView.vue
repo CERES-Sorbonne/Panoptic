@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted, watch, computed, toRaw } from 'vue'
-import { Colors, greyColor, Instance, MapOptions, PointData } from '@/data/models'
+import { ref, shallowRef, reactive, onMounted, onUnmounted, watch, computed, toRaw } from 'vue'
+import { Colors, greyColor, ImageAtlas, Instance, MapOptions, PointData } from '@/data/models'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useMediaStore } from '@/data/stores/mediaStore'
 import { useColumnStore } from '@/data/stores/columnStore'
@@ -19,7 +19,7 @@ import { isCellTool, nextBrushSize } from '@/mixins/mapview/GridBrush'
 import { paintableProperty, paintTag } from './paintTag'
 import { keyState } from '@/data/composables/keyState'
 import { newZoomOwner, zoomModal } from '../modals/zoomModal'
-import type { AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
+import { AtlasLayerManager, type AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
 
 // Components
 import Toolbar from './Toolbar.vue'
@@ -31,6 +31,7 @@ import ActionButton2 from '../actions/ActionButton2.vue'
 import WithToolTip from '../tooltips/withToolTip.vue'
 import PropertyValueVue from '../properties/PropertyValue.vue'
 import NumText from '../utils/NumText.vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
 import TagInput from '../property_inputs/TagInput.vue'
 
 const DEFAULT_BORDER_WIDTH = 0.05
@@ -111,6 +112,8 @@ watch(() => props.mapOptions, (opts) => {
 // other point on the map dims out, giving the click a "solo this group" effect. Click the same
 // group again (or it disappears from the tree) to go back to showing everything normally.
 const selectedGroupId = ref<number | null>(null)
+// Slot height of one row in the virtualised group list (30px item + 2px gap).
+const GROUP_ROW_HEIGHT = 32
 function toggleGroupSelection(leaf: { id: number }) {
     selectedGroupId.value = selectedGroupId.value === leaf.id ? null : leaf.id
 }
@@ -190,6 +193,51 @@ const atlasUnusable = computed(() => media.atlasFetched && media.atlasCoverage.t
     && (!media.hasAtlas || media.atlasCoverage.inAtlas === 0))
 // Atlas ready but no map yet: points to the toolbar's create button instead of an empty canvas.
 const noMaps = computed(() => media.mapsFetched && !media.hasMaps)
+
+// Above this many images, a cold atlas load (sheet download + GPU upload) can freeze the UI for
+// a while, so the map asks before loading instead of doing it as soon as the view opens.
+const LARGE_ATLAS_IMAGES = 20000
+// The user agreed to load the atlas (or it was cheap enough to load without asking).
+const atlasLoadAllowed = ref(false)
+// The atlas load is waiting for the user to agree to it.
+const atlasLoadDeferred = ref(false)
+
+function shouldDeferAtlas(atlas: ImageAtlas) {
+    if (atlasLoadAllowed.value) return false
+    if (media.atlasCoverage.total <= LARGE_ATLAS_IMAGES || AtlasLayerManager.isAtlasCached(atlas)) {
+        atlasLoadAllowed.value = true
+        return false
+    }
+    return true
+}
+
+// Data the map waits for before it can place its points: the map's positions and the width /
+// height columns. Shown as a progress bar in the middle while any of it loads.
+interface PrepStep { propId?: number, done: boolean }
+const prepSteps = shallowRef<PrepStep[] | null>(null)
+// The data is loaded and the map is now building its points (the page is busy meanwhile).
+const prepBuilding = ref(false)
+const nextPaint = () => new Promise<void>(r => requestAnimationFrame(() => setTimeout(r)))
+// Each step weighs the same. A column counts its streamed rows; the map data has no progress,
+// so it only counts once done.
+const prepPercent = computed(() => {
+    const steps = prepSteps.value
+    if (!steps?.length) return 0
+    let sum = 0
+    for (const step of steps) {
+        if (step.done) { sum += 1; continue }
+        const p = step.propId !== undefined ? columnStore.columnProgress[step.propId] : undefined
+        if (p?.max) sum += Math.min(1, p.counter / p.max)
+    }
+    return Math.round(sum / steps.length * 100)
+})
+
+function loadDeferredAtlas() {
+    atlasLoadAllowed.value = true
+    atlasLoadDeferred.value = false
+    showMap(props.mapOptions.selectedMap, true)
+}
+
 const showMinimap = computed(() => points.value.length > 0 && !atlasUnusable.value)
 
 // Right panel: resized by dragging its left edge, never narrower than its min width.
@@ -637,6 +685,16 @@ function rescaleGrid(imageSize: number, previous: number) {
 
 async function showMap(mapId: number, force = false) {
     if (mapId == null || !media.maps[mapId]) return
+    // Build nothing (points, layout, borders) until the atlas is known and, for a large
+    // project, until the user agreed to load it. The image count is only final once the column
+    // store has streamed every instance. The atlas and isReady watchers call back when they are.
+    if (!atlasLoadAllowed.value) {
+        if (!media.atlasFetched || !columnStore.isReady) return
+        if (media.atlas && shouldDeferAtlas(media.atlas)) {
+            atlasLoadDeferred.value = true
+            return
+        }
+    }
 
     const root = props.collection.result?.root
     const slots = root?.slots ?? null
@@ -658,10 +716,34 @@ async function showMap(mapId: number, force = false) {
     const widthPropId = data.getSysId('width')
     const heightPropId = data.getSysId('height')
     const loads: Promise<unknown>[] = []
-    if (!media.maps[mapId].data) loads.push(media.loadMapData(mapId))
-    if (widthPropId !== undefined) loads.push(columnStore.requireFullColumn(widthPropId))
-    if (heightPropId !== undefined) loads.push(columnStore.requireFullColumn(heightPropId))
-    if (loads.length) await Promise.all(loads)
+    const steps: PrepStep[] = []
+    const track = (step: PrepStep, load: Promise<unknown>) => {
+        steps.push(step)
+        loads.push(load.finally(() => { step.done = true }))
+    }
+    if (!media.maps[mapId].data) track(reactive({ done: false }), media.loadMapData(mapId))
+    for (const propId of [widthPropId, heightPropId]) {
+        if (propId === undefined || columnStore.fullColumnStatus[propId] === 'loaded') continue
+        track(reactive({ propId, done: false }), columnStore.requireFullColumn(propId))
+    }
+    if (loads.length) {
+        prepSteps.value = steps
+        prepBuilding.value = false
+        try {
+            await Promise.all(loads)
+        } catch (e) {
+            if (token === showMapToken) prepSteps.value = null
+            throw e
+        }
+        if (token !== showMapToken) return
+        // Building the points below is synchronous and blocks the page, so nothing repaints until
+        // it is done. Switch the box to its "building" state and let it paint first.
+        prepBuilding.value = true
+        await nextPaint()
+        if (token !== showMapToken) return
+        // Runs once the synchronous build below has finished.
+        setTimeout(() => { if (token === showMapToken) prepSteps.value = null })
+    }
     if (token !== showMapToken) return
 
     const values = media.maps[mapId].data
@@ -1145,6 +1227,7 @@ apiGetImageTypes()
 watch([renderer, detailSizes], ([r, sizes]) => r?.setDetailSizes(sizes))
 
 watch(() => media.atlas, () => showMap(props.mapOptions.selectedMap, true))
+watch(() => columnStore.isReady, (ready) => { if (ready) showMap(props.mapOptions.selectedMap, true) })
 
 // React to tree changes via the version tick — geometry is only rebuilt when it can have moved.
 watch(() => props.collection.version.value, () => showMap(props.mapOptions.selectedMap))
@@ -1283,6 +1366,27 @@ onMounted(async () => {
                     <div class="atlas-empty-text">{{ $t('map.no_map_help') }}</div>
                 </div>
 
+                <div v-else-if="atlasLoadDeferred" class="atlas-empty">
+                    <i class="bi bi-images atlas-empty-icon"></i>
+                    <div class="atlas-empty-title">{{ $t('map.atlas_deferred_title') }}</div>
+                    <div class="atlas-empty-text">
+                        <NumText keypath="map.atlas_deferred" :values="{ count: media.atlasCoverage.total.toLocaleString() }" />
+                    </div>
+                    <button class="atlas-generate" @click="loadDeferredAtlas">{{ $t('map.atlas_load') }}</button>
+                </div>
+
+                <div v-else-if="prepSteps" class="atlas-empty">
+                    <div class="atlas-empty-title">{{ $t('map.prep_loading') }}</div>
+                    <div v-if="prepBuilding" class="atlas-empty-text">{{ $t('map.prep_building') }}</div>
+                    <template v-else>
+                        <div class="atlas-empty-progress">
+                            <span>{{ $t('map.prep_loading_text') }}</span>
+                            <span class="num">{{ prepPercent }}%</span>
+                        </div>
+                        <div class="atlas-bar"><div :style="{ width: prepPercent + '%' }"></div></div>
+                    </template>
+                </div>
+
                 <div v-else-if="noMatch" class="atlas-empty">
                     <i class="bi bi-funnel atlas-empty-icon"></i>
                     <div class="atlas-empty-title">{{ $t('map.no_match_title') }}</div>
@@ -1381,8 +1485,13 @@ onMounted(async () => {
                             </WithToolTip>
                             <span class="section-count num">{{ leaves.length }}</span>
                         </div>
-                        <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-body">
-                            <div v-for="leaf in leaves" :key="leaf.id" class="group-item"
+                        <!-- Virtualised: a clustering can produce thousands of leaves. Rows are a fixed
+                             GROUP_ROW_HEIGHT (the 2px gap lives inside the row's slot). -->
+                        <RecycleScroller v-if="!props.mapOptions.groupsCollapsed" class="group-list-body group-list-virtual"
+                            :items="leaves" key-field="id" :item-size="GROUP_ROW_HEIGHT" :buffer="GROUP_ROW_HEIGHT * 10">
+                            <template v-slot="{ item: leaf }">
+                            <div class="group-row" :style="{ height: GROUP_ROW_HEIGHT + 'px' }">
+                            <div class="group-item"
                                 :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
                                 <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                                 <PropertyValueVue v-if="leaf.value" class="group-name" :value="leaf.value" />
@@ -1408,7 +1517,9 @@ onMounted(async () => {
                                     </WithToolTip>
                                 </div>
                             </div>
-                        </div>
+                            </div>
+                            </template>
+                        </RecycleScroller>
                     </template>
                     <!-- No grouping yet: offer to cluster the whole collection (the root). -->
                     <template v-else-if="props.collection.result?.root">
@@ -1634,7 +1745,18 @@ onMounted(async () => {
     overflow-y: auto;
 }
 
+.group-list-virtual {
+    display: block;
+}
+
+.group-row {
+    padding-bottom: 2px;
+}
+
 .group-item {
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
     display: flex;
     align-items: center;
     gap: 8px;
