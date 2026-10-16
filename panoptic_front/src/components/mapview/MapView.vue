@@ -108,14 +108,43 @@ watch(() => props.mapOptions, (opts) => {
     if (opts && opts.fillCells == null) opts.fillCells = true
 }, { immediate: true })
 
-// The group clicked in the group-list island — its points render at full strength while every
-// other point on the map dims out, giving the click a "solo this group" effect. Click the same
-// group again (or it disappears from the tree) to go back to showing everything normally.
-const selectedGroupId = ref<number | null>(null)
+// The groups selected in the group-list island — their points render at full strength while every
+// other point on the map dims out, giving a "solo these groups" effect. A plain click solos one
+// group (click it again to clear), ctrl/cmd-click toggles a group, shift-click selects the range
+// from the last clicked group. Groups that disappear from the tree are dropped.
+const selectedGroupIds = shallowRef<ReadonlySet<number>>(new Set())
+// The last group clicked without shift: where a shift-click range starts.
+let groupAnchorId: number | null = null
+// Group-list search. Only the list is filtered: the map keeps colouring every group.
+const groupSearch = ref('')
+const shownLeaves = computed(() => {
+    const q = groupSearch.value.trim().toLowerCase()
+    return q ? leaves.value.filter(l => l.name.toLowerCase().includes(q)) : leaves.value
+})
 // Slot height of one row in the virtualised group list (30px item + 2px gap).
 const GROUP_ROW_HEIGHT = 32
-function toggleGroupSelection(leaf: { id: number }) {
-    selectedGroupId.value = selectedGroupId.value === leaf.id ? null : leaf.id
+function toggleGroupSelection(leaf: { id: number }, e: MouseEvent) {
+    const cur = selectedGroupIds.value
+    if (e.shiftKey && groupAnchorId != null) {
+        // Range over the list as shown (search applied), added to the current selection.
+        const list = shownLeaves.value
+        const a = list.findIndex(l => l.id === groupAnchorId)
+        const b = list.findIndex(l => l.id === leaf.id)
+        if (a >= 0 && b >= 0) {
+            const next = new Set(cur)
+            for (let i = Math.min(a, b); i <= Math.max(a, b); i++) next.add(list[i].id)
+            selectedGroupIds.value = next
+            return
+        }
+    }
+    groupAnchorId = leaf.id
+    if (e.ctrlKey || e.metaKey) {
+        const next = new Set(cur)
+        if (!next.delete(leaf.id)) next.add(leaf.id)
+        selectedGroupIds.value = next
+    } else {
+        selectedGroupIds.value = cur.size === 1 && cur.has(leaf.id) ? new Set() : new Set([leaf.id])
+    }
 }
 // Whether the previous updateColors() run had a group soloed — lets updateColors skip the
 // position re-upload on ticks where soloing is (and stays) off.
@@ -376,8 +405,10 @@ function buildLeaves() {
     // the new leaves — regrouping mints new Group objects with new ids — the dim effect would
     // silently do nothing (activeLeaf never found in updateColors). Drop the stale selection
     // instead of leaving the map looking like soloing broke.
-    if (selectedGroupId.value != null && !res.some(l => l.id === selectedGroupId.value)) {
-        selectedGroupId.value = null
+    if (selectedGroupIds.value.size) {
+        const ids = new Set(res.map(l => l.id))
+        const kept = [...selectedGroupIds.value].filter(id => ids.has(id))
+        if (kept.length !== selectedGroupIds.value.size) selectedGroupIds.value = new Set(kept)
     }
 
     updateColors()
@@ -410,28 +441,31 @@ function updateColors() {
         }
     }
 
-    // Solo a clicked group: dim every point that isn't one of its members, and drop those
-    // dimmed points behind so the focused group is never occluded by an overlapping neighbour.
-    const activeLeaf = selectedGroupId.value != null
-        ? leaves.value.find(l => l.id === selectedGroupId.value)
-        : undefined
+    // Solo the selected groups: dim every point that isn't a member of one, and drop those
+    // dimmed points behind so the focused groups are never occluded by an overlapping neighbour.
+    const selIds = selectedGroupIds.value
+    // Biggest first, so a point in several selected leaves ends with the smallest one's colour.
+    const activeLeaves = selIds.size ? bySize.map(li => ls[li]).filter(l => selIds.has(l.id)) : []
+    const activeLeaf = activeLeaves.length > 0
     if (activeLeaf) {
-        const activeSet = new Set(activeLeaf.points)
+        const activeColor = new Map<PointData, string>()
+        for (const l of activeLeaves) for (const point of l.points) activeColor.set(point, l.color)
         for (let i = 0; i < pts.length; i++) {
             const p = pts[i]
-            if (!activeSet.has(p)) {
+            const color = activeColor.get(p)
+            if (color === undefined) {
                 p.desaturate = DIM_DESATURATE
                 baseZ[i] = DIM_Z
                 // The leaf-colouring pass above already painted every OTHER leaf's border too —
                 // left alone, each dimmed group keeps its own bright border ring around its
                 // (now-grey) photos, which is exactly the "still has colour" a solo is meant to
-                // remove. Only the focused leaf's border should survive.
+                // remove. Only the focused leaves' borders should survive.
                 p.border = 0.0
                 p.borderColor = defaultColor
             } else {
-                // A point in several leaves (multi-tag grouping) took the colour of the last one.
+                // A point in several leaves (multi-tag grouping) took a non-selected one's colour.
                 p.border = borderWidth.value
-                p.borderColor = activeLeaf.color
+                p.borderColor = color
             }
         }
     }
@@ -448,8 +482,8 @@ function updateColors() {
         renderer.value.updateOpacity()
     }
     // Soloing and scores move points in z: positions must be re-uploaded while either is or was on.
-    updateSelection(!!activeLeaf || hadActiveLeaf || hasScores || hadScores || painting || hadPainting)
-    hadActiveLeaf = !!activeLeaf
+    updateSelection(activeLeaf || hadActiveLeaf || hasScores || hadScores || painting || hadPainting)
+    hadActiveLeaf = activeLeaf
     hadScores = hasScores
     hadPainting = painting
 }
@@ -629,15 +663,14 @@ function syncGroupRegions() {
         renderer.value.setGroupRegions(null)
         return
     }
-    // While a group is soloed, only its outline is kept.
-    const activeLi = selectedGroupId.value != null
-        ? leaves.value.findIndex(l => l.id === selectedGroupId.value)
-        : -1
+    // While groups are soloed, only their outlines are kept.
+    const selIds = selectedGroupIds.value
+    const activeLi = selIds.size ? new Set(leaves.value.flatMap((l, i) => selIds.has(l.id) ? [i] : [])) : null
     const cellGroup = new Int32Array(grid.cellPoint.length)
     for (let cell = 0; cell < cellGroup.length; cell++) {
         const i = grid.cellPoint[cell]
         const li = i >= 0 ? pointLeaf[i] : -1
-        cellGroup[cell] = activeLi >= 0 && li !== activeLi ? -1 : li
+        cellGroup[cell] = activeLi && !activeLi.has(li) ? -1 : li
     }
     renderer.value.setGroupRegions({
         cols: grid.cols,
@@ -920,7 +953,11 @@ watch([mouseMode, () => paintProperty.value?.id], async ([mode, propId]) => {
     }
     if (paintProperty.value?.id === propId) paintColumnReady.value = propId
 }, { immediate: true })
-watch([mouseMode, paintTagValue, paintColumnReady], () => updateColors())
+// The tag applyPaintHighlight shows, or null. Watched instead of mouseMode so switching between
+// pan and the selection tools does not recolour every point.
+const paintHighlightTag = computed(() => mouseMode.value === 'paint' && paintTagValue.value
+    && paintColumnReady.value === paintProperty.value?.id ? paintTagValue.value : null)
+watch(paintHighlightTag, () => updateColors())
 watch([mouseMode, paintTagValue, paintColor, renderer], ([mode, tag, color]) => {
     renderer.value?.setBrushColor(mode === 'paint' && tag ? color : null)
 })
@@ -938,7 +975,8 @@ async function deleteMap(mapId: number) {
 // way clicking the group row does — "goto" should land you looking at exactly that group, not a
 // group that still needs a second click to stand out from the rest.
 function focusGroup(leaf: { id: number, points: PointData[] }) {
-    selectedGroupId.value = leaf.id
+    selectedGroupIds.value = new Set([leaf.id])
+    groupAnchorId = leaf.id
     lookAtPoints(leaf.points)
 }
 
@@ -1171,7 +1209,7 @@ onUnmounted(stopFind)
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(brushSize, (size) => renderer.value?.setBrushSize(size))
 watch(() => columnStore.selectionTick(selectNamespace.value), () => updateSelection())
-watch(selectedGroupId, () => updateColors())
+watch(selectedGroupIds, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
 watch(() => props.imageSize, (val, old) => {
@@ -1485,14 +1523,17 @@ onMounted(async () => {
                             </WithToolTip>
                             <span class="section-count num">{{ leaves.length }}</span>
                         </div>
+                        <div v-if="!props.mapOptions.groupsCollapsed" class="group-list-tools">
+                            <input v-model="groupSearch" class="group-search" type="search" :placeholder="$t('map.group_search')" />
+                        </div>
                         <!-- Virtualised: a clustering can produce thousands of leaves. Rows are a fixed
                              GROUP_ROW_HEIGHT (the 2px gap lives inside the row's slot). -->
                         <RecycleScroller v-if="!props.mapOptions.groupsCollapsed" class="group-list-body group-list-virtual"
-                            :items="leaves" key-field="id" :item-size="GROUP_ROW_HEIGHT" :buffer="GROUP_ROW_HEIGHT * 10">
+                            :items="shownLeaves" key-field="id" :item-size="GROUP_ROW_HEIGHT" :buffer="GROUP_ROW_HEIGHT * 10">
                             <template v-slot="{ item: leaf }">
                             <div class="group-row" :style="{ height: GROUP_ROW_HEIGHT + 'px' }">
                             <div class="group-item"
-                                :class="{ active: selectedGroupId === leaf.id }" @click="toggleGroupSelection(leaf)">
+                                :class="{ active: selectedGroupIds.has(leaf.id) }" @click="toggleGroupSelection(leaf, $event)">
                                 <div class="group-color" :style="{ backgroundColor: leaf.color }"></div>
                                 <PropertyValueVue v-if="leaf.value" class="group-name" :value="leaf.value" />
                                 <span v-else class="group-name">{{ leaf.name }}</span>
@@ -1745,6 +1786,32 @@ onMounted(async () => {
     overflow-y: auto;
 }
 
+.group-list-tools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 4px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.group-search {
+    flex: 1;
+    min-width: 0;
+    height: 24px;
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    outline: none;
+}
+
+.group-search:focus {
+    border-color: var(--primary);
+}
+
 .group-list-virtual {
     display: block;
 }
@@ -1755,6 +1822,8 @@ onMounted(async () => {
 
 .group-item {
     height: 100%;
+    /* shift-click selects a range of groups, not text */
+    user-select: none;
     box-sizing: border-box;
     overflow: hidden;
     display: flex;
