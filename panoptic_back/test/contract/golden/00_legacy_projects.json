@@ -1,0 +1,11 @@
+{
+  "body": {
+    "projects": [],
+    "reason": "PANOPTIC_NO_LEGACY_SCAN=1",
+    "registries": [],
+    "scanned": true,
+    "skipped": true
+  },
+  "content_type": "application/json",
+  "status": 200
+}

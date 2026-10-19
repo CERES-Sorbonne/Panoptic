@@ -1,0 +1,27 @@
+{
+  "body": [
+    {
+      "id": 1,
+      "name": "images",
+      "parent": null,
+      "path": "<IMAGES>",
+      "source_id": 1
+    },
+    {
+      "id": 2,
+      "name": "a",
+      "parent": 1,
+      "path": "<IMAGES>/a",
+      "source_id": 1
+    },
+    {
+      "id": 3,
+      "name": "b",
+      "parent": 1,
+      "path": "<IMAGES>/b",
+      "source_id": 1
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

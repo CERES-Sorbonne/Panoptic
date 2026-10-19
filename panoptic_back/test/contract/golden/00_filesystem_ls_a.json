@@ -1,0 +1,80 @@
+{
+  "body": {
+    "directories": [],
+    "files": [
+      {
+        "name": "img_a00.png",
+        "path": "<IMAGES>/a/img_a00.png"
+      },
+      {
+        "name": "img_a01.jpg",
+        "path": "<IMAGES>/a/img_a01.jpg"
+      },
+      {
+        "name": "img_a02.png",
+        "path": "<IMAGES>/a/img_a02.png"
+      },
+      {
+        "name": "img_a03.jpg",
+        "path": "<IMAGES>/a/img_a03.jpg"
+      },
+      {
+        "name": "img_a04.png",
+        "path": "<IMAGES>/a/img_a04.png"
+      },
+      {
+        "name": "img_a05.jpg",
+        "path": "<IMAGES>/a/img_a05.jpg"
+      },
+      {
+        "name": "img_a05_copy.jpg",
+        "path": "<IMAGES>/a/img_a05_copy.jpg"
+      },
+      {
+        "name": "img_a06.png",
+        "path": "<IMAGES>/a/img_a06.png"
+      },
+      {
+        "name": "img_a07.jpg",
+        "path": "<IMAGES>/a/img_a07.jpg"
+      },
+      {
+        "name": "img_a08.png",
+        "path": "<IMAGES>/a/img_a08.png"
+      },
+      {
+        "name": "img_a09.jpg",
+        "path": "<IMAGES>/a/img_a09.jpg"
+      },
+      {
+        "name": "img_a10.png",
+        "path": "<IMAGES>/a/img_a10.png"
+      },
+      {
+        "name": "img_a11.jpg",
+        "path": "<IMAGES>/a/img_a11.jpg"
+      },
+      {
+        "name": "notes.txt",
+        "path": "<IMAGES>/a/notes.txt"
+      }
+    ],
+    "images": [
+      "<IMAGES>/a/img_a00.png",
+      "<IMAGES>/a/img_a01.jpg",
+      "<IMAGES>/a/img_a02.png",
+      "<IMAGES>/a/img_a03.jpg",
+      "<IMAGES>/a/img_a04.png",
+      "<IMAGES>/a/img_a05.jpg",
+      "<IMAGES>/a/img_a05_copy.jpg",
+      "<IMAGES>/a/img_a06.png",
+      "<IMAGES>/a/img_a07.jpg",
+      "<IMAGES>/a/img_a08.png",
+      "<IMAGES>/a/img_a09.jpg",
+      "<IMAGES>/a/img_a10.png",
+      "<IMAGES>/a/img_a11.jpg"
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

@@ -1,0 +1,74 @@
+{
+  "body": {
+    "properties": [
+      {
+        "dtype": "text",
+        "id": 11,
+        "mode": "id",
+        "name": "Note"
+      },
+      {
+        "dtype": "number",
+        "id": 12,
+        "mode": "sha1",
+        "name": "Score"
+      },
+      {
+        "dtype": "multi_tags",
+        "id": 13,
+        "mode": "sha1",
+        "name": "Keywords"
+      },
+      {
+        "dtype": "tag",
+        "id": 14,
+        "mode": "id",
+        "name": "Status"
+      }
+    ],
+    "property_groups": [],
+    "tags": [
+      {
+        "color": 1,
+        "id": 1,
+        "list_id": 13,
+        "parents": [],
+        "value": "animal"
+      },
+      {
+        "color": 2,
+        "id": 2,
+        "list_id": 13,
+        "parents": [
+          1
+        ],
+        "value": "cat"
+      },
+      {
+        "color": 3,
+        "id": 3,
+        "list_id": 13,
+        "parents": [
+          1
+        ],
+        "value": "dog"
+      },
+      {
+        "color": 4,
+        "id": 4,
+        "list_id": 14,
+        "parents": [],
+        "value": "todo"
+      },
+      {
+        "color": 5,
+        "id": 5,
+        "list_id": 14,
+        "parents": [],
+        "value": "done"
+      }
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

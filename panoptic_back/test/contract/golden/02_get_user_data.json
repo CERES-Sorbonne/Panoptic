@@ -1,0 +1,10 @@
+{
+  "body": [
+    "/a",
+    {
+      "x": 1
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "path-input-test"
+version = "0.1.0"
+description = "Example Panoptic plugin: FolderPath / FilePath / InputFile action inputs"
+requires-python = ">=3.10"
+dependencies = ["panoptic-plugin-sdk>=1.0.0a1,<2"]
+
+# How the backend finds the plugin class in the plugin's venv.
+[project.entry-points."panoptic.plugins"]
+PathInputTest = "path_input_test:PathInputTest"

@@ -1,0 +1,117 @@
+{
+  "body": {
+    "chunk": {
+      "empty_tags": [
+        3
+      ],
+      "properties": [
+        {
+          "access": "write",
+          "dtype": "number",
+          "id": 12,
+          "mode": "sha1",
+          "name": "Rating",
+          "property_group_id": null,
+          "system_key": null,
+          "tag_list_id": 12
+        },
+        {
+          "access": "write",
+          "dtype": "text",
+          "id": 11,
+          "mode": "id",
+          "name": "Note",
+          "property_group_id": 1,
+          "system_key": null,
+          "tag_list_id": 11
+        }
+      ],
+      "property_groups": [
+        {
+          "id": 1,
+          "name": "My group"
+        }
+      ]
+    },
+    "image_values": [
+      {
+        "key": "sha1s",
+        "property_id": 12,
+        "rows": [
+          [
+            "<sha1:a/img_a00.png>",
+            "4.5"
+          ],
+          [
+            "<sha1:a/img_a01.jpg>",
+            "2"
+          ]
+        ]
+      },
+      {
+        "key": "sha1s",
+        "property_id": 13,
+        "rows": [
+          [
+            "<sha1:a/img_a00.png>",
+            "[1,2]"
+          ],
+          [
+            "<sha1:b/deep/img_d00.png>",
+            "null"
+          ]
+        ]
+      }
+    ],
+    "instance_values": [
+      {
+        "key": "ids",
+        "property_id": 11,
+        "rows": [
+          [
+            "<inst:a/img_a00.png>",
+            "\"first note\""
+          ],
+          [
+            "<inst:a/img_a01.jpg>",
+            "null"
+          ]
+        ]
+      },
+      {
+        "key": "ids",
+        "property_id": 14,
+        "rows": [
+          [
+            "<inst:a/img_a00.png>",
+            "[4]"
+          ],
+          [
+            "<inst:b/deep/img_d00.png>",
+            "[5]"
+          ]
+        ]
+      }
+    ],
+    "state": {
+      "counter_file_value": 0,
+      "counter_image_value": 0,
+      "counter_instance": 0,
+      "counter_instance_value": 0,
+      "finished_file_values": true,
+      "finished_image_values": true,
+      "finished_instance": true,
+      "finished_instance_values": true,
+      "finished_property": true,
+      "finished_property_groups": true,
+      "finished_tags": true,
+      "max_file_value": 0,
+      "max_image_value": 0,
+      "max_instance": 0,
+      "max_instance_value": 0,
+      "max_sequence": "<seq:+10>"
+    }
+  },
+  "content_type": "application/json",
+  "status": 200
+}

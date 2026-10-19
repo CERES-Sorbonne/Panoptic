@@ -1,0 +1,46 @@
+{
+  "content_type": "application/x-ndjson",
+  "lines": [
+    {
+      "instance_values": [
+        {
+          "key": "ids",
+          "property_id": 12,
+          "rows": [
+            [
+              "<inst:a/img_a00.png>",
+              4.5
+            ],
+            [
+              "<inst:a/img_a01.jpg>",
+              2
+            ],
+            [
+              "<inst:b/copy_of_a00.png>",
+              4.5
+            ]
+          ]
+        }
+      ],
+      "state": {
+        "counter_file_value": 0,
+        "counter_image_value": 0,
+        "counter_instance": 0,
+        "counter_instance_value": 3,
+        "finished_file_values": false,
+        "finished_image_values": false,
+        "finished_instance": false,
+        "finished_instance_values": false,
+        "finished_property": false,
+        "finished_property_groups": false,
+        "finished_tags": false,
+        "max_file_value": 0,
+        "max_image_value": 0,
+        "max_instance": 0,
+        "max_instance_value": 2,
+        "max_sequence": 0
+      }
+    }
+  ],
+  "status": 200
+}

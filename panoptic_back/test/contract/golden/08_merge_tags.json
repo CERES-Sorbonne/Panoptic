@@ -1,0 +1,28 @@
+{
+  "body": {
+    "empty_tags": [
+      5
+    ],
+    "image_values": [],
+    "instance_values": [
+      {
+        "instance_id": "<inst:b/deep/img_d00.png>",
+        "property_id": 14,
+        "value": [
+          4
+        ]
+      }
+    ],
+    "tags": [
+      {
+        "color": 4,
+        "id": 4,
+        "list_id": 14,
+        "parents": [],
+        "value": "todo"
+      }
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

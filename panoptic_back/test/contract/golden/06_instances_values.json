@@ -1,0 +1,27 @@
+{
+  "body": {
+    "<inst:a/img_a00.png>": {
+      "2": "<sha1:a/img_a00.png>",
+      "4": 2,
+      "5": "img_a00.png",
+      "6": "<IMAGES>/a/img_a00.png",
+      "8": 48
+    },
+    "<inst:b/copy_of_a00.png>": {
+      "2": "<sha1:a/img_a00.png>",
+      "4": 3,
+      "5": "copy_of_a00.png",
+      "6": "<IMAGES>/b/copy_of_a00.png",
+      "8": 48
+    },
+    "<inst:b/deep/img_d01.png>": {
+      "2": "<sha1:b/deep/img_d01.png>",
+      "4": 4,
+      "5": "img_d01.png",
+      "6": "<IMAGES>/b/deep/img_d01.png",
+      "8": 50
+    }
+  },
+  "content_type": "application/json",
+  "status": 200
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "cancelled": false,
+    "done": 27,
+    "failed": 0,
+    "finished": true,
+    "id": "GenerateThumbnailsTask#1",
+    "key": "GenerateThumbnailsTask",
+    "name": "Generate Thumbnails",
+    "owner": null,
+    "remain": 0,
+    "running": false,
+    "total": 27,
+    "vector_type_id": null
+  }
+]

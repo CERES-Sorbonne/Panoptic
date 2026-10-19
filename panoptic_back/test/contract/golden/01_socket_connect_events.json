@@ -1,0 +1,25 @@
+[
+  [
+    "update_projects",
+    null
+  ],
+  [
+    "update_plugins",
+    null
+  ],
+  [
+    "update_users",
+    null
+  ],
+  [
+    "connection_state",
+    {
+      "connected_project": null,
+      "connection_id": "<CONNECTION_ID>",
+      "user": {
+        "id": "default",
+        "name": "default"
+      }
+    }
+  ]
+]

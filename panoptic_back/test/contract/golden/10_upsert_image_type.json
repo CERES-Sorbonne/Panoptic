@@ -1,0 +1,12 @@
+{
+  "body": {
+    "auto_gen": false,
+    "format": "webp",
+    "height": 64,
+    "id": 3,
+    "name": "preview",
+    "width": 64
+  },
+  "content_type": "application/json",
+  "status": 200
+}

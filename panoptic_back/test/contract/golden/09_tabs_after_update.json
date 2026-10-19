@@ -1,0 +1,35 @@
+{
+  "body": [
+    {
+      "id": "tab-1",
+      "selection": [
+        3,
+        1
+      ],
+      "state": {
+        "display": "grid",
+        "filter": {
+          "filters": [],
+          "groupId": 0
+        },
+        "name": "Renamed",
+        "nested": [
+          1,
+          2.5,
+          null
+        ]
+      },
+      "user_id": "default"
+    },
+    {
+      "id": "tab-2",
+      "selection": null,
+      "state": {
+        "name": "Tab 2"
+      },
+      "user_id": "default"
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/panoptic-db",
+    "crates/panoptic-engine",
+    "crates/panoptic-core",
+    "crates/panoptic-api",
+    "crates/panoptic-server",
+    "panoptic_front/src-tauri",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MPL-2.0"
+rust-version = "1.85"
+
+# Shared dependency versions: crates use `dep = { workspace = true }`
+[workspace.dependencies]
+panoptic-db = { path = "crates/panoptic-db" }
+panoptic-engine = { path = "crates/panoptic-engine" }
+panoptic-core = { path = "crates/panoptic-core" }
+panoptic-api = { path = "crates/panoptic-api" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tokio = { version = "1", features = ["full"] }
+rayon = "1"
+rusqlite = { version = "0.37", features = ["bundled"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+uuid = { version = "1", features = ["v4"] }
+indexmap = { version = "2", features = ["serde"] }
+tempfile = "3"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

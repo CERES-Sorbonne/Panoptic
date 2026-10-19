@@ -1,0 +1,8 @@
+{
+  "body": {
+    "message": "Project '<PROJECT_ID>' is not loaded",
+    "name": "HTTPException"
+  },
+  "content_type": "application/json",
+  "status": 404
+}

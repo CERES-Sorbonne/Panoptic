@@ -1,0 +1,7 @@
+{
+  "body": {
+    "path": "<PROJECT>/exports/contract_export"
+  },
+  "content_type": "application/json",
+  "status": 200
+}

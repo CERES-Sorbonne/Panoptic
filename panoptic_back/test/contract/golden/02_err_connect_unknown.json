@@ -1,0 +1,8 @@
+{
+  "body": {
+    "message": "User not found",
+    "name": "HTTPException"
+  },
+  "content_type": "application/json",
+  "status": 404
+}

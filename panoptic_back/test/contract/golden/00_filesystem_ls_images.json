@@ -1,0 +1,20 @@
+{
+  "body": {
+    "directories": [
+      {
+        "isProject": false,
+        "name": "a",
+        "path": "<IMAGES>/a"
+      },
+      {
+        "isProject": false,
+        "name": "b",
+        "path": "<IMAGES>/b"
+      }
+    ],
+    "files": [],
+    "images": []
+  },
+  "content_type": "application/json",
+  "status": 200
+}

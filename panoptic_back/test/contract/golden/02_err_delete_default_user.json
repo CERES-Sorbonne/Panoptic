@@ -1,0 +1,8 @@
+{
+  "body": {
+    "message": "Cannot delete the default user",
+    "name": "HTTPException"
+  },
+  "content_type": "application/json",
+  "status": 400
+}

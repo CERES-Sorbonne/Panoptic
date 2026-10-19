@@ -1,0 +1,12 @@
+{
+  "body": {
+    "counts": {
+      "1": 27,
+      "2": 27,
+      "3": 27
+    },
+    "sha1_count": 27
+  },
+  "content_type": "application/json",
+  "status": 200
+}

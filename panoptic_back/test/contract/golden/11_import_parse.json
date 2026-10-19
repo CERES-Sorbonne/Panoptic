@@ -1,0 +1,13 @@
+{
+  "body": {
+    "missing_rows": [
+      [
+        2,
+        "/does/not/exist.png"
+      ]
+    ],
+    "new_instances_count": 0
+  },
+  "content_type": "application/json",
+  "status": 200
+}

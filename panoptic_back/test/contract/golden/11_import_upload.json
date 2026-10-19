@@ -1,0 +1,28 @@
+{
+  "body": {
+    "col_to_property": {
+      "1": {
+        "id": -1,
+        "mode": "sha1",
+        "name": "Imported",
+        "type": "text"
+      },
+      "2": {
+        "id": -2,
+        "mode": "sha1",
+        "name": "Points",
+        "type": "number"
+      },
+      "3": {
+        "id": -3,
+        "mode": "sha1",
+        "name": "Notes again",
+        "type": "text"
+      }
+    },
+    "errors": {},
+    "key": "path"
+  },
+  "content_type": "application/json",
+  "status": 200
+}

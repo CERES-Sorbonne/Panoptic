@@ -1,0 +1,12 @@
+{
+  "body": {
+    "active": 0,
+    "author": "default",
+    "group_id": 3,
+    "id": 3,
+    "source": "ui",
+    "timestamp": "<volatile>"
+  },
+  "content_type": "application/json",
+  "status": 200
+}

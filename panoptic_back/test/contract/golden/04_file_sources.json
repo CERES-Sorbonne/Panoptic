@@ -1,0 +1,14 @@
+{
+  "body": [
+    {
+      "dtype": "local",
+      "id": 1,
+      "metadata": null,
+      "name": "local_filesystem",
+      "root_url": null,
+      "sync_status": null
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

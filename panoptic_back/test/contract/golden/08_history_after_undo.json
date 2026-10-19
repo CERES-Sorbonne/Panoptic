@@ -1,0 +1,28 @@
+{
+  "body": {
+    "redo": [
+      {
+        "author": "default",
+        "id": 3,
+        "own": true,
+        "source": "ui",
+        "tags": 5,
+        "timestamp": "<volatile>",
+        "values": 4
+      }
+    ],
+    "undo": [
+      {
+        "author": "default",
+        "id": 2,
+        "own": true,
+        "source": "ui",
+        "tags": 0,
+        "timestamp": "<volatile>",
+        "values": 0
+      }
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

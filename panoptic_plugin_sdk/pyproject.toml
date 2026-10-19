@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "panoptic-plugin-sdk"
+version = "1.0.0a1"
+description = "Base class, socket RPC client and direct SQLite helpers for out-of-process Panoptic plugins"
+requires-python = ">=3.10"
+license = { text = "MPL-2.0" }
+dependencies = [
+    "websockets>=13",
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.24"]
+
+[project.scripts]
+panoptic-plugin = "panoptic_plugin.run:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["panoptic_plugin"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "numpy>=1.24",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,16 @@
+[
+  {
+    "cancelled": false,
+    "done": 3,
+    "failed": 0,
+    "finished": true,
+    "id": "ImportCsvTask#1",
+    "key": "ImportCsvTask",
+    "name": "Import contract.csv",
+    "owner": null,
+    "remain": 0,
+    "running": false,
+    "total": 3,
+    "vector_type_id": null
+  }
+]

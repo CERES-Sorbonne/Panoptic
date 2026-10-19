@@ -1,0 +1,154 @@
+{
+  "content_type": "application/x-ndjson",
+  "lines": [
+    {
+      "instance_values": [
+        {
+          "key": "ids",
+          "property_id": 10,
+          "rows": [
+            [
+              "<inst:a/img_a00.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a01.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a02.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a03.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a04.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a05.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a05_copy.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a06.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a07.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a08.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a09.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a10.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:a/img_a11.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/copy_of_a00.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/deep/img_b03.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/deep/img_d00.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/deep/img_d01.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/deep/img_d02.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/deep/img_d03.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b00.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b01.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b02.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b03.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b04.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b05.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b06.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b07.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b08.png>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b09.jpg>",
+              "\"2024-01-02T03:04:05\""
+            ],
+            [
+              "<inst:b/img_b10.png>",
+              "\"2024-01-02T03:04:05\""
+            ]
+          ]
+        }
+      ],
+      "state": {
+        "counter_file_value": 0,
+        "counter_image_value": 0,
+        "counter_instance": 0,
+        "counter_instance_value": 30,
+        "finished_file_values": false,
+        "finished_image_values": false,
+        "finished_instance": false,
+        "finished_instance_values": false,
+        "finished_property": false,
+        "finished_property_groups": false,
+        "finished_tags": false,
+        "max_file_value": 0,
+        "max_image_value": 0,
+        "max_instance": 0,
+        "max_instance_value": 30,
+        "max_sequence": 0
+      }
+    }
+  ],
+  "status": 200
+}

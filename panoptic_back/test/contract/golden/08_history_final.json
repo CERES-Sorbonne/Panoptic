@@ -1,0 +1,81 @@
+{
+  "body": {
+    "redo": [],
+    "undo": [
+      {
+        "author": "default",
+        "id": 2,
+        "own": true,
+        "source": "ui",
+        "tags": 0,
+        "timestamp": "<volatile>",
+        "values": 0
+      },
+      {
+        "author": "default",
+        "id": 3,
+        "own": true,
+        "source": "ui",
+        "tags": 5,
+        "timestamp": "<volatile>",
+        "values": 4
+      },
+      {
+        "author": "default",
+        "id": 4,
+        "own": true,
+        "source": "ui",
+        "tags": 0,
+        "timestamp": "<volatile>",
+        "values": 0
+      },
+      {
+        "author": "default",
+        "id": 5,
+        "own": true,
+        "source": "ui",
+        "tags": 0,
+        "timestamp": "<volatile>",
+        "values": 0
+      },
+      {
+        "author": "default",
+        "id": 6,
+        "own": true,
+        "source": "ui",
+        "tags": 0,
+        "timestamp": "<volatile>",
+        "values": 1
+      },
+      {
+        "author": "default",
+        "id": 7,
+        "own": true,
+        "source": "ui",
+        "tags": 1,
+        "timestamp": "<volatile>",
+        "values": 0
+      },
+      {
+        "author": "default",
+        "id": 8,
+        "own": true,
+        "source": "ui",
+        "tags": 2,
+        "timestamp": "<volatile>",
+        "values": 0
+      },
+      {
+        "author": "default",
+        "id": 9,
+        "own": true,
+        "source": "ui",
+        "tags": 0,
+        "timestamp": "<volatile>",
+        "values": 0
+      }
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

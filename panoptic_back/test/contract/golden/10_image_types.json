@@ -1,0 +1,30 @@
+{
+  "body": [
+    {
+      "auto_gen": true,
+      "format": "jpeg",
+      "height": 256,
+      "id": 1,
+      "name": "small",
+      "width": 256
+    },
+    {
+      "auto_gen": true,
+      "format": "jpeg",
+      "height": 1024,
+      "id": 2,
+      "name": "large",
+      "width": 1024
+    },
+    {
+      "auto_gen": false,
+      "format": "webp",
+      "height": 64,
+      "id": 3,
+      "name": "preview",
+      "width": 64
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

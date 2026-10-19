@@ -1,0 +1,151 @@
+{
+  "body": {
+    "chunk": {
+      "properties": [
+        {
+          "access": "write",
+          "dtype": "multi_tags",
+          "id": 13,
+          "mode": "sha1",
+          "name": "Keywords",
+          "property_group_id": null,
+          "system_key": null,
+          "tag_list_id": 13
+        },
+        {
+          "access": "write",
+          "dtype": "number",
+          "id": 12,
+          "mode": "sha1",
+          "name": "Score",
+          "property_group_id": null,
+          "system_key": null,
+          "tag_list_id": 12
+        },
+        {
+          "access": "write",
+          "dtype": "tag",
+          "id": 14,
+          "mode": "id",
+          "name": "Status",
+          "property_group_id": null,
+          "system_key": null,
+          "tag_list_id": 14
+        },
+        {
+          "access": "write",
+          "dtype": "text",
+          "id": 11,
+          "mode": "id",
+          "name": "Note",
+          "property_group_id": null,
+          "system_key": null,
+          "tag_list_id": 11
+        }
+      ],
+      "tags": [
+        {
+          "color": 1,
+          "id": 1,
+          "list_id": 13,
+          "parents": [],
+          "value": "animal"
+        },
+        {
+          "color": 2,
+          "id": 2,
+          "list_id": 13,
+          "parents": [
+            1
+          ],
+          "value": "cat"
+        },
+        {
+          "color": 3,
+          "id": 3,
+          "list_id": 13,
+          "parents": [
+            1
+          ],
+          "value": "dog"
+        },
+        {
+          "color": 4,
+          "id": 4,
+          "list_id": 14,
+          "parents": [],
+          "value": "todo"
+        },
+        {
+          "color": 5,
+          "id": 5,
+          "list_id": 14,
+          "parents": [],
+          "value": "done"
+        }
+      ]
+    },
+    "image_values": [
+      {
+        "key": "sha1s",
+        "property_id": 13,
+        "rows": [
+          [
+            "<sha1:a/img_a00.png>",
+            "[1,2]"
+          ],
+          [
+            "<sha1:b/deep/img_d00.png>",
+            "[3]"
+          ]
+        ]
+      }
+    ],
+    "instance_values": [
+      {
+        "key": "ids",
+        "property_id": 11,
+        "rows": [
+          [
+            "<inst:a/img_a00.png>",
+            "\"first note\""
+          ]
+        ]
+      },
+      {
+        "key": "ids",
+        "property_id": 14,
+        "rows": [
+          [
+            "<inst:a/img_a00.png>",
+            "[4]"
+          ],
+          [
+            "<inst:b/deep/img_d00.png>",
+            "[5]"
+          ]
+        ]
+      }
+    ],
+    "state": {
+      "counter_file_value": 0,
+      "counter_image_value": 0,
+      "counter_instance": 0,
+      "counter_instance_value": 0,
+      "finished_file_values": true,
+      "finished_image_values": true,
+      "finished_instance": true,
+      "finished_instance_values": true,
+      "finished_property": true,
+      "finished_property_groups": true,
+      "finished_tags": true,
+      "max_file_value": 0,
+      "max_image_value": 0,
+      "max_instance": 0,
+      "max_instance_value": 0,
+      "max_sequence": "<seq:+2>"
+    }
+  },
+  "content_type": "application/json",
+  "status": 200
+}

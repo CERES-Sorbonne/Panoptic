@@ -1,0 +1,12 @@
+{
+  "body": [
+    {
+      "description": "default user",
+      "id": "default",
+      "name": "default",
+      "password_hash": null
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

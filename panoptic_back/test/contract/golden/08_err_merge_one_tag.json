@@ -1,0 +1,8 @@
+{
+  "body": {
+    "message": "Select at least 2 tags to merge",
+    "name": "HTTPException"
+  },
+  "content_type": "application/json",
+  "status": 400
+}

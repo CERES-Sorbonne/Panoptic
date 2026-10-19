@@ -1,0 +1,16 @@
+{
+  "body": {
+    "properties": [
+      {
+        "dtype": "number",
+        "id": 12,
+        "mode": "sha1",
+        "name": "Rating"
+      }
+    ],
+    "property_groups": [],
+    "tags": []
+  },
+  "content_type": "application/json",
+  "status": 200
+}

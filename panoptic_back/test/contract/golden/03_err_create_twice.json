@@ -1,0 +1,8 @@
+{
+  "body": {
+    "message": "Path '<PROJECT>' is already registered",
+    "name": "HTTPException"
+  },
+  "content_type": "application/json",
+  "status": 400
+}

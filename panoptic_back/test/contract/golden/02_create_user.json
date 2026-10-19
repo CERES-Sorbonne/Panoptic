@@ -1,0 +1,10 @@
+{
+  "body": {
+    "description": "",
+    "id": "<USER:alice>",
+    "name": "alice",
+    "password_hash": null
+  },
+  "content_type": "application/json",
+  "status": 200
+}

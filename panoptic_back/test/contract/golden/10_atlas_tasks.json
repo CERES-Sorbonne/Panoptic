@@ -1,0 +1,16 @@
+[
+  {
+    "cancelled": false,
+    "done": 27,
+    "failed": 0,
+    "finished": true,
+    "id": "GenerateAtlasTask#2",
+    "key": "GenerateAtlasTask",
+    "name": "Generate Atlas",
+    "owner": null,
+    "remain": 0,
+    "running": false,
+    "total": 27,
+    "vector_type_id": null
+  }
+]

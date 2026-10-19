@@ -1,0 +1,24 @@
+{
+  "body": {
+    "state": {
+      "counter_file_value": 0,
+      "counter_image_value": 0,
+      "counter_instance": 0,
+      "counter_instance_value": 0,
+      "finished_file_values": true,
+      "finished_image_values": true,
+      "finished_instance": true,
+      "finished_instance_values": true,
+      "finished_property": true,
+      "finished_property_groups": true,
+      "finished_tags": true,
+      "max_file_value": 0,
+      "max_image_value": 0,
+      "max_instance": 0,
+      "max_instance_value": 0,
+      "max_sequence": "<seq:+2>"
+    }
+  },
+  "content_type": "application/json",
+  "status": 200
+}

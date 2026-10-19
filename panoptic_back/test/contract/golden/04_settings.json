@@ -1,0 +1,13 @@
+{
+  "body": {
+    "image_large_size": 1024,
+    "image_medium_size": 256,
+    "image_small_size": 128,
+    "save_file_raw": false,
+    "save_image_large": false,
+    "save_image_medium": true,
+    "save_image_small": true
+  },
+  "content_type": "application/json",
+  "status": 200
+}

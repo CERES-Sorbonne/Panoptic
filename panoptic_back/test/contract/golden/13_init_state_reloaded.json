@@ -1,0 +1,266 @@
+{
+  "body": {
+    "file_sources": [
+      {
+        "dtype": "local",
+        "id": 1,
+        "metadata": null,
+        "name": "local_filesystem",
+        "root_url": null,
+        "sync_status": {
+          "failed_count": 0,
+          "file_count": 30,
+          "folder_count": 4,
+          "imported_count": 0,
+          "last_synced_at": "<volatile>",
+          "removed_count": 0,
+          "status": "success"
+        }
+      }
+    ],
+    "folders": [
+      {
+        "id": 1,
+        "name": "images",
+        "parent": null,
+        "path": "<IMAGES>",
+        "source_id": 1
+      },
+      {
+        "id": 2,
+        "name": "a",
+        "parent": 1,
+        "path": "<IMAGES>/a",
+        "source_id": 1
+      },
+      {
+        "id": 3,
+        "name": "b",
+        "parent": 1,
+        "path": "<IMAGES>/b",
+        "source_id": 1
+      }
+    ],
+    "properties": [
+      {
+        "access": "read",
+        "dtype": "id",
+        "id": 1,
+        "mode": "id",
+        "name": "id",
+        "property_group_id": null,
+        "system_key": "id",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "sha1",
+        "id": 2,
+        "mode": "sha1",
+        "name": "sha1",
+        "property_group_id": null,
+        "system_key": "sha1",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "number",
+        "id": 3,
+        "mode": "id",
+        "name": "file_id",
+        "property_group_id": null,
+        "system_key": "file_id",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "folder",
+        "id": 4,
+        "mode": "sha1",
+        "name": "folder",
+        "property_group_id": null,
+        "system_key": "folder",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "text",
+        "id": 5,
+        "mode": "file",
+        "name": "name",
+        "property_group_id": null,
+        "system_key": "name",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "path",
+        "id": 6,
+        "mode": "file",
+        "name": "path",
+        "property_group_id": null,
+        "system_key": "path",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "text",
+        "id": 7,
+        "mode": "sha1",
+        "name": "format",
+        "property_group_id": null,
+        "system_key": "format",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "number",
+        "id": 8,
+        "mode": "sha1",
+        "name": "width",
+        "property_group_id": null,
+        "system_key": "width",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "number",
+        "id": 9,
+        "mode": "sha1",
+        "name": "height",
+        "property_group_id": null,
+        "system_key": "height",
+        "tag_list_id": null
+      },
+      {
+        "access": "read",
+        "dtype": "date",
+        "id": 10,
+        "mode": "file",
+        "name": "created_at",
+        "property_group_id": null,
+        "system_key": "created_at",
+        "tag_list_id": null
+      },
+      {
+        "access": "write",
+        "dtype": "text",
+        "id": 11,
+        "mode": "id",
+        "name": "Note",
+        "property_group_id": 1,
+        "system_key": null,
+        "tag_list_id": 11
+      },
+      {
+        "access": "write",
+        "dtype": "number",
+        "id": 12,
+        "mode": "sha1",
+        "name": "Rating",
+        "property_group_id": null,
+        "system_key": null,
+        "tag_list_id": 12
+      },
+      {
+        "access": "write",
+        "dtype": "multi_tags",
+        "id": 13,
+        "mode": "sha1",
+        "name": "Keywords",
+        "property_group_id": null,
+        "system_key": null,
+        "tag_list_id": 13
+      },
+      {
+        "access": "write",
+        "dtype": "tag",
+        "id": 14,
+        "mode": "id",
+        "name": "Status",
+        "property_group_id": null,
+        "system_key": null,
+        "tag_list_id": 14
+      },
+      {
+        "access": "write",
+        "dtype": "text",
+        "id": 15,
+        "mode": "sha1",
+        "name": "Imported",
+        "property_group_id": null,
+        "system_key": null,
+        "tag_list_id": 15
+      },
+      {
+        "access": "write",
+        "dtype": "number",
+        "id": 16,
+        "mode": "sha1",
+        "name": "Points",
+        "property_group_id": null,
+        "system_key": null,
+        "tag_list_id": 16
+      }
+    ],
+    "property_groups": [
+      {
+        "id": 1,
+        "name": "My group"
+      }
+    ],
+    "sequence": "<seq:+17>",
+    "tags": [
+      {
+        "color": 1,
+        "id": 1,
+        "list_id": 13,
+        "parents": [],
+        "value": "animal"
+      },
+      {
+        "color": 2,
+        "id": 2,
+        "list_id": 13,
+        "parents": [
+          1
+        ],
+        "value": "cat"
+      },
+      {
+        "color": 4,
+        "id": 4,
+        "list_id": 14,
+        "parents": [],
+        "value": "todo"
+      },
+      {
+        "color": 6,
+        "id": 9,
+        "list_id": 13,
+        "parents": [
+          1
+        ],
+        "value": "bird"
+      },
+      {
+        "color": 7,
+        "id": 10,
+        "list_id": 13,
+        "parents": [
+          9
+        ],
+        "value": "sparrow"
+      },
+      {
+        "color": 3,
+        "id": 11,
+        "list_id": 13,
+        "parents": [],
+        "value": "fish"
+      }
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

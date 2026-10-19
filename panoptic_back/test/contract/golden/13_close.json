@@ -1,0 +1,15 @@
+{
+  "body": [
+    {
+      "excluded_plugins": [],
+      "id": "<PROJECT_ID>",
+      "loaded": false,
+      "name": "renamed",
+      "path": "<PROJECT>",
+      "problem": null,
+      "status": "ok"
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

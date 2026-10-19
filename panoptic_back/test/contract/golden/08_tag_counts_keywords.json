@@ -1,0 +1,21 @@
+{
+  "body": [
+    {
+      "instance_count": 0,
+      "sha1_count": 1,
+      "tag_id": 1
+    },
+    {
+      "instance_count": 0,
+      "sha1_count": 1,
+      "tag_id": 2
+    },
+    {
+      "instance_count": 0,
+      "sha1_count": 1,
+      "tag_id": 3
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

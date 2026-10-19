@@ -1,0 +1,21 @@
+{
+  "body": {
+    "properties": [
+      {
+        "dtype": "text",
+        "id": 11,
+        "mode": "id",
+        "name": "Note"
+      }
+    ],
+    "property_groups": [
+      {
+        "id": 1,
+        "name": "My group"
+      }
+    ],
+    "tags": []
+  },
+  "content_type": "application/json",
+  "status": 200
+}

@@ -1,0 +1,14 @@
+{
+  "body": [
+    {
+      "active": 1,
+      "author": null,
+      "group_id": 1,
+      "id": 1,
+      "source": "system",
+      "timestamp": "<volatile>"
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

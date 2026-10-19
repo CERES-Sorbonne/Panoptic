@@ -1,0 +1,22 @@
+{
+  "body": [
+    {
+      "dtype": "local",
+      "id": 1,
+      "metadata": null,
+      "name": "local_filesystem",
+      "root_url": null,
+      "sync_status": {
+        "failed_count": 0,
+        "file_count": 30,
+        "folder_count": 4,
+        "imported_count": 30,
+        "last_synced_at": "<volatile>",
+        "removed_count": 0,
+        "status": "success"
+      }
+    }
+  ],
+  "content_type": "application/json",
+  "status": 200
+}

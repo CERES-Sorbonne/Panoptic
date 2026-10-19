@@ -1,0 +1,78 @@
+{
+  "body": {
+    "chunk": {
+      "empty_image_values": [
+        {
+          "property_id": 12,
+          "sha1": "<sha1:a/img_a00.png>"
+        },
+        {
+          "property_id": 12,
+          "sha1": "<sha1:a/img_a01.jpg>"
+        }
+      ],
+      "empty_instance_values": [
+        {
+          "instance_id": "<inst:a/img_a00.png>",
+          "property_id": 11
+        },
+        {
+          "instance_id": "<inst:a/img_a01.jpg>",
+          "property_id": 11
+        }
+      ]
+    },
+    "image_values": [
+      {
+        "key": "sha1s",
+        "property_id": 13,
+        "rows": [
+          [
+            "<sha1:a/img_a00.png>",
+            "null"
+          ],
+          [
+            "<sha1:b/deep/img_d00.png>",
+            "null"
+          ]
+        ]
+      }
+    ],
+    "instance_values": [
+      {
+        "key": "ids",
+        "property_id": 14,
+        "rows": [
+          [
+            "<inst:a/img_a00.png>",
+            "null"
+          ],
+          [
+            "<inst:b/deep/img_d00.png>",
+            "null"
+          ]
+        ]
+      }
+    ],
+    "state": {
+      "counter_file_value": 0,
+      "counter_image_value": 0,
+      "counter_instance": 0,
+      "counter_instance_value": 0,
+      "finished_file_values": true,
+      "finished_image_values": true,
+      "finished_instance": true,
+      "finished_instance_values": true,
+      "finished_property": true,
+      "finished_property_groups": true,
+      "finished_tags": true,
+      "max_file_value": 0,
+      "max_image_value": 0,
+      "max_instance": 0,
+      "max_instance_value": 0,
+      "max_sequence": "<seq:+3>"
+    }
+  },
+  "content_type": "application/json",
+  "status": 200
+}
