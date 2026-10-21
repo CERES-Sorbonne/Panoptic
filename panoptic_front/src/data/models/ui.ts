@@ -15,7 +15,8 @@ export enum ModalId {
     NOTIF = "notif",
     FILESOURCE = "filesource",
     SELECTION = "selection",
-    LEGACY = "legacy"
+    LEGACY = "legacy",
+    RENAME_TAG = "rename_tag"
 }
 
 export const Colors = [

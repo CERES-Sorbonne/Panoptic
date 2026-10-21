@@ -258,6 +258,15 @@ async function mergeTags() {
     await updateTagToInstance()
 }
 
+// A shown tag renamed to the name of `keepId`: merge it into that tag, which takes its place in
+// the selection (the removed tag would no longer resolve).
+async function mergeInto(keepId: number, removedId: number) {
+    const ids = selectedTagIds.value.map(id => id == removedId ? keepId : id)
+    selectedTagIds.value = Array.from(new Set(ids))
+    await data.mergeTags([keepId, removedId])
+    await updateTagToInstance()
+}
+
 
 watch(propId, async (id) => {
     if (id !== -1) await updateTagToInstance()
@@ -315,7 +324,7 @@ watch(tags, () => {
                         <TagTree :property="property" :selected-tags="selectedTags" @select="selectTags" @unselect="unselectTags"/>
                     </div>
                     <TagImagesPreview v-if="selectedTagIds.length" :tags="selectedTags" :tag-to-instance="tagToInstance"
-                        @unselect="unselectTag" @merge="mergeTags"/>
+                        @unselect="unselectTag" @merge="mergeTags" @merge-into="mergeInto"/>
                 </div>
             </template>
 

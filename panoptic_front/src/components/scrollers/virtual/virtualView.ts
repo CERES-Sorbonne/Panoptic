@@ -221,7 +221,8 @@ export class VirtualView {
      *  - anchor 'pixels' keeps the same px of the top line above the viewport (rows that grew);
      *    'scale' keeps the same fraction of it (every line changed size).
      *  - rerender hands every mounted slot a new LineRef object, so it renders again: for changes
-     *    the keys do not show (what a line draws changed, not which line it is).
+     *    the keys do not show (what a line draws changed, not which line it is). The range is
+     *    given again too, for the same reason.
      */
     relayout(opts: { anchor?: RelayoutAnchor, rerender?: boolean } = {}) {
         const layout = this.layout
@@ -243,6 +244,9 @@ export class VirtualView {
                 const ref = slot.line.value
                 if (ref) slot.line.value = { node: ref.node, index: ref.index }
             }
+            // Give the range again even when it starts and ends on the same lines: the owners read
+            // the instance ids of the range off their content, which just changed under them.
+            this.lastRange = null
         }
         this.update()
     }

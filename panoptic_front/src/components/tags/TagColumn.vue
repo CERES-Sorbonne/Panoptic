@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import TagOptionsDropdown from '@/components/dropdowns/TagOptionsDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
+import TagColumnRow from './TagColumnRow.vue';
 import { useDataStore } from '@/data/stores/dataStore';
 import { keyState } from '@/data/composables/keyState';
 import { deletedID, Tag } from '@/data/models';
-import { sum } from '@/utils/utils';
 import { ref, watch, computed, onMounted } from 'vue'
 import draggableComponent from 'vuedraggable';
 
@@ -30,9 +29,6 @@ const editTagName = ref(false)
 const editTagInput = ref('')
 const editTagNameInputElem = ref(null)
 
-const selectedTag = ref(-1)
-// tag whose options popup is open: keeps its row buttons (and so the popup) mounted after the mouse leaves the row
-const optionsTag = ref(-1)
 const tagList = ref<Tag[]>([])
 
 const sortDireciton = ref([1, 1, 1])
@@ -65,6 +61,20 @@ const filteredTags = computed(() => {
         res.sort((a, b) => (a.count - b.count) * direction)
     }
     return res.filter(t => t.id != deletedID)
+})
+
+// Looked up per row on every render: a Set and a precomputed map keep that O(1) per row.
+const selectedIds = computed(() => new Set((props.selectedTags ?? []).map(t => t.id)))
+
+// a tag's count plus its descendants' counts
+const totalCounts = computed(() => {
+    const res: { [tagId: number]: number } = {}
+    for (const t of props.tags) {
+        let total = t.count ?? 0
+        for (const c of t.allChildren ?? []) total += data.tags[c]?.count ?? 0
+        res[t.id] = total
+    }
+    return res
 })
 
 const filterMatch = computed(() => {
@@ -152,20 +162,12 @@ function deleteTag(t) {
     emits('removed', t)
 }
 
-function tagClass(t: Tag) {
-    if (!props.selectedTags) return ''
-    if (props.selectedTags.find(tag => tag.id == t.id)) return 'bg-blue'
-    if (t.id == selectedTag.value) return 'bg-selected'
-    return ''
-}
-
 watch(openInput, () => {
     if (openInput.value) {
         inputElem.value.focus()
     }
 })
 
-watch(filterValue, () => selectedTag.value = -1)
 watch(filteredTags, () => tagList.value = [...filteredTags.value])
 onMounted(() => tagList.value = [...filteredTags.value])
 
@@ -205,8 +207,8 @@ onMounted(() => tagList.value = [...filteredTags.value])
             </div>
             <div v-else class="text-secondary">{{ $t('modals.tags.click_any') }}</div>
         </div>
-        <div v-if="!filterMatch && filterValue && !props.noCreate" class="d-flex ps-2"
-            :class="selectedTag == -1 ? 'bg-selected' : ''" style="cursor: pointer;" @mousedown.prevent @click="createTag">
+        <div v-if="!filterMatch && filterValue && !props.noCreate" class="d-flex ps-2 bg-selected"
+            style="cursor: pointer;" @mousedown.prevent @click="createTag">
             <div class="me-1">Create Tag</div>
             <div>
                 <TagBadge :name="filterValue" :color="-1" />
@@ -217,22 +219,8 @@ onMounted(() => tagList.value = [...filteredTags.value])
             style="height: 100%; overflow: auto;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
             @add="e => emits('added', tagList[e.newIndex])">
             <template #item="{ element }" #>
-                <div class="tag-row d-flex align-items-center ps-2" :class="tagClass(element)" style="cursor: pointer;" @click="e => selectTag(element)"
-                    @mouseenter="selectedTag = element.id" @mouseleave="selectedTag = -1">
-
-                    <div class="overflow-hidden">
-                        <TagBadge :id="element.id" />
-                    </div>
-                    <div class="flex-grow-1" style="margin-left: 2px;"></div>
-                    <div v-if="selectedTag == element.id || optionsTag == element.id" class="row-actions d-flex align-items-center" @click.stop>
-                        <div v-if="!props.noCreate"><i class="bi bi-trash sm-btn" @click.stop="deleteTag(element)"></i></div>
-                        <TagOptionsDropdown :property-id="element.propertyId" :tag-id="element.id"
-                            :can-customize="true"
-                            @show="optionsTag = element.id" @hide="optionsTag = -1" />
-                    </div>
-                    <div class="me-2 text-secondary num" style="font-size: 13px;">{{ element.count +
-                        sum(element.allChildren.map(c => data.tags[c].count)) }}</div>
-                </div>
+                <TagColumnRow :tag="element" :selected="selectedIds.has(element.id)" :count="totalCounts[element.id]"
+                    :no-create="props.noCreate" @select="selectTag" @delete="deleteTag" />
             </template>
         </draggableComponent>
         <div v-if="props.disabled" class="disable-overlay"></div>
@@ -240,23 +228,6 @@ onMounted(() => tagList.value = [...filteredTags.value])
 </template>
 
 <style scoped>
-/* same row spacing as TagListScroller: padding keeps the badges from stacking edge to edge */
-.tag-row {
-    padding-top: 3px;
-    padding-bottom: 3px;
-}
-
-/* delete and options icons: same line box, centred on the row. The options icon carries its own
-   1.5px nudge (tuned for other lists), cancelled here so both icons share one centre line. */
-.row-actions,
-.row-actions :deep(i) {
-    line-height: 1;
-}
-
-.row-actions :deep(.bi-three-dots) {
-    top: 0 !important;
-}
-
 .box {
     padding: 6px 0px;
     border-right: 1px solid var(--border-color);
@@ -326,9 +297,5 @@ onMounted(() => tagList.value = [...filteredTags.value])
 
 .selected-tag {
     border-bottom: 1px solid var(--border-color);
-}
-
-.bg-blue {
-    background-color: rgba(89, 89, 247, 0.309);
 }
 </style>
