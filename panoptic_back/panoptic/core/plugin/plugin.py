@@ -64,11 +64,13 @@ class APlugin(ABC):
                 pass
 
     def update_params(self, params: Any) -> Any:
-        if self.params is not None and isinstance(self.params, BaseModel):
-            self.params = self.params.model_copy(
-                update=params if isinstance(params, dict) else params.dict()
-            )
-        self.project.save_params(self.params.dict() if self.params else {})
+        if isinstance(self.params, BaseModel):
+            update = params if isinstance(params, dict) else params.dict()
+            # Validated so the raw UI values get their declared types back (Enum, numbers)
+            self.params = self.params.__class__(**{**self.params.dict(), **update})
+            self.project.save_params(self.params.model_dump(mode='json'))
+        else:
+            self.project.save_params(self.params.dict() if self.params else {})
         return self.params
 
     # ------------------------------------------------------------------

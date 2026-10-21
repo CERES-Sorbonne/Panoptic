@@ -35,7 +35,7 @@ Le plugin est instancié avec des arguments nommés (`project=`, `plugin_path=`,
 - `add_action(fonction, description)` : enregistrement avec une `FunctionDescription` explicite
 - `_start()` : à surcharger, appelé après le chargement des params (initialisation, création des types de vecteurs...)
 - `_stop()` : à surcharger pour libérer les ressources (modèles, threads, fichiers). Les tâches du plugin ont déjà reçu l'ordre d'arrêt et ses actions et callbacks ont été retirés.
-- `update_params(params)` : appelé quand l'utilisateur modifie les params. Il fait un `model_copy` sans validation : surchargez-le si vos params contiennent des `Enum` ou des nombres, pour les revalider.
+- `update_params(params)` : appelé quand l'utilisateur modifie les params. Il revalide le modèle (les valeurs brutes de l'UI reprennent leur type : `Enum`, nombres) et les enregistre en JSON ; une valeur invalide est refusée (erreur 422).
 
 ### `PluginProjectInterface`
 Interface autonome, sans référence au `Project` : elle ouvre ses propres connexions aux bases (`data.db`, `media.db`, `project.db`) à chaque appel. Elle donne accès à :

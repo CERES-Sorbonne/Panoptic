@@ -9,7 +9,7 @@ from typing import Any, Iterable, Optional
 import msgspec
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
@@ -1450,6 +1450,8 @@ def update_plugin_params(req: PluginParamsRequest, project: Project = Depends(_d
         project.update_plugin_params(req.plugin, req.params)
     except KeyError as e:
         raise HTTPException(404, str(e))
+    except ValidationError as e:
+        raise HTTPException(422, str(e))
     return project.get_plugin_descriptions()
 
 
