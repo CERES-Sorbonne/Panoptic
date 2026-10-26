@@ -1560,9 +1560,14 @@ def get_atlas(atlas_id: int, project: Project = Depends(_dep)):
     if not atlases:
         return Response(b'null', media_type='application/json')
     a = atlases[0]
+    # Sheets are rewritten in place by every rebuild, so their mtimes tell builds apart. The
+    # client puts this in the sheet URLs, which lets the browser cache them.
+    sheet_paths = (project.folder / 'atlas' / f'{a.id}_{i}.png' for i in range(a.atlas_nb))
+    version = max((p.stat().st_mtime_ns // 1_000_000 for p in sheet_paths if p.exists()), default=0)
     # ImageAtlas is array_like=True for DB efficiency; serialize as dict for the frontend
     return Response(msgspec.json.encode({
         'id': a.id,
+        'version': version,
         'atlas_nb': a.atlas_nb,
         'width': a.width,
         'height': a.height,
@@ -1581,11 +1586,13 @@ def generate_atlas(project: Project = Depends(_dep)):
 
 
 @project_router.get('/atlas_sheet/{atlas_id}/{sheet_nb}')
-def get_atlas_sheet(atlas_id: int, sheet_nb: int, project: Project = Depends(_dep)):
+def get_atlas_sheet(atlas_id: int, sheet_nb: int, v: Optional[int] = None, project: Project = Depends(_dep)):
     path = project.folder / 'atlas' / f'{atlas_id}_{sheet_nb}.png'
     if not path.exists():
         raise HTTPException(404, f'Atlas sheet {atlas_id}/{sheet_nb} not found')
-    return FileResponse(str(path), media_type='image/png')
+    # A versioned URL always names the same file content (a rebuild changes the version)
+    headers = {'Cache-Control': 'private, max-age=31536000, immutable'} if v is not None else None
+    return FileResponse(str(path), media_type='image/png', headers=headers)
 
 
 @project_router.get('/vector_types')

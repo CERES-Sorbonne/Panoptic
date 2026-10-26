@@ -233,7 +233,7 @@ const atlasLoadDeferred = ref(false)
 
 function shouldDeferAtlas(atlas: ImageAtlas) {
     if (atlasLoadAllowed.value) return false
-    if (media.atlasCoverage.total <= LARGE_ATLAS_IMAGES || AtlasLayerManager.isAtlasCached(atlas)) {
+    if (media.atlasCoverage.total <= LARGE_ATLAS_IMAGES || AtlasLayerManager.wasAtlasLoaded(atlas)) {
         atlasLoadAllowed.value = true
         return false
     }
