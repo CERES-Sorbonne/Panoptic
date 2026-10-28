@@ -1,0 +1,30 @@
+{"impl":"rust","meta":true,"n":20000,"gen_ms":15}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"text","fmt":"ndjson","file":"stream-text.ndjson","bytes":779928,"prop":1,"col_kind":"string","lines":2,"ms":0.7894,"min_ms":0.6934,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"label","fmt":"ndjson","file":"stream-label.ndjson","bytes":333310,"prop":2,"col_kind":"string","lines":2,"ms":0.6545,"min_ms":0.6528,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"number","fmt":"ndjson","file":"stream-number.ndjson","bytes":235339,"prop":3,"col_kind":"numeric","lines":2,"ms":0.4095,"min_ms":0.4092,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"score","fmt":"ndjson","file":"stream-score.ndjson","bytes":487079,"prop":4,"col_kind":"numeric","lines":2,"ms":0.5084,"min_ms":0.5082,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"date","fmt":"ndjson","file":"stream-date.ndjson","bytes":693891,"prop":5,"col_kind":"date","lines":2,"ms":0.5791,"min_ms":0.5786,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"checkbox","fmt":"ndjson","file":"stream-checkbox.ndjson","bytes":234020,"prop":6,"col_kind":"bool","lines":2,"ms":0.3740,"min_ms":0.3740,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"stream","op":"tags","fmt":"ndjson","file":"stream-tags.ndjson","bytes":339279,"prop":7,"col_kind":"tag","lines":2,"ms":0.4303,"min_ms":0.4292,"reps":3}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"200 rows","fmt":"json","file":"window-200-rows.json","bytes":26044,"layout":"rows","rows":200,"ms":0.0268,"min_ms":0.0257,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"200 rows","fmt":"msgpack","file":"window-200-rows.msgpack","bytes":16763,"layout":"rows","rows":200,"ms":0.0102,"min_ms":0.0097,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"200 cols","fmt":"json","file":"window-200-cols.json","bytes":19922,"layout":"cols","rows":200,"ms":0.0170,"min_ms":0.0168,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"200 cols","fmt":"msgpack","file":"window-200-cols.msgpack","bytes":13479,"layout":"cols","rows":200,"ms":0.0096,"min_ms":0.0095,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"500 rows","fmt":"json","file":"window-500-rows.json","bytes":64734,"layout":"rows","rows":500,"ms":0.0695,"min_ms":0.0687,"reps":4278}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"500 rows","fmt":"msgpack","file":"window-500-rows.msgpack","bytes":41768,"layout":"rows","rows":500,"ms":0.0305,"min_ms":0.0282,"reps":9819}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"500 cols","fmt":"json","file":"window-500-cols.json","bytes":49417,"layout":"cols","rows":500,"ms":0.0441,"min_ms":0.0438,"reps":6716}
+{"impl":"rust","kind":"wire","n":20000,"group":"window","op":"500 cols","fmt":"msgpack","file":"window-500-cols.msgpack","bytes":33519,"layout":"cols","rows":500,"ms":0.0251,"min_ms":0.0248,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"layout","op":"label > date by year","fmt":"-","bytes":0,"groups":3589,"total_lines":7172,"ms":0.0060,"min_ms":0.0057,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"label > date by year rows","fmt":"json","file":"page-label-year-rows.json","bytes":19196,"layout":"rows","rows":128,"lines":50,"ms":0.0227,"min_ms":0.0216,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"label > date by year rows","fmt":"msgpack","file":"page-label-year-rows.msgpack","bytes":12425,"layout":"rows","rows":128,"lines":50,"ms":0.0106,"min_ms":0.0103,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"label > date by year cols","fmt":"json","file":"page-label-year-cols.json","bytes":15360,"layout":"cols","rows":128,"lines":50,"ms":0.0174,"min_ms":0.0164,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"label > date by year cols","fmt":"msgpack","file":"page-label-year-cols.msgpack","bytes":10359,"layout":"cols","rows":128,"lines":50,"ms":0.0104,"min_ms":0.0100,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"headers","op":"label > date by year","fmt":"json","file":"headers-label-year.json","bytes":172917,"groups":3589,"ms":0.2109,"min_ms":0.2102,"reps":938}
+{"impl":"rust","kind":"wire","n":20000,"group":"headers","op":"label > date by year","fmt":"msgpack","file":"headers-label-year.msgpack","bytes":118720,"groups":3589,"ms":0.0777,"min_ms":0.0773,"reps":2552}
+{"impl":"rust","kind":"wire","n":20000,"group":"layout","op":"tags (+parents)","fmt":"-","bytes":0,"groups":1001,"total_lines":10836,"ms":0.0015,"min_ms":0.0014,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"tags (+parents) rows","fmt":"json","file":"page-tags-rows.json","bytes":57546,"layout":"rows","rows":403,"lines":50,"ms":0.0670,"min_ms":0.0664,"reps":4434}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"tags (+parents) rows","fmt":"msgpack","file":"page-tags-rows.msgpack","bytes":36785,"layout":"rows","rows":403,"lines":50,"ms":0.0321,"min_ms":0.0314,"reps":9211}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"tags (+parents) cols","fmt":"json","file":"page-tags-cols.json","bytes":44868,"layout":"cols","rows":403,"lines":50,"ms":0.0492,"min_ms":0.0472,"reps":6018}
+{"impl":"rust","kind":"wire","n":20000,"group":"page","op":"tags (+parents) cols","fmt":"msgpack","file":"page-tags-cols.msgpack","bytes":30030,"layout":"cols","rows":403,"lines":50,"ms":0.0292,"min_ms":0.0287,"reps":10000}
+{"impl":"rust","kind":"wire","n":20000,"group":"headers","op":"tags (+parents)","fmt":"json","file":"headers-tags.json","bytes":52632,"groups":1001,"ms":0.0621,"min_ms":0.0615,"reps":3173}
+{"impl":"rust","kind":"wire","n":20000,"group":"headers","op":"tags (+parents)","fmt":"msgpack","file":"headers-tags.msgpack","bytes":37341,"groups":1001,"ms":0.0232,"min_ms":0.0224,"reps":8518}

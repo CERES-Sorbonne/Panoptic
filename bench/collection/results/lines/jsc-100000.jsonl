@@ -1,0 +1,149 @@
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i200","op":"build","ms":0.0032,"min_ms":0.0027,"nodes":1,"groups":0,"leaves":1,"height":4750125}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w800 i100","op":"resize","ms":0.0042,"min_ms":0.002,"height":2966756}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w800 i100","op":"all lines","ms":1.4741,"min_ms":1.3499,"lines":16668,"height":2966756,"hash":2803448510,"layout_height":2966756}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w800 i200","op":"resize","ms":0.0042,"min_ms":0.002,"height":10233568}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w800 i200","op":"all lines","ms":2.1069,"min_ms":1.9021,"lines":33335,"height":10233568,"hash":3529067346,"layout_height":10233568}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i100","op":"resize","ms":0.0042,"min_ms":0.0029,"height":1391808}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i100","op":"all lines","ms":0.499,"min_ms":0.491,"lines":8335,"height":1391808,"hash":1843086459,"layout_height":1391808}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i200","op":"resize","ms":0.001,"min_ms":0,"height":4750125}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i200","op":"all lines","ms":0.9551,"min_ms":0.9341,"lines":16668,"height":4750125,"hash":2619435465,"layout_height":4750125}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w2560 i100","op":"resize","ms":0.0007,"min_ms":0,"height":750120}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w2560 i100","op":"all lines","ms":0.28,"min_ms":0.2681,"lines":4547,"height":750120,"hash":3279831937,"layout_height":750120}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w2560 i200","op":"resize","ms":0.0012,"min_ms":0.001,"height":2175204}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w2560 i200","op":"all lines","ms":0.478,"min_ms":0.4768,"lines":8335,"height":2175204,"hash":2389544891,"layout_height":2175204}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i200","op":"locate","ms":0.000016,"min_ms":0.000016,"per":"call","hash":2989673636}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i200","op":"offsetOf","ms":0.000015,"min_ms":0.000014,"per":"call","hash":182177627}
+{"impl":"jsc","n":100000,"view":"grid","tree":"flat","cfg":"w1440 i200","op":"window","ms":0.002,"min_ms":0.001,"lines":7,"hash":2656380412}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"build","ms":0.002,"min_ms":0.0007,"nodes":1,"groups":0,"leaves":1,"height":10400000}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"row size","ms":0.001,"min_ms":0.0007,"height":10400000}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"all lines","ms":4.665,"min_ms":4.2681,"lines":100000,"height":10400000,"hash":1156332912,"layout_height":10400000}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row28","op":"row size","ms":0,"min_ms":0,"height":2800000}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row28","op":"all lines","ms":4.5723,"min_ms":4.4121,"lines":100000,"height":2800000,"hash":1156332912,"layout_height":2800000}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"locate","ms":0.00004,"min_ms":0.000016,"per":"call","hash":2513941662}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"offsetOf","ms":0.000013,"min_ms":0.000012,"per":"call","hash":2741080736}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"window","ms":0.0032,"min_ms":0.0007,"lines":16,"hash":3434864607}
+{"impl":"jsc","n":100000,"view":"table","tree":"flat","cfg":"row104","op":"measure screen","ms":0.312,"min_ms":0.2849,"rows":16,"height":10400112}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"build","ms":0.5151,"min_ms":0.4519,"nodes":3613,"groups":3612,"leaves":3311,"height":5146851}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w800 i100","op":"resize","ms":0.282,"min_ms":0.261,"height":3214538}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w800 i100","op":"all lines","ms":1.7629,"min_ms":1.717,"lines":21672,"height":3214538,"hash":1771537967,"layout_height":3214538}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w800 i200","op":"resize","ms":0.2322,"min_ms":0.207,"height":10235808}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w800 i200","op":"all lines","ms":2.7129,"min_ms":2.6689,"lines":38060,"height":10235808,"hash":2285585325,"layout_height":10235808}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i100","op":"resize","ms":0.208,"min_ms":0.207,"height":1731990}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i100","op":"all lines","ms":0.8979,"min_ms":0.896,"lines":13513,"height":1731990,"hash":631437654,"layout_height":1731990}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"resize","ms":0.2148,"min_ms":0.207,"height":5146851}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"all lines","ms":1.3921,"min_ms":1.376,"lines":21672,"height":5146851,"hash":1895777826,"layout_height":5146851}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w2560 i100","op":"resize","ms":0.2058,"min_ms":0.2048,"height":1152079}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w2560 i100","op":"all lines","ms":0.7791,"min_ms":0.7168,"lines":10016,"height":1152079,"hash":1759707268,"layout_height":1152079}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w2560 i200","op":"resize","ms":0.2058,"min_ms":0.2048,"height":3043926}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w2560 i200","op":"all lines","ms":0.9939,"min_ms":0.9448,"lines":14249,"height":3043926,"hash":2672151503,"layout_height":3043926}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"toggle one","ms":0.000122,"min_ms":0.000117,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"close all","ms":0.5168,"min_ms":0.4917,"height":9060}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"open all","ms":0.5571,"min_ms":0.4941,"height":5146851}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"locate","ms":0.000173,"min_ms":0.000146,"per":"call","hash":3908837512}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"offsetOf","ms":0.000062,"min_ms":0.000061,"per":"call","hash":1709388842}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year","cfg":"w1440 i200","op":"window","ms":0.0022,"min_ms":0.001,"lines":8,"hash":114770525}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"build","ms":0.489,"min_ms":0.376,"nodes":3613,"groups":3612,"leaves":3311,"height":10515885}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"row size","ms":0.2261,"min_ms":0.2251,"height":10515885}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"all lines","ms":5.5591,"min_ms":5.3372,"lines":103311,"height":10515885,"hash":2011874302,"layout_height":10515885}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row28","op":"row size","ms":0.1831,"min_ms":0.1819,"height":2915885}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row28","op":"all lines","ms":6.5261,"min_ms":5.3538,"lines":103311,"height":2915885,"hash":2011874302,"layout_height":2915885}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"toggle one","ms":0.000188,"min_ms":0.000168,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"close all","ms":0.4502,"min_ms":0.4319,"height":0}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"open all","ms":0.4519,"min_ms":0.4299,"height":10515885}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"locate","ms":0.000141,"min_ms":0.000138,"per":"call","hash":1729874320}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"offsetOf","ms":0.000047,"min_ms":0.000047,"per":"call","hash":1070437580}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"window","ms":0.0039,"min_ms":0.0022,"lines":17,"hash":1999488846}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year","cfg":"row104","op":"measure screen","ms":0.0063,"min_ms":0.0042,"rows":16,"height":10515997}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"build","ms":0.1294,"min_ms":0.125,"nodes":1002,"groups":1001,"leaves":1001,"height":21956688}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w800 i100","op":"resize","ms":0.072,"min_ms":0.071,"height":13637010}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w800 i100","op":"all lines","ms":5.29,"min_ms":5.2139,"lines":78756,"height":13637010,"hash":2082628024,"layout_height":13637010}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w800 i200","op":"resize","ms":0.0691,"min_ms":0.0688,"height":46690779}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w800 i200","op":"all lines","ms":8.8479,"min_ms":8.292,"lines":156021,"height":46690779,"hash":44733366,"layout_height":46690779}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i100","op":"resize","ms":0.0681,"min_ms":0.0669,"height":6524810}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i100","op":"all lines","ms":2.0503,"min_ms":1.9846,"lines":40127,"height":6524810,"hash":4257311964,"layout_height":6524810}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"resize","ms":0.0684,"min_ms":0.0669,"height":21956688}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"all lines","ms":4.053,"min_ms":4.0261,"lines":78756,"height":21956688,"hash":2349305286,"layout_height":21956688}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w2560 i100","op":"resize","ms":0.0688,"min_ms":0.0679,"height":3568196}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w2560 i100","op":"all lines","ms":1.238,"min_ms":1.219,"lines":22576,"height":3568196,"hash":1377663344,"layout_height":3568196}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w2560 i200","op":"resize","ms":0.0681,"min_ms":0.0671,"height":11883980}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w2560 i200","op":"all lines","ms":2.2168,"min_ms":2.167,"lines":43642,"height":11883980,"hash":2690014812,"layout_height":11883980}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"toggle one","ms":0.00022,"min_ms":0.000168,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"close all","ms":0.1519,"min_ms":0.1321,"height":30060}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"open all","ms":0.1514,"min_ms":0.134,"height":21956688}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"locate","ms":0.000091,"min_ms":0.00009,"per":"call","hash":3689982558}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"offsetOf","ms":0.000036,"min_ms":0.000035,"per":"call","hash":722836544}
+{"impl":"jsc","n":100000,"view":"grid","tree":"tags","cfg":"w1440 i200","op":"window","ms":0.001,"min_ms":0,"lines":7,"hash":223224795}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"build","ms":0.1221,"min_ms":0.1169,"nodes":1002,"groups":1001,"leaves":1001,"height":48297795}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"row size","ms":0.061,"min_ms":0.0588,"height":48297795}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"all lines","ms":28.8462,"min_ms":25.769,"lines":465066,"height":48297795,"hash":2061693014,"layout_height":48297795}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row28","op":"row size","ms":0.0579,"min_ms":0.0569,"height":13028855}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row28","op":"all lines","ms":29.502,"min_ms":28.0972,"lines":465066,"height":13028855,"hash":2061693014,"layout_height":13028855}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"toggle one","ms":0.000151,"min_ms":0.000146,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"close all","ms":0.1179,"min_ms":0.1169,"height":35035}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"open all","ms":0.1204,"min_ms":0.1189,"height":48297795}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"locate","ms":0.000088,"min_ms":0.000088,"per":"call","hash":1378407149}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"offsetOf","ms":0.000036,"min_ms":0.000035,"per":"call","hash":1531475428}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"window","ms":0.0027,"min_ms":0.0017,"lines":16,"hash":855359057}
+{"impl":"jsc","n":100000,"view":"table","tree":"tags","cfg":"row104","op":"measure screen","ms":0.0029,"min_ms":0.002,"rows":17,"height":48297914}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"build","ms":42.9202,"min_ms":42.6121,"nodes":92073,"groups":92072,"leaves":92072,"height":29099016}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w800 i100","op":"resize","ms":39.572,"min_ms":39.4399,"height":19105965}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w800 i100","op":"all lines","ms":40.6047,"min_ms":39.0369,"lines":185466,"height":19105965,"hash":4076866960,"layout_height":19105965}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w800 i200","op":"resize","ms":39.356,"min_ms":39.2498,"height":31271104}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w800 i200","op":"all lines","ms":39.1179,"min_ms":38.593,"lines":186787,"height":31271104,"hash":3101286632,"layout_height":31271104}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i100","op":"resize","ms":39.355,"min_ms":39.113,"height":18155702}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i100","op":"all lines","ms":39.1321,"min_ms":38.6379,"lines":184805,"height":18155702,"hash":3996285287,"layout_height":18155702}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"resize","ms":40.042,"min_ms":39.9038,"height":29099016}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"all lines","ms":40.9507,"min_ms":40.927,"lines":185466,"height":29099016,"hash":3625922627,"layout_height":29099016}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w2560 i100","op":"resize","ms":39.1589,"min_ms":38.9929,"height":17921038}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w2560 i100","op":"all lines","ms":38.1538,"min_ms":37.9497,"lines":184505,"height":17921038,"hash":1607989911,"layout_height":17921038}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w2560 i200","op":"resize","ms":39.3259,"min_ms":38.866,"height":28558366}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w2560 i200","op":"all lines","ms":37.1321,"min_ms":36.4312,"lines":184865,"height":28558366,"hash":3385853799,"layout_height":28558366}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"toggle one","ms":0.000183,"min_ms":0.000178,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"close all","ms":48.5188,"min_ms":48.0662,"height":2762190}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"open all","ms":48.9082,"min_ms":48.168,"height":29099016}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"locate","ms":0.000186,"min_ms":0.000182,"per":"call","hash":443404826}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"offsetOf","ms":0.000056,"min_ms":0.000055,"per":"call","hash":1182007788}
+{"impl":"jsc","n":100000,"view":"grid","tree":"text","cfg":"w1440 i200","op":"window","ms":0.0039,"min_ms":0.001,"lines":11,"hash":2483533759}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"build","ms":40.585,"min_ms":40.5498,"nodes":92073,"groups":92072,"leaves":92072,"height":13622520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"row size","ms":36.5391,"min_ms":36.2898,"height":13622520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"all lines","ms":46.5742,"min_ms":46.2649,"lines":192072,"height":13622520,"hash":2387600818,"layout_height":13622520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row28","op":"row size","ms":36.5459,"min_ms":36.1208,"height":6022520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row28","op":"all lines","ms":48.8191,"min_ms":47.2278,"lines":192072,"height":6022520,"hash":2387600818,"layout_height":6022520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"toggle one","ms":0.000161,"min_ms":0.000149,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"close all","ms":45.989,"min_ms":45.811,"height":3222520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"open all","ms":46.325,"min_ms":45.969,"height":13622520}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"locate","ms":0.000194,"min_ms":0.000192,"per":"call","hash":1132530412}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"offsetOf","ms":0.000054,"min_ms":0.000054,"per":"call","hash":2195440275}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"window","ms":0.009,"min_ms":0.0027,"lines":24,"hash":4133659391}
+{"impl":"jsc","n":100000,"view":"table","tree":"text","cfg":"row104","op":"measure screen","ms":0.0032,"min_ms":0.002,"rows":12,"height":13622604}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"build","ms":0.467,"min_ms":0.458,"nodes":3613,"groups":3612,"leaves":3311,"height":4674534}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w800 i100","op":"resize","ms":0.324,"min_ms":0.3059,"height":2743398}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w800 i100","op":"all lines","ms":1.491,"min_ms":1.4802,"lines":21661,"height":2743398,"hash":868575250,"layout_height":2743398}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w800 i200","op":"resize","ms":0.3081,"min_ms":0.3071,"height":9333218}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w800 i200","op":"all lines","ms":2.5039,"min_ms":2.3291,"lines":38034,"height":9333218,"hash":2210929006,"layout_height":9333218}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i100","op":"resize","ms":0.311,"min_ms":0.3081,"height":1473624}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i100","op":"all lines","ms":0.9849,"min_ms":0.939,"lines":13506,"height":1473624,"hash":1623408559,"layout_height":1473624}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"resize","ms":0.3071,"min_ms":0.3069,"height":4674534}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"all lines","ms":1.4482,"min_ms":1.4309,"lines":21661,"height":4674534,"hash":4074168242,"layout_height":4674534}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w2560 i100","op":"resize","ms":0.3081,"min_ms":0.3071,"height":985190}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w2560 i100","op":"all lines","ms":0.7388,"min_ms":0.7251,"lines":10013,"height":985190,"hash":3343463754,"layout_height":985190}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w2560 i200","op":"resize","ms":0.3079,"min_ms":0.3071,"height":2765890}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w2560 i200","op":"all lines","ms":0.9749,"min_ms":0.9661,"lines":14243,"height":2765890,"hash":2994700898,"layout_height":2765890}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"toggle one","ms":0.0001,"min_ms":0.000093,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"close all","ms":0.5649,"min_ms":0.5508,"height":9060}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"open all","ms":0.564,"min_ms":0.5591,"height":4674534}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"locate","ms":0.000161,"min_ms":0.000153,"per":"call","hash":1858634367}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"offsetOf","ms":0.000048,"min_ms":0.000047,"per":"call","hash":3829848118}
+{"impl":"jsc","n":100000,"view":"grid","tree":"label-year-piles","cfg":"w1440 i200","op":"window","ms":0.002,"min_ms":0.0007,"lines":8,"hash":3897833037}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"build","ms":0.3809,"min_ms":0.3701,"nodes":3613,"groups":3612,"leaves":3311,"height":10508397}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"row size","ms":0.252,"min_ms":0.251,"height":10508397}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"all lines","ms":10.208,"min_ms":9.696,"lines":103239,"height":10508397,"hash":3388498847,"layout_height":10508397}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row28","op":"row size","ms":0.2451,"min_ms":0.2449,"height":2913869}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row28","op":"all lines","ms":8.4841,"min_ms":8.4268,"lines":103239,"height":2913869,"hash":3388498847,"layout_height":2913869}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"toggle one","ms":0.00011,"min_ms":0.0001,"per":"close+open"}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"close all","ms":0.488,"min_ms":0.4849,"height":0}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"open all","ms":0.4919,"min_ms":0.488,"height":10508397}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"locate","ms":0.000138,"min_ms":0.000136,"per":"call","hash":1390130474}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"offsetOf","ms":0.000047,"min_ms":0.000047,"per":"call","hash":1425183302}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"window","ms":0.0051,"min_ms":0.0037,"lines":17,"hash":1987182235}
+{"impl":"jsc","n":100000,"view":"table","tree":"label-year-piles","cfg":"row104","op":"measure screen","ms":0.002,"min_ms":0.0017,"rows":16,"height":10508509}

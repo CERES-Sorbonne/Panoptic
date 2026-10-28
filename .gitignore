@@ -219,3 +219,6 @@ panoptic_front/test/map/.build/
 .obsidian/
 .opencode/
 .panoptic2/
+
+# bench payloads (data.db + stream files, rebuilt by bench/collection/load.sh)
+bench/collection/results/load/*/

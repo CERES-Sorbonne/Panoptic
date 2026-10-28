@@ -542,11 +542,9 @@ impl Builder {
         match d {
             Delta::AddInstances { ids, sha1s, file_ids } => self.add_instances(ids, sha1s, file_ids, ch),
             Delta::DeleteInstances { ids } => {
-                let mut del: Option<&mut Vec<bool>> = None;
                 for id in ids {
                     if let Some(&s) = self.identity.slot_of.get(id) {
-                        let dm = del.get_or_insert_with(|| Arc::make_mut(&mut self.deleted));
-                        dm[s as usize] = true;
+                        Arc::make_mut(&mut self.deleted)[s as usize] = true;
                         ch.instances.insert(*id);
                     }
                 }

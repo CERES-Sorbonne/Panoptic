@@ -1,0 +1,20 @@
+[package]
+name = "load-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Loading a full property column from data.db: Rust engine store vs the Python column route"
+
+# Standalone: not a member of the repo's cargo workspace.
+[workspace]
+
+[dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
+rustc-hash = "2"
+arc-swap = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

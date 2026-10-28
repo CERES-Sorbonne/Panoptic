@@ -1,0 +1,30 @@
+{"impl":"rust","meta":true,"n":1000000,"gen_ms":410}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"text","fmt":"ndjson","file":"stream-text.ndjson","bytes":40272687,"prop":1,"col_kind":"string","lines":93,"ms":29.5905,"min_ms":29.5077,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"label","fmt":"ndjson","file":"stream-label.ndjson","bytes":17981717,"prop":2,"col_kind":"string","lines":91,"ms":20.2282,"min_ms":20.1861,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"number","fmt":"ndjson","file":"stream-number.ndjson","bytes":13131373,"prop":3,"col_kind":"numeric","lines":95,"ms":12.2225,"min_ms":12.2216,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"score","fmt":"ndjson","file":"stream-score.ndjson","bytes":25741875,"prop":4,"col_kind":"numeric","lines":95,"ms":17.0968,"min_ms":17.0805,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"date","fmt":"ndjson","file":"stream-date.ndjson","bytes":36039971,"prop":5,"col_kind":"date","lines":96,"ms":21.1356,"min_ms":20.9856,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"checkbox","fmt":"ndjson","file":"stream-checkbox.ndjson","bytes":12988887,"prop":6,"col_kind":"bool","lines":90,"ms":13.6011,"min_ms":13.5285,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"stream","op":"tags","fmt":"ndjson","file":"stream-tags.ndjson","bytes":18055677,"prop":7,"col_kind":"tag","lines":84,"ms":16.6148,"min_ms":16.6051,"reps":3}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"200 rows","fmt":"json","file":"window-200-rows.json","bytes":26844,"layout":"rows","rows":200,"ms":0.0266,"min_ms":0.0260,"reps":9892}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"200 rows","fmt":"msgpack","file":"window-200-rows.msgpack","bytes":17669,"layout":"rows","rows":200,"ms":0.0109,"min_ms":0.0107,"reps":10000}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"200 cols","fmt":"json","file":"window-200-cols.json","bytes":20650,"layout":"cols","rows":200,"ms":0.0168,"min_ms":0.0166,"reps":10000}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"200 cols","fmt":"msgpack","file":"window-200-cols.msgpack","bytes":14361,"layout":"cols","rows":200,"ms":0.0097,"min_ms":0.0096,"reps":10000}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"500 rows","fmt":"json","file":"window-500-rows.json","bytes":66753,"layout":"rows","rows":500,"ms":0.0677,"min_ms":0.0666,"reps":4382}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"500 rows","fmt":"msgpack","file":"window-500-rows.msgpack","bytes":43858,"layout":"rows","rows":500,"ms":0.0305,"min_ms":0.0300,"reps":9756}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"500 cols","fmt":"json","file":"window-500-cols.json","bytes":51256,"layout":"cols","rows":500,"ms":0.0430,"min_ms":0.0428,"reps":6869}
+{"impl":"rust","kind":"wire","n":1000000,"group":"window","op":"500 cols","fmt":"msgpack","file":"window-500-cols.msgpack","bytes":35549,"layout":"cols","rows":500,"ms":0.0253,"min_ms":0.0250,"reps":10000}
+{"impl":"rust","kind":"wire","n":1000000,"group":"layout","op":"label > date by year","fmt":"-","bytes":0,"groups":3612,"total_lines":105090,"ms":0.0059,"min_ms":0.0057,"reps":10000}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"label > date by year rows","fmt":"json","file":"page-label-year-rows.json","bytes":67440,"layout":"rows","rows":482,"lines":50,"ms":0.0796,"min_ms":0.0787,"reps":3723}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"label > date by year rows","fmt":"msgpack","file":"page-label-year-rows.msgpack","bytes":43911,"layout":"rows","rows":482,"lines":50,"ms":0.0409,"min_ms":0.0402,"reps":7248}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"label > date by year cols","fmt":"json","file":"page-label-year-cols.json","bytes":52672,"layout":"cols","rows":482,"lines":50,"ms":0.0570,"min_ms":0.0555,"reps":5203}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"label > date by year cols","fmt":"msgpack","file":"page-label-year-cols.msgpack","bytes":35959,"layout":"cols","rows":482,"lines":50,"ms":0.0358,"min_ms":0.0350,"reps":8287}
+{"impl":"rust","kind":"wire","n":1000000,"group":"headers","op":"label > date by year","fmt":"json","file":"headers-label-year.json","bytes":181050,"groups":3612,"ms":0.2196,"min_ms":0.2142,"reps":907}
+{"impl":"rust","kind":"wire","n":1000000,"group":"headers","op":"label > date by year","fmt":"msgpack","file":"headers-label-year.msgpack","bytes":126252,"groups":3612,"ms":0.0790,"min_ms":0.0785,"reps":2508}
+{"impl":"rust","kind":"wire","n":1000000,"group":"layout","op":"tags (+parents)","fmt":"-","bytes":0,"groups":1001,"total_lines":464422,"ms":0.0015,"min_ms":0.0014,"reps":10000}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"tags (+parents) rows","fmt":"json","file":"page-tags-rows.json","bytes":72221,"layout":"rows","rows":500,"lines":50,"ms":0.0836,"min_ms":0.0827,"reps":3536}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"tags (+parents) rows","fmt":"msgpack","file":"page-tags-rows.msgpack","bytes":47384,"layout":"rows","rows":500,"lines":50,"ms":0.0492,"min_ms":0.0432,"reps":4532}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"tags (+parents) cols","fmt":"json","file":"page-tags-cols.json","bytes":56508,"layout":"cols","rows":500,"lines":50,"ms":0.0610,"min_ms":0.0604,"reps":4825}
+{"impl":"rust","kind":"wire","n":1000000,"group":"page","op":"tags (+parents) cols","fmt":"msgpack","file":"page-tags-cols.msgpack","bytes":39003,"layout":"cols","rows":500,"lines":50,"ms":0.0401,"min_ms":0.0395,"reps":7342}
+{"impl":"rust","kind":"wire","n":1000000,"group":"headers","op":"tags (+parents)","fmt":"json","file":"headers-tags.json","bytes":54498,"groups":1001,"ms":0.0642,"min_ms":0.0635,"reps":3073}
+{"impl":"rust","kind":"wire","n":1000000,"group":"headers","op":"tags (+parents)","fmt":"msgpack","file":"headers-tags.msgpack","bytes":39106,"groups":1001,"ms":0.0234,"min_ms":0.0230,"reps":8465}

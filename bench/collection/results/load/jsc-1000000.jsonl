@@ -1,0 +1,7 @@
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"text","fmt":"ndjson","lib":"columnStore","ms":207.876953125,"min_ms":207.578125,"reps":3}
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"label","fmt":"ndjson","lib":"columnStore","ms":211.0859375,"min_ms":177.798095703125,"reps":3}
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"number","fmt":"ndjson","lib":"columnStore","ms":106.884033203125,"min_ms":102.7041015625,"reps":3}
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"score","fmt":"ndjson","lib":"columnStore","ms":133.678955078125,"min_ms":133.657958984375,"reps":3}
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"date","fmt":"ndjson","lib":"columnStore","ms":332.386962890625,"min_ms":320.137939453125,"reps":3}
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"checkbox","fmt":"ndjson","lib":"columnStore","ms":112.057861328125,"min_ms":100.630126953125,"reps":3}
+{"impl":"jsc","kind":"wire","n":1000000,"group":"stream","op":"tags","fmt":"ndjson","lib":"columnStore","ms":210.02099609375,"min_ms":209.5478515625,"reps":3}

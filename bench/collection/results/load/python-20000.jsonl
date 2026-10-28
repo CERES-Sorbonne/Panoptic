@@ -1,0 +1,16 @@
+{"impl": "python", "kind": "load", "n": 20000, "op": "base", "variant": "route", "ms": 13.644, "min_ms": 13.398, "reps": 5, "bytes": 1077868}
+{"impl": "python", "kind": "load", "n": 20000, "op": "base", "variant": "sqlite", "ms": 11.394, "min_ms": 11.296, "reps": 5, "rows": 20000}
+{"impl": "python", "kind": "load", "n": 20000, "op": "text", "variant": "sqlite", "ms": 10.626, "min_ms": 10.544, "reps": 5, "rows": 18441}
+{"impl": "python", "kind": "load", "n": 20000, "op": "text", "variant": "route", "ms": 14.293, "min_ms": 14.049, "reps": 5, "bytes": 779928, "lines": 2, "ids": 18441, "distinct_ids": 18441}
+{"impl": "python", "kind": "load", "n": 20000, "op": "label", "variant": "sqlite", "ms": 10.297, "min_ms": 10.213, "reps": 5, "rows": 17975}
+{"impl": "python", "kind": "load", "n": 20000, "op": "label", "variant": "route", "ms": 13.52, "min_ms": 13.279, "reps": 5, "bytes": 333310, "lines": 2, "ids": 17975, "distinct_ids": 17975}
+{"impl": "python", "kind": "load", "n": 20000, "op": "number", "variant": "sqlite", "ms": 9.901, "min_ms": 9.882, "reps": 5, "rows": 19004}
+{"impl": "python", "kind": "load", "n": 20000, "op": "number", "variant": "route", "ms": 13.071, "min_ms": 12.925, "reps": 5, "bytes": 197331, "lines": 2, "ids": 19004, "distinct_ids": 19004}
+{"impl": "python", "kind": "load", "n": 20000, "op": "score", "variant": "sqlite", "ms": 10.038, "min_ms": 9.922, "reps": 5, "rows": 18986}
+{"impl": "python", "kind": "load", "n": 20000, "op": "score", "variant": "route", "ms": 13.598, "min_ms": 13.479, "reps": 5, "bytes": 449107, "lines": 2, "ids": 18986, "distinct_ids": 18986}
+{"impl": "python", "kind": "load", "n": 20000, "op": "date", "variant": "sqlite", "ms": 10.525, "min_ms": 10.443, "reps": 5, "rows": 19014}
+{"impl": "python", "kind": "load", "n": 20000, "op": "date", "variant": "route", "ms": 13.972, "min_ms": 13.715, "reps": 5, "bytes": 693891, "lines": 2, "ids": 19014, "distinct_ids": 19014}
+{"impl": "python", "kind": "load", "n": 20000, "op": "checkbox", "variant": "sqlite", "ms": 10.085, "min_ms": 9.97, "reps": 5, "rows": 18005}
+{"impl": "python", "kind": "load", "n": 20000, "op": "checkbox", "variant": "route", "ms": 13.29, "min_ms": 13.179, "reps": 5, "bytes": 234020, "lines": 2, "ids": 18005, "distinct_ids": 18005}
+{"impl": "python", "kind": "load", "n": 20000, "op": "tags", "variant": "sqlite", "ms": 22.164, "min_ms": 22.05, "reps": 5, "rows": 50124}
+{"impl": "python", "kind": "load", "n": 20000, "op": "tags", "variant": "route", "ms": 34.634, "min_ms": 34.55, "reps": 5, "bytes": 339289, "lines": 2, "ids": 16745, "distinct_ids": 16744}

@@ -1,0 +1,37 @@
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"text","fmt":"ndjson","lib":"columnStore","ms":4.8352080000000015,"min_ms":4.390167000000002,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"label","fmt":"ndjson","lib":"columnStore","ms":3.999834,"min_ms":3.9437499999999943,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"number","fmt":"ndjson","lib":"columnStore","ms":4.026833000000003,"min_ms":3.837791999999993,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"score","fmt":"ndjson","lib":"columnStore","ms":3.965333000000001,"min_ms":3.877959000000004,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"date","fmt":"ndjson","lib":"columnStore","ms":6.271083000000004,"min_ms":5.894750000000002,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"checkbox","fmt":"ndjson","lib":"columnStore","ms":3.1156250000000085,"min_ms":2.947584000000006,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"stream","op":"tags","fmt":"ndjson","lib":"columnStore","ms":4.924416000000008,"min_ms":4.794332999999995,"reps":3}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"200 rows","fmt":"json","lib":"JSON.parse","ms":0.07079099999998562,"min_ms":0.06974999999999909,"reps":4136}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"200 rows","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.076041000000032,"min_ms":0.0736660000000029,"reps":3789}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"200 rows","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.09991600000000744,"min_ms":0.09904099999994287,"reps":2837}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"200 cols","fmt":"json","lib":"JSON.parse","ms":0.050625000000081855,"min_ms":0.04787499999997635,"reps":5775}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"200 cols","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.03670900000020083,"min_ms":0.03608299999996234,"reps":7863}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"200 cols","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.04529200000001765,"min_ms":0.04462499999999636,"reps":6378}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"500 rows","fmt":"json","lib":"JSON.parse","ms":0.17791699999997945,"min_ms":0.16970900000001166,"reps":1659}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"500 rows","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.18979200000012497,"min_ms":0.1888330000001588,"reps":1527}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"500 rows","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.24908300000015515,"min_ms":0.24758399999973335,"reps":1171}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"500 cols","fmt":"json","lib":"JSON.parse","ms":0.1279580000000351,"min_ms":0.12116599999990285,"reps":2307}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"500 cols","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.09204199999976481,"min_ms":0.0909999999998945,"reps":3146}
+{"impl":"v8","kind":"wire","n":20000,"group":"window","op":"500 cols","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.11408399999982066,"min_ms":0.11275000000023283,"reps":2532}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"label > date by year rows","fmt":"json","lib":"JSON.parse","ms":0.054874999999810825,"min_ms":0.05349999999998545,"reps":5359}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"label > date by year rows","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.058417000000190455,"min_ms":0.05787499999951251,"reps":4984}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"label > date by year rows","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.07166599999982282,"min_ms":0.07108299999981682,"reps":4088}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"label > date by year cols","fmt":"json","lib":"JSON.parse","ms":0.04195799999979499,"min_ms":0.040874999999687134,"reps":7014}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"label > date by year cols","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.03337499999997817,"min_ms":0.03287499999987631,"reps":8729}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"label > date by year cols","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.0374999999994543,"min_ms":0.03695799999968585,"reps":7732}
+{"impl":"v8","kind":"wire","n":20000,"group":"headers","op":"label > date by year","fmt":"json","lib":"JSON.parse","ms":0.45691699999952107,"min_ms":0.4524170000004233,"reps":645}
+{"impl":"v8","kind":"wire","n":20000,"group":"headers","op":"label > date by year","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.746832999999242,"min_ms":0.7413750000005166,"reps":395}
+{"impl":"v8","kind":"wire","n":20000,"group":"headers","op":"label > date by year","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.6044580000007045,"min_ms":0.5995000000002619,"reps":491}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"tags (+parents) rows","fmt":"json","lib":"JSON.parse","ms":0.1656249999996362,"min_ms":0.16237499999988358,"reps":1784}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"tags (+parents) rows","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.1694580000003043,"min_ms":0.16829099999995378,"reps":1724}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"tags (+parents) rows","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.21666699999968841,"min_ms":0.21537499999976717,"reps":1343}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"tags (+parents) cols","fmt":"json","lib":"JSON.parse","ms":0.12529199999971752,"min_ms":0.1217080000005808,"reps":2364}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"tags (+parents) cols","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.08649999999943248,"min_ms":0.08558400000038091,"reps":3358}
+{"impl":"v8","kind":"wire","n":20000,"group":"page","op":"tags (+parents) cols","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.10658299999977316,"min_ms":0.10516699999971024,"reps":2715}
+{"impl":"v8","kind":"wire","n":20000,"group":"headers","op":"tags (+parents)","fmt":"json","lib":"JSON.parse","ms":0.16687499999898137,"min_ms":0.1641249999993306,"reps":1777}
+{"impl":"v8","kind":"wire","n":20000,"group":"headers","op":"tags (+parents)","fmt":"msgpack","lib":"msgpackr","same":true,"ms":0.223667000000205,"min_ms":0.2225830000006681,"reps":1323}
+{"impl":"v8","kind":"wire","n":20000,"group":"headers","op":"tags (+parents)","fmt":"msgpack","lib":"@msgpack/msgpack","same":true,"ms":0.20733300000028976,"min_ms":0.20595800000046438,"reps":1414}

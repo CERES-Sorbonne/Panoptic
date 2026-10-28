@@ -1,0 +1,7 @@
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "text", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 30.4755829856731, "min_ms": 30.433167004957795, "reps": 3}
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "label", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 18.086084019159898, "min_ms": 18.049166013952345, "reps": 3}
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "number", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 11.382166005205363, "min_ms": 11.335249990224838, "reps": 3}
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "score", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 14.315042004454881, "min_ms": 14.173375006066635, "reps": 3}
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "date", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 18.33279200945981, "min_ms": 18.32008399651386, "reps": 3}
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "checkbox", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 12.333582999417558, "min_ms": 12.197792006190866, "reps": 3}
+{"impl": "python", "kind": "wire", "n": 1000000, "group": "stream", "op": "tags", "fmt": "ndjson", "lib": "msgspec", "same_bytes": true, "ms": 22.820042009698227, "min_ms": 22.24662498338148, "reps": 3}

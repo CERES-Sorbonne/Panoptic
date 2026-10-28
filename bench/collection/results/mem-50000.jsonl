@@ -1,0 +1,140 @@
+{"impl":"v8","n":50000,"load":true,"live_bytes":13135168,"footprint":52619328}
+{"impl":"v8","n":50000,"kind":"filter","op":"number > 5000","mem":true,"ms":5.202,"retained_bytes":140880,"count":23686,"hash":2842563322,"footprint":44382784,"peak_footprint":7155136}
+{"impl":"v8","n":50000,"kind":"filter","op":"number isSet","mem":true,"ms":3.994,"retained_bytes":236236,"count":47525,"hash":146668785,"footprint":51865344,"peak_footprint":966976}
+{"impl":"v8","n":50000,"kind":"filter","op":"score <= 250.5","mem":true,"ms":4.949,"retained_bytes":94004,"count":12023,"hash":3250922561,"footprint":52700800,"peak_footprint":622784}
+{"impl":"v8","n":50000,"kind":"filter","op":"date > 2020-01-01","mem":true,"ms":5.021,"retained_bytes":141236,"count":23775,"hash":2984972412,"footprint":52274688,"peak_footprint":770368}
+{"impl":"v8","n":50000,"kind":"filter","op":"checkbox isTrue","mem":true,"ms":26.657,"retained_bytes":178456,"count":22436,"hash":972519736,"footprint":52782848,"peak_footprint":23396672}
+{"impl":"v8","n":50000,"kind":"filter","op":"text contains","mem":true,"ms":30.2,"retained_bytes":93476,"count":273,"hash":471382473,"footprint":52815232,"peak_footprint":23167168}
+{"impl":"v8","n":50000,"kind":"filter","op":"text startsWith","mem":true,"ms":29.256,"retained_bytes":99132,"count":1443,"hash":176597034,"footprint":45185600,"peak_footprint":30895616}
+{"impl":"v8","n":50000,"kind":"filter","op":"text like (regex)","mem":true,"ms":33.049,"retained_bytes":97416,"count":148,"hash":3227186580,"footprint":45579520,"peak_footprint":30207296}
+{"impl":"v8","n":50000,"kind":"filter","op":"label equal","mem":true,"ms":27.032,"retained_bytes":92600,"count":142,"hash":1813375608,"footprint":45463872,"peak_footprint":30191104}
+{"impl":"v8","n":50000,"kind":"filter","op":"tags containsAny","mem":true,"ms":28.839,"retained_bytes":107580,"count":2231,"hash":4061800982,"footprint":52700672,"peak_footprint":22233280}
+{"impl":"v8","n":50000,"kind":"filter","op":"tags containsNot","mem":true,"ms":29.035,"retained_bytes":282072,"count":45906,"hash":1051880410,"footprint":44874432,"peak_footprint":30109184}
+{"impl":"v8","n":50000,"kind":"filter","op":"search box (text+tags)","mem":true,"ms":73.83,"retained_bytes":86904,"count":464,"hash":3071602053,"footprint":52258688,"peak_footprint":24347008}
+{"impl":"v8","n":50000,"kind":"filter","op":"compound and/or","mem":true,"ms":36.249,"retained_bytes":137056,"count":6674,"hash":2386063022,"footprint":52274816,"peak_footprint":25624832}
+{"impl":"v8","n":50000,"kind":"sort","op":"number","mem":true,"ms":17.048,"retained_bytes":246440,"count":50000,"hash":494604172,"footprint":51766592,"peak_footprint":10421056}
+{"impl":"v8","n":50000,"kind":"sort","op":"score (float) desc","mem":true,"ms":24.941,"retained_bytes":246440,"count":50000,"hash":3662190192,"footprint":51963584,"peak_footprint":17139072}
+{"impl":"v8","n":50000,"kind":"sort","op":"date","mem":true,"ms":24.533,"retained_bytes":246520,"count":50000,"hash":3523234188,"footprint":45152896,"peak_footprint":24867264}
+{"impl":"v8","n":50000,"kind":"sort","op":"text","mem":true,"ms":57.606,"retained_bytes":302072,"count":50000,"hash":1192108484,"footprint":45235008,"peak_footprint":40432768}
+{"impl":"v8","n":50000,"kind":"sort","op":"tags (count)","mem":true,"ms":36.577,"retained_bytes":301488,"count":50000,"hash":878961404,"footprint":52602304,"peak_footprint":24527040}
+{"impl":"v8","n":50000,"kind":"sort","op":"label, score desc","mem":true,"ms":52.8,"retained_bytes":303752,"count":50000,"hash":2109405530,"footprint":52471680,"peak_footprint":33294016}
+{"impl":"v8","n":50000,"kind":"group","op":"number (10k values)","mem":true,"ms":38.807,"retained_bytes":18844136,"count":9915,"entries":50000,"hash":3655094741,"footprint":46627392,"peak_footprint":47452800}
+{"impl":"v8","n":50000,"kind":"group","op":"date by month","mem":true,"ms":20.114,"retained_bytes":10851896,"count":121,"entries":50000,"hash":1266204671,"footprint":45480512,"peak_footprint":28489792}
+{"impl":"v8","n":50000,"kind":"group","op":"label (300 values)","mem":true,"ms":16.761,"retained_bytes":10959600,"count":301,"entries":50000,"hash":4009288441,"footprint":52488128,"peak_footprint":19350656}
+{"impl":"v8","n":50000,"kind":"group","op":"checkbox","mem":true,"ms":16.752,"retained_bytes":10624888,"count":2,"entries":50000,"hash":4000220271,"footprint":44251520,"peak_footprint":31044544}
+{"impl":"v8","n":50000,"kind":"group","op":"tags (+parents)","mem":true,"ms":50.463,"retained_bytes":16249152,"count":1001,"entries":232270,"hash":1275702251,"footprint":51389632,"peak_footprint":35738048}
+{"impl":"v8","n":50000,"kind":"group","op":"label > date by year","mem":true,"ms":34.816,"retained_bytes":14719256,"count":3612,"entries":50000,"hash":2557864051,"footprint":44546688,"peak_footprint":45762304}
+{"impl":"v8","n":50000,"kind":"group","op":"text (~N values)","mem":true,"ms":101.384,"retained_bytes":49384096,"count":46034,"entries":50000,"hash":1395128365,"footprint":45431168,"peak_footprint":111990336}
+{"impl":"v8","n":50000,"kind":"pipeline","op":"compound > sort > tags","mem":true,"ms":55.343,"retained_bytes":3240048,"count":1001,"entries":32689,"hash":1583571867,"footprint":53323904,"peak_footprint":29247232}
+{"impl":"jsc","n":50000,"load":true,"live_bytes":7873149,"footprint":39683392}
+{"impl":"jsc","n":50000,"kind":"filter","op":"number > 5000","mem":true,"ms":3.733,"retained_bytes":248457,"count":23686,"hash":2842563322,"footprint":39929216,"peak_footprint":2883584}
+{"impl":"jsc","n":50000,"kind":"filter","op":"number isSet","mem":true,"ms":2.637,"retained_bytes":341509,"count":47525,"hash":146668785,"footprint":39912832,"peak_footprint":2834432}
+{"impl":"jsc","n":50000,"kind":"filter","op":"score <= 250.5","mem":true,"ms":3.181,"retained_bytes":201549,"count":12023,"hash":3250922561,"footprint":40305984,"peak_footprint":2785280}
+{"impl":"jsc","n":50000,"kind":"filter","op":"date > 2020-01-01","mem":true,"ms":3.488,"retained_bytes":249656,"count":23775,"hash":2984972412,"footprint":39994752,"peak_footprint":2801664}
+{"impl":"jsc","n":50000,"kind":"filter","op":"checkbox isTrue","mem":true,"ms":19.057,"retained_bytes":338731,"count":22436,"hash":972519736,"footprint":40191360,"peak_footprint":34521152}
+{"impl":"jsc","n":50000,"kind":"filter","op":"text contains","mem":true,"ms":20.935,"retained_bytes":255607,"count":273,"hash":471382473,"footprint":40207616,"peak_footprint":35799104}
+{"impl":"jsc","n":50000,"kind":"filter","op":"text startsWith","mem":true,"ms":20.287,"retained_bytes":259431,"count":1443,"hash":176597034,"footprint":39814528,"peak_footprint":35766336}
+{"impl":"jsc","n":50000,"kind":"filter","op":"text like (regex)","mem":true,"ms":20.876,"retained_bytes":268440,"count":148,"hash":3227186580,"footprint":39929280,"peak_footprint":37191808}
+{"impl":"jsc","n":50000,"kind":"filter","op":"label equal","mem":true,"ms":18.327,"retained_bytes":254561,"count":142,"hash":1813375608,"footprint":39814464,"peak_footprint":35274816}
+{"impl":"jsc","n":50000,"kind":"filter","op":"tags containsAny","mem":true,"ms":19.52,"retained_bytes":274922,"count":2231,"hash":4061800982,"footprint":39732608,"peak_footprint":35553408}
+{"impl":"jsc","n":50000,"kind":"filter","op":"tags containsNot","mem":true,"ms":19.903,"retained_bytes":449590,"count":45906,"hash":1051880410,"footprint":39765440,"peak_footprint":36978752}
+{"impl":"jsc","n":50000,"kind":"filter","op":"search box (text+tags)","mem":true,"ms":291.22,"retained_bytes":234354,"count":464,"hash":3071602053,"footprint":39880000,"peak_footprint":41074816}
+{"impl":"jsc","n":50000,"kind":"filter","op":"compound and/or","mem":true,"ms":26.332,"retained_bytes":308327,"count":6674,"hash":2386063022,"footprint":40142144,"peak_footprint":37601344}
+{"impl":"jsc","n":50000,"kind":"sort","op":"number","mem":true,"ms":14.002,"retained_bytes":370652,"count":50000,"hash":494604172,"footprint":39699776,"peak_footprint":7503936}
+{"impl":"jsc","n":50000,"kind":"sort","op":"score (float) desc","mem":true,"ms":19.671,"retained_bytes":372140,"count":50000,"hash":3662190192,"footprint":39814592,"peak_footprint":15777856}
+{"impl":"jsc","n":50000,"kind":"sort","op":"date","mem":true,"ms":19.297,"retained_bytes":372140,"count":50000,"hash":3523234188,"footprint":39880000,"peak_footprint":16564288}
+{"impl":"jsc","n":50000,"kind":"sort","op":"text","mem":true,"ms":93.798,"retained_bytes":7861230,"count":50000,"hash":1192108484,"footprint":39748864,"peak_footprint":52625600}
+{"impl":"jsc","n":50000,"kind":"sort","op":"tags (count)","mem":true,"ms":26.514,"retained_bytes":448461,"count":50000,"hash":878961404,"footprint":39896384,"peak_footprint":35651648}
+{"impl":"jsc","n":50000,"kind":"sort","op":"label, score desc","mem":true,"ms":92.75,"retained_bytes":2934826,"count":50000,"hash":2109405530,"footprint":40109440,"peak_footprint":52363520}
+{"impl":"jsc","n":50000,"kind":"group","op":"number (10k values)","mem":true,"ms":27.293,"retained_bytes":29599258,"count":9915,"entries":50000,"hash":3655094741,"footprint":39929280,"peak_footprint":45596864}
+{"impl":"jsc","n":50000,"kind":"group","op":"date by month","mem":true,"ms":16.726,"retained_bytes":20566542,"count":121,"entries":50000,"hash":1266204671,"footprint":40174912,"peak_footprint":36995200}
+{"impl":"jsc","n":50000,"kind":"group","op":"label (300 values)","mem":true,"ms":14.978,"retained_bytes":20703834,"count":301,"entries":50000,"hash":4009288441,"footprint":40027456,"peak_footprint":29491328}
+{"impl":"jsc","n":50000,"kind":"group","op":"checkbox","mem":true,"ms":11.54,"retained_bytes":20444058,"count":2,"entries":50000,"hash":4000220271,"footprint":39830848,"peak_footprint":28131456}
+{"impl":"jsc","n":50000,"kind":"group","op":"tags (+parents)","mem":true,"ms":56.626,"retained_bytes":38169907,"count":1001,"entries":232270,"hash":1275702251,"footprint":40404288,"peak_footprint":77365504}
+{"impl":"jsc","n":50000,"kind":"group","op":"label > date by year","mem":true,"ms":30.017,"retained_bytes":24605490,"count":3612,"entries":50000,"hash":2557864051,"footprint":39978368,"peak_footprint":46006464}
+{"impl":"jsc","n":50000,"kind":"group","op":"text (~N values)","mem":true,"ms":135.381,"retained_bytes":64449363,"count":46034,"entries":50000,"hash":1395128365,"footprint":39863552,"peak_footprint":106742080}
+{"impl":"jsc","n":50000,"kind":"pipeline","op":"compound > sort > tags","mem":true,"ms":51.879,"retained_bytes":7208093,"count":1001,"entries":32689,"hash":1583571867,"footprint":40158656,"peak_footprint":47710400}
+{"impl":"v8-raw","n":50000,"load":true,"live_bytes":13135952,"footprint":36766784}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"number > 5000","mem":true,"ms":4.671,"retained_bytes":116928,"count":23686,"hash":2842563322,"footprint":37143616,"peak_footprint":5430912}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"number isSet","mem":true,"ms":3.627,"retained_bytes":212284,"count":47525,"hash":146668785,"footprint":37225728,"peak_footprint":4792128}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"score <= 250.5","mem":true,"ms":4.505,"retained_bytes":70276,"count":12023,"hash":3250922561,"footprint":37045120,"peak_footprint":5513088}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"date > 2020-01-01","mem":true,"ms":4.823,"retained_bytes":117284,"count":23775,"hash":2984972412,"footprint":36340800,"peak_footprint":5414656}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"checkbox isTrue","mem":true,"ms":4.633,"retained_bytes":119584,"count":22436,"hash":972519736,"footprint":36537280,"peak_footprint":4349888}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"text contains","mem":true,"ms":6.997,"retained_bytes":34748,"count":273,"hash":471382473,"footprint":36373568,"peak_footprint":6708864}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"text startsWith","mem":true,"ms":6.056,"retained_bytes":40292,"count":1443,"hash":176597034,"footprint":36373504,"peak_footprint":7692160}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"text like (regex)","mem":true,"ms":10.74,"retained_bytes":38928,"count":148,"hash":3227186580,"footprint":36586688,"peak_footprint":8756928}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"label equal","mem":true,"ms":5.526,"retained_bytes":34104,"count":142,"hash":1813375608,"footprint":36832128,"peak_footprint":5267328}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"tags containsAny","mem":true,"ms":8.014,"retained_bytes":48460,"count":2231,"hash":4061800982,"footprint":37045440,"peak_footprint":7003968}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"tags containsNot","mem":true,"ms":7.64,"retained_bytes":223128,"count":45906,"hash":1051880410,"footprint":37094656,"peak_footprint":6676480}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"search box (text+tags)","mem":true,"ms":15.635,"retained_bytes":28024,"count":464,"hash":3071602053,"footprint":36603264,"peak_footprint":17177984}
+{"impl":"v8-raw","n":50000,"kind":"filter","op":"compound and/or","mem":true,"ms":17.973,"retained_bytes":78976,"count":6674,"hash":2386063022,"footprint":35931392,"peak_footprint":12426816}
+{"impl":"v8-raw","n":50000,"kind":"sort","op":"number","mem":true,"ms":16.896,"retained_bytes":222608,"count":50000,"hash":494604172,"footprint":36685184,"peak_footprint":15753216}
+{"impl":"v8-raw","n":50000,"kind":"sort","op":"score (float) desc","mem":true,"ms":24.35,"retained_bytes":222608,"count":50000,"hash":3662190192,"footprint":36930688,"peak_footprint":23191936}
+{"impl":"v8-raw","n":50000,"kind":"sort","op":"date","mem":true,"ms":24.244,"retained_bytes":222640,"count":50000,"hash":3523234188,"footprint":36586816,"peak_footprint":23224832}
+{"impl":"v8-raw","n":50000,"kind":"sort","op":"text","mem":true,"ms":33.969,"retained_bytes":239072,"count":50000,"hash":1192108484,"footprint":36685184,"peak_footprint":20964224}
+{"impl":"v8-raw","n":50000,"kind":"sort","op":"tags (count)","mem":true,"ms":15.091,"retained_bytes":237504,"count":50000,"hash":878961404,"footprint":36914560,"peak_footprint":14802752}
+{"impl":"v8-raw","n":50000,"kind":"sort","op":"label, score desc","mem":true,"ms":32.264,"retained_bytes":240528,"count":50000,"hash":2109405530,"footprint":37110656,"peak_footprint":27321536}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"number (10k values)","mem":true,"ms":37.332,"retained_bytes":18823816,"count":9915,"entries":50000,"hash":3655094741,"footprint":37487872,"peak_footprint":55820160}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"date by month","mem":true,"ms":20.172,"retained_bytes":10827832,"count":121,"entries":50000,"hash":1266204671,"footprint":35947712,"peak_footprint":31908224}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"label (300 values)","mem":true,"ms":16.711,"retained_bytes":10935656,"count":301,"entries":50000,"hash":4009288441,"footprint":36521408,"peak_footprint":30387712}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"checkbox","mem":true,"ms":16.664,"retained_bytes":10600920,"count":2,"entries":50000,"hash":4000220271,"footprint":36783424,"peak_footprint":30781120}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"tags (+parents)","mem":true,"ms":51.852,"retained_bytes":16225376,"count":1001,"entries":232270,"hash":1275702251,"footprint":36979520,"peak_footprint":45546368}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"label > date by year","mem":true,"ms":33.873,"retained_bytes":14677280,"count":3612,"entries":50000,"hash":2557864051,"footprint":36750528,"peak_footprint":48281792}
+{"impl":"v8-raw","n":50000,"kind":"group","op":"text (~N values)","mem":true,"ms":127.627,"retained_bytes":49359896,"count":46034,"entries":50000,"hash":1395128365,"footprint":36357312,"peak_footprint":109347840}
+{"impl":"v8-raw","n":50000,"kind":"pipeline","op":"compound > sort > tags","mem":true,"ms":32.191,"retained_bytes":3177856,"count":1001,"entries":32689,"hash":1583571867,"footprint":36832384,"peak_footprint":28271424}
+{"impl":"rust-1t","n":50000,"load":true,"live_bytes":7080451,"footprint":9290496}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"number > 5000","mem":true,"ms":0.479,"retained_bytes":94744,"peak_bytes":275896,"count":23686,"hash":2842563322,"footprint":9306944,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"number isSet","mem":true,"ms":0.171,"retained_bytes":190100,"peak_bytes":502324,"count":47525,"hash":146668785,"footprint":9306944,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"score <= 250.5","mem":true,"ms":0.262,"retained_bytes":48092,"peak_bytes":163708,"count":12023,"hash":3250922561,"footprint":9290496,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"date > 2020-01-01","mem":true,"ms":0.451,"retained_bytes":95100,"peak_bytes":276252,"count":23775,"hash":2984972412,"footprint":9290496,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"checkbox isTrue","mem":true,"ms":0.405,"retained_bytes":89744,"peak_bytes":270896,"count":22436,"hash":972519736,"footprint":9290496,"peak_footprint":802944}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"text contains","mem":true,"ms":0.361,"retained_bytes":1092,"peak_bytes":96038,"count":273,"hash":471382473,"footprint":9290496,"peak_footprint":32768}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"text startsWith","mem":true,"ms":0.305,"retained_bytes":5772,"peak_bytes":96036,"count":1443,"hash":176597034,"footprint":9290496,"peak_footprint":573568}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"text like (regex)","mem":true,"ms":1.135,"retained_bytes":600,"peak_bytes":392150,"count":148,"hash":3227186580,"footprint":9306944,"peak_footprint":1081536}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"label equal","mem":true,"ms":0.115,"retained_bytes":568,"peak_bytes":51416,"count":142,"hash":1813375608,"footprint":9290496,"peak_footprint":688320}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"tags containsAny","mem":true,"ms":0.485,"retained_bytes":8924,"peak_bytes":75388,"count":2231,"hash":4061800982,"footprint":9290496,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"tags containsNot","mem":true,"ms":0.549,"retained_bytes":183624,"peak_bytes":495848,"count":45906,"hash":1051880410,"footprint":9290496,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"search box (text+tags)","mem":true,"ms":0.847,"retained_bytes":1856,"peak_bytes":97340,"count":464,"hash":3071602053,"footprint":9290496,"peak_footprint":589952}
+{"impl":"rust-1t","n":50000,"kind":"filter","op":"compound and/or","mem":true,"ms":1.632,"retained_bytes":26696,"peak_bytes":196036,"count":6674,"hash":2386063022,"footprint":9290496,"peak_footprint":737408}
+{"impl":"rust-1t","n":50000,"kind":"sort","op":"number","mem":true,"ms":1.488,"retained_bytes":200000,"peak_bytes":1400032,"count":50000,"hash":494604172,"footprint":9306944,"peak_footprint":1900736}
+{"impl":"rust-1t","n":50000,"kind":"sort","op":"score (float) desc","mem":true,"ms":1.426,"retained_bytes":200000,"peak_bytes":1400032,"count":50000,"hash":3662190192,"footprint":9290496,"peak_footprint":442496}
+{"impl":"rust-1t","n":50000,"kind":"sort","op":"date","mem":true,"ms":1.474,"retained_bytes":200000,"peak_bytes":1400032,"count":50000,"hash":3523234188,"footprint":9306944,"peak_footprint":458944}
+{"impl":"rust-1t","n":50000,"kind":"sort","op":"text","mem":true,"ms":4.837,"retained_bytes":200000,"peak_bytes":1000032,"count":50000,"hash":1192108484,"footprint":9306944,"peak_footprint":32768}
+{"impl":"rust-1t","n":50000,"kind":"sort","op":"tags (count)","mem":true,"ms":1.245,"retained_bytes":200000,"peak_bytes":1000032,"count":50000,"hash":878961404,"footprint":9290496,"peak_footprint":32768}
+{"impl":"rust-1t","n":50000,"kind":"sort","op":"label, score desc","mem":true,"ms":1.622,"retained_bytes":200000,"peak_bytes":1800064,"count":50000,"hash":2109405530,"footprint":9290496,"peak_footprint":2080896}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"number (10k values)","mem":true,"ms":2.835,"retained_bytes":1602828,"peak_bytes":1947688,"count":9915,"entries":50000,"hash":3655094741,"footprint":9306944,"peak_footprint":3375296}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"date by month","mem":true,"ms":0.835,"retained_bytes":809484,"peak_bytes":1010968,"count":121,"entries":50000,"hash":1266204671,"footprint":9290496,"peak_footprint":49152}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"label (300 values)","mem":true,"ms":0.511,"retained_bytes":825100,"peak_bytes":1029560,"count":301,"entries":50000,"hash":4009288441,"footprint":9290496,"peak_footprint":65536}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"checkbox","mem":true,"ms":0.527,"retained_bytes":800208,"peak_bytes":1000260,"count":2,"entries":50000,"hash":4000220271,"footprint":9290496,"peak_footprint":32768}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"tags (+parents)","mem":true,"ms":3.777,"retained_bytes":2333948,"peak_bytes":2546056,"count":1001,"entries":232270,"hash":1275702251,"footprint":9290496,"peak_footprint":131072}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"label > date by year","mem":true,"ms":1.421,"retained_bytes":1234892,"peak_bytes":1456096,"count":3612,"entries":50000,"hash":2557864051,"footprint":9306944,"peak_footprint":540672}
+{"impl":"rust-1t","n":50000,"kind":"group","op":"text (~N values)","mem":true,"ms":10.736,"retained_bytes":4011276,"peak_bytes":5317136,"count":46034,"entries":50000,"hash":1395128365,"footprint":9290496,"peak_footprint":7061632}
+{"impl":"rust-1t","n":50000,"kind":"pipeline","op":"compound > sort > tags","mem":true,"ms":2.646,"retained_bytes":563996,"peak_bytes":829496,"count":1001,"entries":32689,"hash":1583571867,"footprint":9290496,"peak_footprint":1572992}
+{"impl":"rust-8t","n":50000,"load":true,"live_bytes":7080451,"footprint":9290496}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"number > 5000","mem":true,"ms":0.342,"retained_bytes":99576,"peak_bytes":280728,"count":23686,"hash":2842563322,"footprint":9290496,"peak_footprint":917824}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"number isSet","mem":true,"ms":0.138,"retained_bytes":193108,"peak_bytes":505292,"count":47525,"hash":146668785,"footprint":9306944,"peak_footprint":983296}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"score <= 250.5","mem":true,"ms":0.158,"retained_bytes":52572,"peak_bytes":168188,"count":12023,"hash":3250922561,"footprint":9405312,"peak_footprint":590016}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"date > 2020-01-01","mem":true,"ms":0.28,"retained_bytes":99932,"peak_bytes":281084,"count":23775,"hash":2984972412,"footprint":9290496,"peak_footprint":590016}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"checkbox isTrue","mem":true,"ms":0.248,"retained_bytes":94328,"peak_bytes":275480,"count":22436,"hash":972519736,"footprint":9290496,"peak_footprint":885056}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"text contains","mem":true,"ms":0.2,"retained_bytes":5716,"peak_bytes":100662,"count":273,"hash":471382473,"footprint":9290496,"peak_footprint":622784}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"text startsWith","mem":true,"ms":0.247,"retained_bytes":12836,"peak_bytes":103100,"count":1443,"hash":176597034,"footprint":9290496,"peak_footprint":622784}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"text like (regex)","mem":true,"ms":0.802,"retained_bytes":5296,"peak_bytes":396734,"count":148,"hash":3227186580,"footprint":9290496,"peak_footprint":1507520}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"label equal","mem":true,"ms":0.084,"retained_bytes":5072,"peak_bytes":55920,"count":142,"hash":1813375608,"footprint":9290496,"peak_footprint":573632}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"tags containsAny","mem":true,"ms":0.265,"retained_bytes":13356,"peak_bytes":79820,"count":2231,"hash":4061800982,"footprint":9290496,"peak_footprint":639232}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"tags containsNot","mem":true,"ms":0.337,"retained_bytes":184168,"peak_bytes":496392,"count":45906,"hash":1051880410,"footprint":9290496,"peak_footprint":1048960}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"search box (text+tags)","mem":true,"ms":0.531,"retained_bytes":2480,"peak_bytes":97964,"count":464,"hash":3071602053,"footprint":9290496,"peak_footprint":688320}
+{"impl":"rust-8t","n":50000,"kind":"filter","op":"compound and/or","mem":true,"ms":1.04,"retained_bytes":31528,"peak_bytes":200820,"count":6674,"hash":2386063022,"footprint":9290496,"peak_footprint":803200}
+{"impl":"rust-8t","n":50000,"kind":"sort","op":"number","mem":true,"ms":0.553,"retained_bytes":204832,"peak_bytes":1404864,"count":50000,"hash":494604172,"footprint":9290496,"peak_footprint":2048320}
+{"impl":"rust-8t","n":50000,"kind":"sort","op":"score (float) desc","mem":true,"ms":0.596,"retained_bytes":200736,"peak_bytes":1400768,"count":50000,"hash":3662190192,"footprint":9290496,"peak_footprint":1769664}
+{"impl":"rust-8t","n":50000,"kind":"sort","op":"date","mem":true,"ms":0.594,"retained_bytes":204832,"peak_bytes":1404864,"count":50000,"hash":3523234188,"footprint":9290496,"peak_footprint":1949824}
+{"impl":"rust-8t","n":50000,"kind":"sort","op":"text","mem":true,"ms":1.736,"retained_bytes":207112,"peak_bytes":1007144,"count":50000,"hash":1192108484,"footprint":9290496,"peak_footprint":1917120}
+{"impl":"rust-8t","n":50000,"kind":"sort","op":"tags (count)","mem":true,"ms":0.527,"retained_bytes":200496,"peak_bytes":1000528,"count":50000,"hash":878961404,"footprint":10126208,"peak_footprint":1212608}
+{"impl":"rust-8t","n":50000,"kind":"sort","op":"label, score desc","mem":true,"ms":0.689,"retained_bytes":203088,"peak_bytes":1803152,"count":50000,"hash":2109405530,"footprint":9290496,"peak_footprint":2375936}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"number (10k values)","mem":true,"ms":3.489,"retained_bytes":1603724,"peak_bytes":1948584,"count":9915,"entries":50000,"hash":3655094741,"footprint":9290496,"peak_footprint":3522880}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"date by month","mem":true,"ms":1.261,"retained_bytes":809884,"peak_bytes":1011368,"count":121,"entries":50000,"hash":1266204671,"footprint":9290496,"peak_footprint":1884544}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"label (300 values)","mem":true,"ms":1.018,"retained_bytes":825660,"peak_bytes":1030120,"count":301,"entries":50000,"hash":4009288441,"footprint":9306944,"peak_footprint":1327424}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"checkbox","mem":true,"ms":0.502,"retained_bytes":807320,"peak_bytes":1007372,"count":2,"entries":50000,"hash":4000220271,"footprint":9306944,"peak_footprint":966848}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"tags (+parents)","mem":true,"ms":3.369,"retained_bytes":2334492,"peak_bytes":2546600,"count":1001,"entries":232270,"hash":1275702251,"footprint":9290496,"peak_footprint":1196352}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"label > date by year","mem":true,"ms":1.618,"retained_bytes":1243612,"peak_bytes":1464816,"count":3612,"entries":50000,"hash":2557864051,"footprint":9290496,"peak_footprint":3768768}
+{"impl":"rust-8t","n":50000,"kind":"group","op":"text (~N values)","mem":true,"ms":4.462,"retained_bytes":4012060,"peak_bytes":5317872,"count":46034,"entries":50000,"hash":1395128365,"footprint":9290496,"peak_footprint":7799104}
+{"impl":"rust-8t","n":50000,"kind":"pipeline","op":"compound > sort > tags","mem":true,"ms":2.408,"retained_bytes":571108,"peak_bytes":836608,"count":1001,"entries":32689,"hash":1583571867,"footprint":9290496,"peak_footprint":1310976}

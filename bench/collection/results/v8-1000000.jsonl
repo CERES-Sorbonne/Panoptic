@@ -1,0 +1,28 @@
+{"impl":"v8","meta":true,"n":1000000,"gen_ms":381}
+{"impl":"v8","n":1000000,"kind":"filter","op":"number > 5000","ms":16.842,"min_ms":15.459,"count":474717,"hash":2275377517}
+{"impl":"v8","n":1000000,"kind":"filter","op":"number isSet","ms":8.052,"min_ms":6.389,"count":949876,"hash":2842986117}
+{"impl":"v8","n":1000000,"kind":"filter","op":"score <= 250.5","ms":11.789,"min_ms":11.002,"count":238525,"hash":1155677603}
+{"impl":"v8","n":1000000,"kind":"filter","op":"date > 2020-01-01","ms":16.177,"min_ms":15.389,"count":475189,"hash":288037770}
+{"impl":"v8","n":1000000,"kind":"filter","op":"checkbox isTrue","ms":369.391,"min_ms":367.408,"count":449430,"hash":2940423764}
+{"impl":"v8","n":1000000,"kind":"filter","op":"text contains","ms":407.698,"min_ms":405.82,"count":5493,"hash":295227612}
+{"impl":"v8","n":1000000,"kind":"filter","op":"text startsWith","ms":385.317,"min_ms":385.1,"count":29020,"hash":2608655021}
+{"impl":"v8","n":1000000,"kind":"filter","op":"text like (regex)","ms":483.626,"min_ms":481.412,"count":2657,"hash":1260974330}
+{"impl":"v8","n":1000000,"kind":"filter","op":"label equal","ms":374.518,"min_ms":373.421,"count":3025,"hash":2678628304}
+{"impl":"v8","n":1000000,"kind":"filter","op":"tags containsAny","ms":412.526,"min_ms":409.498,"count":44485,"hash":3708259126}
+{"impl":"v8","n":1000000,"kind":"filter","op":"tags containsNot","ms":405.971,"min_ms":404.213,"count":917843,"hash":2570300741}
+{"impl":"v8","n":1000000,"kind":"filter","op":"search box (text+tags)","ms":1272.123,"min_ms":1268.456,"count":9515,"hash":3798373192}
+{"impl":"v8","n":1000000,"kind":"filter","op":"compound and/or","ms":429.076,"min_ms":428.469,"count":133259,"hash":3622709449}
+{"impl":"v8","n":1000000,"kind":"sort","op":"number","ms":173.566,"min_ms":166.383,"count":1000000,"hash":3689957008}
+{"impl":"v8","n":1000000,"kind":"sort","op":"score (float) desc","ms":588.921,"min_ms":579.865,"count":1000000,"hash":1024100300}
+{"impl":"v8","n":1000000,"kind":"sort","op":"date","ms":589.356,"min_ms":577.255,"count":1000000,"hash":52438378}
+{"impl":"v8","n":1000000,"kind":"sort","op":"text","ms":1265.257,"min_ms":1260.283,"count":1000000,"hash":941089652}
+{"impl":"v8","n":1000000,"kind":"sort","op":"tags (count)","ms":486.533,"min_ms":486.176,"count":1000000,"hash":2566190468}
+{"impl":"v8","n":1000000,"kind":"sort","op":"label, score desc","ms":1043.821,"min_ms":1040.744,"count":1000000,"hash":2337793862}
+{"impl":"v8","n":1000000,"kind":"group","op":"number (10k values)","ms":345.946,"min_ms":323.63,"count":10001,"entries":1000000,"hash":2112978135}
+{"impl":"v8","n":1000000,"kind":"group","op":"date by month","ms":384.862,"min_ms":372.584,"count":121,"entries":1000000,"hash":2611653835}
+{"impl":"v8","n":1000000,"kind":"group","op":"label (300 values)","ms":316.019,"min_ms":305.693,"count":301,"entries":1000000,"hash":1736294559}
+{"impl":"v8","n":1000000,"kind":"group","op":"checkbox","ms":274.785,"min_ms":259.227,"count":2,"entries":1000000,"hash":3158637205}
+{"impl":"v8","n":1000000,"kind":"group","op":"tags (+parents)","ms":1518.45,"min_ms":1496.974,"count":1001,"entries":4629784,"hash":1097345423}
+{"impl":"v8","n":1000000,"kind":"group","op":"label > date by year","ms":532.673,"min_ms":512.208,"count":3612,"entries":1000000,"hash":1454502103}
+{"impl":"v8","n":1000000,"kind":"group","op":"text (~N values)","ms":4939.474,"min_ms":4584.481,"count":920127,"entries":1000000,"hash":4002941405}
+{"impl":"v8","n":1000000,"kind":"pipeline","op":"compound > sort > tags","ms":914.549,"min_ms":881.715,"count":1001,"entries":653800,"hash":469115913}
