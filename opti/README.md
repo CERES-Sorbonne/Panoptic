@@ -10,7 +10,8 @@ notes detail its P1-C (engine), P4 (backend compute + view protocol) and P5 (thi
 |---|---|
 | [01-collection-manager.md](01-collection-manager.md) | the backend collection manager: API, performance strategy, implementation plan |
 | [02-slice-sending.md](02-slice-sending.md) | tree slices: the UI requests pieces of the resulting tree and builds its own lines; caching, seeking, invalidation, many collections on one backend |
-| [03-sqlite-layout.md](03-sqlite-layout.md) | the data.db layout the engine wants: typed values, property-first keys, sha1 ids, what it saves, compatibility |
+| [03-sqlite-layout.md](03-sqlite-layout.md) | the data.db layout the engine wants: the full schema: typed values, property-first keys, image ids, scan state, what it saves, compatibility |
+| [04-column-store.md](04-column-store.md) | the column store: loading from data.db, applying deltas, notifying changes; consistency, targets, acceptance tests |
 
 Measurements behind the numbers quoted here: [`bench/collection`](../bench/collection/README.md)
 (compute, memory and wire, 1M synthetic images).

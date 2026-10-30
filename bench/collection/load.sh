@@ -1,5 +1,5 @@
 #!/bin/sh
-# Column load benchmark: a full property column from data.db into the Rust engine's store vs
+# Column load benchmark: a full property column from data.db into the Rust prototype store vs
 # through today's Python route (+ the front's ingest of that route's bytes).
 #   ./load.sh 1000000               every column
 #   ./load.sh 1000000 --only=tags   extra args go to the Rust and Python runs

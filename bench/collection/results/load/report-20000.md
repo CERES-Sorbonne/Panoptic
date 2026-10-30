@@ -1,8 +1,8 @@
 
 # Full column load, N = 20,000
 
-Same data.db (Python schema, warm OS cache) for both sides. Rust = the engine store
-(`store.rs`) on one long-lived read connection: `typed` builds the column directly,
+Same data.db (Python schema, warm OS cache) for both sides. Rust = the prototype store
+(`load/src/store.rs`) on one long-lived read connection: `typed` builds the column directly,
 `generic` goes through `serde_json::Value` + `CellValue::from_json` + `SetValues`. Python =
 the real route, body iterated in-process (no HTTP), new reader per request as in the app.
 JSC = the webview ingest (`js/wire.js`) of the bytes that route produced. Medians.

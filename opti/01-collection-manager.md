@@ -1,10 +1,7 @@
 # 01: Collection manager on the backend
 
-Status 2026-10-20: design, nothing wired yet. `crates/panoptic-engine` has a columnar store
-(`store.rs`), the schema (`schema.rs`), filter and sort ports (`filter.rs`, `sort.rs`), JS
-semantics (`js.rs`) and cancellation (`cancel.rs`). `lib.rs` is still the cargo template, so
-none of these modules are compiled or tested yet. There is no group tree, no piles, no
-clusters, no collection object and no protocol.
+Status 2026-10-28: specification, no implementation. The engine is written from these notes;
+the only code it builds on is the measured prototype in `bench/collection`.
 
 ## 1. Why move it
 
@@ -53,9 +50,11 @@ Stays in the front:
 
 ## 3. Concepts
 
-- **Store**: one per loaded project, an immutable `Snapshot` of identity and typed columns,
-  with `Arc` per column (`store.rs`). Deltas from data.db (our writes, plugin writes caught by
-  the sequence poll) produce the next snapshot. Shared by every collection of the project.
+- **Store**: one per loaded project, the instances and the typed property columns, shared by
+  every collection of the project. Each change to data.db (our writes, undo/redo, plugin
+  writes) produces a new store **version**, exact at one data.db sequence, and a change record
+  saying which slots changed for which property. Specified in
+  [04-column-store.md](04-column-store.md).
 - **Collection**: identified by `CollectionKey { tab_id, name }` (`name` = `main`, a panel,
   the selection modal, ...). It holds the state (`CollectionState` + `FilterState` +
   `SortState` + `GroupState` + custom groups and cluster overlay), the computed stages and a
@@ -63,10 +62,10 @@ Stays in the front:
 - **Stages**: `active → filtered → sorted → tree → piles/overlay`. Each stage is an immutable
   `Arc` value computed from the previous one. A state change recomputes from the first stage it
   affects.
-- **Result**: an immutable `Arc<CollectionResult>` = (snapshot it was computed on, stages, rev).
+- **Result**: an immutable value = (store version it was computed on, stages, rev).
   Every read (tree slice, seek, locate, selection counts) goes to one result, so the ids, order
-  and values it returns are consistent with each other. Results are published with `ArcSwap`:
-  readers never wait for a recompute.
+  and values it returns are consistent with each other. A new result replaces the previous one
+  atomically: readers never wait for a recompute.
 - **rev**: increases on every published result. Every reply carries it, and the client drops
   replies for an older rev.
 - **View**: one client's look at a collection: the open/closed groups, the visible properties,
@@ -78,10 +77,10 @@ Stays in the front:
 ### 4.1 Engine (Rust, `panoptic-engine`)
 
 ```rust
-pub struct Engine { /* store: ArcSwap<Snapshot>, collections: Registry, scheduler: Scheduler */ }
+pub struct Engine { /* store (note 04), collections: Registry, scheduler: Scheduler */ }
 
 impl Engine {
-    pub fn apply_delta(&self, delta: Delta) -> Changes;            // new snapshot, marks dirty collections
+    fn on_store_change(&self, record: &ChangeRecord);              // note 04 §7: fan out to collections (note 02 §7.4)
     pub fn open(&self, key: CollectionKey, state: CollectionState) -> CollectionHandle;
     pub fn close(&self, key: &CollectionKey);
 }
@@ -134,7 +133,7 @@ are in note 02. How today's `CollectionManager` maps to the protocol:
 | selection (`toggleAll`, `selectImages`, `toggle*Iterator`, `isGroupSelected`, namespaces) | `selection.apply {ns, op}` | ops: ids, group, position range (shift-click), all, none; slices carry selected bits |
 | `cluster`, `isClustering`, `clusterError`, `onCluster` | `group.cluster`, `progress` push | the backend calls the plugin, so the run survives the UI |
 | `addCustomGroups`, `moveImagesToGroup`, `renameGroup`, `split`, `merge`, `deletePile`, `delCustomGroups`, `clearCustomGroups`, `clusterEmptyBucket`, `drainCluster` | `group.<op>` | one rev per op |
-| `updateInstances` / `setDirty` (data listener) | none: the backend applies the delta | value-only changes are pushed as `values` (note 02 §6) |
+| `updateInstances` / `setDirty` (data listener) | none: the store applies the change (note 04 §6) | value-only changes are pushed as `values` (note 02 §6) |
 | `settle()` | await the `result` push with `rev ≥` the op's rev | each op replies with the rev it will produce |
 | `setActive`, `dispose` | `view.active`, `collection.close` | the backend keeps or drops the result (note 02 §7) |
 | `getRequiredColumns` | none | the backend loads the columns itself |
@@ -143,14 +142,16 @@ are in note 02. How today's `CollectionManager` maps to the protocol:
 
 ### 5.1 Store
 
-- Columns are loaded from SQLite into typed columns: `f64` for numbers and dates (NaN = none),
-  `u8` checkboxes, dictionary strings with a pre-lowercased dictionary, CSR tags. There is no
-  JSON per cell. A column is loaded the first time any collection needs it, then shared.
-- Derived per-snapshot caches are shared by every collection: the sort key column of a
+- Columns are loaded from SQLite into typed columns, the layout `bench/collection` measured:
+  `f64` for numbers and dates, one byte per checkbox, dictionary strings with a pre-lowercased
+  dictionary, CSR tags. There is no JSON per cell. A column is loaded the first time any
+  collection needs it, then shared (note 04 §5).
+- Caches derived from a column are shared by every collection: the sort key column of a
   property (the expensive part of a sort) and the tag expansion (tag → itself + parents). They
-  are rebuilt lazily when a delta touches the column.
-- A delta copies only the columns it touches (`Arc` per column). Old snapshots are freed when
-  no result pins them anymore.
+  are keyed by the column's change counter and rebuilt lazily when a change touches the column
+  (note 04 §7.4).
+- An update does not copy the columns it does not touch. Old store versions are freed when no
+  result uses them anymore (note 04 §4, §8).
 
 ### 5.2 Staged recompute
 
@@ -182,7 +183,7 @@ from, with two more:
 
 ### 5.4 Incremental updates
 
-A delta gives the changed slots. When they are few (threshold to measure, around 1% of N),
+A store change record gives the changed slots per property (note 04 §7). When they are few (threshold to measure, around 1% of N),
 the collection re-tests those slots against the filter, moves them in the sorted order (remove
 and insert by key) and between buckets, the same thing `updateSelection` does today in TS.
 Above the threshold it recomputes from the filtered stage: at 1M that is 20–50 ms, cheaper
@@ -205,7 +206,7 @@ read the published result and never wait for a recompute.
 ## 6. Semantics parity
 
 The Rust results must be the same as the TS engine's, including ordering ties, dates, loose
-equality and UTF-16 string order (`js.rs`). Checks:
+equality and UTF-16 string order. Checks:
 
 - golden tests: a node harness runs the TS managers on fixture projects and dumps slot lists
   and tree hashes, and `cargo test` compares them. `bench/collection` already does this on
@@ -214,20 +215,20 @@ equality and UTF-16 string order (`js.rs`). Checks:
 
 ## 7. Implementation plan
 
-Each step ends green on `cargo test -p panoptic-engine` and does not break the current front.
+Each step ends green on the engine's `cargo test` and does not break the current front.
 
-1. **Make the engine compile.** Declare the modules in `lib.rs`, add unit tests for store,
-   filter and sort, and port the TS goldens harness (fixtures in `panoptic_back/test/` or
-   `crates/panoptic-engine/tests/fixtures`).
+1. **Goldens harness and filter / sort.** The node harness that runs the TS managers on fixture
+   projects and dumps results (fixtures in `panoptic_back/test/` or the engine's
+   `tests/fixtures`), then filter and sort over in-memory columns, starting from
+   `bench/collection/rust/src/filter.rs` and `sort.rs`, which already match the TS checksums.
 2. **Group tree** (`group/`): port `computePropertySubGroup`, date buckets, group sort options,
    value index, tag parents and scores from `GroupManager.ts` + `core/group/*`. Start from
    `bench/collection/rust/src/group.rs`, which already matches the TS checksums. Goldens.
 3. **Piles and overlays** (`group/piles.rs`, `group/overlay.rs`): sha1 piles, the cluster
    overlay, custom groups, the leftover bucket and their ops. Goldens on op sequences.
-4. **Store loading and deltas**: fill `Snapshot` from `panoptic-db` (typed reads per property
-   mode: id, sha1, file, system properties), apply the sequence deltas, and cache sort keys and
-   tag expansions per snapshot.
-5. **Collection** (`collection.rs`): state, stages, reload-kind diff, publish through `ArcSwap`,
+4. **Column store**: loading, updates and change records, as specified in
+   [04-column-store.md](04-column-store.md) §9 (its acceptance tests).
+5. **Collection** (`collection.rs`): state, stages, reload-kind diff, atomic publish,
    cancel, the incremental path with its threshold, and `settle` semantics via revs.
 6. **Read API** (`result.rs`, `entries.rs`, `slice.rs`): summary, entry flattening per view,
    tree slices with every group kind and overlay, layout stats, seek, locate, step. Selection

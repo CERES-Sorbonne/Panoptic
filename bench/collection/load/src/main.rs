@@ -1,9 +1,10 @@
 //! Column load benchmark — Rust side. Loads full property columns from a `data.db` (Python
-//! schema) into the engine's store (`crates/panoptic-engine/src/store.rs`, compiled in here by
-//! path since the engine crate does not export its modules yet).
+//! schema) into a prototype column store (`store.rs`, with `js.rs` and `schema.rs`: the first
+//! engine draft, kept here only as the measured loader).
 //!
 //!   load-bench --make-db=<data.db> --n=1000000   fill a schema-only data.db with the synthetic set
 //!   load-bench --db=<data.db>                    time every load, print JSONL
+//!   load-bench --db=<data.db> --cold=<dir>       cold loads: rows vs column blob (cache.rs)
 //!
 //! Per column, three variants:
 //! - `sqlite`: the query alone, each row stepped and its value bytes touched (the floor).
@@ -19,16 +20,14 @@
 #[path = "../../rust/src/data.rs"]
 #[allow(dead_code)]
 mod data;
-#[path = "../../../../crates/panoptic-engine/src/js.rs"]
 #[allow(dead_code)]
 mod js;
-#[path = "../../../../crates/panoptic-engine/src/schema.rs"]
 #[allow(dead_code)]
 mod schema;
-#[path = "../../../../crates/panoptic-engine/src/store.rs"]
 #[allow(dead_code)]
 mod store;
 
+mod cache;
 mod make_db;
 
 use std::hash::{Hash, Hasher};
@@ -348,6 +347,10 @@ fn main() {
         return;
     }
     let path = arg("db").expect("--db=<data.db> or --make-db=<data.db>");
+    if let Some(dir) = arg("cold") {
+        cache::run_cold(&path, &dir);
+        return;
+    }
     let c = open(&path);
     let n: usize = c.query_row("SELECT COUNT(*) FROM instances", [], |r| r.get(0)).unwrap();
     let reps: usize = arg("reps").map(|x| x.parse().unwrap()).unwrap_or(if n >= 5_000_000 { 3 } else { 5 });

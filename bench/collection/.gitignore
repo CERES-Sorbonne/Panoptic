@@ -1,2 +1,4 @@
 results/wire/*/
 js/dist/
+results/tomb/db/
+results/cache/*/

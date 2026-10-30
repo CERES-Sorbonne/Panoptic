@@ -89,11 +89,11 @@ Payloads are written to `results/wire/<n>/` (158 MB at 1M, gitignored). Timings 
 `DataWriter`, filled with the same synthetic data by `load/`) and loads every column from it
 both ways:
 
-- **Rust** (`load/`): the engine's own `store.rs`, `js.rs` and `schema.rs`, compiled in by path,
+- **Rust** (`load/`): a prototype column store (`load/src/store.rs`, `js.rs`, `schema.rs`),
   on one long-lived read connection. `typed` builds the typed column directly from the rows
   (numbers as SQLite hands them, strings interned without a `serde_json::Value`, tags
   counting-sorted into CSR) and applies `SetColumn`. `generic` goes through the delta path
-  that exists today: `serde_json::Value` → `CellValue::from_json` → `SetValues`. `sqlite` is the
+  of the prototype: `serde_json::Value` → `CellValue::from_json` → `SetValues`. `sqlite` is the
   query alone. Every column is checked against the generated data, and `typed` = `generic`.
 - **Python** (`py/column_load.py`): the real `get_property_column` and `stream_instances_base`
   routes, imported as they are with a stub `Project`. The body is iterated in process the way

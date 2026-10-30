@@ -193,9 +193,9 @@ deployment several clients. All of them live in one process, on one store per pr
 
 ```
 Engine (per project)
- ├─ store: ArcSwap<Snapshot>                         shared columns + per-snapshot caches
+ ├─ store: current version (note 04)                 shared columns + per-column caches
  ├─ collections: RwLock<FxHashMap<CollectionKey, Arc<CollectionSlot>>>
- │    CollectionSlot { state: Mutex<State>, result: ArcSwap<CollectionResult>,
+ │    CollectionSlot { state: Mutex<State>, result: current result (atomic swap),
  │                     job: Mutex<Job>, views: Vec<ViewId>, active_views: u32, last_access }
  └─ views: per connection, ViewId → { key, open groups, viewRev, entry prefix, props, ns, outbound queue }
 ```
@@ -221,7 +221,8 @@ Engine (per project)
 
 ### 7.4 Deltas across collections
 
-`apply_delta` returns `Changes`: the changed slots and their properties. For each collection:
+Each new store version comes with a change record: the changed slots per property (note 04
+§7). For each collection:
 
 - none of its filter/sort/group properties touched → a `values` push to its views, no
   recompute;
@@ -231,18 +232,18 @@ Engine (per project)
 
 ### 7.5 Sharing work
 
-- Per snapshot, shared by all collections: loaded columns, pre-lowered dictionaries, sort key
-  columns, tag expansions.
-- **Stage cache** keyed by the hash of the state prefix: `(snapshot, active set, filter)` →
+- Per store version, shared by all collections: loaded columns, pre-lowered dictionaries, sort
+  key columns, tag expansions.
+- **Stage cache** keyed by the hash of the state prefix: `(store version, active set, filter)` →
   filtered, `+ sort` → sorted. It holds weak references, so a stage lives only as long as some
   result uses it. Two tabs with the same filter compute it once. The main collection and the
-  modal collection of the same tab share their snapshot and columns anyway.
+  modal collection of the same tab share their store version and columns anyway.
 
 ### 7.6 Memory
 
 What a result keeps at 1M (bench): sorted order 4 MB, filtered mask + slots ≤ 4 MB, group tree
-15–45 MB (90 MB grouping by text). A result also pins its snapshot, but a delta copies only the
-columns it touched, so an old snapshot costs only those columns.
+15–45 MB (90 MB grouping by text). A result also pins its store version, but an update does not copy
+the columns it does not touch, so an old version costs only the columns changed since (note 04 §4).
 
 - Budget: configurable, with a default to set (e.g. 1 GB or a share of RAM).
 - Over budget: drop the **results** of collections with no active view, least recently used

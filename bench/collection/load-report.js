@@ -22,8 +22,8 @@ const table = (head, body) => {
 
 const N = Number(n).toLocaleString('en')
 console.log(`\n# Full column load, N = ${N}\n`)
-console.log('Same data.db (Python schema, warm OS cache) for both sides. Rust = the engine store')
-console.log('(`store.rs`) on one long-lived read connection: `typed` builds the column directly,')
+console.log('Same data.db (Python schema, warm OS cache) for both sides. Rust = the prototype store')
+console.log('(`load/src/store.rs`) on one long-lived read connection: `typed` builds the column directly,')
 console.log('`generic` goes through `serde_json::Value` + `CellValue::from_json` + `SetValues`. Python =')
 console.log('the real route, body iterated in-process (no HTTP), new reader per request as in the app.')
 console.log('JSC = the webview ingest (`js/wire.js`) of the bytes that route produced. Medians.\n')
