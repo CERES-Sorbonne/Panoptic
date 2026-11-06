@@ -20,6 +20,7 @@ import { paintableProperty, paintTag } from './paintTag'
 import { keyState } from '@/data/composables/keyState'
 import { newZoomOwner, zoomModal } from '../modals/zoomModal'
 import { AtlasLayerManager, type AtlasLoadProgress } from '@/mixins/mapview/AtlasLayerManager'
+import { applyScoreThreshold, effectiveThreshold, isPointHidden, scoreBounds, scoreQuality, type ScoreBounds } from '@/mixins/mapview/ScoreFilter'
 
 // Components
 import Toolbar from './Toolbar.vue'
@@ -50,12 +51,6 @@ const DIM_DESATURATE = 1.0
 const DIM_Z = 0.0
 const BASE_Z = 0.5
 const SELECTED_Z = 1.0
-// Similarity search, on the score within the range the plugin declares: hidden below HIDE, faded in
-// up to FADE_END, then the FADE_END opacity, and fully opaque from FULL.
-const SCORE_HIDE = 0.30
-const SCORE_FADE_END = 0.75
-const SCORE_FADE_END_OPACITY = 0.85
-const SCORE_FULL = 0.85
 // Within a tier, more similar images are lifted in front (stays under the 0.5 tier gap with
 // AtlasLayer's STACK_Z_RANGE).
 const SCORE_Z_RANGE = 0.3
@@ -100,6 +95,15 @@ const gridDensity = computed(() => props.mapOptions.gridDensity ?? DEFAULT_GRID_
 const mapSpread = computed(() => props.mapOptions.mapSpread ?? 1)
 const fillCells = computed(() => layout.value === 'grid' && (props.mapOptions.fillCells ?? true))
 const groupOutlines = computed(() => props.mapOptions.groupOutlines ?? true)
+// Similarity search: range of the scores on the map (null without a search) and points kept.
+const visibleScoreBounds = shallowRef<ScoreBounds | null>(null)
+const shownByScore = ref(0)
+const scoreThreshold = computed(() => effectiveThreshold(props.mapOptions.scoreThreshold, visibleScoreBounds.value))
+const scoreFilter = computed(() => {
+    const bounds = visibleScoreBounds.value
+    if (!bounds || bounds.min === bounds.max) return null
+    return { ...bounds, value: scoreThreshold.value, shown: shownByScore.value, total: points.value.length }
+})
 watch(() => props.mapOptions, (opts) => {
     if (opts && opts.borderWidth == null) opts.borderWidth = DEFAULT_BORDER_WIDTH
     if (opts && opts.hoverScale == null) opts.hoverScale = DEFAULT_HOVER_SCALE
@@ -152,6 +156,8 @@ let hadActiveLeaf = false
 // Same idea, for whether any image was selected — selection also bumps z (SELECTED_Z) now.
 let hadSelected = false
 let hadScores = false
+// Score of each point in [0, 1], NaN when it has none.
+let pointQuality = new Float64Array(0)
 let hadPainting = false
 
 // Last instance the pointer hovered over a point for — kept sticky (only overwritten on a real
@@ -474,7 +480,7 @@ function updateColors() {
     groupZ = baseZ.slice()
     const painting = applyPaintHighlight()
     syncGroupRegions()
-    const hasScores = applyScoreOpacity()
+    const hasScores = applyScores()
 
     if (renderer.value) {
         renderer.value.updateBorder()
@@ -543,20 +549,12 @@ function schedulePaintRefresh() {
     })
 }
 
-// Opacity of each point from the active similarity search's scores.
-function scoreOpacity(t: number) {
-    if (t >= SCORE_FULL) return 1.0
-    if (t >= SCORE_FADE_END) return SCORE_FADE_END_OPACITY
-    if (t < SCORE_HIDE) return 0.0
-    const u = (t - SCORE_HIDE) / (SCORE_FADE_END - SCORE_HIDE)
-    return SCORE_FADE_END_OPACITY * u * u
-}
-
-function applyScoreOpacity(): boolean {
+function applyScores(): boolean {
     const pts = points.value
     const scores = props.collection.result?.root?.scores
     if (!scores) {
         for (const p of pts) p.opacity = 1.0
+        visibleScoreBounds.value = null
         return false
     }
     // Through the slots, not p.id: p.id is one instance of the pile, scores are per instance.
@@ -571,18 +569,16 @@ function applyScoreOpacity(): boolean {
     if (builtSlots) for (const slot of builtSlots) read(slot)
     else for (let slot = 0; slot < pointOfSlot.length; slot++) read(slot)
 
-    const range = scores.max - scores.min
-    for (let i = 0; i < pts.length; i++) {
-        const v = pointScore[i]
-        let t = 0
-        if (!isNaN(v)) {
-            t = range > 0 ? Math.min(1, Math.max(0, (v - scores.min) / range)) : v
-            if (!scores.maxIsBest) t = 1 - t
-        }
-        pts[i].opacity = scoreOpacity(t)
-        baseZ[i] += t * SCORE_Z_RANGE
-    }
+    pointQuality = pointScore.map(v => isNaN(v) ? NaN : scoreQuality(v, scores))
+    for (let i = 0; i < pts.length; i++) baseZ[i] += (pointQuality[i] || 0) * SCORE_Z_RANGE
+    visibleScoreBounds.value = scoreBounds(pointQuality)
+    applyThreshold()
     return true
+}
+
+function applyThreshold() {
+    shownByScore.value = applyScoreThreshold(points.value, pointQuality, scoreThreshold.value)
+    if (findTarget.value && isPointHidden(findTarget.value)) nextFindTarget()
 }
 
 // Selection tint and z lift, on top of the style updateColors set. Selection ticks run only this.
@@ -1145,7 +1141,7 @@ let findFeedbackTimer: number | undefined
 function nextFindTarget() {
     // Only images the atlas draws can be found on the map.
     const mapping = media.atlas?.sha1Mapping
-    const pts = mapping ? points.value.filter(p => mapping[p.sha1]) : points.value
+    const pts = points.value.filter(p => !isPointHidden(p) && (!mapping || mapping[p.sha1]))
     if (!pts.length) { stopFind(); return }
     let next = pts[Math.floor(Math.random() * pts.length)]
     if (pts.length > 1) while (next === findTarget.value) next = pts[Math.floor(Math.random() * pts.length)]
@@ -1226,6 +1222,13 @@ watch(mapSpread, () => { if (layout.value !== 'grid') relayout() })
 watch(fillCells, (val) => renderer.value?.setFillCells(val))
 watch(groupOutlines, () => syncGroupRegions())
 watch(borderWidth, () => updateColors())
+// Only opacity moves: the rest of the restyle would be wasted on every slider step.
+watch(scoreThreshold, () => {
+    if (!visibleScoreBounds.value) return
+    applyThreshold()
+    renderer.value?.updateOpacity()
+    pointsVersion.value++
+})
 watch(hoverScale, (val) => renderer.value?.setHoverScale(val))
 watch(pointSize, (val) => renderer.value?.setPointSize(val))
 
@@ -1291,7 +1294,8 @@ onMounted(async () => {
             @update:grid-density="props.mapOptions.gridDensity = $event"
             :map-spread="layout == 'grid' || props.mapOptions.showPoints ? null : mapSpread"
             @update:map-spread="props.mapOptions.mapSpread = $event" @delete:map="deleteMap"
-            :atlas-load="atlasLoad" :map-missing="mapMissingCount" />
+            :atlas-load="atlasLoad" :map-missing="mapMissingCount" :score-filter="scoreFilter"
+            @update:score-threshold="props.mapOptions.scoreThreshold = $event" />
 
         <div class="map-body">
             <div class="map-view-container" @mouseenter="pointerInside = true" @mouseleave="pointerInside = false">

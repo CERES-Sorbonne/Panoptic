@@ -7,6 +7,8 @@ const props = withDefaults(defineProps<{
     min?: number
     max?: number
     step?: number
+    // Emit while dragging, not only on release.
+    live?: boolean
     modelValue: number
 }>(), {
     min: 0,
@@ -50,6 +52,11 @@ watchEffect(() => {
     }
 })
 
+function onInput(event: Event) {
+    sliderValue.value = parseFloat((event.target as HTMLInputElement).value)
+    if (props.live) update()
+}
+
 function update() {
     // emit the updated value to the parent component
     emit("update:modelValue", sliderValue.value);
@@ -66,7 +73,7 @@ watch(() => props.modelValue, () => sliderValue.value = props.modelValue)
 <template>
     <div class="custom-slider">
         <input ref="slider" :value="sliderValue"
-            @input="({ target }) => (sliderValue = parseFloat((target as any).value))" type="range" :min="min"
+            @input="onInput" type="range" :min="min"
             :max="max" :step="step" class="slider" :style="isWebkit ? 'top:-5px' : ''" @change="update" />
     </div>
 </template>

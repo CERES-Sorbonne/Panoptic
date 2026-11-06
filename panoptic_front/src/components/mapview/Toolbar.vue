@@ -29,6 +29,8 @@ const props = defineProps<{
     // Atlas status, shown by the atlas dropdown.
     atlasLoad: AtlasLoadProgress | null
     mapMissing: number
+    // Score threshold of the active similarity search; null without one, which hides the slider.
+    scoreFilter: { min: number, max: number, value: number, shown: number, total: number } | null
 }>()
 
 const emits = defineEmits([
@@ -38,6 +40,7 @@ const emits = defineEmits([
     'update:pointSize',
     'update:gridDensity',
     'update:mapSpread',
+    'update:scoreThreshold',
     'delete:map'
 ])
 
@@ -101,6 +104,13 @@ async function updateMap(event) {
             <RangeInput :min="1" :max="50" :step="0.5" :model-value="props.mapSpread"
                 @update:model-value="emits('update:mapSpread', $event)" />
         </WithToolTip>
+
+        <WithToolTip v-if="props.hasMaps && props.scoreFilter" message="map.score_threshold" class="border-width-control d-flex align-items-center">
+            <i class="bi bi-funnel me-1" style="font-size: 13px;"></i>
+            <RangeInput :min="props.scoreFilter.min" :max="props.scoreFilter.max" :step="0.01" :live="true"
+                :model-value="props.scoreFilter.value" @update:model-value="emits('update:scoreThreshold', $event)" />
+            <span class="score-info num">{{ props.scoreFilter.value.toFixed(2) }} · {{ props.scoreFilter.shown }}/{{ props.scoreFilter.total }}</span>
+        </WithToolTip>
     </div>
 </template>
 
@@ -145,5 +155,10 @@ async function updateMap(event) {
 
 .border-width-control :deep(.custom-slider) {
     width: 90px;
+}
+
+.score-info {
+    font-size: 12px;
+    white-space: nowrap;
 }
 </style>

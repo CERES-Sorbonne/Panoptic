@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { PointData } from '@/data/models'
 import { brushRectAt, cellAt, CellStroke, rectBetween, worldToGrid, type CellRect } from './GridBrush'
 import type { Cell } from './GridSnake'
+import { isPointHidden } from './ScoreFilter'
 
 export interface BrushGrid {
     cols: number
@@ -156,7 +157,7 @@ export class GridBrushLayer {
         const points: PointData[] = []
         for (const cell of stroke.cells()) {
             const i = grid.cellPoint[cell]
-            if (i >= 0) points.push(grid.points[i])
+            if (i >= 0 && !isPointHidden(grid.points[i])) points.push(grid.points[i])
         }
         if (points.length) this.onCommit(points, remove)
     }
@@ -191,10 +192,10 @@ export class GridBrushLayer {
         const color = this.remove ? REMOVE_COLOR : this.addColor
         const r = Math.round(color.r * 255), g = Math.round(color.g * 255), b = Math.round(color.b * 255)
         const marks = this.stroke.marks
-        const cellPoint = this.grid.cellPoint
+        const { cellPoint, points } = this.grid
         for (let i = 0; i < marks.length; i++) {
             const o = i * 4
-            if (marks[i] && cellPoint[i] >= 0) {
+            if (marks[i] && cellPoint[i] >= 0 && !isPointHidden(points[cellPoint[i]])) {
                 data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = COVER_ALPHA
             } else {
                 data[o + 3] = 0

@@ -145,6 +145,9 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
             `.replace(
                 `#include <map_fragment>`,
                 `
+                // Hidden, not faded: a transparent point must not write depth over its neighbours.
+                if (vInstanceOpacity <= 0.0) discard;
+
                 // If showing as point, render a colored circle
                 if(uShowAsPoint > 0.5) {
     vec2 p = vRawUv - 0.5;

@@ -97,6 +97,9 @@ export interface MapOptions {
     gridDensity?: number
     // Outside the grid, factor on the projection's coordinates: more spreads the images apart.
     mapSpread?: number
+    // During a similarity search, images under this score (0 to 1, 1 the best) are hidden.
+    // Unset until the slider is moved: the middle of the scores on the map.
+    scoreThreshold?: number
     // In the grid, thumbnails fill their cell with a centred square crop.
     fillCells?: boolean
     // In the grid, lines between groups and group names over their islands.

@@ -866,6 +866,7 @@
         },
         "preview": "Aperçu",
         "border_width": "Largeur de bordure",
+        "score_threshold": "Score de similarité minimum",
         "hover_scale": "Taille au survol",
         "point_size": "Taille des points",
         "atlas": "Atlas de vignettes",

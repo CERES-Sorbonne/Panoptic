@@ -3,6 +3,7 @@ import { useDataStore } from '@/data/stores/dataStore'
 import { MapControls } from './MapControl'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { SpatialIndex } from './SpatialIndex'
+import { isPointHidden } from './ScoreFilter'
 import { HDLayer } from './HDLayer'
 import { DetailLayer, MAX_DETAIL_TILES } from './DetailLayer'
 import { HoverPointLayer } from './HoverPointLayer'
@@ -334,6 +335,9 @@ export class MapRenderer {
     public updateOpacity() {
         this.atlasLayers.updateOpacity()
         this.detailLayer.updateStyles()
+        // Hidden points leave the detail view, and the hover preview would keep them on screen.
+        this.invalidateDetail()
+        if (this.hoveredPoint && isPointHidden(this.hoveredPoint)) this.hoveredPoint = null
     }
 
     public updateBorder() {

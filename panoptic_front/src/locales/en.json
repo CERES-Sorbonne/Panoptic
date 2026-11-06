@@ -860,6 +860,7 @@
         },
         "preview": "Preview",
         "border_width": "Border width",
+        "score_threshold": "Minimum similarity score",
         "hover_scale": "Hover zoom size",
         "point_size": "Point size",
         "atlas": "Thumbnail atlas",

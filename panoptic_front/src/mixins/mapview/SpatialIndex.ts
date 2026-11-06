@@ -1,5 +1,6 @@
 import { PointData } from '@/data/models';
 import KDBush from 'kdbush';
+import { isPointHidden } from './ScoreFilter';
 
 export class SpatialIndex {
     private tree: KDBush | null = null;
@@ -22,13 +23,13 @@ export class SpatialIndex {
     }
 
     /**
-     * Returns all points within a given rectangular bounds [minX, minY, maxX, maxY]
+     * Returns all visible points within a given rectangular bounds [minX, minY, maxX, maxY]
      */
     public getPointsInRect(rect: {minX: number, minY: number, maxX: number, maxY: number}): PointData[] {
         if (!this.tree) return [];
 
         const indices = this.tree.range(rect.minX, rect.minY, rect.maxX, rect.maxY);
-        return indices.map(idx => this.idToPointMap.get(idx)!);
+        return indices.map(idx => this.idToPointMap.get(idx)!).filter(p => !isPointHidden(p));
     }
 
     /**
