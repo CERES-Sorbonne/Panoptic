@@ -118,6 +118,16 @@ def test_import_csv_reports_missing_rows(project):
     assert len(mapping['missing_rows']) == 2
 
 
+def test_import_csv_with_absolute_paths(project, tmp_path):
+    csv_path = tmp_path / 'absolute.csv'
+    csv_path.write_text(f'path;artiste[tag]\n{IMAGES / "number_1.png"};Monet\n', encoding='utf-8')
+    project.importer.parse_headers(str(csv_path))
+    mapping = project.importer.verify_mapping(relative=False, fusion='new')
+    project.importer.import_data_and_commit()
+    assert mapping['missing_rows'] == []
+    assert _values_by_file(project)['number_1.png'] == {'artiste': ['Monet']}
+
+
 def test_import_csv_as_task(project):
     """start_import writes the same values as a direct import, in a background task."""
     project.importer.parse_headers(str(DATA / 'import.csv'))

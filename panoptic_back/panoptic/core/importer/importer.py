@@ -324,7 +324,8 @@ class Importer:
                 else:
                     full_path = fname
                 idx.insert(full_path, inst_id)
-            print(f"[import] path index built  exact={len(idx._exact):,}  suffix={len(idx._suffix) if idx._suffix is not None else 'n/a':,}")
+            suffix_count = f"{len(idx._suffix):,}" if idx._suffix is not None else 'n/a'
+            print(f"[import] path index built  exact={len(idx._exact):,}  suffix={suffix_count}")
 
             print("[import] matching CSV rows to instances …")
             for val in key_data:
