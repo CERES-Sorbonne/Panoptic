@@ -110,10 +110,11 @@ export const useMediaStore = defineStore('mediaStore', () => {
 
     async function loadAtlas() {
         const loaded = await apiGetAtlas(0)
-        // GenerateAtlasTask always rewrites atlas id 0 in place, so nothing in the payload
-        // distinguishes a rebuilt atlas from the previous one. Stamp a version so the
-        // renderer can drop its cached sheet textures instead of reusing stale images.
-        if (loaded) loaded.version = Date.now()
+        // GenerateAtlasTask always rewrites atlas id 0 in place. The backend stamps a version
+        // from the sheet files, so the renderer drops cached sheets of a rebuilt atlas and the
+        // browser can keep the sheets of an unchanged one. Older backends send none: stamp one
+        // here so a rebuild is still noticed, at the cost of downloading the sheets every time.
+        if (loaded) loaded.version ??= Date.now()
         atlas.value = loaded
         atlasFetched.value = true
     }

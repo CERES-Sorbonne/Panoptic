@@ -2,6 +2,53 @@ import * as THREE from 'three'
 import { AtlasLayer } from './AtlasLayer'
 import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 
+// Sheets downloading and decoding at the same time. Chromium decodes ImageBitmaps off the main
+// thread and in parallel, so a load no longer costs the sum of every sheet's decode.
+const SHEET_CONCURRENCY = 4
+
+const BITMAP_OPTIONS: ImageBitmapOptions = {
+    // WebGL ignores UNPACK_FLIP_Y for bitmaps, so flip while decoding instead
+    imageOrientation: 'flipY',
+    // what three.js uploads an <img> sRGB texture with: straight alpha, no colour conversion
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none',
+}
+
+async function loadSheet(url: string): Promise<THREE.Texture> {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)
+    const blob = await res.blob()
+
+    let texture: THREE.Texture
+    try {
+        const bitmap = await createImageBitmap(blob, BITMAP_OPTIONS)
+        texture = new THREE.Texture(bitmap)
+        texture.flipY = false
+        // The bitmap pins the decoded sheet (16 MB) in memory: free it once it is on the GPU.
+        texture.onUpdate = () => bitmap.close()
+    } catch {
+        // Browsers without createImageBitmap options. Uploading an <img> decodes it on the
+        // main thread, so this path is slower.
+        const objectUrl = URL.createObjectURL(blob)
+        try {
+            texture = await new THREE.TextureLoader().loadAsync(objectUrl)
+        } finally {
+            URL.revokeObjectURL(objectUrl)
+        }
+    }
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.generateMipmaps = true
+    texture.minFilter = THREE.LinearMipmapLinearFilter
+    texture.needsUpdate = true
+    return texture
+}
+
+function freeTexture(texture: THREE.Texture) {
+    texture.dispose()
+    // a bitmap that never reached the GPU is still holding its pixels
+    if (typeof ImageBitmap !== 'undefined' && texture.image instanceof ImageBitmap) texture.image.close()
+}
+
 export interface AtlasLoadProgress {
     loaded: number
     failed: number
@@ -14,14 +61,21 @@ export class AtlasLayerManager {
     private _isVisible: boolean = true
     private _zoomParams: ZoomParams
     // Current display mode, read when each sheet's layer is built rather than captured once at
-    // loadLayers() entry: sheets load one await at a time, so a point/image toggle mid-load must
+    // loadLayers() entry: sheets load over many awaits, so a point/image toggle mid-load must
     // reach the layers that don't exist yet, not just the ones already built.
     private _showAsPoint = false
     private _fill = false
     private _pointSize = 1
     
-    // Cache for loaded textures, keyed by atlas ID and sheet index
-    private static textureCache = new Map<string, THREE.Texture>()
+    // Loaded sheet textures, keyed by atlas id, version and sheet index. They belong to this
+    // manager's renderer: their pixels are freed once uploaded, so another WebGL context could
+    // not upload them again.
+    private textureCache = new Map<string, THREE.Texture>()
+    // Sheets still downloading, under the same keys. A newer loadLayers() call (map switch,
+    // regrouping) reuses them instead of starting a second download.
+    private pendingTextures = new Map<string, Promise<THREE.Texture>>()
+    // Atlas versions fully loaded at least once this session (see wasAtlasLoaded).
+    private static loadedAtlases = new Set<string>()
     private currentAtlasId: number | null = null
     private currentAtlasVersion: number | undefined = undefined
     // Guards against a second loadLayers() call starting before a first one's per-sheet texture
@@ -70,13 +124,11 @@ export class AtlasLayerManager {
         // free them instead of letting them leak. Different ids stay cached to support quick
         // switching between multiple atlases.
         if (this.currentAtlasId === atlas.id && this.currentAtlasVersion !== atlas.version) {
-            AtlasLayerManager.clearAtlasFromCache(atlas.id, this.currentAtlasVersion)
+            this.clearAtlasFromCache(atlas.id, this.currentAtlasVersion)
         }
 
         this.currentAtlasId = atlas.id
         this.currentAtlasVersion = atlas.version
-
-        const loader = new THREE.TextureLoader()
 
         // Group points by sheet index
         const sheetPointsMap: PointData[][] = Array.from({ length: atlas.atlasNb }, () => [])
@@ -87,72 +139,92 @@ export class AtlasLayerManager {
         }
 
         const maxPerSheet = Math.max(...sheetPointsMap.map(v => v.length))
+        const sheets: number[] = []
+        sheetPointsMap.forEach((sheetPoints, s) => {
+            if (sheetPoints.length === 0) return
+            sheets.push(s)
+            // Assign order for instanced rendering. Done for every sheet up front, since sheets
+            // finish loading in any order.
+            sheetPoints.forEach((p, i) => p.order = (s * maxPerSheet) + i)
+        })
 
-        const progress: AtlasLoadProgress = {
-            loaded: 0,
-            failed: 0,
-            total: sheetPointsMap.filter(v => v.length > 0).length,
-        }
+        const progress: AtlasLoadProgress = { loaded: 0, failed: 0, total: sheets.length }
         const report = () => { if (token === this.loadToken) this.onProgress?.({ ...progress }) }
         report()
 
-        // Process each sheet
-        for (let s = 0; s < atlas.atlasNb; s++) {
-            // A newer loadLayers() call started (and already disposed our layers) while we were
-            // still working — abandon rather than push stale layers into its result.
-            if (token !== this.loadToken) return
-
-            const sheetPoints = sheetPointsMap[s]
-            if (sheetPoints.length === 0) continue
-
-            const cacheKey = this.getCacheKey(atlas, s)
-            // The version query param busts the browser's HTTP cache: the sheet path is
-            // identical across rebuilds, so without it we can be served the old PNG.
-            const textureUrl = `${baseUrl}atlas_sheet/${atlas.id}/${s}`
-                + (atlas.version !== undefined ? `?v=${atlas.version}` : '')
-
-            // Assign order for instanced rendering if needed
-            sheetPoints.forEach((p, i) => p.order = (s * maxPerSheet) + i)
-
-            try {
-                let texture: THREE.Texture
-
-                // Check if texture is already cached
-                if (AtlasLayerManager.textureCache.has(cacheKey)) {
-                    texture = AtlasLayerManager.textureCache.get(cacheKey)!
-                } else {
-                    // Load new texture and cache it
-                    texture = await loader.loadAsync(textureUrl)
-                    texture.colorSpace = THREE.SRGBColorSpace
-                    texture.generateMipmaps = true
-                    texture.minFilter = THREE.LinearMipmapLinearFilter
-
-                    AtlasLayerManager.textureCache.set(cacheKey, texture)
-                }
-
-                // Re-check right after the await too: this is the actual window where a newer
-                // call is most likely to have started and finished its own disposeLayers().
+        let next = 0
+        const loadNext = async () => {
+            while (next < sheets.length) {
+                // A newer loadLayers() call started (and already disposed our layers) while we
+                // were still working — abandon rather than push stale layers into its result.
                 if (token !== this.loadToken) return
-
-                const layer = new AtlasLayer(atlas, texture, sheetPoints, s)
-                layer.setZoomReference(zoomUniform)
-
-                // Set initial visibility state
-                layer.mesh.visible = this._isVisible
-                layer.setZoomParams(this._zoomParams)
-                layer.setShowAsPoint(this._showAsPoint)
-                layer.setFill(this._fill)
-                layer.setPointSize(this._pointSize)
-                this.layers.push(layer)
-
-                this.scene.add(layer.mesh)
-                progress.loaded++
-            } catch (error) {
-                console.error(`Failed to load atlas sheet ${s}:`, error)
-                progress.failed++
+                const s = sheets[next++]
+                try {
+                    const texture = await this.sheetTexture(atlas, s, baseUrl)
+                    // Re-check right after the await too: this is the actual window where a newer
+                    // call is most likely to have started and finished its own disposeLayers().
+                    if (token !== this.loadToken) return
+                    this.addLayer(atlas, texture, sheetPointsMap[s], s, zoomUniform)
+                    progress.loaded++
+                } catch (error) {
+                    if (token !== this.loadToken) return
+                    console.error(`Failed to load atlas sheet ${s}:`, error)
+                    progress.failed++
+                }
+                report()
             }
-            report()
         }
+        await Promise.all(Array.from({ length: Math.min(SHEET_CONCURRENCY, sheets.length) }, loadNext))
+
+        if (token === this.loadToken && progress.failed === 0) {
+            AtlasLayerManager.loadedAtlases.add(`${atlas.id}_${atlas.version ?? 0}`)
+        }
+    }
+
+    /**
+     * The texture of one sheet: from the cache, from a download already running, or downloaded.
+     */
+    private sheetTexture(atlas: ImageAtlas, sheetIndex: number, baseUrl: string): Promise<THREE.Texture> {
+        const key = this.getCacheKey(atlas, sheetIndex)
+        const cached = this.textureCache.get(key)
+        if (cached) return Promise.resolve(cached)
+        const running = this.pendingTextures.get(key)
+        if (running) return running
+
+        // The version query param busts the browser's HTTP cache: the sheet path is
+        // identical across rebuilds, so without it we can be served the old PNG.
+        const url = `${baseUrl}atlas_sheet/${atlas.id}/${sheetIndex}`
+            + (atlas.version !== undefined ? `?v=${atlas.version}` : '')
+        const promise: Promise<THREE.Texture> = loadSheet(url).then(texture => {
+            // Dropped while downloading (rebuilt atlas, unmounted view): nothing will use it.
+            if (this.pendingTextures.get(key) !== promise) {
+                freeTexture(texture)
+                throw new Error(`atlas sheet ${key} dropped`)
+            }
+            this.pendingTextures.delete(key)
+            this.textureCache.set(key, texture)
+            return texture
+        }, error => {
+            if (this.pendingTextures.get(key) === promise) this.pendingTextures.delete(key)
+            throw error
+        })
+        this.pendingTextures.set(key, promise)
+        return promise
+    }
+
+    private addLayer(atlas: ImageAtlas, texture: THREE.Texture, points: PointData[], sheetIndex: number, zoomUniform: { value: number }) {
+        const layer = new AtlasLayer(atlas, texture, points, sheetIndex)
+        layer.setZoomReference(zoomUniform)
+
+        // Set initial visibility state
+        layer.mesh.visible = this._isVisible
+        layer.setZoomParams(this._zoomParams)
+        layer.setShowAsPoint(this._showAsPoint)
+        layer.setFill(this._fill)
+        layer.setPointSize(this._pointSize)
+        this.layers.push(layer)
+
+        this.scene.add(layer.mesh)
     }
 
     public show() {
@@ -180,47 +252,37 @@ export class AtlasLayerManager {
      * Full cleanup including textures - call this when the component unmounts
      */
     public dispose() {
+        // stops any running loadLayers() call
+        this.loadToken++
         this.disposeLayers()
-        // Note: We don't clear the static texture cache here by default
-        // to allow reuse across manager instances
+        this.textureCache.forEach(freeTexture)
+        this.textureCache.clear()
+        // running downloads free their texture when they land
+        this.pendingTextures.clear()
     }
 
     /**
-     * Whether every sheet of this atlas version is already in the texture cache, so loading it
-     * costs no download or GPU upload.
+     * Whether this atlas version was fully loaded before in this session, by any map view.
+     * Loading it again skips the download (browser cache) and decodes off the main thread.
      */
-    public static isAtlasCached(atlas: ImageAtlas): boolean {
-        for (let s = 0; s < atlas.atlasNb; s++) {
-            if (!AtlasLayerManager.textureCache.has(`${atlas.id}_${atlas.version ?? 0}_${s}`)) return false
-        }
-        return true
-    }
-
-    /**
-     * Clears the entire texture cache - useful for memory management
-     * Call this when you want to free up GPU memory
-     */
-    public static clearTextureCache() {
-        AtlasLayerManager.textureCache.forEach(texture => {
-            texture.dispose()
-        })
-        AtlasLayerManager.textureCache.clear()
+    public static wasAtlasLoaded(atlas: ImageAtlas): boolean {
+        return AtlasLayerManager.loadedAtlases.has(`${atlas.id}_${atlas.version ?? 0}`)
     }
 
     /**
      * Clears textures for a specific atlas from the cache. Pass a version to only drop that
      * one generation's sheets, or omit it to drop every generation of the atlas.
      */
-    public static clearAtlasFromCache(atlasId: number, version?: number) {
+    private clearAtlasFromCache(atlasId: number, version?: number) {
         const prefix = version !== undefined ? `${atlasId}_${version}_` : `${atlasId}_`
-        const keysToDelete: string[] = []
-        AtlasLayerManager.textureCache.forEach((texture, key) => {
-            if (key.startsWith(prefix)) {
-                texture.dispose()
-                keysToDelete.push(key)
-            }
-        })
-        keysToDelete.forEach(key => AtlasLayerManager.textureCache.delete(key))
+        for (const [key, texture] of [...this.textureCache]) {
+            if (!key.startsWith(prefix)) continue
+            freeTexture(texture)
+            this.textureCache.delete(key)
+        }
+        for (const key of [...this.pendingTextures.keys()]) {
+            if (key.startsWith(prefix)) this.pendingTextures.delete(key)
+        }
     }
 
     public setZoomParams(params: ZoomParams) {

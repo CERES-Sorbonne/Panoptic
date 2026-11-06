@@ -90,7 +90,7 @@ function formatEta(seconds: number) {
     <Dropdown v-if="showAny" placement="bottom-start" :offset="6">
         <template #button>
             <wTT message="dropdown.tasks.info">
-                <div class="task-progress-btn">
+                <div class="task-progress-btn" :class="{ 'task-progress-btn--active': activePrimary }">
                     <i class="bi bi-cpu" />
                     <span v-if="activePrimary" class="task-progress-name">{{ taskLabel(activePrimary) }}</span>
                     <span v-if="remainingCount > 0" class="task-progress-queue num">+{{ remainingCount }}</span>
@@ -189,6 +189,14 @@ function formatEta(seconds: number) {
 
 .task-progress-btn:hover {
     background-color: var(--hover-bg);
+}
+
+/* A task is running: chip icon, name and percentage in the highlight color. */
+.task-progress-btn--active,
+.task-progress-btn--active .bi-cpu,
+.task-progress-btn--active .task-progress-name,
+.task-progress-btn--active .task-progress-pct {
+    color: var(--primary);
 }
 
 .task-progress-name {

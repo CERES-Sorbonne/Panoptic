@@ -78,8 +78,8 @@ export interface ImageAtlas {
     cellWidth: number
     cellHeight: number
     sha1Mapping: Record<string, [number, number]>
-    // Client-side only: bumped each time the atlas is (re)fetched. The backend always
-    // reuses id 0, so this is what tells the renderer that the sheets on disk changed.
+    // Changes when the sheets on disk are rebuilt (the backend always reuses id 0), so this is
+    // what tells the renderer and the browser cache that the sheets changed.
     version?: number
 }
 
