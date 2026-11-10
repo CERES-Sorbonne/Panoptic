@@ -108,7 +108,8 @@ class ImportSourceTask(Task):
                     pool.shutdown(wait=False, cancel_futures=True)
                     break
 
-                folder_id, item = futures[future]
+                # pop: a kept future holds its rendered thumbnails until the import ends
+                folder_id, item = futures.pop(future)
                 result = None
                 try:
                     result = future.result()

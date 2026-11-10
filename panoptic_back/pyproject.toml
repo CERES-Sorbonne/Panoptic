@@ -108,7 +108,7 @@ dev = [
     "torchvision",
     "transformers>=5",
     "accelerate",
-    "faiss-cpu<1.11.0",
+    "faiss-cpu>=1.12",
     "scikit-learn",
     "scipy",
     "fast_hdbscan",
