@@ -10,7 +10,7 @@ from panoptic.core.databases.panoptic.panoptic_db import PanopticDB
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.core.panoptic.models import ProjectState
 from panoptic.core.plugin.plugin_installer import (
-    SOURCE_GIT, SOURCE_PATH, SOURCE_PIP, PluginInstaller,
+    SOURCE_GIT, SOURCE_PATH, SOURCE_PIP, PluginInstaller, torch_version,
 )
 from panoptic.core.panoptic.legacy_migration import LegacyMigrationService
 from panoptic.core.project.conversion import STATUS_OK, check_project, convert_project
@@ -283,10 +283,12 @@ class Panoptic:
         return next((p for p in self.db.get_plugins()
                      if p.id == name or (p.source_type == source_type and p.source_path == source_path)), None)
 
-    def reinstall_plugin(self, plugin_id: str) -> None:
+    def reinstall_plugin(self, plugin_id: str) -> bool:
+        """Returns True when torch changed: the running process still uses the old one."""
         plugin = next((p for p in self.db.get_plugins() if p.id == plugin_id), None)
         if not plugin:
             raise ValueError(f"Plugin {plugin_id!r} is not registered")
+        torch_before = torch_version()
         install_path = self._installer.reinstall(plugin)
         self.db.update_plugin(PluginKey(
             id=plugin.id,
@@ -294,6 +296,7 @@ class Panoptic:
             source_type=plugin.source_type,
             source_path=plugin.source_path,
         ))
+        return torch_version() != torch_before
 
     def delete_plugin(self, plugin_id: str) -> None:
         plugin = next((p for p in self.db.get_plugins() if p.id == plugin_id), None)

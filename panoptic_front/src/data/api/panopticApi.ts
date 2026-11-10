@@ -143,7 +143,7 @@ export async function apiDelPlugin(pluginId: string) {
 
 export async function apiUpdatePlugin(pluginId: string) {
     let res = await panopticApi.post('/plugin/update', { plugin_id: pluginId })
-    return res.data as boolean
+    return keysToCamel(res.data) as { restartRequired: boolean, cudaTorchBlocked: string | null }
 }
 
 export async function apiGetVersion() {

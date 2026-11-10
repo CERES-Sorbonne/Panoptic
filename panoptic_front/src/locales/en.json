@@ -803,6 +803,8 @@
         "remove": "Delete Plugin",
         "update": "Update Plugin",
         "update_local": "Reinstall Plugin",
+        "restart_required": "PyTorch was updated: restart Panoptic to use it.",
+        "cuda_torch_blocked": "Update cancelled: it needs a newer PyTorch than your CUDA build ({torch}), and pip would replace it with a CPU-only one. Upgrade torch and torchvision with CUDA yourself (https://pytorch.org/get-started/locally/), then update the plugin again.",
         "path": "Path",
         "source": "Source"
     },

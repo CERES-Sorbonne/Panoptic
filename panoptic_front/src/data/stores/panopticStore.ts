@@ -28,7 +28,8 @@ import {
 } from "../api/panopticApi"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { ConnectionState, LegacyMigrationRun, LegacyScan, ModalId, Notif, PluginAddPayload, PluginKey, PluginType, ProjectRef, User } from "../models"
+import { ConnectionState, LegacyMigrationRun, LegacyScan, ModalId, Notif, NotifType, PluginAddPayload, PluginKey, PluginType, ProjectRef, User } from "../models"
+import { i18n } from "@/locales/i18n"
 import { useModalStore } from "./modalStore"
 import { useSocketStore } from "./socketStore"
 
@@ -278,7 +279,17 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     async function updatePlugin(name: string) {
         const res = await apiUpdatePlugin(name)
         await fetchPlugins()
-        return res
+        if (res.cudaTorchBlocked) {
+            notify({
+                type: NotifType.WARNING, name: name,
+                message: i18n.global.t('plugin.cuda_torch_blocked', { torch: res.cudaTorchBlocked }),
+            })
+            return false
+        }
+        if (res.restartRequired) {
+            notify({ type: NotifType.INFO, name: name, message: i18n.global.t('plugin.restart_required') })
+        }
+        return true
     }
 
     // ---------------------------------------------------------------

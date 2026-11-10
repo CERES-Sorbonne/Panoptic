@@ -809,6 +809,8 @@
         "remove": "Supprimer le Plugin",
         "update": "Mettre à jour le plugin",
         "update_local": "Réinstaller le plugin",
+        "restart_required": "PyTorch a été mis à jour : redémarrez Panoptic pour l'utiliser.",
+        "cuda_torch_blocked": "Mise à jour annulée : elle nécessite un PyTorch plus récent que votre version CUDA ({torch}), et pip la remplacerait par une version sans GPU. Mettez à jour torch et torchvision avec CUDA vous-même (https://pytorch.org/get-started/locally/), puis relancez la mise à jour du plugin.",
         "path": "Chemin",
         "source": "Source"
     },

@@ -18,6 +18,9 @@ cd panoptic_back && python -m pytest test panoptic/core/task/tests
   CSV (`test_import_export.py`, sur les images et CSV de `test/data`).
 - Les actions de plugin (`test_action_registry.py`) : conditions d'affichage des paramètres
   (`visible_if`), un paramètre caché garde sa valeur par défaut même si l'UI l'envoie.
+- La commande de mise à jour d'un plugin pip (`test_plugin_installer.py`) : un torch CUDA passe par
+  uv avec `--torch-backend=auto` pour rester CUDA, les autres cas gardent `pip install -U` ; sans uv,
+  la mise à jour est refusée si pip remplacerait un torch CUDA (rapport `--dry-run`).
 - L'option `--db` du CLI (`test_cli.py`) : fichier ou dossier, appliquée aussi aux sous-commandes.
 - Le fichier de configuration (`test_config.py`, `test_cli.py`) : priorités CLI > env > fichier, chemins
   relatifs au fichier, erreurs de validation, restriction `data_paths`

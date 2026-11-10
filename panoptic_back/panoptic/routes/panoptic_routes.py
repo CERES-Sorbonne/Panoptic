@@ -19,6 +19,7 @@ from starlette.responses import FileResponse, Response
 from panoptic import __version__ as panoptic_version
 from panoptic.config import get_config, is_allowed_path
 from panoptic.core.file_source.processing import IMAGE_EXTENSIONS
+from panoptic.core.plugin.plugin_installer import CudaTorchUpgradeError
 from panoptic.core.project.conversion import STATUS_OK, check_project
 from panoptic.routes.deps import get_panoptic, get_server, set_dependencies   # re-export
 
@@ -271,11 +272,15 @@ def add_plugin_route(req: AddPluginRequest):
 
 @panoptic_router.post('/plugin/update')
 def update_plugin_route(req: DeletePluginRequest):
+    restart_required, cuda_torch_blocked = False, None
     try:
-        get_panoptic().reinstall_plugin(req.plugin_id)
+        restart_required = get_panoptic().reinstall_plugin(req.plugin_id)
+    except CudaTorchUpgradeError as e:
+        # an expected outcome the UI explains (translated), not a backend error
+        cuda_torch_blocked = e.torch
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return _json(get_panoptic().get_plugins())
+    return _json({'restart_required': restart_required, 'cuda_torch_blocked': cuda_torch_blocked})
 
 
 @panoptic_router.delete('/plugins')
