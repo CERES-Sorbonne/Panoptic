@@ -41,6 +41,12 @@ class FilePath(_ServerPath):
 # Parameter / function descriptions  (sent to the UI)
 # ---------------------------------------------------------------------------
 
+class ParamCondition(BaseModel):
+    """The parameter is shown (and passed to the action) only if `param` has one of `values`."""
+    param: str
+    values: list[Any]
+
+
 class ParamDescription(BaseModel):
     id: str | None = None
     name: str
@@ -49,6 +55,7 @@ class ParamDescription(BaseModel):
     type: str
     default_value: Any = None
     possible_values: Any | None = None
+    visible_if: list[ParamCondition] | None = None
 
 
 class FunctionDescription(BaseModel):

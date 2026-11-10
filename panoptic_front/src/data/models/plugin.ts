@@ -10,6 +10,8 @@ export interface ParamDescription {
     type: string
     defaultValue: any
     possibleValues?: any
+    // shown only when each named param has one of the values
+    visibleIf?: { param: string, values: any[] }[] | null
 }
 
 export interface FunctionDescription {

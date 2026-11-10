@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/stores/actionStore';
 import { ExecuteActionPayload, ParamDescription } from '@/data/models';
-import { objValues } from '@/utils/utils';
+import { objValues, isParamVisible } from '@/utils/utils';
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import ParamInput from '../inputs/ParamInput.vue';
@@ -140,9 +140,11 @@ watch(() => actions.index, () => {
                 </template>
                 <template #popup="{ hide }">
                     <form @submit.prevent="submit(); hide();" class="p-2">
-                        <div v-for="input, i in localInputs" class="mb-1">
-                            <ParamInput :input="input" :source="sourceName" />
-                        </div>
+                        <template v-for="input, i in localInputs">
+                            <div v-if="isParamVisible(input, localInputs)" class="mb-1">
+                                <ParamInput :input="input" :source="sourceName" />
+                            </div>
+                        </template>
                         <div class="d-flex flex-center mt-3" style="height: 20px;">
                             <div class="flex-grow-1"></div>
                             <div class="bb" @click="cancel(); hide();">{{ $t('cancel') }}</div>

@@ -5,7 +5,7 @@ import { ActionContext, Instance, ParamDescription } from '@/data/models';
 import ParamInput from '../inputs/ParamInput.vue';
 import { useActionStore } from '@/data/stores/actionStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { sourceFromFunction, objValues } from '@/utils/utils';
+import { sourceFromFunction, objValues, isParamVisible } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
 const actions = useActionStore()
@@ -152,7 +152,7 @@ watch(localFunction, loadInput)
                                 <div v-if="localInputs.length" style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
                                     <form @submit.prevent="" class="params-grid mt-1">
                                         <template v-for="input, i in localInputs">
-                                            <ParamInput :input="input" :source="source" :max-width="200" />
+                                            <ParamInput v-if="isParamVisible(input, localInputs)" :input="input" :source="source" :max-width="200" />
                                         </template>
                                     </form>
                                 </div>

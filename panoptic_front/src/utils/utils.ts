@@ -380,6 +380,11 @@ export function isFinished(state: LoadState): boolean {
         state.finishedPropertyGroups
 }
 
+export function isParamVisible(input: { visibleIf?: { param: string, values: any[] }[] | null },
+                               inputs: { name: string, defaultValue: any }[]) {
+    return (input.visibleIf ?? []).every(c => c.values.includes(inputs.find(i => i.name == c.param)?.defaultValue))
+}
+
 export function sourceFromFunction(func: string) {
     return func.slice(0, func.indexOf('.'))
 }

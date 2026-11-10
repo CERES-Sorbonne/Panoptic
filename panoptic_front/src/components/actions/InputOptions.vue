@@ -2,6 +2,7 @@
 import { useActionStore } from '@/data/stores/actionStore';
 import { ParamDescription } from '@/data/models';
 import { computed, onMounted, ref } from 'vue'
+import { isParamVisible } from '@/utils/utils';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import ParamInput from '../inputs/ParamInput.vue';
 import wTT from '../tooltips/withToolTip.vue';
@@ -65,7 +66,7 @@ onMounted(loadInput)
             <template #popup="{ hide }">
                 <form @submit.prevent="submit(); hide();" class="p-2">
                     <div v-for="input, i in localInputs" class="mb-1">
-                        <ParamInput v-if="!(input.name == 'text' && props.hideText)" :input="input" :source="sourceName"/>
+                        <ParamInput v-if="!(input.name == 'text' && props.hideText) && isParamVisible(input, localInputs)" :input="input" :source="sourceName"/>
                     </div>
                     <div class="d-flex flex-center mt-3" style="height: 20px;">
                         <div class="flex-grow-1"></div>

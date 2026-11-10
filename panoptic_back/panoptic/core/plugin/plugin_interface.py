@@ -266,9 +266,10 @@ class PluginProjectInterface:
     # Action registration  (used by APlugin — not called directly)
     # ------------------------------------------------------------------
 
-    def register_action(self, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
+    def register_action(self, fn: Callable, hooks: list[str] = None,
+                        visible_if: dict[str, dict[str, list]] = None) -> FunctionDescription:
         """Build a FunctionDescription and register fn in the project's ActionRegistry."""
-        desc = build_function_description(self._name, fn, hooks)
+        desc = build_function_description(self._name, fn, hooks, visible_if)
         self._actions.add(fn, desc, owner=self._name)
         return desc
 

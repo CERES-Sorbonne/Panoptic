@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/stores/actionStore';
 import { ActionContext, ExecuteActionPayload, ParamDescription } from '@/data/models';
-import { deepCopy, objValues, sleep, sourceFromFunction } from '@/utils/utils';
+import { deepCopy, objValues, sleep, sourceFromFunction, isParamVisible } from '@/utils/utils';
 import { computed, onMounted, ref } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import wTT from '../tooltips/withToolTip.vue';
@@ -162,7 +162,7 @@ onMounted(loadAction)
                 </tr>
                 <template v-if="localInputs.length">
                     <template v-for="input in localInputs">
-                        <ParamInputRow :input="input" :source="sourceFromFunction(localFunction)" />
+                        <ParamInputRow v-if="isParamVisible(input, localInputs)" :input="input" :source="sourceFromFunction(localFunction)" />
                     </template>
                 </template>
                 <template v-if="props.action == 'vector_type'">

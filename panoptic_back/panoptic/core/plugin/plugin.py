@@ -77,8 +77,14 @@ class APlugin(ABC):
     # Action registration
     # ------------------------------------------------------------------
 
-    def add_action_easy(self, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
-        desc = self.project.register_action(fn, hooks)
+    def add_action_easy(self, fn: Callable, hooks: list[str] = None,
+                        visible_if: dict[str, dict[str, list]] = None) -> FunctionDescription:
+        """visible_if: {param: {other_param: [values]}}, the UI shows `param` only when
+        `other_param` has one of these values; otherwise the action gets its default."""
+        if visible_if:
+            desc = self.project.register_action(fn, hooks, visible_if)
+        else:
+            desc = self.project.register_action(fn, hooks)
         self.registered_functions.append(desc)
         return desc
 

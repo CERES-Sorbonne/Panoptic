@@ -10,7 +10,7 @@ from typing import Callable
 from panoptic.core.databases.media.models import VectorType
 from panoptic.models.action_models import (
     ActionContext, ActionResult, FilePath, FolderPath, FunctionDescription,
-    OwnVectorType, ParamDescription, PropertyId, InputFile,
+    OwnVectorType, ParamCondition, ParamDescription, PropertyId, InputFile,
 )
 
 # String type tags understood by the UI
@@ -75,15 +75,35 @@ def _build_param_descriptions(fn: Callable) -> list[ParamDescription]:
     return result
 
 
-def build_function_description(plugin_name: str, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
+def _raw(value):
+    return value.value if isinstance(value, Enum) else value
+
+
+def _add_conditions(fn_name: str, params: list[ParamDescription],
+                    visible_if: dict[str, dict[str, list]]) -> None:
+    """visible_if: {param: {other_param: [values that show param]}}"""
+    by_name = {p.name: p for p in params}
+    for name, conditions in visible_if.items():
+        unknown = [n for n in (name, *conditions) if n not in by_name]
+        if unknown:
+            raise ValueError(f'visible_if of {fn_name}: unknown parameter(s) {unknown}')
+        by_name[name].visible_if = [ParamCondition(param=other, values=[_raw(v) for v in values])
+                                    for other, values in conditions.items()]
+
+
+def build_function_description(plugin_name: str, fn: Callable, hooks: list[str] = None,
+                               visible_if: dict[str, dict[str, list]] = None) -> FunctionDescription:
     fn_name = fn.__name__
     doc = fn.__doc__ or ''
     description = doc[:doc.index('@')].strip() if '@' in doc else doc.strip() or None
+    params = _build_param_descriptions(fn)
+    if visible_if:
+        _add_conditions(fn_name, params, visible_if)
     return FunctionDescription(
         id=f'{plugin_name}.{fn_name}',
         name=fn_name,
         description=description,
-        params=_build_param_descriptions(fn),
+        params=params,
         hooks=hooks or [],
     )
 
@@ -99,12 +119,18 @@ class Action:
         self.description = description
         self.owner = owner  # plugin that registered the action
 
+    def _visible(self, desc: ParamDescription, ui_inputs: dict) -> bool:
+        """A hidden parameter keeps its default, even if the UI still sends its last value."""
+        defaults = {p.name: p.default_value for p in self.description.params}
+        return all(_raw(ui_inputs.get(c.param, defaults.get(c.param))) in c.values
+                   for c in desc.visible_if or [])
+
     def call(self, ctx: ActionContext) -> ActionResult:
         sig = inspect.signature(self._fn)
         kwargs: dict = {}
         for desc in self.description.params:
             raw = ctx.ui_inputs.get(desc.name)
-            if raw is None:
+            if raw is None or not self._visible(desc, ctx.ui_inputs):
                 continue
             # Coerce enum and complex types back from their serialised form
             param_type = sig.parameters[desc.name].annotation
@@ -130,8 +156,9 @@ class ActionRegistry:
     def add(self, fn: Callable, description: FunctionDescription, owner: str | None = None) -> None:
         self.actions[description.id] = Action(fn, description, owner)
 
-    def easy_add(self, plugin_name: str, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
-        desc = build_function_description(plugin_name, fn, hooks)
+    def easy_add(self, plugin_name: str, fn: Callable, hooks: list[str] = None,
+                 visible_if: dict[str, dict[str, list]] = None) -> FunctionDescription:
+        desc = build_function_description(plugin_name, fn, hooks, visible_if)
         self.add(fn, desc, owner=plugin_name)
         return desc
 
