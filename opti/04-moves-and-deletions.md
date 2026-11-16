@@ -1,9 +1,9 @@
-# 06: Moves and deletions
+# 04: Moves and deletions
 
-Status 2026-10-29: proposal. Describes the target behaviour only. Builds on
-[03-sqlite-layout.md](03-sqlite-layout.md) (the schema, sequence, tombstones, `entity_log`),
-[04-column-store.md](04-column-store.md) (slots, delta updates) and
-[05-elements.md](05-elements.md) (images, files, instances). Costs marked "estimate" are
+Status 2026-11-06: proposal. Describes the target behaviour only. Builds on
+[01-sqlite-layout.md](01-sqlite-layout.md) (the schema, sequence, tombstones, `entity_log`),
+[05-column-store.md](05-column-store.md) (slots, delta updates) and
+[03-elements.md](03-elements.md) (images, files, instances). Costs marked "estimate" are
 orders of magnitude, not measurements.
 
 ## 1. Scope and principles
@@ -12,8 +12,7 @@ Files on disk change behind the app's back: they move, get renamed, edited, copi
 or sit on a disk that is not plugged in. This note says how Panoptic notices it, what it
 shows the user, and what it writes.
 
-The model of note 05, with one change: instances store `image_id` directly (the first open
-question of 05 §11, answered yes).
+The model of note 03:
 
 - **image**: identical bytes, known by hash. Dense id, never reused.
 - **file**: a location (source + folder + name), with mtime and size. Points to one image.
@@ -33,7 +32,8 @@ Principles:
    hint) is at stake.
 4. **One decision per folder, not per file.** A renamed root of 100k files is one entry in
    the report and one relink.
-5. **Every decision is one undoable commit.** Purging images is the only final step.
+5. **Every decision is one undoable commit.** Purging images is the only final step here.
+   Deleting instances and file sources is final too (note 01 §3, deletes).
 
 ## 2. Events
 
@@ -231,6 +231,10 @@ restores the rows. The disk has not changed, so the entries are back in the repo
 | content changed, *new picture* | stay on the old image | kept | kept on the old image (`image_id` is the truth) | computed for the new image |
 | image purged | deleted | n/a: purge only takes images with no instance | n/a | deleted |
 
+Subimages belong to the image (note 01 §3). In both choices of a content change they stay on the
+old image, with their values: a detector run on the new image finds its own subimages. *Values
+follow* copies image values only.
+
 Default for a content change: *values follow* when the old image has no other present file
 (an edit or a re-encode of the one copy), *new picture* when it has (one copy of a duplicate
 was edited, so it is now a different picture). The panel shows the default and the count of
@@ -256,7 +260,7 @@ values. Only *Purge* can.
 
 ### 6.1 What this note needs from the schema
 
-The tables and columns are defined in [note 03 §3](03-sqlite-layout.md#3-proposed-schema). This
+The tables and columns are defined in [note 01 §3](01-sqlite-layout.md#3-schema). This
 note relies on:
 
 - **Folders as name + parent** under a source with `root_url`: a folder move, a *Relink
@@ -279,24 +283,25 @@ note relies on:
 
 ### 6.2 Writes per event
 
-Status writes (`status`, `status_scan_id`) are observed state: sequenced, no `entity_log`
-(§6.3). Every rescan and failed-read check also writes one `scans` row.
+Status writes (`status`, `status_scan_id`) and `size` / `mtime` refreshes are observed state:
+sequenced, no `entity_log` (§6.3, note 01 §3). Every rescan and failed-read check also writes
+one `scans` row. Logged writes log the columns of note 01 §3 only.
 
 | event | rows written | `entity_log` | tombstones |
 |---|---|---|---|
-| new file: E1–E3 new side, E7 copy added | `files` insert with `added_scan_id`; `images` insert if the hash is new | yes, in the scan commit | none |
+| new file: E1–E3 new side, E7 copy added | `files` insert with `added_scan_id`; `images` insert if the hash is new | the `files` insert: yes, in the scan commit. `images` rows are not logged | none |
 | E1–E3 old side, E4 file not found | `files.status` = missing | no | none |
 | E5, E9 folder not found | `folders.status` = missing (one row) | no | none |
 | E11 restored | `files.status` or `folders.status` = present | no | none |
 | same path, same hash, new size or mtime | `files` update: `size`, `mtime` | no | none |
-| E6 content changed | `images` insert if the hash is new; `files` update in place: `image_id`, `size`, `mtime`; one `pending_changes` row with the old image | the `files` update: yes, in the scan commit | none |
+| E6 content changed | `images` insert if the hash is new; `files` update in place: `image_id`, `size`, `mtime`; one `pending_changes` row with the old image | `image_id` only: yes, in the scan commit | none |
 | E6 choice, *values follow* | image values copied to the new image where it has none; `instances.image_id` re-pointed; `pending_changes.decision` | yes, except `decision` | none |
 | E6 choice, *new picture* | `pending_changes.decision` | no | none |
-| *Match in folder* | missing row updated in place (`name`, `status`); new row deleted | yes | `files` (the new row) |
-| *Relink folder* | one `folders` update (`parent`, `name`, `status`); the new folder rows of the rescan and their files merged into it | yes | `files`, `folders` (merged rows) |
-| *Relink source* | `file_sources.root_url`; the root folder's `status` | yes | none |
+| *Match in folder* | missing row updated in place (`name`, `status`); new row deleted | `name` and the delete | `files` (the new row) |
+| *Relink folder* | one `folders` update (`parent`, `name`, `status`); the new folder rows of the rescan and their files merged into it | `parent`, `name` and the merges | `files`, `folders` (merged rows) |
+| *Relink source* | `file_sources.root_url`; the root folder's `status` | `root_url` | none |
 | *Remove missing*, *Remove from project* | `files` deleted; instance hints re-pointed or NULL; `file_sources.excludes` for *Remove from project* | yes | `files` |
-| purge | `images` and their value rows deleted | no, and log rows that name them are dropped | `images` only (note 03 §3) |
+| purge | `images`, their value rows, their subimages and the subimages' values deleted | no, and log rows that name them are dropped | `images` only (note 01 §3) |
 
 A match or a relink keeps the old file id and drops the new one. The old id is the one that
 selections, custom groups and instance hints hold. The new row only lived since the rescan.
@@ -307,12 +312,12 @@ selections, custom groups and instance hints hold. The new row only lived since 
   `data.db`: the missing flags on files and folders, the new files, the changed files waiting
   in `pending_changes`, and one `scans` row with the counts. A missing flag stays until a
   later scan or a successful read clears it, across restarts. The report can be rebuilt from
-  the db at any time, and scripts and plugins see the same state as the UI.
+  the db at any time, and scripts and plugins read the same state as the UI.
 - **Observed state** (`files.status`, `folders.status`, their `status_scan_id`, `scans`,
-  `pending_changes`, a size and mtime refresh) is sequenced, so the engine and plugins see it,
-  but it is not in `entity_log`. Undoing "the file was not found" means nothing: the next scan
+  `pending_changes`, a size and mtime refresh) is sequenced, so the engine sees it, but it is
+  not in `entity_log`. Undoing "the file was not found" means nothing: the next scan
   would write it again. `scans` and `pending_changes` are small and get no tombstones: a
-  reader re-reads them whole when they have a row newer than its sequence (note 03 §3).
+  reader re-reads them whole when they have a row newer than its sequence (note 01 §3).
 - **Decisions** are commits. The automatic part of a rescan (new files, and changed files
   pointed to their new image) is one commit. Each option applied from the report (matches,
   relinks, removals, *values follow*) is one commit.
@@ -325,30 +330,30 @@ selections, custom groups and instance hints hold. The new row only lived since 
   and restores updated ones. `AUTOINCREMENT` never hands those ids out again, so they are
   free.
 - A re-inserted id is the same row coming back, not a new one. The delta reader sees its
-  tombstone, then its insert at a later sequence. Deletes apply before sets (note 03 §3), so
-  the slot is alive again. This replaces the "id that comes back is new" rule of note 04
-  §6.2, which only existed because ids could be reused.
+  tombstone, then its insert at a later sequence. Deletes apply before sets (note 01 §3), so
+  the slot is alive again (note 05 §6.2).
 - After undo, the disk still differs from the db, so the undone items are back in the report.
 - Purge cuts undo: a commit that names a purged image can no longer be undone, and the
-  history shows it as such.
+  history shows it as such (`commits.undoable = 0`). The same holds for every permanent
+  delete: instances and file sources (note 01 §3, deletes).
 
 ### 6.5 Engine and delta readers
 
 - **Moves** change file system columns only (`folder`, `name`). A folder move changes the
-  folder tree, and the derived `path` column is recomputed for its subtree (note 04 §6.2). No
+  folder tree, and the derived `path` column is recomputed for its subtree (note 05 §6.2). No
   image or instance column moves.
 - **Missing** is a file `status` column, derived from the file's own status and its folders'.
   A missing folder (or root) is one row in the delta and one recompute of that column.
 - **Content changes** update the file → image map for those files and, with *values
   follow*, the instance → image map and the copied image values. All in one catch-up, one
-  version (note 04 §6.1).
+  version (note 05 §6.1).
 - **Removals** leave dead slots. Ids are never reused, so a dead slot never comes back as
   something else. Selections and custom groups drop dead ids when next used.
 - **Holes.** Dead slots still take a cell in every loaded column of their level. When the dead
   share of a level passes a threshold (say 25% of the max id), the store remaps ids to dense
-  slots at its next full reload. The map lives in memory only. Ids on disk never change, since
-  plugins and `entity_log` refer to them.
-- **Purge** writes one tombstone per image, not one per value (note 03 §3). A reader that sees
+  slots at its next full reload (note 05 §2, §6.5). The map lives in memory only. Ids on disk
+  never change, since plugins, media.db and `entity_log` refer to them.
+- **Purge** writes one tombstone per image, not one per value (note 01 §3). A reader that sees
   a dead image drops all its cells. This keeps a purge of 100k images with 20 properties at 100k tombstone
   rows instead of 2M.
 - `pending_changes` is not read by the engine.
@@ -361,12 +366,14 @@ selections, custom groups and instance hints hold. The new row only lived since 
   thumbnail is what the trash and missing files show.
 - **Purge** is explicit, from the trash. An optional project setting purges orphans that have
   no user values after N days. Orphans with values are never purged automatically.
-- **Derived data** lives in the media db (thumbnails, vectors, atlas) and in plugin stores,
-  keyed by image id. It is a separate file, so its cleanup cannot share the data commit. Purge
-  commits the data side first, then deletes media rows for the purged ids. A leftover row is
-  harmless and a later pass deletes media rows whose image id no longer exists.
-- **Plugins** learn about purges from the `images` tombstones in their delta read, and clean
-  their own stores the same way.
+- **Derived data** lives in media.db (thumbnails, image and subimage vectors, atlas, maps, keyed
+  by image id or subimage id, note 02 §2) and in plugin stores. It is a separate file, so its
+  cleanup cannot share the data commit. Purge commits the data side first, then deletes media
+  rows for the purged images and their subimages. A leftover row is harmless and a later pass
+  deletes media rows whose image or subimage no longer exists.
+- **Plugins** do not follow changes (note 09). After a purge, the backend calls the `on_purge`
+  hook of each plugin that declares one, with the purged image and subimage ids, so the plugin
+  cleans its own stores (note 09 §4).
 - **A content change** computes derived data for the new image as for any new image. The old
   image keeps its own until it is purged.
 

@@ -96,6 +96,13 @@ class MediaDB(SQLiteWriter):
     def get_vectors(self, **filters) -> list[Vector]:
         return VECTOR_SHEMA.get(self.conn, **filters)
 
+    def get_vector_sha1s(self, type_id: int) -> set[str]:
+        """sha1s that have a vector of this type, without reading the vectors."""
+        rows = self.conn.execute(
+            f"SELECT sha1 FROM {VECTOR_SHEMA.table} WHERE type_id = ?", (type_id,)
+        ).fetchall()
+        return {r[0] for r in rows}
+
     def upsert_vectors(self, vectors: list[Vector]) -> None:
         with self.transaction() as tx:
             VECTOR_SHEMA.upsert(tx, vectors)

@@ -1,8 +1,10 @@
-# 05: Images, files and instances
+# 03: Images, files and instances
 
-Status 2026-10-29: proposal. Describes the target model only. Panoptic manages images only.
-Engine numbers come from a scratch microbench (1M rows, 8 threads). Builds on
-[03-sqlite-layout.md](03-sqlite-layout.md) and [04-column-store.md](04-column-store.md).
+Status 2026-11-06: proposal. Describes the target model only. Panoptic manages images only.
+The tables are in [01-sqlite-layout.md](01-sqlite-layout.md) §3, the store in
+[05-column-store.md](05-column-store.md). Engine numbers in §8 come from a scratch
+microbench (1M rows, 8 threads) that is not in `bench/collection` yet: they are to be
+reproduced there.
 
 ## 1. Three things called "an image"
 
@@ -12,13 +14,15 @@ Engine numbers come from a scratch microbench (1M rows, 8 threads). Builds on
 | **file** | a location: source + path | source + path | the scan of a folder |
 | **instance** | one sample of the user's study | **a key given by the user** | a data import only |
 
-Links only go up: instance → file (optional) → image. A file always has exactly one image. An
-instance without a file reaches no image.
+Links only go up. A file always has exactly one image. An instance points to its image (the
+truth) and optionally to a file (a location hint), so an instance whose file is gone keeps its
+image (note 04 §1). Subimages hang off images as a fourth level for values (note 01 §3).
 
-**Naming.** The third level is called **instance**, not element. Notes 01–04 and the API
-already use "instance" for the row the engine filters, sorts and groups. The word also says
-"one occurrence in the study", which fits a sample that can share its picture with other
-samples. "Element" is vaguer and would add a rename.
+**Naming.** The third level is called **instance**, not element. Today's backend and front
+already use "instance" for the study row. The word also says "one occurrence in the study",
+which fits a sample that can share its picture with other samples. "Element" is vaguer and
+would add a rename. The engine says **row** for whatever a collection shows, with a row kind:
+image, file or instance (§7).
 
 ## 2. Scenarios
 
@@ -119,7 +123,8 @@ gets what the merge would give, while S2, S5, S7 and external ids stay possible.
   global overview, not a store of separate collections.
 - **An import is an upsert by key.** No guessing from paths, no "first instance of this
   file".
-- **An instance optionally points to one file.** The import resolves a path column to a file.
+- **An instance points to its image, and optionally to one file.** The import resolves a path
+  column to a file, and takes the file's image.
 - **On disk** the key is `TEXT UNIQUE`, and the instance also has an integer id. Value tables
   and the engine use only the id. The key is read at import and export.
 
@@ -165,6 +170,10 @@ User properties live on **images** and on **instances**.
   results, width, height, EXIF. A value set from any row applies to every file and instance
   that reaches that image.
 - **Instance properties** say something about one sample: labels, annotations, scores.
+
+A `box` property (rectangles with a name and a color, which the user can edit, note 01 §3)
+lives on either level: on an image for a box about the picture, on an instance for one
+sample's annotation.
 
 Files keep **system properties** only: path, folder, name, mtime.
 
@@ -221,8 +230,9 @@ One structure serves every row kind (image, file, instance), so operators are wr
   every level, and cell 0 of every column is "no value", so a missing link reads as empty
   with no branch.
 - **A row space** gives, for the chosen row kind, the map from each row to its image, and to
-  its file for instances. The instance → image map is stored combined, so a read across two
-  levels is one lookup. An image → rows index is built when a count or a pile needs it.
+  its file for instances. An instance stores its image directly (`instances.image_id`), so a
+  read across levels is one lookup. An image → rows index is built when a count or a pile
+  needs it.
 - **Reads only go up.** An operator reads a column directly when it is at the row's level, or
   through the map when it is above. A column from a lower level is not a plain column in a
   higher view. Aggregates (count, any of the tags, min / max) are derived columns stored at
@@ -262,44 +272,14 @@ plus the pile bounds, with the image (or file) id of each pile.
 
 ## 9. Disk layout
 
-Replaces the identity part of note 03 §3.
+The tables are in note 01 §3 (`images`, `files`, `instances` and their value tables). What this
+note asks of them:
 
-```sql
-CREATE TABLE images (
-  id   INTEGER PRIMARY KEY AUTOINCREMENT, -- never reused: the id is the engine slot
-  hash BLOB NOT NULL UNIQUE,              -- first byte names the hash algorithm
-  size INTEGER NOT NULL,
-  sequence INTEGER NOT NULL
-) STRICT;
-
-CREATE TABLE files (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  folder_id INTEGER NOT NULL,
-  image_id  INTEGER NOT NULL,             -- → images.id
-  name  TEXT NOT NULL,
-  mtime INTEGER,                          -- unix ms
-  sequence INTEGER NOT NULL
-) STRICT;
-CREATE INDEX files_image ON files(image_id);
-
-CREATE TABLE instances (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key TEXT NOT NULL UNIQUE,               -- the user's id
-  file_id INTEGER,                        -- → files.id, optional
-  sequence INTEGER NOT NULL
-) STRICT;
-CREATE INDEX instances_file ON instances(file_id);
-```
-
-- Value tables: `image_values`, `image_tag_values`, `instance_values`,
-  `instance_tag_values`. Same shape as note 03: property first in the key, `WITHOUT ROWID`,
-  a `sequence` index. No user value tables for files.
+- User value tables for images and instances only. No user value tables for files.
 - `AUTOINCREMENT` keeps ids from being reused after a delete, so an id always denotes the
-  same row and can be the engine slot directly. No id → slot table.
+  same row and can be the engine slot (note 05 §2).
 - Width, height and EXIF are image system properties stored as image values, not columns of
   `images`.
-- The tombstone `table_id` list of note 03 follows: image, file and instance tables and
-  their value tables.
 
 ## 10. Recommendation
 
@@ -321,12 +301,6 @@ Keep the three levels, with instances optional and no user file properties.
 
 ## 11. Open questions
 
-- Should an instance be able to point to an image directly, with no file (a picture known by
-  hash whose file is gone)? It would keep S5 and S7 instances attached to their image.
-- When a rescan removes a file that instances point to, set `file_id` to null, or re-point
-  to the image's other file when there is exactly one?
-- Ids are never reused, so many deletes leave holes in the engine arrays. At what share of
-  dead ids does the store remap?
 - Key type: always text, or text plus an optional integer column for fast numeric keys?
 - Should an import keyed by path warn when the chosen key is a bare file name that repeats
   across folders?

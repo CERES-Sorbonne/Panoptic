@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -38,6 +39,8 @@ class Task(ABC):
         self._thread: threading.Thread | None = None
         self._released = threading.Event()
         self._progress_callbacks: list[Callable[[TaskState], None]] = []
+        # Guards the progress counters: advance/add_failed run on several threads
+        self._progress_lock = threading.Lock()
 
     def on_progress(self, callback: Callable[[TaskState], None]):
         self._progress_callbacks.append(callback)
@@ -61,10 +64,40 @@ class Task(ABC):
         self.state.workers = workers
         self._notify()
 
+    # ------------------------------------------------------------------
+    # Progress  (each call notifies the UI; safe from any thread)
+    #   Finishing needs nothing: TaskManager marks the task finished once start() returns.
+    # ------------------------------------------------------------------
+
+    def set_total(self, n: int):
+        """Set the number of items the task will process."""
+        with self._progress_lock:
+            self.state.total = n
+        self._notify()
+
+    def advance(self, n: int = 1):
+        """Count n more items as done."""
+        with self._progress_lock:
+            self.state.done += n
+        self._notify()
+
+    def add_failed(self, n: int = 1):
+        """Count n more items as failed."""
+        with self._progress_lock:
+            self.state.failed += n
+        self._notify()
+
+    def restart_clock(self):
+        """Restart the elapsed time, e.g. after loading a model, so the remaining-time
+        estimate only counts the work itself."""
+        self.state.started_at = time.monotonic()
+        self._notify()
+
     def wait(self):
         self._finished_event.wait()
 
     def _notify(self):
+        """Internal: push the state to the listeners. Task code uses the methods above."""
         for cb in self._progress_callbacks:
             try:
                 cb(self.state)

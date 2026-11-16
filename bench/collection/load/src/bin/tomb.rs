@@ -7,7 +7,7 @@
 //! - `inline`: today's layout. Rowid table, composite PK, indexes on `sequence` and `operation`.
 //!   A delete sets `operation = 3`; loads filter it out.
 //! - `lean`: inline tombstones, WITHOUT ROWID, no `operation` index.
-//! - `table`: hard delete from the value table plus a row in `tombstones`, table_id 1 (opti/03 §3).
+//! - `table`: hard delete from the value table plus a row in `tombstones`, table_id 1 (opti/01 §3).
 //! - `full`: hard delete, no tombstones. A delete bumps the property's `column_version`; a reader
 //!   that synced before it reloads the whole column.
 //!

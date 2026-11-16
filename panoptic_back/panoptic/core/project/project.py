@@ -58,6 +58,7 @@ class Project:
         # Event callbacks, each with the plugin that registered it (None for core)
         self._on_import_complete_callbacks: list[tuple[str | None, Callable]] = []
         self._on_folder_delete_callbacks:   list[tuple[str | None, Callable]] = []
+        self._on_vector_type_delete_callbacks: list[tuple[str | None, Callable]] = []
         self._on_commit: Optional[Callable[[], None]] = None
         # Called after a plugin is stopped, so clients refetch plugins and actions
         self._on_plugins_changed: Optional[Callable[[], None]] = None
@@ -562,6 +563,7 @@ class Project:
 
     def delete_vector_type(self, vector_type_id: int):
         self._media.delete_vector_type(vector_type_id)
+        self._trigger_vector_type_delete(vector_type_id)
 
     def get_vector_stats(self) -> dict:
         stats = self._media.get_vector_stats()
@@ -745,6 +747,8 @@ class Project:
         self.action.remove_owner(name)
         self._on_import_complete_callbacks = [c for c in self._on_import_complete_callbacks if c[0] != name]
         self._on_folder_delete_callbacks = [c for c in self._on_folder_delete_callbacks if c[0] != name]
+        self._on_vector_type_delete_callbacks = [
+            c for c in self._on_vector_type_delete_callbacks if c[0] != name]
         self.plugins = [p for p in self.plugins if p.name != name]
         if plugin is None:
             return False
@@ -785,6 +789,7 @@ class Project:
             action_registry=self.action,
             register_import_complete=lambda cb: self.on_import_complete(cb, owner=plugin_name),
             register_folder_delete=lambda cb: self.on_folder_delete(cb, owner=plugin_name),
+            register_vector_type_delete=lambda cb: self.on_vector_type_delete(cb, owner=plugin_name),
             on_commit=self._fire_on_commit,
         )
 
@@ -804,6 +809,9 @@ class Project:
     def on_folder_delete(self, callback: Callable, owner: str | None = None) -> None:
         self._on_folder_delete_callbacks.append((owner, callback))
 
+    def on_vector_type_delete(self, callback: Callable, owner: str | None = None) -> None:
+        self._on_vector_type_delete_callbacks.append((owner, callback))
+
     def _trigger_import_complete(self, root_folder_id: int | None = None) -> None:
         for _, cb in list(self._on_import_complete_callbacks):
             try:
@@ -819,6 +827,13 @@ class Project:
             except Exception:
                 import logging
                 logging.exception('on_folder_delete callback failed')
+
+    def _trigger_vector_type_delete(self, vector_type_id: int) -> None:
+        for _, cb in list(self._on_vector_type_delete_callbacks):
+            try:
+                cb(vector_type_id)
+            except Exception:
+                logging.exception('on_vector_type_delete callback failed')
 
 
 def _stop_plugin(plugin) -> None:

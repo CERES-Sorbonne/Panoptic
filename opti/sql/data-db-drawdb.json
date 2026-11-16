@@ -1,0 +1,2522 @@
+{
+  "title": "data.db v3",
+  "database": "sqlite",
+  "tables": [
+    {
+      "name": "scans",
+      "comment": "Observed state: sequenced, not in entity_log, never tombstoned.",
+      "color": "#ef4444",
+      "fields": [
+        {
+          "id": "PD1gv6liZb-oUiFj5Odbm",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "m6B_oZ983MqZL2B7IEboy",
+          "name": "source_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "T9ROo_dm-UVF1mEdibRf0",
+          "name": "folder_id",
+          "type": "INTEGER",
+          "comment": "scope. NULL: the whole source",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "wqNYWmUHmtHAkx1fx9JMR",
+          "name": "mode",
+          "type": "INTEGER",
+          "comment": "0 rescan folders, 1 rescan files, 2 failed read",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "w1jJXvTPIDKLzdrtd_20E",
+          "name": "started_at",
+          "type": "INTEGER",
+          "comment": "unix ms",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "F8yKa6fJjapZZOYKq3_MH",
+          "name": "finished_at",
+          "type": "INTEGER",
+          "comment": "unix ms. NULL: running or interrupted",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "hPA2rBhFPAaIebgTfxIUK",
+          "name": "new_count",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "gv2h5sHMBjBtiKmiKNq5I",
+          "name": "missing_count",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "5akye7SzIhKC-P7ny9k6B",
+          "name": "changed_count",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "kUOVuKgM5nyNR-3eU42Aj",
+          "name": "back_count",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "cfGOpYdeopdmmOy8PkGQC",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "OVfJjpzpUGhGHuzoD0a9-",
+      "x": 40,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "pending_changes",
+      "comment": "Changed files (same location, new hash) waiting for a choice.",
+      "color": "#ef4444",
+      "fields": [
+        {
+          "id": "mR6uyit_mYcG-vFmwWmrA",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "gl7k7AalofOeQv1E2GlJE",
+          "name": "scan_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "77mM0SBhqYPhlCC-X8sRd",
+          "name": "file_id",
+          "type": "INTEGER",
+          "comment": "→ files.id, already pointing to the new image",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "EqdBINKzS9eLM6s_8w3xi",
+          "name": "old_image_id",
+          "type": "INTEGER",
+          "comment": "→ images.id, the image before the change",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "RLNVrzbGRETkp31STMKpi",
+          "name": "decision",
+          "type": "INTEGER",
+          "comment": "NULL open, 0 values follow, 1 new picture",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "zzHjNCIk01TSvq-_hhVi2",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "L0iYHnISpCsVS_QthPZKM",
+      "x": 40,
+      "y": 613,
+      "width": 260
+    },
+    {
+      "name": "file_sources",
+      "comment": "",
+      "color": "#3b82f6",
+      "fields": [
+        {
+          "id": "tp1ekeYip0zzAsWvT_ilj",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "SO3o27qaE0k9ecHs8oy3K",
+          "name": "dtype",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "qflt1FYlVbPWioJuo3kFB",
+          "name": "name",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "G7iAXJYjXysJCOHkDY06G",
+          "name": "root_url",
+          "type": "TEXT",
+          "comment": "folder paths are relative to it: a relink is one write",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "eJ0YzZcUvvVLvp09mVuPd",
+          "name": "excludes",
+          "type": "TEXT",
+          "comment": "JSON list of relative paths removed from the project",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "KQKrfo3F49Jo7GQeCG2Dx",
+          "name": "metadata",
+          "type": "TEXT",
+          "comment": "JSON, read once at open",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "NoibVWavejJrmhlM8MuA6",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "Ys-u5abg31i1LBjdK-9nW",
+      "x": 520,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "folders",
+      "comment": "Name + parent, not a path: a move is one row.",
+      "color": "#3b82f6",
+      "fields": [
+        {
+          "id": "y8-LxRgHiGWsHeeu3WKGE",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "JwEL09w-pv2RKOEA5DUN6",
+          "name": "source_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Y5AINzvx4xQA5ShqZdGf5",
+          "name": "parent",
+          "type": "INTEGER",
+          "comment": "→ folders.id. NULL: the source's root folder",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "P2WWxIrCyzxKrj7VPDxVq",
+          "name": "name",
+          "type": "TEXT",
+          "comment": "'' for the root",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "xRLKtJHw37uzvi9PuEPN0",
+          "name": "status",
+          "type": "INTEGER",
+          "comment": "0 present, 1 missing. Subfolders and files are missing too",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "QaqRs4ogNt4SwUni-5Elq",
+          "name": "status_scan_id",
+          "type": "INTEGER",
+          "comment": "→ scans.id",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "BlEtByoA47p3ZLcwFW90B",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "887nqwwahpsBsbT_xh8TV",
+      "x": 520,
+      "y": 469,
+      "width": 260
+    },
+    {
+      "name": "files",
+      "comment": "A location. Points to one image.",
+      "color": "#3b82f6",
+      "fields": [
+        {
+          "id": "QeKbr7rH_6-kOWLJWaPfi",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "uYNenjXcmbzSiN-thui_s",
+          "name": "folder_id",
+          "type": "INTEGER",
+          "comment": "→ folders.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "L94W5E4e79kceU_-b0AH_",
+          "name": "image_id",
+          "type": "INTEGER",
+          "comment": "→ images.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "9DHcUDxDkVqZY7Ax50ZPK",
+          "name": "name",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "0xetvBue590JcUX1neaJ5",
+          "name": "size",
+          "type": "INTEGER",
+          "comment": "size and mtime as of the last hash",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "isl9losJejs_BH2hCa42a",
+          "name": "mtime",
+          "type": "INTEGER",
+          "comment": "unix ms",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "yTRH_oZ2pKSmP2KFjzPGf",
+          "name": "created_at",
+          "type": "INTEGER",
+          "comment": "unix ms, when a scan added it",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "6YePp6dUUHGxg38o-t4yG",
+          "name": "status",
+          "type": "INTEGER",
+          "comment": "0 present, 1 missing. Also missing if a parent folder is",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "vpDMuvfDGaH2JzuU8mI5P",
+          "name": "status_scan_id",
+          "type": "INTEGER",
+          "comment": "→ scans.id, the scan or failed read that set the status",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "eGs7Pnq8BCNkCStVVb0Se",
+          "name": "added_scan_id",
+          "type": "INTEGER",
+          "comment": "→ scans.id, the scan that found it as new",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "j8gQ3vDHlqw9R0Mb8V914",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "WpLB2o_GuV23WSClFsyas",
+      "x": 900,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "images",
+      "comment": "Content: identical bytes. Created by scans.",
+      "color": "#f59e0b",
+      "fields": [
+        {
+          "id": "GR6BNrdgoSMWI0B-Dr2FM",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "J25J8Wsq4sRXeR-VyYu09",
+          "name": "hash",
+          "type": "BLOB",
+          "comment": "first byte names the hash algorithm, then the digest",
+          "unique": true,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "KAOJ1g5rl2f36LxFS3ZbA",
+          "name": "size",
+          "type": "INTEGER",
+          "comment": "bytes",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "SgGfxuUP7ZMoIC1qK-xqN",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "gTMJdAr4UxlpjwWuVoXhR",
+      "x": 1380,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "image_values",
+      "comment": "Live rows only. STRICT, WITHOUT ROWID.",
+      "color": "#f59e0b",
+      "fields": [
+        {
+          "id": "kbYz3R1auxPkMiNGIgTMJ",
+          "name": "property_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "gGvGfksQHg9RNEkJGX_dO",
+          "name": "image_id",
+          "type": "INTEGER",
+          "comment": "→ images.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "BmFUQ9KyzAy3yyog5dio4",
+          "name": "value",
+          "type": "BLOB",
+          "comment": "ANY in the real schema: native INTEGER | REAL | TEXT, never JSON",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "LL9IrcibH6wMMLefiBvik",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "s-O43JUucU-sR4sqyHPbQ",
+      "x": 1380,
+      "y": 361,
+      "width": 260
+    },
+    {
+      "name": "image_tag_values",
+      "comment": "",
+      "color": "#f59e0b",
+      "fields": [
+        {
+          "id": "V4fgAWi2QqvR6BvH-43gB",
+          "name": "property_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "dU9hetmhiypV3esZ6Iro7",
+          "name": "image_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "jxqWurC06ydhJ6R4-wcbf",
+          "name": "tag_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "CjruaZB90Y6QYVX1o5TeS",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "Wm3nsZxFS2TeHwU11YXP-",
+      "x": 1380,
+      "y": 632,
+      "width": 260
+    },
+    {
+      "name": "instances",
+      "comment": "A sample of the user's study. Created by a data import only.",
+      "color": "#10b981",
+      "fields": [
+        {
+          "id": "xfJ_fUxQGKd_sESpF7r7S",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "p04Q2Dd6WijECpMU-D5kU",
+          "name": "key",
+          "type": "TEXT",
+          "comment": "the user's id, one key space per project",
+          "unique": true,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "2pcs-S_uxT9Pnqe59fgkY",
+          "name": "image_id",
+          "type": "INTEGER",
+          "comment": "→ images.id, the truth. NULL: never resolved",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "n84M1pVVKTuZ6P7jK1OM4",
+          "name": "file_id",
+          "type": "INTEGER",
+          "comment": "→ files.id, a location hint",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "gkTO3-5hFWAW73H5ncUld",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "RpKgb7YyvAD5MH6iVnSWx",
+      "x": 1860,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "instance_values",
+      "comment": "Live rows only. STRICT, WITHOUT ROWID.",
+      "color": "#10b981",
+      "fields": [
+        {
+          "id": "cgwiECZsHFEblwNtEG06f",
+          "name": "property_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "rRUmyLWWOXabZxztsnoUZ",
+          "name": "instance_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "kEllqDCER2wUxJ5nhmZ16",
+          "name": "value",
+          "type": "BLOB",
+          "comment": "ANY in the real schema: native INTEGER | REAL | TEXT, never JSON",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "iBAUfojpwwSFrYFPFlDsx",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "ZgcEwKc22yr30PResi14N",
+      "x": 1860,
+      "y": 397,
+      "width": 260
+    },
+    {
+      "name": "instance_tag_values",
+      "comment": "",
+      "color": "#10b981",
+      "fields": [
+        {
+          "id": "Tp8a3VjRKyfVGc7nr809h",
+          "name": "property_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "5sbgRXPYKIhXFqlNphuG2",
+          "name": "instance_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "oKICZljjxKrRJMPwkOJzM",
+          "name": "tag_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "WpWsO7NkyIpg8sGCHu3yM",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "XanHZc3DDm5mkS09X88GL",
+      "x": 1860,
+      "y": 668,
+      "width": 260
+    },
+    {
+      "name": "subimages",
+      "comment": "A rectangle of an image, owned by a namespace. Written through commits (logged), unlike images.",
+      "color": "#ec4899",
+      "fields": [
+        {
+          "id": "ejkI8iS_F_K2EykLzxGBr",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "jhts0SmGZakssTdBXXknV",
+          "name": "image_id",
+          "type": "INTEGER",
+          "comment": "→ images.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "D1Z3qsfaxuySwWNx9doZ3",
+          "name": "namespace_id",
+          "type": "INTEGER",
+          "comment": "→ properties.id, the namespace (dtype 'namespace')",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "GXHUoKPvqM6h26uTnhynz",
+          "name": "x0",
+          "type": "REAL",
+          "comment": "0..1 in the EXIF-rotated frame of the image",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Zu1kOt8e6P5JCozCcNVr4",
+          "name": "y0",
+          "type": "REAL",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "ZXKvYqpVoPHMOYB7RmnFf",
+          "name": "x1",
+          "type": "REAL",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "7TiNG72U6Ja3WqEOx8RXv",
+          "name": "y1",
+          "type": "REAL",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "YmZ0fwZalYnre8m1gqLc6",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "Q2BUZRErH3RPB65_iPKAL",
+      "x": 2340,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "subimage_values",
+      "comment": "Live rows only. STRICT, WITHOUT ROWID.",
+      "color": "#ec4899",
+      "fields": [
+        {
+          "id": "MJGcsVAJ8DFU7kFCuZ5sw",
+          "name": "property_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "tpqe3Y4lIjN4On6xdl-vz",
+          "name": "subimage_id",
+          "type": "INTEGER",
+          "comment": "→ subimages.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "LsRFJDKVDA8DCXpw3SnZ3",
+          "name": "value",
+          "type": "BLOB",
+          "comment": "ANY in the real schema: native INTEGER | REAL | TEXT, never JSON",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "YBkU0TsjCogJvHYewCNrV",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "u0bJZB5rfAmCSGdrrboWV",
+      "x": 2340,
+      "y": 505,
+      "width": 260
+    },
+    {
+      "name": "subimage_tag_values",
+      "comment": "",
+      "color": "#ec4899",
+      "fields": [
+        {
+          "id": "fLt7HP1pMj8HOJLuPwQpE",
+          "name": "property_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Vhf9AyfMl1VC_RcUSXC_5",
+          "name": "subimage_id",
+          "type": "INTEGER",
+          "comment": "→ subimages.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "KlfWFg5M4cT69JO0boOue",
+          "name": "tag_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Jd_PxSSvhgGh1-PDJUJHc",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "TD0WdU0XmIZyG8R-HBwK2",
+      "x": 2340,
+      "y": 776,
+      "width": 260
+    },
+    {
+      "name": "properties",
+      "comment": "Result of entity_log, like tags and property_groups. No commit_id: the last commit is read from entity_log.",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "id": "QU_4yO-WVn9T5gJwnk8cy",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "g7Lnns5oO9lxT0e5q5JK7",
+          "name": "dtype",
+          "type": "TEXT",
+          "comment": "'namespace' for a namespace: its value on an image is the list of its subimages, derived from subimages. 'box' for boxes: a JSON array per cell",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "sFdnVFv6f71rcOiMzzK-7",
+          "name": "mode",
+          "type": "TEXT",
+          "comment": "'image', 'instance' or 'subimage'",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "E6VsZdpK1ZsGR_5uiA4i7",
+          "name": "name",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "rQ47RYiZSNoHYietIMays",
+          "name": "access",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "V4mY4s0KriGRagoeh00Lk",
+          "name": "tag_list_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "8r7KgFa_1t_lXJQS8Q66R",
+          "name": "system_key",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "vQTdaISTFgEnqLIXoymXP",
+          "name": "property_group_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "naDUE6QvhSi7oMb9m0GY5",
+          "name": "namespace_id",
+          "type": "INTEGER",
+          "comment": "→ properties.id. Set: a 'subimage' property of that namespace only",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Ise9pS6OXIP6YM7s-Jrzu",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "2kMsYREL5N5xEQ5BRiaY-",
+      "x": 2820,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "property_groups",
+      "comment": "",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "id": "Yn2liiTZSnO8ACYeX8bkk",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "e9qoCJ5kiUi93hU4ASItM",
+          "name": "name",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "PL6_cGyvQ7fpDF2XLG4nY",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "TGpSyGydHOhvCZztdfPVu",
+      "x": 2820,
+      "y": 577,
+      "width": 260
+    },
+    {
+      "name": "tags",
+      "comment": "",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "id": "DS0I62dmqAPHpPv8bTA2X",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "iXlzFZt8n1vhR5t3uwwTV",
+          "name": "list_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "MWJMqiLCYZBNMv0wb-XAQ",
+          "name": "parents",
+          "type": "TEXT",
+          "comment": "JSON array of tag ids",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "zwDAlZ88_gb-Zibfi6AQq",
+          "name": "value",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "dzRm5ptVDHmbJCHUO7V_s",
+          "name": "color",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "ZPUtwRQuymZ_VO5QBoT6W",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "TK3OC8_0tVln_EJkV2RoQ",
+      "x": 3200,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "tag_lists",
+      "comment": "",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "id": "Zld8kKp2kRgKEfBk6MK2j",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "B6PS3IdRiokbI85ujfEv_",
+          "name": "name",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Uusm-VZgPLEhE-hv9s_2x",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "VcV91GAbNL-yafz40-ZW1",
+      "x": 3200,
+      "y": 433,
+      "width": 260
+    },
+    {
+      "name": "commits",
+      "comment": "Who and when. What a commit changed is in entity_log.",
+      "color": "#64748b",
+      "fields": [
+        {
+          "id": "AGtmafBMUYUAIWJTIXE_8",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": true,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "aWZ-lz5W3in56n-X9c_f_",
+          "name": "group_id",
+          "type": "INTEGER",
+          "comment": "commits undone and redone as one",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "C6m-qMZkK7zT4ug2B2T_H",
+          "name": "source",
+          "type": "TEXT",
+          "comment": "who wrote it: ui, import, scan, review, relink, or plugin:<name>",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "iV6z9RDnbRr4sI81b3MLd",
+          "name": "timestamp",
+          "type": "INTEGER",
+          "comment": "unix ms",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "2e7LrK9EWcX0uaQh8VJnX",
+          "name": "active",
+          "type": "INTEGER",
+          "comment": "0 once undone",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "POFgVc0IgKgzH0A5ihmAW",
+          "name": "redoable",
+          "type": "INTEGER",
+          "comment": "1 while an undone commit can be redone; a new commit clears it",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "Undoable0commitsFld01",
+          "name": "undoable",
+          "type": "INTEGER",
+          "comment": "0 once it named a row deleted for good (purge, instance, file source)",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "M7O7gM_-tziQzrWhYFfjy",
+          "name": "author",
+          "type": "TEXT",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "SDrZpzE9GunS524nTbHBN",
+      "x": 3680,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "entity_log",
+      "comment": "The one history table: one row per entity a commit changed. Result tables are its replay over active commits. WITHOUT ROWID.",
+      "color": "#64748b",
+      "fields": [
+        {
+          "id": "EntLogTableId00000001",
+          "name": "table_id",
+          "type": "INTEGER",
+          "comment": "the table ids of the tombstones (01 §3, table ids)",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "EntLogK1000000000001",
+          "name": "k1",
+          "type": "INTEGER",
+          "comment": "key in the table's key order",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "EntLogK2000000000001",
+          "name": "k2",
+          "type": "INTEGER",
+          "comment": "0: not part of this key",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "0",
+          "check": ""
+        },
+        {
+          "id": "EntLogK3000000000001",
+          "name": "k3",
+          "type": "INTEGER",
+          "comment": "tag_id for the tag tables (4, 5, 7), else 0",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "0",
+          "check": ""
+        },
+        {
+          "id": "CLrM7ITPfb65iM36aV6ze",
+          "name": "commit_id",
+          "type": "INTEGER",
+          "comment": "→ commits.id",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "6emyp9YjfHQJV_JuaEkUa",
+          "name": "op",
+          "type": "INTEGER",
+          "comment": "1 create, 2 update, 3 delete",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "EntLogValue000000001",
+          "name": "value",
+          "type": "ANY",
+          "comment": "value tables (1, 2, 6): the value as in *_values. NULL otherwise",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "U9AtOTxYE7y3FAdy9TQlf",
+          "name": "changes",
+          "type": "TEXT",
+          "comment": "other entities: JSON object of the fields set. NULL for values and tags",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "Z4NtRSFBYcSErWGMx5WWw",
+      "x": 3680,
+      "y": 433,
+      "width": 260
+    },
+    {
+      "name": "tombstones",
+      "comment": "Deletions, for delta sync. table_id names the source table, k1..k3 its key. Deleted at project open.",
+      "color": "#64748b",
+      "fields": [
+        {
+          "id": "otm7SBIFtvis8NqT0tmmi",
+          "name": "rowid",
+          "type": "INTEGER",
+          "comment": "implicit SQLite rowid, shown for drawDB",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "rrhRJHQRZJds8KEuoFO0i",
+          "name": "table_id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "a25xlCgp6P6BZ5QS8_SCT",
+          "name": "k1",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "qRwdwPB6TDVnvG9opXZuQ",
+          "name": "k2",
+          "type": "INTEGER",
+          "comment": "0: not part of the key",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "0",
+          "check": ""
+        },
+        {
+          "id": "Bir-MBATXw4YxNhNDtxZE",
+          "name": "k3",
+          "type": "INTEGER",
+          "comment": "0: not part of the key",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "0",
+          "check": ""
+        },
+        {
+          "id": "gKRMkKo2qbfc0m7tUPg85",
+          "name": "sequence",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "OZzEvPceYN67EGbSij3-g",
+      "x": 4060,
+      "y": 90,
+      "width": 260
+    },
+    {
+      "name": "sequence",
+      "comment": "One row: the last sequence handed out",
+      "color": "#64748b",
+      "fields": [
+        {
+          "id": "QP6j8pKD4JpTN9dYyMAzm",
+          "name": "rowid",
+          "type": "INTEGER",
+          "comment": "implicit SQLite rowid, shown for drawDB",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": true,
+          "default": "",
+          "check": ""
+        },
+        {
+          "id": "gyQHhSaAEygjksuDB5UJ8",
+          "name": "id",
+          "type": "INTEGER",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": true,
+          "primary": false,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "uniqueConstraints": [],
+      "id": "I9jM3WjrLTEhTr97Fz5OS",
+      "x": 4060,
+      "y": 433,
+      "width": 260
+    }
+  ],
+  "relationships": [
+    {
+      "name": "fk_properties_tag_list_id_tag_lists",
+      "startTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "endTableId": "VcV91GAbNL-yafz40-ZW1",
+      "fields": [
+        {
+          "startFieldId": "V4mY4s0KriGRagoeh00Lk",
+          "endFieldId": "Zld8kKp2kRgKEfBk6MK2j"
+        }
+      ],
+      "endFieldId": "Zld8kKp2kRgKEfBk6MK2j",
+      "startFieldId": "V4mY4s0KriGRagoeh00Lk",
+      "id": "zdp7rzJeryxHJ-K9tioLh",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_properties_property_group_id_property_groups",
+      "startTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "endTableId": "TGpSyGydHOhvCZztdfPVu",
+      "fields": [
+        {
+          "startFieldId": "vQTdaISTFgEnqLIXoymXP",
+          "endFieldId": "Yn2liiTZSnO8ACYeX8bkk"
+        }
+      ],
+      "endFieldId": "Yn2liiTZSnO8ACYeX8bkk",
+      "startFieldId": "vQTdaISTFgEnqLIXoymXP",
+      "id": "JsiU-lKyc-EpMnhVkPPut",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_properties_namespace_id_properties",
+      "startTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "naDUE6QvhSi7oMb9m0GY5",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "naDUE6QvhSi7oMb9m0GY5",
+      "id": "NJ5upQPQLH3AduupizT1Y",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_tags_list_id_tag_lists",
+      "startTableId": "TK3OC8_0tVln_EJkV2RoQ",
+      "endTableId": "VcV91GAbNL-yafz40-ZW1",
+      "fields": [
+        {
+          "startFieldId": "iXlzFZt8n1vhR5t3uwwTV",
+          "endFieldId": "Zld8kKp2kRgKEfBk6MK2j"
+        }
+      ],
+      "endFieldId": "Zld8kKp2kRgKEfBk6MK2j",
+      "startFieldId": "iXlzFZt8n1vhR5t3uwwTV",
+      "id": "t_9mv6GvhL8auHHSS94yI",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimages_image_id_images",
+      "startTableId": "Q2BUZRErH3RPB65_iPKAL",
+      "endTableId": "gTMJdAr4UxlpjwWuVoXhR",
+      "fields": [
+        {
+          "startFieldId": "jhts0SmGZakssTdBXXknV",
+          "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM"
+        }
+      ],
+      "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM",
+      "startFieldId": "jhts0SmGZakssTdBXXknV",
+      "id": "kMGefZFFild7w4xd5XZVo",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimages_namespace_id_properties",
+      "startTableId": "Q2BUZRErH3RPB65_iPKAL",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "D1Z3qsfaxuySwWNx9doZ3",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "D1Z3qsfaxuySwWNx9doZ3",
+      "id": "-sJQUYhEPCIcBebr4jOyw",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_folders_source_id_file_sources",
+      "startTableId": "887nqwwahpsBsbT_xh8TV",
+      "endTableId": "Ys-u5abg31i1LBjdK-9nW",
+      "fields": [
+        {
+          "startFieldId": "JwEL09w-pv2RKOEA5DUN6",
+          "endFieldId": "tp1ekeYip0zzAsWvT_ilj"
+        }
+      ],
+      "endFieldId": "tp1ekeYip0zzAsWvT_ilj",
+      "startFieldId": "JwEL09w-pv2RKOEA5DUN6",
+      "id": "4my-LtStPIOYn5HEPh5Sf",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_folders_parent_folders",
+      "startTableId": "887nqwwahpsBsbT_xh8TV",
+      "endTableId": "887nqwwahpsBsbT_xh8TV",
+      "fields": [
+        {
+          "startFieldId": "Y5AINzvx4xQA5ShqZdGf5",
+          "endFieldId": "y8-LxRgHiGWsHeeu3WKGE"
+        }
+      ],
+      "endFieldId": "y8-LxRgHiGWsHeeu3WKGE",
+      "startFieldId": "Y5AINzvx4xQA5ShqZdGf5",
+      "id": "_NVR64F3YvsERi4dAisLl",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_scans_source_id_file_sources",
+      "startTableId": "OVfJjpzpUGhGHuzoD0a9-",
+      "endTableId": "Ys-u5abg31i1LBjdK-9nW",
+      "fields": [
+        {
+          "startFieldId": "m6B_oZ983MqZL2B7IEboy",
+          "endFieldId": "tp1ekeYip0zzAsWvT_ilj"
+        }
+      ],
+      "endFieldId": "tp1ekeYip0zzAsWvT_ilj",
+      "startFieldId": "m6B_oZ983MqZL2B7IEboy",
+      "id": "d3_Or-EkCnW4TQE_HJJ0X",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_scans_folder_id_folders",
+      "startTableId": "OVfJjpzpUGhGHuzoD0a9-",
+      "endTableId": "887nqwwahpsBsbT_xh8TV",
+      "fields": [
+        {
+          "startFieldId": "T9ROo_dm-UVF1mEdibRf0",
+          "endFieldId": "y8-LxRgHiGWsHeeu3WKGE"
+        }
+      ],
+      "endFieldId": "y8-LxRgHiGWsHeeu3WKGE",
+      "startFieldId": "T9ROo_dm-UVF1mEdibRf0",
+      "id": "k9viWDDbYJg9j4-M3-Pd1",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_files_folder_id_folders",
+      "startTableId": "WpLB2o_GuV23WSClFsyas",
+      "endTableId": "887nqwwahpsBsbT_xh8TV",
+      "fields": [
+        {
+          "startFieldId": "uYNenjXcmbzSiN-thui_s",
+          "endFieldId": "y8-LxRgHiGWsHeeu3WKGE"
+        }
+      ],
+      "endFieldId": "y8-LxRgHiGWsHeeu3WKGE",
+      "startFieldId": "uYNenjXcmbzSiN-thui_s",
+      "id": "PZhq7sGvPHSQ1i2DOzJCf",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_files_image_id_images",
+      "startTableId": "WpLB2o_GuV23WSClFsyas",
+      "endTableId": "gTMJdAr4UxlpjwWuVoXhR",
+      "fields": [
+        {
+          "startFieldId": "L94W5E4e79kceU_-b0AH_",
+          "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM"
+        }
+      ],
+      "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM",
+      "startFieldId": "L94W5E4e79kceU_-b0AH_",
+      "id": "_9rdKvqpWIMSvx6sXDIm9",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_files_status_scan_id_scans",
+      "startTableId": "WpLB2o_GuV23WSClFsyas",
+      "endTableId": "OVfJjpzpUGhGHuzoD0a9-",
+      "fields": [
+        {
+          "startFieldId": "vpDMuvfDGaH2JzuU8mI5P",
+          "endFieldId": "PD1gv6liZb-oUiFj5Odbm"
+        }
+      ],
+      "endFieldId": "PD1gv6liZb-oUiFj5Odbm",
+      "startFieldId": "vpDMuvfDGaH2JzuU8mI5P",
+      "id": "DNWHfBIIJGWyanndo55i-",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_files_added_scan_id_scans",
+      "startTableId": "WpLB2o_GuV23WSClFsyas",
+      "endTableId": "OVfJjpzpUGhGHuzoD0a9-",
+      "fields": [
+        {
+          "startFieldId": "eGs7Pnq8BCNkCStVVb0Se",
+          "endFieldId": "PD1gv6liZb-oUiFj5Odbm"
+        }
+      ],
+      "endFieldId": "PD1gv6liZb-oUiFj5Odbm",
+      "startFieldId": "eGs7Pnq8BCNkCStVVb0Se",
+      "id": "kGci7wwa2Ww6nD5cFhbpa",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instances_image_id_images",
+      "startTableId": "RpKgb7YyvAD5MH6iVnSWx",
+      "endTableId": "gTMJdAr4UxlpjwWuVoXhR",
+      "fields": [
+        {
+          "startFieldId": "2pcs-S_uxT9Pnqe59fgkY",
+          "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM"
+        }
+      ],
+      "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM",
+      "startFieldId": "2pcs-S_uxT9Pnqe59fgkY",
+      "id": "TG1pdTZ0SgDELgj8LSBfY",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instances_file_id_files",
+      "startTableId": "RpKgb7YyvAD5MH6iVnSWx",
+      "endTableId": "WpLB2o_GuV23WSClFsyas",
+      "fields": [
+        {
+          "startFieldId": "n84M1pVVKTuZ6P7jK1OM4",
+          "endFieldId": "QeKbr7rH_6-kOWLJWaPfi"
+        }
+      ],
+      "endFieldId": "QeKbr7rH_6-kOWLJWaPfi",
+      "startFieldId": "n84M1pVVKTuZ6P7jK1OM4",
+      "id": "qUc5gO2k58nHruPjX_bmg",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_pending_changes_scan_id_scans",
+      "startTableId": "L0iYHnISpCsVS_QthPZKM",
+      "endTableId": "OVfJjpzpUGhGHuzoD0a9-",
+      "fields": [
+        {
+          "startFieldId": "gl7k7AalofOeQv1E2GlJE",
+          "endFieldId": "PD1gv6liZb-oUiFj5Odbm"
+        }
+      ],
+      "endFieldId": "PD1gv6liZb-oUiFj5Odbm",
+      "startFieldId": "gl7k7AalofOeQv1E2GlJE",
+      "id": "R9xxX8zp-eAwIpzX330Om",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_pending_changes_file_id_files",
+      "startTableId": "L0iYHnISpCsVS_QthPZKM",
+      "endTableId": "WpLB2o_GuV23WSClFsyas",
+      "fields": [
+        {
+          "startFieldId": "77mM0SBhqYPhlCC-X8sRd",
+          "endFieldId": "QeKbr7rH_6-kOWLJWaPfi"
+        }
+      ],
+      "endFieldId": "QeKbr7rH_6-kOWLJWaPfi",
+      "startFieldId": "77mM0SBhqYPhlCC-X8sRd",
+      "id": "Dzn1vzxKaMVt5nHoDDYnv",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_pending_changes_old_image_id_images",
+      "startTableId": "L0iYHnISpCsVS_QthPZKM",
+      "endTableId": "gTMJdAr4UxlpjwWuVoXhR",
+      "fields": [
+        {
+          "startFieldId": "EqdBINKzS9eLM6s_8w3xi",
+          "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM"
+        }
+      ],
+      "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM",
+      "startFieldId": "EqdBINKzS9eLM6s_8w3xi",
+      "id": "pRsIPl27oJdeJwDXcHGM7",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_entity_log_commit_id_commits",
+      "startTableId": "Z4NtRSFBYcSErWGMx5WWw",
+      "endTableId": "SDrZpzE9GunS524nTbHBN",
+      "fields": [
+        {
+          "startFieldId": "CLrM7ITPfb65iM36aV6ze",
+          "endFieldId": "AGtmafBMUYUAIWJTIXE_8"
+        }
+      ],
+      "endFieldId": "AGtmafBMUYUAIWJTIXE_8",
+      "startFieldId": "CLrM7ITPfb65iM36aV6ze",
+      "id": "hgwlffeAb5Xs4p_CPgavZ",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_image_values_property_id_properties",
+      "startTableId": "s-O43JUucU-sR4sqyHPbQ",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "kbYz3R1auxPkMiNGIgTMJ",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "kbYz3R1auxPkMiNGIgTMJ",
+      "id": "v8-8ZpPal62u4w0NUIQY3",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_image_values_image_id_images",
+      "startTableId": "s-O43JUucU-sR4sqyHPbQ",
+      "endTableId": "gTMJdAr4UxlpjwWuVoXhR",
+      "fields": [
+        {
+          "startFieldId": "gGvGfksQHg9RNEkJGX_dO",
+          "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM"
+        }
+      ],
+      "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM",
+      "startFieldId": "gGvGfksQHg9RNEkJGX_dO",
+      "id": "fuklGtfiPfLIOVuzkGY38",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instance_values_property_id_properties",
+      "startTableId": "ZgcEwKc22yr30PResi14N",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "cgwiECZsHFEblwNtEG06f",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "cgwiECZsHFEblwNtEG06f",
+      "id": "X116mdCnqhFzbB5tD1A17",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instance_values_instance_id_instances",
+      "startTableId": "ZgcEwKc22yr30PResi14N",
+      "endTableId": "RpKgb7YyvAD5MH6iVnSWx",
+      "fields": [
+        {
+          "startFieldId": "rRUmyLWWOXabZxztsnoUZ",
+          "endFieldId": "xfJ_fUxQGKd_sESpF7r7S"
+        }
+      ],
+      "endFieldId": "xfJ_fUxQGKd_sESpF7r7S",
+      "startFieldId": "rRUmyLWWOXabZxztsnoUZ",
+      "id": "D8VB4V6jc4-EvIG9hxL0s",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_image_tag_values_property_id_properties",
+      "startTableId": "Wm3nsZxFS2TeHwU11YXP-",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "V4fgAWi2QqvR6BvH-43gB",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "V4fgAWi2QqvR6BvH-43gB",
+      "id": "Z4kOOQomMYljpE5mTsgtW",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_image_tag_values_image_id_images",
+      "startTableId": "Wm3nsZxFS2TeHwU11YXP-",
+      "endTableId": "gTMJdAr4UxlpjwWuVoXhR",
+      "fields": [
+        {
+          "startFieldId": "dU9hetmhiypV3esZ6Iro7",
+          "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM"
+        }
+      ],
+      "endFieldId": "GR6BNrdgoSMWI0B-Dr2FM",
+      "startFieldId": "dU9hetmhiypV3esZ6Iro7",
+      "id": "Hgci03eQ_KIRcIObg_smI",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_image_tag_values_tag_id_tags",
+      "startTableId": "Wm3nsZxFS2TeHwU11YXP-",
+      "endTableId": "TK3OC8_0tVln_EJkV2RoQ",
+      "fields": [
+        {
+          "startFieldId": "jxqWurC06ydhJ6R4-wcbf",
+          "endFieldId": "DS0I62dmqAPHpPv8bTA2X"
+        }
+      ],
+      "endFieldId": "DS0I62dmqAPHpPv8bTA2X",
+      "startFieldId": "jxqWurC06ydhJ6R4-wcbf",
+      "id": "ps58xRDKCBwdaP3nXs_RY",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instance_tag_values_property_id_properties",
+      "startTableId": "XanHZc3DDm5mkS09X88GL",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "Tp8a3VjRKyfVGc7nr809h",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "Tp8a3VjRKyfVGc7nr809h",
+      "id": "xWh-L0ah_Ltg6kKIYtpK4",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instance_tag_values_instance_id_instances",
+      "startTableId": "XanHZc3DDm5mkS09X88GL",
+      "endTableId": "RpKgb7YyvAD5MH6iVnSWx",
+      "fields": [
+        {
+          "startFieldId": "5sbgRXPYKIhXFqlNphuG2",
+          "endFieldId": "xfJ_fUxQGKd_sESpF7r7S"
+        }
+      ],
+      "endFieldId": "xfJ_fUxQGKd_sESpF7r7S",
+      "startFieldId": "5sbgRXPYKIhXFqlNphuG2",
+      "id": "PmQvau2ZH8YWX3leIRDLc",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_instance_tag_values_tag_id_tags",
+      "startTableId": "XanHZc3DDm5mkS09X88GL",
+      "endTableId": "TK3OC8_0tVln_EJkV2RoQ",
+      "fields": [
+        {
+          "startFieldId": "oKICZljjxKrRJMPwkOJzM",
+          "endFieldId": "DS0I62dmqAPHpPv8bTA2X"
+        }
+      ],
+      "endFieldId": "DS0I62dmqAPHpPv8bTA2X",
+      "startFieldId": "oKICZljjxKrRJMPwkOJzM",
+      "id": "YN1QzNdchyNLI9S2m4myB",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimage_values_property_id_properties",
+      "startTableId": "u0bJZB5rfAmCSGdrrboWV",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "MJGcsVAJ8DFU7kFCuZ5sw",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "MJGcsVAJ8DFU7kFCuZ5sw",
+      "id": "hwgCIZeUS96WqanTki9hG",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimage_values_subimage_id_subimages",
+      "startTableId": "u0bJZB5rfAmCSGdrrboWV",
+      "endTableId": "Q2BUZRErH3RPB65_iPKAL",
+      "fields": [
+        {
+          "startFieldId": "tpqe3Y4lIjN4On6xdl-vz",
+          "endFieldId": "ejkI8iS_F_K2EykLzxGBr"
+        }
+      ],
+      "endFieldId": "ejkI8iS_F_K2EykLzxGBr",
+      "startFieldId": "tpqe3Y4lIjN4On6xdl-vz",
+      "id": "k7_UKIbZMcmLis9Kpyp3x",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimage_tag_values_property_id_properties",
+      "startTableId": "TD0WdU0XmIZyG8R-HBwK2",
+      "endTableId": "2kMsYREL5N5xEQ5BRiaY-",
+      "fields": [
+        {
+          "startFieldId": "fLt7HP1pMj8HOJLuPwQpE",
+          "endFieldId": "QU_4yO-WVn9T5gJwnk8cy"
+        }
+      ],
+      "endFieldId": "QU_4yO-WVn9T5gJwnk8cy",
+      "startFieldId": "fLt7HP1pMj8HOJLuPwQpE",
+      "id": "pZB3EpH2IqkW88uvzSvVr",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimage_tag_values_subimage_id_subimages",
+      "startTableId": "TD0WdU0XmIZyG8R-HBwK2",
+      "endTableId": "Q2BUZRErH3RPB65_iPKAL",
+      "fields": [
+        {
+          "startFieldId": "Vhf9AyfMl1VC_RcUSXC_5",
+          "endFieldId": "ejkI8iS_F_K2EykLzxGBr"
+        }
+      ],
+      "endFieldId": "ejkI8iS_F_K2EykLzxGBr",
+      "startFieldId": "Vhf9AyfMl1VC_RcUSXC_5",
+      "id": "01g2NdTzp4Uv15UHpyhvo",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "name": "fk_subimage_tag_values_tag_id_tags",
+      "startTableId": "TD0WdU0XmIZyG8R-HBwK2",
+      "endTableId": "TK3OC8_0tVln_EJkV2RoQ",
+      "fields": [
+        {
+          "startFieldId": "KlfWFg5M4cT69JO0boOue",
+          "endFieldId": "DS0I62dmqAPHpPv8bTA2X"
+        }
+      ],
+      "endFieldId": "DS0I62dmqAPHpPv8bTA2X",
+      "startFieldId": "KlfWFg5M4cT69JO0boOue",
+      "id": "pRjVSyf6Tvwr7IOa80XvZ",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "cardinality": "many_to_one"
+    },
+    {
+      "id": "folders_status_scan",
+      "name": "fk_folders_status_scan_id_scans",
+      "startTableId": "887nqwwahpsBsbT_xh8TV",
+      "endTableId": "OVfJjpzpUGhGHuzoD0a9-",
+      "startFieldId": "QaqRs4ogNt4SwUni-5Elq",
+      "endFieldId": "PD1gv6liZb-oUiFj5Odbm",
+      "fields": [
+        {
+          "startFieldId": "QaqRs4ogNt4SwUni-5Elq",
+          "endFieldId": "PD1gv6liZb-oUiFj5Odbm"
+        }
+      ],
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    }
+  ],
+  "notes": [],
+  "subjectAreas": [
+    {
+      "id": 0,
+      "name": "Monitoring (scans, observed state)",
+      "x": 0,
+      "y": 0,
+      "width": 340,
+      "height": 926,
+      "color": "#ef4444"
+    },
+    {
+      "id": 1,
+      "name": "File locations",
+      "x": 480,
+      "y": 0,
+      "width": 720,
+      "height": 818,
+      "color": "#3b82f6"
+    },
+    {
+      "id": 2,
+      "name": "Images",
+      "x": 1340,
+      "y": 0,
+      "width": 340,
+      "height": 873,
+      "color": "#f59e0b"
+    },
+    {
+      "id": 3,
+      "name": "Instances",
+      "x": 1820,
+      "y": 0,
+      "width": 340,
+      "height": 909,
+      "color": "#10b981"
+    },
+    {
+      "id": 4,
+      "name": "Subimages",
+      "x": 2300,
+      "y": 0,
+      "width": 340,
+      "height": 1017,
+      "color": "#ec4899"
+    },
+    {
+      "id": 5,
+      "name": "Properties",
+      "x": 2780,
+      "y": 0,
+      "width": 720,
+      "height": 782,
+      "color": "#8b5cf6"
+    },
+    {
+      "id": 6,
+      "name": "Versioning and delta sync",
+      "x": 3640,
+      "y": 0,
+      "width": 720,
+      "height": 746,
+      "color": "#64748b"
+    }
+  ],
+  "types": [],
+  "enums": []
+}

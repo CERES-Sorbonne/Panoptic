@@ -1,13 +1,14 @@
-# 02: Tree slices, and many collections on one backend
+# 07: Tree slices, and many collections on one backend
 
-Status 2026-10-20: design. It builds on [01-collection-manager.md](01-collection-manager.md).
+Status 2026-11-06: design. It builds on [06-collection-manager.md](06-collection-manager.md).
+§2–§6 are the view messages the web server carries (note 08 §3); §7 is the engine side.
 Numbers come from `bench/collection` (`./wire.sh 1000000`, report in
 `results/wire/report-1000000.md`).
 
 ## 1. Principle
 
 The backend owns the **resulting tree**: groups from `groupBy`, the cluster overlay, custom
-groups, the leftover bucket, sha1 piles, scores and selection. The UI asks for a **slice** of
+groups, the leftover bucket, piles, scores and selection. The UI asks for a **slice** of
 that tree, a contiguous piece of it in display order with everything needed to draw it. The UI
 builds the scroller lines from the slice and fits them to the screen.
 
@@ -36,11 +37,11 @@ What it costs per scroll at 1M images (server encode + JSC decode, no transport)
 The visible tree is flattened into **entries** in display order (DFS):
 
 - a group's **header** is one entry, for every group whose parent chain is open;
-- an open leaf contributes one entry per **position**: an image, or a pile in sha1 mode;
+- an open leaf contributes one entry per **position**: a row, or a pile when `pile_by` is set;
 - a closed group contributes only its header.
 
 An entry has a global ordinal `pos` in `[0, total)`. It does not depend on the screen. A view
-(note 01 §3) has a `viewRev` that changes when open/closed changes the entry list. `rev`
+(note 06 §3) has a `viewRev` that changes when open/closed changes the entry list. `rev`
 changes when the result changes. A slice is addressed by `(rev, viewRev, pos range)`.
 
 ## 3. The tree slice
@@ -56,9 +57,9 @@ tree.slice { req, key, rev, viewRev, ns, props: [propId...],
 - Entries are grouped into aligned **chunks** of 256. The cache key is `(rev, viewRev, chunk)`,
   so overlapping requests and partial hits never happen.
 - `props` = the properties the view draws. The image wall needs no property (the thumbnail
-  comes from `sha1`); the grid needs its visible columns. A project with 60 properties does not
+  comes from the row's image id); the grid needs its visible columns. A project with 60 properties does not
   send 60 columns.
-- The server answers from the result with that `rev`, as long as it is alive (§6.6), so a
+- The server answers from the result with that `rev`, as long as it is alive (§7.6), so a
   slice always matches the chunks next to it.
 
 ### 3.2 Reply
@@ -75,7 +76,7 @@ msgpack in JSC.
                 "total": 31, "visible": 31, "masked": 0, "selected": 3,
                 "closed": false, "score": null, "cluster": null } ],
   "runs":   [ { "pos": 207881, "group": 1997, "start": 0, "count": 31, "leafCount": 31,
-                "ids": [...], "sha1": [...], "selected": "base64 bitset",
+                "ids": [...], "image": [...], "selected": "base64 bitset",
                 "piles": null, "scores": null,
                 "cols": { "3": [...], "7": [[1, 5], null, ...] } } ] }
 ```
@@ -87,8 +88,10 @@ msgpack in JSC.
   `masked`, `visible`). The UI does not need to know how the overlay was built.
 - `start` / `leafCount`: where the run sits in its leaf. The UI places it on the leaf's lines
   (§4.1).
-- `piles` (sha1 mode): one record per position: `{size, ids?}`. `ids` only when the pile is
-  open.
+- `ids` are row ids of the collection's row kind; `image` gives each row's image id, for its
+  thumbnail (empty for image rows, where it equals `ids`).
+- `piles` (when `pile_by` is set): one record per position: `{size, ids?}`. `ids` only when
+  the pile is open.
 - `scores`: per image when a similarity search is active. `groups[].score` per group.
 
 ### 3.3 Client loading
@@ -100,7 +103,7 @@ msgpack in JSC.
 - **One batch in flight per view.** New needs while it is in flight are merged into the next
   batch, and chunks that leave the prefetch area before being sent are dropped from it.
 - **Cache**: LRU over chunks, capped (e.g. 100 chunks ≈ 25k entries ≈ 2.5 MB). Thumbnails keep
-  their own HTTP cache by sha1, as today.
+  their own HTTP cache by image id (note 08 §2).
 
 ### 3.4 Server
 
@@ -186,26 +189,27 @@ UI pulls what it shows.
 ### 7.1 Who opens collections
 
 A tab's main collection, its panels (recommendations, selection modal with
-`filterBySelection`, cluster scroller), several windows on the same tab, and in the browser
-deployment several clients. All of them live in one process, on one store per project.
+`filterBySelection`, cluster scroller), several windows on the same tab, and several browser
+clients when one backend serves several users (note 08 §1). All of them live in one process,
+on one store per project.
 
 ### 7.2 Registry
 
 ```
 Engine (per project)
- ├─ store: current version (note 04)                 shared columns + per-column caches
+ ├─ store: current version (note 05)                 shared columns + per-column caches
  ├─ collections: RwLock<FxHashMap<CollectionKey, Arc<CollectionSlot>>>
  │    CollectionSlot { state: Mutex<State>, result: current result (atomic swap),
  │                     job: Mutex<Job>, views: Vec<ViewId>, active_views: u32, last_access }
  └─ views: per connection, ViewId → { key, open groups, viewRev, entry prefix, props, ns, outbound queue }
 ```
 
-- `CollectionKey = { tab_id, name }`. Two views of the same key (same tab in two windows)
-  share the collection, because the state is the tab's. Each view has its own open/closed set
-  and properties.
+- `CollectionKey = { tab_id, collection_id }` (note 06 §3). Two views of the same key (two
+  views of a tab on one collection, or the same tab in two windows) share the collection,
+  because the state is the tab's. Each view has its own open/closed set and properties.
 - **Selection is per user session**, not per collection. Today `global` in `columnStore` is
   shared by every tab of the client. The bitsets live on the session, and a view names the
-  namespace it reads.
+  selection namespace it reads.
 
 ### 7.3 Scheduling
 
@@ -221,12 +225,12 @@ Engine (per project)
 
 ### 7.4 Deltas across collections
 
-Each new store version comes with a change record: the changed slots per property (note 04
+Each new store version comes with a change record: the changed slots per property (note 05
 §7). For each collection:
 
 - none of its filter/sort/group properties touched → a `values` push to its views, no
   recompute;
-- touched and active → interactive incremental job (note 01 §5.4);
+- touched and active → interactive incremental job (note 06 §5.4);
 - touched and hidden → marked dirty only, recomputed when a view activates it (what
   `setDirty` + `runState.active` do today).
 
@@ -243,7 +247,7 @@ Each new store version comes with a change record: the changed slots per propert
 
 What a result keeps at 1M (bench): sorted order 4 MB, filtered mask + slots ≤ 4 MB, group tree
 15–45 MB (90 MB grouping by text). A result also pins its store version, but an update does not copy
-the columns it does not touch, so an old version costs only the columns changed since (note 04 §4).
+the columns it does not touch, so an old version costs only the columns changed since (note 05 §4).
 
 - Budget: configurable, with a default to set (e.g. 1 GB or a share of RAM).
 - Over budget: drop the **results** of collections with no active view, least recently used
@@ -264,13 +268,14 @@ the columns it does not touch, so an old version costs only the columns changed 
 ## 8. The exception: the map
 
 `MapView` draws every point. It gets one binary frame per rev: ids u32 + x, y f32 + group
-colour u16, 14 B × N = 14 MB at 1M. It is decoded for free and uploaded as is. Values on hover
+colour u16, 14 B × N = 14 MB at 1M (an estimate, to measure in step 8). The points come from
+the map in media.db, keyed by image id (note 02 §2). It is decoded for free and uploaded as is. Values on hover
 come through the same property columns as a slice. Tiles or level of detail only if 10M+ makes
 the frame too large.
 
 ## 9. Implementation steps
 
-Backend (note 01 §7 steps 6–8):
+Backend (note 06 §7 steps 6–8):
 
 1. Entry flattening per view (prefix array over visible groups), `tree.slice` with every group
    kind and overlay, layout stats, `tree.seek`, `locate`, `step`. Tests: slices concatenated
@@ -278,10 +283,9 @@ Backend (note 01 §7 steps 6–8):
    line count agree with a brute-force line build for random rules.
 2. Registry, views, scheduler with both queues, coalescing, stage cache, memory budget and
    eviction. Tests: cancel latency, eviction order, interactive before background.
-3. The WebSocket messages and pushes of §3–§6, documented in
-   `technical_docs/rust_port/VIEW_PROTOCOL.md`.
+3. The socket.io messages and pushes of §3–§6 (note 08 §3). This note is their specification.
 
-UI (note 01 §7 step 9):
+UI (note 06 §7 step 9):
 
 4. Chunk cache + per-view request batcher + prefetch + placeholders.
 5. Small-tree mode: a `LayoutSource` over the header entries, so `ScrollLayout` and the line
@@ -306,5 +310,6 @@ Measurement:
   card, multi-line text)? Measured rows are local either way.
 - Should a hidden collection with a cheap state (no grouping) recompute in the background right
   away instead of on activation?
-- Browser deployment: is one rayon pool shared fairly between users, or do we need a per-user
-  share?
+- Several users on one backend: is one rayon pool shared fairly between them, or does each
+  user need a share?
+- Map frame: a binary socket.io attachment, or one HTTP fetch per rev?

@@ -1,4 +1,4 @@
-//! Cold-start column loads: value rows vs a cached column blob (opti/03 "column snapshot cache").
+//! Cold-start column loads: value rows vs a cached column blob (opti/01 "column snapshot cache").
 //!
 //!   load-bench --db=<data.db> --cold=<scratch dir>
 //!

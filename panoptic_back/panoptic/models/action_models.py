@@ -127,6 +127,16 @@ class ActionResult:
     # Id of a task queued by the action, so the UI can follow its progress
     task_id: str | None = None
 
+    @classmethod
+    def error(cls, name: str, message: str) -> ActionResult:
+        """A result that only shows an error notification."""
+        return cls(notifs=[Notif(NotifType.ERROR, name=name, message=message)])
+
+    @classmethod
+    def info(cls, message: str, name: str | None = None) -> ActionResult:
+        """A result that only shows an info notification."""
+        return cls(notifs=[Notif(NotifType.INFO, name=name, message=message)])
+
 
 # ---------------------------------------------------------------------------
 # Plugin description  (sent to the UI via /plugins_info)

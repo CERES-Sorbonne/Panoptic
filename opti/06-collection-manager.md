@@ -1,7 +1,9 @@
-# 01: Collection manager on the backend
+# 06: Collection manager on the backend
 
-Status 2026-10-28: specification, no implementation. The engine is written from these notes;
-the only code it builds on is the measured prototype in `bench/collection`.
+Status 2026-11-06: specification, no implementation. The engine is written from these notes;
+the only code it builds on is the measured prototype in `bench/collection`. It is the compute
+block of the Rust backend (README): it runs in the backend process, next to the storage
+(notes 01, 02) and the web server (note 08).
 
 ## 1. Why move it
 
@@ -19,20 +21,21 @@ column is first downloaded whole. Measured on 1M synthetic images (`bench/collec
 
 The JS run at 10M was killed for lack of memory. The front cannot hold large projects, and
 every heavy op freezes the UI for seconds. On the backend the same ops run in tens of ms, off
-the UI thread, and the front only needs the 0.1–0.4 ms slices it displays (note 02).
+the UI thread, and the front only needs the 0.1–0.4 ms slices it displays (note 07).
 
 ## 2. What moves, what stays
 
 Moves to the backend, per collection:
 
-- the active slot set: deleted mask and `filterBySelection`;
+- the row kind (image, file or instance, note 03 §7) and the active row set: dead rows and
+  `filterBySelection`;
 - filter (property tree, folders, text query, plugin query scores);
 - sort (property keys, score first);
 - the group tree: `groupBy`, date steps, group sort options, stable ids through the persistent
   value index, tag parent expansion;
-- the sha1 pile overlay, the cluster overlay and custom groups (split, merge, move, rename,
+- piles (by image or by file, note 03 §7), the cluster overlay and custom groups (split, merge, move, rename,
   delete, leftover bucket), and the plugin call that clusters a group;
-- selection, one bitset per namespace;
+- selection, one bitset per selection namespace;
 - navigation: what the iterators do today (next/previous image or group, find an image, the
   display position of an id);
 - counts and aggregations for charts, and the point arrays for the map.
@@ -42,7 +45,7 @@ Stays in the front:
 - rendering and the scroller. The UI requests slices of the resulting tree (overlays
   included), builds the header, image, pile and grid lines from them and fits them to the
   screen: width, zoom, measured rows, scroll position. `ScrollLayout`
-  (`components/scrollers/virtual/scrollLayout.ts`) keeps doing the pixel layout (note 02 §4);
+  (`components/scrollers/virtual/scrollLayout.ts`) keeps doing the pixel layout (note 07 §4);
 - the slice cache and prefetching;
 - optimistic display of edits until the backend confirms them;
 - the tab and collection *state* as the user edits it. It is still persisted with the tab
@@ -50,15 +53,16 @@ Stays in the front:
 
 ## 3. Concepts
 
-- **Store**: one per loaded project, the instances and the typed property columns, shared by
-  every collection of the project. Each change to data.db (our writes, undo/redo, plugin
-  writes) produces a new store **version**, exact at one data.db sequence, and a change record
-  saying which slots changed for which property. Specified in
-  [04-column-store.md](04-column-store.md).
-- **Collection**: identified by `CollectionKey { tab_id, name }` (`name` = `main`, a panel,
-  the selection modal, ...). It holds the state (`CollectionState` + `FilterState` +
-  `SortState` + `GroupState` + custom groups and cluster overlay), the computed stages and a
-  revision.
+- **Store**: one per loaded project: the identity of images, files, instances and subimages, and
+  the typed property columns of each level, shared by every collection of the project. Each
+  change to data.db (our writes, undo/redo, plugin writes) produces a new store **version**,
+  exact at one data.db sequence, and a change record saying which slots changed for which
+  property. Specified in [05-column-store.md](05-column-store.md).
+- **Collection**: identified by `CollectionKey { tab_id, collection_id }`, the id of the
+  front's `TabState.collections` entry (`panoptic_front/src/data/models/tab.ts`). Views of the
+  tab reference it by `collectionId`, so two views can share one collection. It holds the state
+  (`CollectionState` with the row kind and `pile_by` + `FilterState` + `SortState` +
+  `GroupState` + custom groups and cluster overlay), the computed stages and a revision.
 - **Stages**: `active → filtered → sorted → tree → piles/overlay`. Each stage is an immutable
   `Arc` value computed from the previous one. A state change recomputes from the first stage it
   affects.
@@ -70,17 +74,17 @@ Stays in the front:
   replies for an older rev.
 - **View**: one client's look at a collection: the open/closed groups, the visible properties,
   the subscription, and the entry list they produce (the visible tree in display order,
-  versioned by `viewRev`, note 02 §2). Several views can share one collection (note 02 §7).
+  versioned by `viewRev`, note 07 §2). Several views can share one collection (note 07 §7).
 
 ## 4. API
 
-### 4.1 Engine (Rust, `panoptic-engine`)
+### 4.1 Engine
 
 ```rust
-pub struct Engine { /* store (note 04), collections: Registry, scheduler: Scheduler */ }
+pub struct Engine { /* store (note 05), collections: Registry, scheduler: Scheduler */ }
 
 impl Engine {
-    fn on_store_change(&self, record: &ChangeRecord);              // note 04 §7: fan out to collections (note 02 §7.4)
+    fn on_store_change(&self, record: &ChangeRecord);              // note 05 §7: fan out to collections (note 07 §7.4)
     pub fn open(&self, key: CollectionKey, state: CollectionState) -> CollectionHandle;
     pub fn close(&self, key: &CollectionKey);
 }
@@ -94,7 +98,7 @@ impl CollectionHandle {
     pub fn cluster(&self, group: GroupId, req: ClusterRequest) -> Pending<Rev>;
     pub fn split(&self, group: GroupId, groups: Vec<CustomGroup>) -> Rev;
     pub fn merge(&self, groups: &[GroupId]) -> Rev;
-    pub fn move_images(&self, from: GroupId, to: GroupId, ids: &[InstanceId]) -> Rev;
+    pub fn move_rows(&self, from: GroupId, to: GroupId, ids: &[RowId]) -> Rev;
     pub fn rename_group(&self, group: GroupId, name: &str) -> Rev;
     pub fn delete_groups(&self, target: GroupId) -> Rev;
     pub fn select(&self, ns: &str, op: SelectOp) -> SelectionCounts;
@@ -103,39 +107,44 @@ impl CollectionHandle {
 impl CollectionResult {
     pub fn rev(&self) -> Rev;
     pub fn summary(&self) -> Summary;                              // totals, group count, scores?, piles?
-    pub fn entries(&self, view: &ViewState) -> Arc<Entries>;       // visible tree flattened, per viewRev (note 02 §2)
-    pub fn tree_slice(&self, e: &Entries, chunk: u32, opts: &SliceOpts) -> TreeSlice; // groups + runs, overlays included (note 02 §3)
-    pub fn stats(&self, e: &Entries) -> LayoutStats;               // per depth: headers + leaf-size histogram (note 02 §4.2)
-    pub fn seek(&self, e: &Entries, rule: &LineRule, to: SeekTarget) -> SeekResult; // line <-> entry (note 02 §4.2)
-    pub fn locate(&self, id: InstanceId) -> Option<Position>;      // (group, position) — scroll-to, preview
+    pub fn entries(&self, view: &ViewState) -> Arc<Entries>;       // visible tree flattened, per viewRev (note 07 §2)
+    pub fn tree_slice(&self, e: &Entries, chunk: u32, opts: &SliceOpts) -> TreeSlice; // groups + runs, overlays included (note 07 §3)
+    pub fn stats(&self, e: &Entries) -> LayoutStats;               // per depth: headers + leaf-size histogram (note 07 §4.2)
+    pub fn seek(&self, e: &Entries, rule: &LineRule, to: SeekTarget) -> SeekResult; // line <-> entry (note 07 §4.2)
+    pub fn locate(&self, id: RowId) -> Option<Position>;           // (group, position) — scroll-to, preview
     pub fn step(&self, from: Position, by: Step) -> Option<Position>;   // next/prev image or group
     pub fn selection(&self, ns: &str, group: Option<GroupId>) -> SelectionCounts;
 }
 ```
 
-All compute runs on the engine's rayon pool and takes a `CancelToken`. Async callers
-(`panoptic-api`) await a oneshot and never compute on a tokio worker.
+- `RowId`: the id of a row of the collection's row kind (an image, file or instance id).
+- `Pending<Rev>`: returned at once with the rev the call will publish; it resolves when that
+  rev is published, or with the newer rev that replaced it.
 
-### 4.2 Client operations (`panoptic-api`, WebSocket)
+All compute runs on the engine's rayon pool and takes a `CancelToken`. The web server's async
+handlers await a `Pending` and never compute on a runtime worker.
 
-One WebSocket per client. Messages carry `{ req, key, ... }`, and the server pushes
+### 4.2 Client operations
+
+The messages ride on the client's socket.io connection (note 08 §3). Messages carry
+`{ req, key, ... }`, and the server pushes
 `result {key, rev, summary, reason}` after every publish. The wire format and the caching rules
-are in note 02. How today's `CollectionManager` maps to the protocol:
+are in note 07. How today's `CollectionManager` maps to the protocol:
 
 | `CollectionManager` today | backend message | notes |
 |---|---|---|
 | constructor + `col.isReady` watch | `collection.open {key}` | the state is read from the tab; reply = rev + summary |
 | `filterManager/sortManager/groupManager.state` watches, `requestReload(kind)` | `collection.setState {key, patch}` | the server derives the reload kind (§5.2); debounce stays client-side (50 ms) |
-| `setGroupOption`, `delGroupOption`, `setSha1Mode`, `sortGroups` | `collection.setState` | `sha1Mode` = piles stage only |
+| `setGroupOption`, `delGroupOption`, `setSha1Mode`, `sortGroups` | `collection.setState` | today's `sha1Mode` becomes `pile_by` (`none`, `image` or `file`): piles stage only |
 | `result`, `version`, `hasResult` | `result` push, `tree.slice` | the UI keeps slices of the tree, never the tree |
 | `getGroupIterator`, `getImageIterator`, `findImageIterator` | `tree.slice`, `locate`, `step` | iterators become entry positions: `pos`, or `(groupId, index)` |
 | `toggleGroup`, `openGroup`, `closeGroup` | `view.setOpen {key, groups, open}` | bumps the view's `viewRev` (entry list), not the result's `rev` |
-| selection (`toggleAll`, `selectImages`, `toggle*Iterator`, `isGroupSelected`, namespaces) | `selection.apply {ns, op}` | ops: ids, group, position range (shift-click), all, none; slices carry selected bits |
+| selection (`toggleAll`, `selectImages`, `toggle*Iterator`, `isGroupSelected`, selection namespaces) | `selection.apply {ns, op}` | ops: ids, group, position range (shift-click), all, none; slices carry selected bits |
 | `cluster`, `isClustering`, `clusterError`, `onCluster` | `group.cluster`, `progress` push | the backend calls the plugin, so the run survives the UI |
 | `addCustomGroups`, `moveImagesToGroup`, `renameGroup`, `split`, `merge`, `deletePile`, `delCustomGroups`, `clearCustomGroups`, `clusterEmptyBucket`, `drainCluster` | `group.<op>` | one rev per op |
-| `updateInstances` / `setDirty` (data listener) | none: the store applies the change (note 04 §6) | value-only changes are pushed as `values` (note 02 §6) |
+| `updateInstances` / `setDirty` (data listener) | none: the store applies the change (note 05 §6) | value-only changes are pushed as `values` (note 07 §6) |
 | `settle()` | await the `result` push with `rev ≥` the op's rev | each op replies with the rev it will produce |
-| `setActive`, `dispose` | `view.active`, `collection.close` | the backend keeps or drops the result (note 02 §7) |
+| `setActive`, `dispose` | `view.active`, `collection.close` | the backend keeps or drops the result (note 07 §7) |
 | `getRequiredColumns` | none | the backend loads the columns itself |
 
 ## 5. Performance strategy
@@ -145,13 +154,13 @@ are in note 02. How today's `CollectionManager` maps to the protocol:
 - Columns are loaded from SQLite into typed columns, the layout `bench/collection` measured:
   `f64` for numbers and dates, one byte per checkbox, dictionary strings with a pre-lowercased
   dictionary, CSR tags. There is no JSON per cell. A column is loaded the first time any
-  collection needs it, then shared (note 04 §5).
+  collection needs it, then shared (note 05 §5).
 - Caches derived from a column are shared by every collection: the sort key column of a
   property (the expensive part of a sort) and the tag expansion (tag → itself + parents). They
   are keyed by the column's change counter and rebuilt lazily when a change touches the column
-  (note 04 §7.4).
+  (note 05 §7.4).
 - An update does not copy the columns it does not touch. Old store versions are freed when no
-  result uses them anymore (note 04 §4, §8).
+  result uses them anymore (note 05 §4, §8).
 
 ### 5.2 Staged recompute
 
@@ -164,7 +173,8 @@ from, with two more:
 | sort keys | sorted | filtered |
 | `groupBy`, date step | tree | filtered, sorted |
 | group sort options | tree order (re-sort children only) | buckets |
-| `sha1Mode` | piles | tree |
+| `pile_by` | piles | tree |
+| row kind | active | — (another level's rows) |
 | open/closed groups | the view's entry list (`viewRev`) | the whole result, same rev |
 | visible properties | nothing | everything (slices just ask other columns) |
 
@@ -183,7 +193,7 @@ from, with two more:
 
 ### 5.4 Incremental updates
 
-A store change record gives the changed slots per property (note 04 §7). When they are few (threshold to measure, around 1% of N),
+A store change record gives the changed slots per property (note 05 §7). When they are few (threshold to measure, around 1% of N),
 the collection re-tests those slots against the filter, moves them in the sorted order (remove
 and insert by key) and between buckets, the same thing `updateSelection` does today in TS.
 Above the threshold it recomputes from the filtered stage: at 1M that is 20–50 ms, cheaper
@@ -193,10 +203,10 @@ than a long incremental path. Either way the result is a new rev.
 
 Each collection has at most one computation in flight. A newer state cancels the older one
 through its `CancelToken`, which is checked once per chunk in the parallel loops. Visible
-collections get priority over hidden ones (note 02 §7). Tree slices and seeks
+collections get priority over hidden ones (note 07 §7). Tree slices and seeks
 read the published result and never wait for a recompute.
 
-### 5.6 Targets (from PLAN P4/P5 gates)
+### 5.6 Targets
 
 - p95 filter + sort + one grouping < 100 ms at 1M (bench: 19 ms for compound filter > sort >
   tags);
@@ -211,7 +221,7 @@ equality and UTF-16 string order. Checks:
 - golden tests: a node harness runs the TS managers on fixture projects and dumps slot lists
   and tree hashes, and `cargo test` compares them. `bench/collection` already does this on
   synthetic data for 27 ops;
-- the same fixture runs through the protocol (P4 gate), so the API layer cannot drift.
+- the same fixture runs through the protocol, so the API layer cannot drift.
 
 ## 7. Implementation plan
 
@@ -224,20 +234,19 @@ Each step ends green on the engine's `cargo test` and does not break the current
 2. **Group tree** (`group/`): port `computePropertySubGroup`, date buckets, group sort options,
    value index, tag parents and scores from `GroupManager.ts` + `core/group/*`. Start from
    `bench/collection/rust/src/group.rs`, which already matches the TS checksums. Goldens.
-3. **Piles and overlays** (`group/piles.rs`, `group/overlay.rs`): sha1 piles, the cluster
+3. **Piles and overlays** (`group/piles.rs`, `group/overlay.rs`): piles by image or file, the cluster
    overlay, custom groups, the leftover bucket and their ops. Goldens on op sequences.
 4. **Column store**: loading, updates and change records, as specified in
-   [04-column-store.md](04-column-store.md) §9 (its acceptance tests).
+   [05-column-store.md](05-column-store.md) §9 (its acceptance tests).
 5. **Collection** (`collection.rs`): state, stages, reload-kind diff, atomic publish,
    cancel, the incremental path with its threshold, and `settle` semantics via revs.
 6. **Read API** (`result.rs`, `entries.rs`, `slice.rs`): summary, entry flattening per view,
    tree slices with every group kind and overlay, layout stats, seek, locate, step. Selection
    bitsets and ops (`selection.rs`).
 7. **Registry and scheduler** (`registry.rs`): many collections, priorities, eviction
-   (note 02 §7).
-8. **Protocol** (`panoptic-api`): WebSocket messages of §4.2, pushes, encoding (note 02 §3),
-   written down in `technical_docs/rust_port/VIEW_PROTOCOL.md`. Extend `bench/collection` to
-   time a slice end to end through the socket.
+   (note 07 §7).
+8. **Protocol**: the messages of §4.2, pushes, encoding (note 07 §3). Note 07 §3–§7 is their
+   specification. Extend `bench/collection` to time a slice end to end through the socket.
 9. **Front `RemoteCollection`** behind a flag, with a public surface as close to
    `CollectionManager` as possible. Port the views one by one: image wall and `GridScroller`,
    `TreeScroller`, preview navigation, selection, `ClusterScroller`, `MapView`, graph and
@@ -247,10 +256,9 @@ Each step ends green on the engine's `cargo test` and does not break the current
 
 ## 8. Open questions
 
-- socket.io (parity with today's `socketStore`) or a plain WebSocket for the view protocol.
 - Should the open/closed state of groups be per view (today it lives on `Group.view.closed`,
   shared by the views of a tree) and is it persisted with the tab?
-- Plugin text search: the backend calls the plugin and keeps the scores per collection.
-  Confirm this fits the plugin protocol (P1-D).
+- Plugin text search: the backend calls the plugin function (note 09 §3) and keeps the scores
+  per collection. Scores come back per row id of the call's row kind.
 - `RecommendView` and the graph view read columns directly. Which aggregations do they need
   from the backend?
