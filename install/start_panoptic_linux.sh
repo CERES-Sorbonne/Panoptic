@@ -5,8 +5,18 @@ PYTHON_VERSION=3.13
 # Ajouter .local/bin au PATH
 LOCAL_BIN="$HOME/.local/bin"
 export PATH="$LOCAL_BIN:$PATH"
-# Vérifier si uv est disponible, sinon l'installer
-if ! command -v uv &> /dev/null; then
+UV_MIN_VERSION=0.9.0
+# Un uv trop ancien (installé via pip, brew...) n'a pas --torch-backend et peut corrompre son cache
+uv_missing_or_too_old() {
+    command -v uv &> /dev/null || return 0
+    uv --version | awk -v min="$UV_MIN_VERSION" '{
+        split($2, v, "."); split(min, m, ".")
+        for (i = 1; i <= 3; i++) { if (v[i] + 0 > m[i] + 0) exit 1; if (v[i] + 0 < m[i] + 0) exit 0 }
+        exit 1
+    }'
+}
+# Vérifier si un uv assez récent est disponible, sinon installer celui d'astral dans .local/bin
+if uv_missing_or_too_old; then
     echo "Installation de uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$LOCAL_BIN:$PATH"

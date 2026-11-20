@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -28,10 +29,18 @@ def ask(prompt):
 local_bin = Path.home() / ".local" / "bin"
 os.environ["PATH"] = f"{local_bin}{os.pathsep}{os.environ.get('PATH', '')}"
 
-# Vérifier si uv est disponible, sinon l'installer
-try:
-    run_command("where uv", check=True)
-except RuntimeError:
+# Un uv trop ancien (installé via pip, winget...) n'a pas --torch-backend et peut corrompre son cache
+MIN_UV_VERSION = (0, 9, 0)
+
+def uv_version():
+    result = run_command("uv --version", capture_output=True)
+    match = re.search(r"(\d+)\.(\d+)(?:\.(\d+))?", result.stdout or "")
+    if result.returncode != 0 or not match:
+        return None
+    return tuple(int(part or 0) for part in match.groups())
+
+# Vérifier si un uv assez récent est disponible, sinon installer celui d'astral dans .local/bin
+if (uv_version() or (0,)) < MIN_UV_VERSION:
     run_command('powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"')
     os.environ["PATH"] = f"{local_bin}{os.pathsep}{os.environ.get('PATH', '')}"
 

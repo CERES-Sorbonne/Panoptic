@@ -245,15 +245,24 @@ fn port_open(port: u16) -> bool {
     std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
 }
 
+/// Older uv lack `--torch-backend` and can leave a broken cache on Windows
+const MIN_UV_VERSION: (u64, u64, u64) = (0, 9, 0);
+
+fn parse_uv_version(output: &str) -> Option<(u64, u64, u64)> {
+    let mut parts = output.split_whitespace().nth(1)?.split('.').map(|p| p.parse::<u64>().ok());
+    Some((parts.next()??, parts.next()??, parts.next().flatten().unwrap_or(0)))
+}
+
+/// A uv recent enough is reachable; otherwise the launcher installs astral's uv in ~/.local/bin
 fn uv_available() -> bool {
-    uv_bin().is_absolute() || {
-        let mut cmd = new_command("uv");
-        prepend_local_bin(&mut cmd);
-        cmd.arg("--version")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
-    }
+    let mut cmd = new_command(uv_bin());
+    prepend_local_bin(&mut cmd);
+    cmd.arg("--version")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| parse_uv_version(&String::from_utf8_lossy(&o.stdout)))
+        .is_some_and(|version| version >= MIN_UV_VERSION)
 }
 
 fn installed_package_version(package: &str) -> Option<String> {
@@ -447,7 +456,7 @@ async fn install_uv(app: AppHandle) -> Result<(), String> {
         cmd.current_dir(home_dir()?);
         run_streamed(&app, cmd, "install-log")?;
         if !uv_available() {
-            return Err("uv was not found after installation".to_string());
+            return Err("no recent enough uv was found after installation".to_string());
         }
         Ok(())
     })

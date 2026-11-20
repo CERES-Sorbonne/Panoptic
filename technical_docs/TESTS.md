@@ -85,6 +85,9 @@ correction, il faut en faire une nouvelle (ou supprimer le tag avant de republie
 Pour chaque modèle de `ModelEnum` : image→vecteur, texte→vecteur, index faiss, recherche
 image→image et texte→image, et le chemin de calcul utilisé en prod (`forward_from_arrays`).
 
+`tests/test_cluster_by_tags.py` : `cluster_by_tags` sans modèle (vecteurs factices), vérifie que
+chaque tag garde ses images quand une partie des vecteurs texte vient du cache.
+
 ```sh
 cd PanopticML
 PYTHONPATH=../Panoptic/panoptic_back pytest tests

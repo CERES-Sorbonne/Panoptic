@@ -20,7 +20,18 @@ if [ -f ~/.zshrc ] && grep -q 'DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib' 
 fi
 
 # --- INSTALLATION DE UV ---
-if ! command -v uv &> /dev/null; then
+export PATH="$HOME/.local/bin:$PATH"
+UV_MIN_VERSION=0.9.0
+# Un uv trop ancien (installé via pip, brew...) n'a pas --torch-backend et peut corrompre son cache
+uv_missing_or_too_old() {
+    command -v uv &> /dev/null || return 0
+    uv --version | awk -v min="$UV_MIN_VERSION" '{
+        split($2, v, "."); split(min, m, ".")
+        for (i = 1; i <= 3; i++) { if (v[i] + 0 > m[i] + 0) exit 1; if (v[i] + 0 < m[i] + 0) exit 0 }
+        exit 1
+    }'
+}
+if uv_missing_or_too_old; then
     echo "Installation de uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
