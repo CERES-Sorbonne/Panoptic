@@ -2,7 +2,8 @@
 // Top toolbar root node — inserted into AppShellLayout's #toolbar slot.
 //   Left:   project title + settings + task progress + history
 //   Right:  current user + data load status + notifications + language, like TabNav.vue
-import { computed } from 'vue'
+import { computed, provide } from 'vue'
+import { viewModalScopeKey } from '@/data/composables/viewModal'
 import { useI18n } from 'vue-i18n'
 import { ModalId } from '@/data/models'
 import { useProjectStore } from '@/data/stores/projectStore'
@@ -16,6 +17,9 @@ import { useTabStore } from '@/data/stores/tabStore'
 import { useColumnStore } from '@/data/stores/columnStore'
 import SelectionStamp from '../selection/SelectionStamp.vue'
 import TabPanel from './TabPanel.vue'
+
+// Selection stamp / execute open centered over the whole view area.
+provide(viewModalScopeKey, 'all')
 
 const { locale } = useI18n()
 const project = useProjectStore()

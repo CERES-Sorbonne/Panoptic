@@ -45,8 +45,8 @@ function setOrder(propertyId: number, direction: SortDirection) {
 
 <template>
     <div class="d-flex flex-row sort-form align-items-center">
-        <div class="me-1">{{$t("main.menu.sort.title")}}: </div>
-        <div class="d-flex flex-row m-0 p-0 bg-medium bg align-items-center" v-if="sortList.length">
+        <div class="form-label-tight"><i class="bi bi-filter-left me-1" />{{$t("main.menu.sort.title")}}:</div>
+        <div class="d-flex flex-row m-0 p-0 chip-active bg align-items-center" v-if="sortList.length">
             <template v-for="sort, index in sortList">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
                 <div class="bbw" @click="delSort(sort.propertyId)">
@@ -60,15 +60,24 @@ function setOrder(propertyId: number, direction: SortDirection) {
                 </wTT>
             </template>
         </div>
-        <PropertyDropdown :group-ids="selectedIds" @select="prop => addSort(prop)" />
+        <PropertyDropdown class="tight-plus" :group-ids="selectedIds" @select="prop => addSort(prop)" />
     </div>
 </template>
 
 <style scoped>
+/* Same horizontal footprint as the filter's + (no side padding around it) */
+.tight-plus :deep(.p-1) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.form-label-tight {
+    margin-right: 1px;
+}
+
 
 .sort-form {
     color: rgb(33, 37, 41);
-    font-size: 14px;
 }
 
 .bg {

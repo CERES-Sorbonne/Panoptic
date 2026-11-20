@@ -8,7 +8,6 @@ import { ClusterRequest, Group, GroupTree, GroupType } from '@/core/GroupManager
 import type { GroupInspector } from '@/core/group/inspector'
 import { ImagePropertyValue, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import { GroupLine } from '@/components/scrollers/types'
-import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/stores/dataStore'
 import { useColumnStore } from '@/data/stores/columnStore' // <-- Imported columnStore
 import { allChildrenSha1Groups } from '@/utils/utils'
@@ -375,9 +374,11 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
                 </div>
 
                 <div class="ms-1" v-if="!hasSubgroups">
-                    <ActionButton action="group" :defer="true" :busy="groupBusy"
-                        :message="clusterFailed"
-                        @submit="cluster" />
+                    <ActionButton2 action="group" :no-border="true" :defer="true" :busy="groupBusy"
+                        :message="clusterFailed" @submit="cluster"
+                        @show="onFastShow" @hide="onFastHide">
+                        <i class="bi bi-intersect" style="font-size: 14px; padding: 0px 3px;" />
+                    </ActionButton2>
                 </div>
                 <div class="ms-1">
                     <ActionButton2 :no-border="true" action="execute" :defer="true"

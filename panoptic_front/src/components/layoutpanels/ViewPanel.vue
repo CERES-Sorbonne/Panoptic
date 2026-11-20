@@ -2,7 +2,8 @@
 // A single view island root node — wraps the image visualisation in a growing
 // island card. Used once per pane in the center view split. Each pane renders
 // one of the tab's views (Pillar F): its own type + imageSize + mapOptions.
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
+import { viewModalScopeKey } from '@/data/composables/viewModal'
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import RangeInput from '@/components/inputs/RangeInput.vue'
 import ViewSelectionDropdown from '@/components/layoutpanels/ViewSelectionDropdown.vue'
@@ -18,6 +19,8 @@ import { useCurrentTab } from '@/data/composables/useCurrentTab'
 const props = defineProps<{
     viewIndex: number
 }>()
+
+provide(viewModalScopeKey, props.viewIndex)
 
 const tab = useCurrentTab()
 const view = computed(() => tab.value?.state.views[props.viewIndex] ?? null)

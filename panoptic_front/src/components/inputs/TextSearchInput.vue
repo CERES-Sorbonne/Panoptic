@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/stores/actionStore';
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, inject, nextTick } from 'vue'
 import SelectDropdown from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/composables/keyState';
 import InputOptions from '../actions/InputOptions.vue';
@@ -8,6 +8,8 @@ import { SelectOption, TextQuery } from '@/data/models';
 import LoadWheel from '../loading/LoadWheel.vue';
 import { TabManager } from '@/core/TabManager';
 import { CollectionManager } from '@/core/CollectionManager';
+import ViewModal from '../utils/ViewModal.vue';
+import { viewModalScopeKey } from '@/data/composables/viewModal';
 
 const actions = useActionStore()
 
@@ -17,6 +19,12 @@ const emits = defineEmits(['update:query'])
 // The collection this search controls — the per-view one when provided
 // (FilterPanel), else the tab's primary collection.
 const collection = computed(() => props.collection ?? props.tab.collection)
+
+// Inside a view the search is edited in a modal centered over the view area and
+// applied on Enter; elsewhere it stays an inline input applied on blur / Enter.
+const modalScope = inject(viewModalScopeKey, null)
+const isModal = modalScope !== null
+const modalOpen = ref(false)
 
 const inputElem = ref(null)
 const isFocus = ref(false)
@@ -43,6 +51,25 @@ function loadFromProps() {
     if (!collection.value.filterManager.state.query) return
     mode.value = collection.value.filterManager.state.query.type || 'text'
     searchText.value = collection.value.filterManager.state.query.text || ''
+}
+
+// The query currently applied (shown on the modal-mode trigger).
+const appliedText = computed(() => collection.value.filterManager.state.query?.text ?? '')
+
+function openSearch() {
+    loadFromProps()
+    modalOpen.value = true
+}
+
+// Closing without Enter drops the draft.
+function onModalClosed() {
+    searchText.value = appliedText.value
+    loadFromProps()
+}
+
+function submitFromModal() {
+    emitQuery()
+    modalOpen.value = false
 }
 
 function resetSearch() {
@@ -94,23 +121,55 @@ function areQueryEquals(query1: TextQuery, query2: TextQuery) {
 updateModes()
 watch(() => collection.value.filterManager.state.query, loadFromProps, { deep: true })
 watch(() => actions.textSearchFunctions, updateModes)
-watch(mode, emitQuery)
+watch(mode, () => { if (!isModal) emitQuery() })
 onMounted(() => {
     updateModes()
     loadFromProps()
 })
 
-keyState.ctrlF.on(() => inputElem.value?.focus())
+keyState.ctrlF.on(() => {
+    if (!isModal) return inputElem.value?.focus()
+    // Only one search modal: the first view's (or the shared one).
+    if (modalScope === 0 || modalScope === 'all') openSearch()
+})
 
 </script>
 
 <template>
-    <div class="cont3" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
+    <!-- View mode: a compact trigger showing the applied query; editing happens in a modal -->
+    <div v-if="isModal" class="trigger" :class="{ 'chip-active': appliedText }" @click="openSearch"
+        :title="$t('main.menu.search')">
+        <i class="bi bi-search" />
+        <span v-if="!appliedText">{{ $t('main.menu.search_short') }}</span>
+        <span v-else class="trigger-text">{{ appliedText }}</span>
+        <LoadWheel v-if="isLoading" :loading="isLoading" />
+        <i v-if="appliedText" class="bi bi-x trigger-clear" @click.stop="resetSearch" />
+        <ViewModal v-model:show="modalOpen" :scope="modalScope" :width="560" @close="onModalClosed">
+            <template #title><i class="bi bi-search me-1" />{{ $t('main.menu.search') }}</template>
+            <div class="modal-search">
+                <div class="cont3 focus" style="height: 34px;">
+                    <div class="select-wrapper">
+                        <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" :no-border="true"
+                            :icon-only="true" :size="20" :teleport="true" />
+                    </div>
+                    <div class="input-field d-flex align-items-center">
+                        <input class="text-input2" type="text" v-model="searchText" style="height: 32px; font-size: 15px;"
+                            :placeholder="$t('main.menu.search')" @keydown.enter.prevent="submitFromModal" />
+                    </div>
+                </div>
+                <div v-if="isPluginMode" class="modal-options">
+                    <InputOptions :function-id="mode" :size="16" style="font-size: 13px;" :hide-text="true" />
+                </div>
+                <div class="modal-hint">↵ {{ $t('call') }}</div>
+            </div>
+        </ViewModal>
+    </div>
+
+    <div v-else class="cont3" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
         <div class="select-wrapper">
             <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" :no-border="true"
                 :icon-only="true" :size="size * 0.6" :teleport="false" />
         </div>
-        <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
         <div class="input-field d-flex align-items-center">
             <!-- Wide enough for the whole placeholder (+2ch for the caret and the clear button),
                  in whatever language it is shown. -->
@@ -129,7 +188,6 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 
         </div>
         <div v-if="isPluginMode" class="options-wrapper">
-            <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
             <InputOptions :function-id="mode" :size="props.size * 0.6" :style="{ fontSize: size * 0.56 + 'px' }"
                 :hide-text="true" @changed="emitQuery" />
         </div>
@@ -201,5 +259,63 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     background-color: transparent;
     outline: none;
     width: 100%;
+}
+/* Compact trigger, plain like the "Filtrer:" / "Grouper:" labels next to it */
+.trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.trigger:hover {
+    background-color: var(--hover-bg, #f0f0f0);
+}
+
+.trigger-text {
+    max-width: 18ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trigger-clear {
+    opacity: 0.6;
+}
+
+.trigger-clear:hover {
+    opacity: 1;
+}
+
+.modal-search {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.modal-search .cont3 {
+    width: 100%;
+    overflow: visible;
+}
+
+.modal-search .select-wrapper {
+    max-width: 40%;
+    overflow: visible;
+}
+
+.modal-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.modal-hint {
+    align-self: flex-end;
+    font-size: 12px;
+    color: var(--text-tertiary, #999);
 }
 </style>

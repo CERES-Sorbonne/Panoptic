@@ -52,8 +52,8 @@ const groups = computed(() => {
 
 <template>
     <div class="d-flex flex-row group-form align-items-center ">
-        <div class="me-1">{{ $t('main.menu.groupby') }}: </div>
-        <div class="bg-selected  bg d-flex flex-row m-0 p-0  align-items-center" v-if="selectedProperties.length">
+        <div class="form-label-tight"><i class="bi bi-collection me-1" />{{ $t('main.menu.groupby') }}:</div>
+        <div class="chip-active bg d-flex flex-row m-0 p-0  align-items-center" v-if="selectedProperties.length">
             <template v-for="group, index in groups">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
                 <div class="bbw" @click="del(group.property.id)" id="remove-group-button">
@@ -83,12 +83,22 @@ const groups = computed(() => {
             </template>
             <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading ms-1"></i>
         </div>
-        <PropertyDropdown id="add-group-button" :group-ids="props.manager.state.groupBy" @select="prop => add(prop)"/>
+        <PropertyDropdown class="tight-plus" id="add-group-button" :group-ids="props.manager.state.groupBy" @select="prop => add(prop)"/>
 
     </div>
 </template>
 
 <style scoped>
+/* Same horizontal footprint as the filter's + (no side padding around it) */
+.tight-plus :deep(.p-1) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.form-label-tight {
+    margin-right: 1px;
+}
+
 .loading {
     background-color: rgb(171, 171, 171);
     margin-top: 7px;
@@ -98,7 +108,6 @@ const groups = computed(() => {
 
 .group-form {
     color: rgb(33, 37, 41);
-    font-size: 14px;
 }
 
 .bg {

@@ -778,3 +778,14 @@ a:focus {
   line-height: 18px;
   cursor: pointer;
 }
+
+/* Active state of the filter-row chips (search, filter, group, sort): one blue for all */
+.chip-active {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-radius: 2px;
+}
+.chip-active .bbw:hover,
+.chip-active.hover-light:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}

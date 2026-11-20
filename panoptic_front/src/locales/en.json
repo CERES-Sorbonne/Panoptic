@@ -176,6 +176,7 @@
             "rename_tab_tooltip": "Rename tab",
             "delete_tab_tooltip": "Delete tab",
             "search": "Search by text",
+            "search_short": "Search",
             "search_tooltip": "Search for images matching the text using the CLIP template",
             "grid_view": "Grid",
             "table_view": "Table",

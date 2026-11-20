@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
-import { nextTick, reactive, ref } from 'vue';
-import Dropdown from '../dropdowns/Dropdown.vue';
+import { inject, nextTick, reactive, ref } from 'vue';
+import Dropdown, { dropdownRegistryKey } from '../dropdowns/Dropdown.vue';
+import ViewModal from '../utils/ViewModal.vue';
+import { viewModalScopeKey } from '@/data/composables/viewModal';
 import { useDataStore } from '@/data/stores/dataStore';
 import { useColumnStore } from '@/data/stores/columnStore';
 import { useInstanceStore } from '@/data/stores/instanceStore';
@@ -26,8 +28,33 @@ const erase = reactive(new Set()) as Set<number>
 const modes = reactive({})
 const dropdownElem = ref(null)
 
+// Inside a view (or the top bar) the stamp form opens centered over the view area;
+// elsewhere (image modal) it stays a dropdown.
+const modalScope = inject(viewModalScopeKey, null)
+const parentDropdown = inject(dropdownRegistryKey, null)
+const modalOpen = ref(false)
+
+function openModal() {
+    clear()
+    modalOpen.value = true
+    emits('show')
+}
+
+function onModalClosed() {
+    clear()
+    emits('hide')
+    parentDropdown?.hide()
+}
+
 function close() {
     clear()
+    if (modalScope !== null) {
+        if (modalOpen.value) {
+            modalOpen.value = false
+            onModalClosed()
+        }
+        return
+    }
     dropdownElem.value?.hide()
 }
 
@@ -35,7 +62,7 @@ function clear() {
     Object.keys(stamp).forEach((k: any) => delete stamp[k])
     erase.clear()
     nextTick(() => {
-        if (dropdownElem.value) {
+        if (dropdownElem.value && modalScope === null) {
             dropdownElem.value.focus()
         }
     })
@@ -90,7 +117,29 @@ async function apply() {
 
 <template>
     <div class="m-0 p-0">
-        <Dropdown ref="dropdownElem" :teleport="true" @show="emits('show')" @hide="emits('hide')">
+        <template v-if="modalScope !== null">
+            <div @click="openModal">
+                <slot name="button">
+                    <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">
+                        <span v-if="props.showNumber"><i class="bi bi-paint-bucket" style="position: relative; left: 1px"></i></span>
+                        <span v-else>{{ $t('modals.tagging.button') }}</span>
+                    </div>
+                </slot>
+            </div>
+            <ViewModal v-model:show="modalOpen" :scope="modalScope" :width="440" @close="onModalClosed">
+                <template #title><i class="bi bi-paint-bucket me-1" />{{ $t('modals.tagging.button') }}</template>
+                <div class="m-2" style="max-height: 60vh; overflow-y: auto;">
+                    <StampForm :values="stamp" :modes="modes" :erase="erase" />
+                </div>
+                <div class="d-flex pe-2 pb-2">
+                    <div class="flex-grow-1"></div>
+                    <div class="bbb me-2" @click="close">{{ $t('modals.tagging.cancel') }}</div>
+                    <div class="bbb me-2" @click="clear">{{ $t('modals.tagging.clear') }}</div>
+                    <div class="bbb me" @click="apply">{{ $t('modals.tagging.apply') }}</div>
+                </div>
+            </ViewModal>
+        </template>
+        <Dropdown v-else ref="dropdownElem" :teleport="true" @show="emits('show')" @hide="emits('hide')">
             <template #button>
                 <slot name="button">
                     <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">

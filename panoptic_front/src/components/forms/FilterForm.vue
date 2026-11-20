@@ -16,10 +16,10 @@ const collection = computed(() => props.collection ?? props.tab.collection)
 
 <template>
     <div class="d-flex flex-row filter-form align-items-center">
-        <div class="pt-1 pb-1">{{ $t("main.menu.filters") }}: </div>
+        <div class="pt-1 pb-1"><i class="bi bi-funnel me-1" />{{ $t("main.menu.filters") }}:</div>
         <GlobalFilterInputDropdown :manager="collection.filterManager" :tab="props.tab"/>
 
-        <AddFilterBtn :manager="collection.filterManager" :group="collection.filterManager.state.filter" class="p-1">
+        <AddFilterBtn :manager="collection.filterManager" :group="collection.filterManager.state.filter" class="py-1">
             <span class="base-hover plus-btn text-secondary "><i class="bi bi-plus"></i></span>
         </AddFilterBtn>
     </div>
@@ -29,7 +29,6 @@ const collection = computed(() => props.collection ?? props.tab.collection)
 
 .filter-form {
     color: rgb(33, 37, 41);
-    font-size: 14px;
 }
 
 .plus-btn {

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
-import Dropdown from '../dropdowns/Dropdown.vue';
+import { ref, onMounted, watch, computed, inject } from 'vue';
+import Dropdown, { dropdownRegistryKey } from '../dropdowns/Dropdown.vue';
 import { ActionContext, Instance, ParamDescription } from '@/data/models';
-import ParamInput from '../inputs/ParamInput.vue';
 import { useActionStore } from '@/data/stores/actionStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { sourceFromFunction, objValues, isParamVisible } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
+import ActionForm from './ActionForm.vue';
+import ViewModal from '../utils/ViewModal.vue';
+import { viewModalScopeKey } from '@/data/composables/viewModal';
 
 const actions = useActionStore()
 
@@ -27,19 +28,20 @@ const props = defineProps<{
 }>()
 const emits = defineEmits(['instances', 'groups', 'call', 'submit', 'show', 'hide'])
 
+// Inside a view (or the top bar) the form opens as a modal centered over the view area;
+// elsewhere (e.g. the image modal) it stays a dropdown.
+const modalScope = inject(viewModalScopeKey, null)
+// When this button sits in another dropdown's popup (e.g. a group line menu), that
+// dropdown is closed once the modal is done.
+const parentDropdown = inject(dropdownRegistryKey, null)
+const modalOpen = ref(false)
+
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref<string>(null)
 const loading = ref(false)
 const dropdownElem = ref(null)
-const showFunctionSelect = ref(false)
-
-const source = computed(() => sourceFromFunction(localFunction.value))
-
-const available = computed(() => {
-    const valid = objValues(actions.index).filter(a => a.hooks.includes(props.action))
-    return valid.map(a => a.id)
-})
+const formElem = ref(null)
 
 function loadAction() {
     localFunction.value = defaultFunction.value
@@ -89,28 +91,30 @@ async function call() {
     loading.value = false
 }
 
-function handleMainClick() {
-    if (props.autoCall) {
-        call()
-        return
-    }
-
-    dropdownElem.value.show()
-}
-
 function handleShow() {
-    showFunctionSelect.value = false
+    formElem.value?.reset()
     loadAction()
     emits('show')
 }
 
-function selectFunction(func) {
-    localFunction.value = func
-    showFunctionSelect.value = false
+function openModal() {
+    if (props.autoCall) {
+        call()
+        return
+    }
+    handleShow()
+    modalOpen.value = true
 }
 
-function openFunctionSelect() {
-    showFunctionSelect.value = true
+function onModalClosed() {
+    emits('hide')
+    parentDropdown?.hide()
+}
+
+function callFromModal() {
+    call()
+    modalOpen.value = false
+    onModalClosed()
 }
 
 onMounted(loadAction)
@@ -121,7 +125,25 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <Dropdown :teleport="true" @show="handleShow" @hide="emits('hide')" ref="dropdownElem">
+    <!-- Single root (attrs fall through); the modal is teleported, so its clicks never
+         reach this element's click handler. -->
+    <div v-if="modalScope !== null" class="d-flex main2" :class="{ sbb: !props.noBorder, sb: props.noBorder }"
+        @click="openModal">
+            <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <wTT :message="props.message ?? 'dropdown.action.' + props.action" class="slot-wrap">
+                <div class="slot-inner">
+                    <slot></slot>
+                </div>
+            </wTT>
+        <ViewModal v-model:show="modalOpen" :scope="modalScope" :width="440" @close="onModalClosed">
+            <template #title>{{ $t('action.' + props.action) }}</template>
+            <ActionForm ref="formElem" :action="props.action" :inputs="localInputs" v-model:func="localFunction"
+                @call="callFromModal" @cancel="modalOpen = false; onModalClosed()" />
+        </ViewModal>
+    </div>
+    <Dropdown v-else :teleport="true" @show="handleShow" @hide="emits('hide')" ref="dropdownElem">
         <template #button>
             <div class="d-flex main2" :class="{ sbb: !props.noBorder, sb: props.noBorder }">
                 <div v-if="pending" class="spinner-border spinner-border-sm text-primary me-1" role="status">
@@ -135,47 +157,9 @@ watch(localFunction, loadInput)
             </div>
         </template>
         <template #popup="{ hide }">
-            <Autofocus @keydown.enter="call(); hide();">
-                <div style="width: 400px; overflow: hidden;" class="d-flex flex-column">
-                    <!-- Function Selection View -->
-                    <div v-if="showFunctionSelect">
-                        <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]"
-                            class="option" @click="selectFunction(func)">
-                            <wTT :message="actions.index[func].description">
-                                <i class="bi bi-boxes me-1" />{{ actions.index[func].id }}
-                            </wTT>
-                        </div>
-                        <div v-if="available.length === 0" class="text-gray-500 p-2 text-sm">
-                            No options available
-                        </div>
-                    </div>
-
-                    <!-- Parameters View -->
-                    <div v-else>
-                        <div class="function-header" @click="openFunctionSelect">
-                            <wTT v-if="localFunction" :message="actions.index[localFunction].description">
-                                <i class="bi bi-boxes me-1" /><span>{{ localFunction }}</span>
-                            </wTT>
-                            <div class="flex-grow-1"></div>
-                            <i class="ms-1 bi bi-chevron-down" />
-                        </div>
-
-                        <div v-if="localInputs.length"
-                            style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
-                            <form @submit.prevent="" class="params-grid mt-1">
-                                <template v-for="input, i in localInputs">
-                                    <ParamInput v-if="isParamVisible(input, localInputs)" :input="input" :source="source" :max-width="200" />
-                                </template>
-                            </form>
-                        </div>
-
-                        <div class="d-flex flex-center p-1 bar" :class="{ 'no-shadow': localInputs.length == 0 }">
-                            <div class="flex-grow-1"></div>
-                            <div class="bb" @click="hide">{{ $t('cancel') }}</div>
-                            <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
-                        </div>
-                    </div>
-                </div>
+            <Autofocus>
+                <ActionForm ref="formElem" :action="props.action" :inputs="localInputs" v-model:func="localFunction"
+                    :width="400" @call="call(); hide();" @cancel="hide()" />
             </Autofocus>
         </template>
     </Dropdown>
@@ -184,7 +168,6 @@ watch(localFunction, loadInput)
 <style scoped>
 .main2 {
     cursor: pointer;
-    /* font-size: 14px; */
     align-items: center;
     height: 100%;
 }
@@ -199,42 +182,5 @@ watch(localFunction, loadInput)
     display: flex;
     align-items: center;
     height: 100%;
-}
-
-.params-grid {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 4px 4px;
-    align-items: center;
-    padding: 4px 4px;
-}
-
-.bar {
-    display: flex;
-    padding: 0px 8px;
-    -webkit-box-shadow: 0px 0px 2px 1px var(--border-color);
-    box-shadow: 0px 0px 2px 1px var(--border-color);
-}
-
-.no-shadow {
-    box-shadow: none !important;
-    -webkit-box-shadow: none !important;
-}
-
-.function-header {
-    display: flex;
-    padding: 4px 8px;
-    -webkit-box-shadow: 0px 0px 2px 1px var(--border-color);
-    box-shadow: 0px 0px 2px 1px var(--border-color);
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.is-selected {
-    background-color: var(--grey);
-}
-
-.option {
-    padding: 4px 7px;
 }
 </style>

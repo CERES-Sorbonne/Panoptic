@@ -9,6 +9,8 @@ import LeftBarPanel from '@/components/layoutpanels/LeftBarPanel.vue'
 import FolderPanel from '@/components/layoutpanels/FolderPanel.vue'
 import PropertyPanel from '@/components/layoutpanels/PropertyPanel.vue'
 import FilterIsland from '@/components/layoutpanels/FilterIsland.vue'
+import IslandPanel from '@/layouts/IslandPanel.vue'
+import FilterPanel from '@/components/layoutpanels/FilterPanel.vue'
 import ViewPanel from '@/components/layoutpanels/ViewPanel.vue'
 import TabProvider from '@/components/layoutpanels/TabProvider.vue'
 import { useProjectStore } from '@/data/stores/projectStore'
@@ -97,14 +99,15 @@ onMounted(async () => {
 
             <!-- Center: filter bar above the views -->
             <template #main>
-                <div class="center-stack">
-                    <!-- Filter bar -->
-                    <FilterIsland />
-
-                    <!-- One or two views, side by side when split -->
+                <div class="center-stack" data-vm-area="all">
                     <TabProvider v-slot="{ tab }">
+                        <!-- Shared filter bar (separated filters live inside each pane) -->
+                        <FilterIsland v-if="!(tab.state.splitView && !tab.isBound())" />
+
+                        <!-- One or two views, side by side when split -->
                         <SplitLayout
                             class="view-split"
+                            data-vm-area="views"
                             direction="row"
                             :secondary-ratio="tab.state.splitRatio"
                             @update:secondary-ratio="(r) => { tab.state.splitRatio = r }"
@@ -115,10 +118,20 @@ onMounted(async () => {
                             :hide-secondary="!tab.state.splitView"
                         >
                             <template #primary>
-                                <ViewPanel :view-index="0" />
+                                <div class="view-column" data-vm-column="0">
+                                    <IslandPanel v-if="tab.state.splitView && !tab.isBound()" class="pane-filter">
+                                        <FilterPanel :view-index="0" />
+                                    </IslandPanel>
+                                    <ViewPanel :view-index="0" data-vm-view="0" />
+                                </div>
                             </template>
                             <template #secondary>
-                                <ViewPanel :view-index="1" />
+                                <div class="view-column" data-vm-column="1">
+                                    <IslandPanel v-if="!tab.isBound()" class="pane-filter">
+                                        <FilterPanel :view-index="1" />
+                                    </IslandPanel>
+                                    <ViewPanel :view-index="1" data-vm-view="1" />
+                                </div>
                             </template>
                         </SplitLayout>
                     </TabProvider>
@@ -152,6 +165,20 @@ onMounted(async () => {
     min-width: 0;
     min-height: 0;
     gap: var(--island-gap);
+}
+
+/* Each pane: optional own filter bar above its view */
+.view-column {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    gap: var(--island-gap);
+}
+
+.pane-filter {
+    flex-shrink: 0;
 }
 
 /* View split fills the center column */

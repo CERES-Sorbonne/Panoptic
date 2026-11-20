@@ -38,7 +38,9 @@ const visible = ref(false)
 // suspended: its popup is hidden so it cannot cover the modal, and clicks do not close it.
 // It comes back unchanged when the modal closes.
 const modal = useModalStore()
-const topModalLayer = computed(() => Math.max(-1, ...Object.keys(modal.layerOpen).map(Number)))
+// An open view modal counts as a layer above every regular modal.
+const VIEW_MODAL_LAYER = 1_000_000
+const topModalLayer = computed(() => Math.max(-1, modal.viewModalsOpen > 0 ? VIEW_MODAL_LAYER : -1, ...Object.keys(modal.layerOpen).map(Number)))
 const layerAtShow = ref(-1)
 const suspended = computed(() => visible.value && topModalLayer.value > layerAtShow.value)
 
@@ -49,6 +51,7 @@ const nestedPopups = new Set<PopupGetter>()
 const parentRegistry = inject(dropdownRegistryKey, null)
 const getPopup: PopupGetter = () => popupElem.value
 provide(dropdownRegistryKey, {
+    hide: () => { hide() },
     add(fn: PopupGetter) { nestedPopups.add(fn); parentRegistry?.add(fn) },
     remove(fn: PopupGetter) { nestedPopups.delete(fn); parentRegistry?.remove(fn) }
 })
@@ -123,6 +126,7 @@ onUnmounted(() => {
 
 <script lang="ts">
 export const dropdownRegistryKey: InjectionKey<{
+    hide(): void
     add(fn: () => HTMLElement | null): void
     remove(fn: () => HTMLElement | null): void
 }> = Symbol('dropdownRegistry')

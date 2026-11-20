@@ -3,7 +3,8 @@
 // group, sort. Rendered inside each ViewPanel (M4) and bound to that view's
 // collection, so split views can filter independently. The bind toggle shares /
 // splits the collection between the two views.
-import { computed } from 'vue'
+import { computed, provide } from 'vue'
+import { viewModalScopeKey } from '@/data/composables/viewModal'
 import TextSearchInput from '@/components/inputs/TextSearchInput.vue'
 import FilterForm from '@/components/forms/FilterForm.vue'
 import GroupForm from '@/components/forms/GroupForm.vue'
@@ -13,6 +14,8 @@ import { useCurrentTab } from '@/data/composables/useCurrentTab'
 import WithToolTip from '@/components/tooltips/withToolTip.vue'
 
 const props = defineProps<{ viewIndex: number }>()
+
+provide(viewModalScopeKey, props.viewIndex)
 
 const tab = useCurrentTab()
 const collection = computed(() => tab.value?.collectionForView(props.viewIndex) ?? null)
@@ -46,9 +49,12 @@ function toggleBind() {
 <style scoped>
 .filter-row {
     display: flex;
+    color: rgb(33, 37, 41);
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--spacing-xs);
+    /* Clear separation between the controls (search, filter, group, sort);
+       each label stays tight with its own + button. */
+    gap: 4px 6px;
     padding: 3px 6px;
 }
 

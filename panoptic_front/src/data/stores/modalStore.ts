@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ModalId } from "../models";
-import { computed, reactive, shallowRef } from "vue";
+import { computed, reactive, ref, shallowRef } from "vue";
 
 export const useModalStore = defineStore('modalStore', () => {
     
@@ -16,6 +16,10 @@ export const useModalStore = defineStore('modalStore', () => {
         // console.log('update computed')
         return res
     })
+
+    // Number of open view-scoped modals (components/utils/ViewModal.vue). They act as
+    // the topmost modal layer for dropdown suspension (see Dropdown.vue).
+    const viewModalsOpen = ref(0)
 
     function registerModal(id: ModalId, layer: number = 0) {
         idIndex[id] = layer
@@ -53,7 +57,7 @@ export const useModalStore = defineStore('modalStore', () => {
 
 
     return {
-        idIndex, layerOpen, openIndex,
+        idIndex, layerOpen, openIndex, viewModalsOpen,
         registerModal, openModal, closeModal, isOpen,
         getData
     }

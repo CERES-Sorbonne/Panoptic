@@ -176,6 +176,7 @@
             "rename_tab_tooltip": "Renommer l'onglet",
             "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
+            "search_short": "Rechercher",
             "search_tooltip": "Chercher des images ayant le texte recherché dans l'une de leurs propriétés.",
             "grid_view": "Grille",
             "table_view": "Tableau",
