@@ -12,6 +12,10 @@
  * After changing the layout (rebuild, refresh, refreshNode) it calls `relayout()`. The slot
  * content of a line is rendered again only when that slot is given another line, or on
  * `relayout({ rerender: true })`; reactive state the slot content reads re-renders it as usual.
+ *
+ * With `sticky`, a header slot spans its group down to the next header (see ViewOptions.sticky)
+ * and its content is `position: sticky`: the browser keeps the header of the group at the top in
+ * view and the next header pushes it out, in step with the scroll. Nothing is drawn twice.
  */
 import { onBeforeUnmount, onMounted, provide, shallowReactive, shallowRef, useSlots, watch, ref } from 'vue'
 import VsSlot, { slotContextKey } from './vsSlot'
@@ -39,6 +43,8 @@ const props = withDefaults(defineProps<{
     idleDelay?: number
     // Px of space after the last line, filled by the `tail` slot when given.
     tail?: number
+    // Headers stick to the top while their group is scrolled through (see ViewOptions.sticky).
+    sticky?: boolean
 }>(), {
     overscan: 300,
     lead: 1,
@@ -92,7 +98,12 @@ const host: ViewHost = {
             return
         }
         el.style.display = ''
-        el.style.transform = `translateY(${y}px)`
+        // A sticky header's span is placed by `top`, not a transform: the browser sticks its
+        // content using layout positions, which a transform does not move.
+        const sticky = !!props.sticky && (slot.line.value?.index ?? 0) < 0
+        el.classList.toggle('vs-sticky-span', sticky)
+        el.style.top = sticky ? y + 'px' : ''
+        el.style.transform = sticky ? '' : `translateY(${y}px)`
         el.style.height = size === undefined ? '' : size + 'px'
     },
     lineChanged: slot => {
@@ -114,6 +125,7 @@ const view = new VirtualView(props.layout, host, {
     lead: props.lead,
     measured: props.measure,
     tail: props.tail,
+    sticky: props.sticky,
     fastSpeed: props.fastSpeed,
     idleDelay: props.idleDelay,
 }, props.maxHeight)
@@ -183,6 +195,11 @@ watch(() => [props.overscan, props.lead, props.fastSpeed, props.idleDelay] as co
     Object.assign(view.options, { overscan, lead, fastSpeed, idleDelay })
 })
 watch(tailEl, placeTail, { flush: 'post' })
+watch(() => props.sticky, sticky => {
+    view.options.sticky = sticky
+    written.clear()
+    view.relayout()
+})
 
 // Hidden (display: none, here or on an ancestor), the element loses its scroll position without a
 // scroll event: shown again, it is at the top while the lines are still placed where it was, and
@@ -250,7 +267,9 @@ defineExpose({
 .vs-track {
     position: relative;
     width: 100%;
-    overflow: hidden;
+    /* Clipped, but not a scroll container (as `hidden` would make it): the sticky headers stick
+       to the scroller itself. */
+    overflow: clip;
 }
 
 .vs-slot,
@@ -264,5 +283,21 @@ defineExpose({
 
 .vs-slot {
     contain: layout style;
+}
+
+/* A sticky header's slot spans its group: over the body slots (each its own stacking context, see
+   will-change, and the grid raises a focused one to 1), but the clicks go through to them; its
+   content sticks to the top of the scroller within the span. */
+.vs-slot.vs-sticky-span {
+    z-index: 2;
+    pointer-events: none;
+    will-change: auto;
+    contain: style;
+}
+
+.vs-slot.vs-sticky-span > * {
+    position: sticky;
+    top: 0;
+    pointer-events: auto;
 }
 </style>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, shallowRef, provide, getCurrentInstance } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, shallowRef, provide } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { Group, SelectedImages } from '@/core/GroupManager'
+import { SelectedImages } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/composables/keyState';
 import { Property, Sha1Scores, PropertyMode, ModalId } from '@/data/models';
@@ -36,7 +36,6 @@ const props = defineProps<{
     manager: GroupInspector,
     properties: Property[],
     hideOptions?: boolean,
-    hideGroup?: boolean,
     sha1Scores?: Sha1Scores,
     hideIfModal?: boolean
     preview?: SelectedImages
@@ -50,16 +49,6 @@ const emit = defineEmits(['reco'])
 // Selection namespace for descendant cells (defaults to 'global'). Sourced from
 // the manager so there is a single source of truth per scroller.
 provide('selectNamespace', computed(() => props.manager?.selectionNamespace ?? 'global'))
-
-const hoverGroupBorder = ref(-1)
-
-// The hovered group's indent borders are lit by one CSS rule written here, not by a prop handed to
-// every line: as a prop, each hover in or out of a border re-rendered every line on screen. The
-// borders only carry their group id (data-border-group); the rule is scoped to this scroller, so
-// the other pane's tree keeps its own borders.
-const borderScope = 'tree-' + getCurrentInstance()!.uid
-const hoverBorderCss = computed(() => hoverGroupBorder.value < 0 ? '' :
-    `.vscroller[data-border-scope="${borderScope}"] [data-border-group="${hoverGroupBorder.value}"] { border-left-color: blue; }`)
 
 // Trim off the width prop: the vertical scrollbar (15) + 2px so cells don't touch it.
 const WIDTH_OFFSET = 17
@@ -86,7 +75,7 @@ function lineParams(): TreeLineParams {
     }
 }
 const geometry = new TreeGeometry(lineParams())
-const layout = new ScrollLayout(treeSource(() => props.manager.result, geometry, () => !!props.hideGroup))
+const layout = new ScrollLayout(treeSource(() => props.manager.result, geometry))
 const vs = ref<InstanceType<typeof VirtualScroller>>()
 
 // Bumped each time the tree is read again; the line components re-check their iterators on it
@@ -167,41 +156,12 @@ function scrollTo(groupId: number) {
     vs.value?.scrollTo(groupId)
 }
 
-function updateHoverBorder(value) {
-    hoverGroupBorder.value = value
-}
-
-// ── Parent chains (the indent borders) ───────────────────────────────────────
-// A new array is a changed prop for the line: handed back the same one while the chain is the
-// same, so a rebuild does not re-render every line on screen for its borders.
-const parentsCache = new Map<string, number[]>()
-
-function getParents(group: Group) {
-    const ids: number[] = []
-    const seen = new Set<number>()
-    let current = group?.parent
-    while (current != undefined && !seen.has(current.id)) {
-        seen.add(current.id)
-        ids.unshift(current.id)
-        current = current.parent
-    }
-    return ids
-}
-
-function cachedChain(key: string, ids: number[]): number[] {
-    const old = parentsCache.get(key)
-    if (old && old.length === ids.length && old.every((v, i) => v === ids[i])) return old
-    if (parentsCache.size > 2000) parentsCache.clear()
-    parentsCache.set(key, ids)
-    return ids
-}
-
-function groupLineParents(group: Group) {
-    return cachedChain('g' + group?.id, getParents(group))
-}
-
-function imageLineParents(groupId: number) {
-    return cachedChain('l' + groupId, [...getParents(props.manager.result.index[groupId]), groupId])
+// Closed from its header stuck at the top: the group's lines the viewport was in are gone, so the
+// view goes back to the group's own header rather than to whatever now sits at the same offset.
+function onGroupClosed(groupIds: number | number[]) {
+    onToggled(groupIds)
+    if (Array.isArray(groupIds) || !vs.value) return
+    if (layout.offsetOf({ node: groupIds, index: -1 }) < vs.value.scrollTop()) vs.value.scrollTo(groupIds)
 }
 
 // ── Property cells ──────────────────────────────────────────────────────────
@@ -234,7 +194,10 @@ function cellWalk(propertyId: number) {
 async function navigateCell(from: CellKey, backwards: boolean): Promise<CellKey | undefined> {
     const to = adjacentCellIn(cellWalk(from.propertyId), from, backwards)
     if (!to || to.cell.instanceId === undefined || !vs.value) return undefined
-    const offset = revealOffset(layout.offsetOf(to.line), layout.sizeOf(to.line), vs.value.scrollTop(), props.height)
+    // The sticky group header covers the top of the viewport: the target must land below it.
+    const inset = GROUP_LINE_SIZE
+    const reveal = revealOffset(layout.offsetOf(to.line), layout.sizeOf(to.line), vs.value.scrollTop() + inset, props.height - inset)
+    const offset = reveal === undefined ? undefined : reveal - inset
     if (offset !== undefined) {
         // The editor being left commits on its blur: give it that now, while its card is still
         // there — the scroll can recycle it, and the popups close on scroll anyway.
@@ -323,7 +286,6 @@ function resized() {
 }
 
 watch(() => props.imageSize, () => nextTick(resized))
-watch(() => props.hideGroup, () => computeLines(false))
 
 // The visible properties only change the line height: no line is given another range, so nothing is
 // re-rendered by the scroller (the cards redraw their property rows themselves). Runs before the
@@ -348,33 +310,36 @@ watch(() => props.manager.version.value, triggerUpdate)
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
-        <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="300"
-            :data-border-scope="borderScope" v-on="cellHover.listeners" @range="r => range = r">
+        <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="300" :sticky="true"
+            v-on="cellHover.listeners" @range="r => range = r">
+            <!-- Group headers stick to the top while their group is scrolled through: the deepest
+                 group at the top stays named, its path of parents jumping to them. -->
             <template #default="{ line }">
                 <template v-if="line.index < 0">
-                    <GroupLineVue v-if="!props.hideGroup && groupItem(line)" :item="groupItem(line)!"
-                        :parent-ids="groupLineParents(groupItem(line)!.data)"
+                    <GroupLineVue v-if="groupItem(line)" class="tree-group-header" :item="groupItem(line)!"
                         :manager="props.manager" :hide-options="props.hideOptions" :data="props.manager.result"
-                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
-                        @group:close="onToggled" @group:open="onToggled" @select="toggleGroupSelect"
+                        @scroll="scrollTo"
+                        @group:close="onGroupClosed" @group:open="onToggled" @select="toggleGroupSelect"
                         @reco="emit('reco', $event)" />
                 </template>
                 <template v-else-if="imageItem(line)">
                     <ImageLineVue v-if="imageItem(line)!.type == 'images'" :image-size="imageItem(line)!.imageSize"
-                        :item="imageItem(line)!" :result="props.manager.result"
-                        :parent-ids="imageLineParents(line.node)" :properties="props.properties"
-                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
+                        :item="imageItem(line)!" :result="props.manager.result" :properties="props.properties"
+                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)" />
                     <PileLine v-else :image-size="imageItem(line)!.imageSize" :item="imageItem(line)!"
-                        :result="props.manager.result"
-                        :parent-ids="imageLineParents(line.node)" :properties="visiblePropertiesCluster"
+                        :result="props.manager.result" :properties="visiblePropertiesCluster"
                         :sha1-scores="props.sha1Scores" :preview="props.preview"
-                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
+                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)" />
                 </template>
             </template>
         </VirtualScroller>
     </InstanceData>
     <CellHoverTip :tip="cellHover.tip.value" @hide="cellHover.hideTip" />
-    <component :is="'style'" v-if="hoverBorderCss">{{ hoverBorderCss }}</component>
 </template>
+
+<style scoped>
+/* Opaque: stuck at the top, it covers the image lines scrolling under it. */
+.tree-group-header {
+    background-color: var(--bg-primary);
+}
+</style>

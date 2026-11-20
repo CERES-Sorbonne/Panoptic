@@ -24,12 +24,11 @@ const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(
 const props = defineProps<{
     item: GroupLine
     manager: GroupInspector
-    parentIds: number[];
     data: GroupTree,
     hideOptions: boolean
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'select', 'reco'])
+const emits = defineEmits(['scroll', 'group:close', 'group:open', 'group:update', 'select', 'reco'])
 
 const hoverGroup = ref(false)
 
@@ -85,6 +84,27 @@ const groupName = computed(() => {
     if (props.item.data.type == GroupType.All) return 'All'
     if (props.item.data.type == GroupType.Cluster) return props.item.data.name ?? ('Cluster ' + props.item.data.parentIdx)
     return 'tmp name'
+})
+
+// The group's ancestors, outermost first, the tree's root left out (every line would repeat it):
+// drawn as a muted path before the group's own label, which says how deep it is with no indent
+// (the caret stays in the same place at every depth), and a click on one jumps to it. The previous
+// array is handed back while it shows the same groups and values, so a version bump does not
+// re-render the line for it.
+type Crumb = { id: number, values: Group['meta']['propertyValues'], name?: string }
+const ancestors = computed<Crumb[]>(previous => {
+    version.value
+    const res: Crumb[] = []
+    const seen = new Set<number>()
+    for (let g = props.item.data.parent; g?.parent && !seen.has(g.id); g = g.parent) {
+        seen.add(g.id)
+        const name = g.meta.propertyValues.length ? undefined
+            : g.type == GroupType.Cluster ? (g.name ?? ('Cluster ' + g.parentIdx)) : g.name
+        res.unshift({ id: g.id, values: g.meta.propertyValues, name })
+    }
+    const same = previous && previous.length === res.length
+        && previous.every((c, i) => c.id === res[i].id && c.values === res[i].values && c.name === res[i].name)
+    return same ? previous : res
 })
 
 const isClusterGroup = computed(() => (version.value, props.item.data.subGroupType == GroupType.Cluster))
@@ -223,11 +243,7 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
 <template>
     <div class="d-flex flex-row group-line overflow-hidden"
         @mouseenter="hoverGroup = true" @mouseleave="hoverGroup = false">
-        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
-            @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
-            <div class="group-line-border" :data-border-group="parentId"> </div>
-        </div>
-        <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
+        <div @click="toggleClosed" class="align-self-center ms-1 me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 0px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 0px;"></i>
         </div>
@@ -240,6 +256,13 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
         <div v-if="hasSubgroups && !hasOpenChildren"
             class="text-secondary align-self-center bi bi-plus-square-dotted me-1" @click="openChildren">
         </div>
+        <template v-for="crumb in ancestors" :key="crumb.id">
+            <div class="crumb align-self-center" @click="emits('scroll', crumb.id)">
+                <PropertyValue v-for="value in crumb.values" :value="value" />
+                <span v-if="!crumb.values.length">{{ crumb.name }}</span>
+            </div>
+            <i class="bi bi-chevron-right crumb-sep align-self-center" />
+        </template>
         <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
             <template v-for="propValue in propertyValues">
@@ -417,10 +440,24 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
     align-items: center;
 }
 
-.group-line-border {
-    height: 30px;
-    border-left: 1px solid var(--border-color);
-    padding-left: 10px;
+.crumb {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    opacity: 0.55;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.crumb:hover {
+    opacity: 1;
+}
+
+.crumb-sep {
+    font-size: 10px;
+    margin: 0 6px;
+    color: var(--bs-secondary-color, gray);
 }
 
 .cluster-close {

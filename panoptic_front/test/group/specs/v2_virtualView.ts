@@ -145,6 +145,33 @@ test('V2: scrolling re-renders only the lines that come into range', () => {
     assert.ok(s.view.slots.length <= slotsAfterMount * 3, `${s.view.slots.length} slots after scrolling, ${slotsAfterMount} at mount`)
 })
 
+test('V2: sticky headers span their group, and the header of the group at the top stays mounted', () => {
+    const s = setup(20, () => 100)
+    s.view.options.sticky = true
+    s.view.relayout()
+    // Deep into group 3 (header at 2 * 5030), its header far above the mounted range.
+    const g3 = s.layout.offsetOf({ node: 3, index: HEADER })
+    for (const top of [g3 + 10, g3 + 2000, g3 + 4990]) {
+        s.scroll(top)
+        const mounted = s.view.slots.filter(x => x.key !== null)
+        const header = mounted.find(x => x.key === lineKey({ node: 3, index: HEADER }))
+        assert.ok(header, `header of group 3 mounted at ${top}`)
+        const p = s.h.placed.get(header!.id)!
+        assert.equal(p.y, g3 - s.view.pager.offset, 'placed at its own offset')
+        assert.equal(p.size, 30 + 100 * 50, 'spans its header and its body')
+        // Body lines keep their own size; the range does not start at the pinned header.
+        for (const x of mounted) if (x.line.value!.index >= 0) assert.equal(s.h.placed.get(x.id)!.size, 50)
+        assert.notDeepEqual(s.h.ranges[s.h.ranges.length - 1].mounted[0], { node: 3, index: HEADER })
+    }
+    // Closed, a header spans itself only.
+    s.open.delete(3)
+    s.layout.refreshNode(3)
+    s.view.relayout()
+    s.view.scrollTo(3)
+    const header = s.view.slots.find(x => x.key === lineKey({ node: 3, index: HEADER }))!
+    assert.equal(s.h.placed.get(header.id)!.size, 30)
+})
+
 test('V2: opening a group above the viewport keeps what is on screen in place', () => {
     const s = setup()
     s.scroll(5000)

@@ -10,14 +10,13 @@ import { LineHost, lineIterators, treeLinesBuiltKey } from './treeLines';
 const props = defineProps<{
     imageSize: number,
     item: ImageLine,
-    parentIds: number[],
     // The tree the line is a range of (the manager's GroupResult).
     result: LineHost,
     properties: Property[],
     preview?: Ref<SelectedImages>,
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'update:selected-image'])
+const emits = defineEmits(['update:selected-image'])
 
 const columnStore = useColumnStore()
 const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(() => 'global'))
@@ -69,10 +68,6 @@ const preview = computed(() => {
 
 <template>
     <div class="d-flex flex-row">
-        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
-            @click="emits('scroll', parentId)" @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
-            <div class="image-line" :data-border-group="parentId"></div>
-        </div>
         <Image :image="imageIt" :groupId="item.groupId" :size="props.imageSize"
             :width="cellWidth(i)"
             :properties="props.properties"
@@ -94,12 +89,6 @@ const preview = computed(() => {
 </template>
 
 <style scoped>
-.image-line {
-    height: 100%;
-    border-left: 1px solid var(--border-color);
-    padding-left: 10px;
-}
-
 .image-empty {
     visibility: hidden;
     pointer-events: none;

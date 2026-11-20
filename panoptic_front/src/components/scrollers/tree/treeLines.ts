@@ -9,9 +9,10 @@
  * the instance ids of a line are read straight off the leaf (lineFirstSlots).
  *
  * Since a line holds no image, a leaf's lines depend only on how many positions the leaf has,
- * whether it is piled, its depth and the sizes (TreeGeometry, per depth). So the tree is handed to
- * the VirtualScroller as a LayoutSource (treeSource) — a group's line count is a division — and a
- * line object is only made for the lines on screen (leafLine).
+ * whether it is piled and the sizes (TreeGeometry). Image lines are not indented: they take the
+ * whole width whatever the depth of their group. So the tree is handed to the VirtualScroller as a
+ * LayoutSource (treeSource) — a group's line count is a division — and a line object is only made
+ * for the lines on screen (leafLine).
  *
  * Pure on purpose (no Vue, no stores): the scroller adapts it, and the tests drive it over a
  * real GroupManager.
@@ -38,9 +39,6 @@ export interface LineHost {
 // place — so the iterators are re-checked after each rebuild, not only when `item` changes.
 export const treeLinesBuiltKey: InjectionKey<Ref<number>> = Symbol('treeLinesBuilt')
 
-// One indent column as ImageLine/PileLine actually render it: .ps-2 (8) + .image-line's
-// border-left (1) + its padding-left (10). Must match that CSS or the lines overflow.
-export const MARGIN_STEP = 19
 export const GAP = 8 // must match the "me-2" margin applied to Image/PileLine cells
 export const BORDER = 2 // Image.vue's .full-container 1px border on each side, added on top of its width style
 
@@ -75,8 +73,8 @@ export function positionCount(host: LineHost, group: Group): number {
     return pile ? pile.bounds.length - 1 : group.slots.length
 }
 
-// The geometry shared by every line of the leaves at one depth (and pile state): how many images a
-// line holds, their widths, the line's height.
+// The geometry shared by every line of the leaves of one pile state: how many images a line holds,
+// their widths, the line's height.
 export interface LeafGeometry {
     perLine: number
     lineImgSize: number
@@ -85,7 +83,7 @@ export interface LeafGeometry {
 }
 
 export interface TreeLineParams {
-    // Content width of the scroller, before any indent.
+    // Content width of the scroller.
     contentWidth: number
     imageSize: number
     propertyCount: number
@@ -96,8 +94,8 @@ const sameParams = (a: TreeLineParams, b: TreeLineParams) => a.contentWidth === 
     && a.imageSize === b.imageSize && a.propertyCount === b.propertyCount && a.pilePropertyCount === b.pilePropertyCount
 
 /**
- * Line geometry per depth: a leaf's lines depend only on its indent (depth), whether it is piled,
- * and the params — so it is computed once per (depth, piled), not per leaf or line.
+ * Line geometry: a leaf's lines depend only on whether it is piled and the params — so it is
+ * computed once per pile state, not per leaf or line.
  */
 export class TreeGeometry {
     private cache = new Map<number, LeafGeometry>()
@@ -112,14 +110,12 @@ export class TreeGeometry {
         return true
     }
 
-    get(depth: number, piled: boolean): LeafGeometry {
-        const k = depth * 2 + (piled ? 1 : 0)
+    get(piled: boolean): LeafGeometry {
+        const k = piled ? 1 : 0
         let g = this.cache.get(k)
         if (g) return g
         const p = this.params
-        // An image line draws depth + 1 indent columns (the ancestors and the group itself, see
-        // TreeScroller's imageLineParents), so that many are reserved, not `depth`.
-        const width = p.contentWidth - (depth + 1) * MARGIN_STEP
+        const width = p.contentWidth
         // imageSize only decides how many images fit in a line...
         const perLine = Math.max(1, Math.floor(width / (p.imageSize + BORDER + GAP)))
         // ...then images are stretched to exactly fill a FULL line. Every line uses these same
@@ -148,7 +144,7 @@ export function sameRangeLine(a: ImageLine | undefined, b: ImageLine): boolean {
 // Lines of a leaf's body: none for a leaf without images.
 export function leafLineCount(host: LineHost, group: Group, geometry: TreeGeometry): number {
     if (!group.slots?.length) return 0
-    const geo = geometry.get(group.depth, host.pileIndex.has(group.id))
+    const geo = geometry.get(host.pileIndex.has(group.id))
     return Math.ceil(positionCount(host, group) / geo.perLine)
 }
 
@@ -161,7 +157,7 @@ export function leafLine(host: LineHost, groupId: number, index: number, geometr
     const group = host.index[groupId]
     if (!group || group.children.length) return undefined
     const piled = host.pileIndex.has(groupId)
-    const geo = geometry.get(group.depth, piled)
+    const geo = geometry.get(piled)
     const start = index * geo.perLine
     const count = Math.max(0, Math.min(geo.perLine, positionCount(host, group) - start))
     const line: ImageLine = {
@@ -188,24 +184,24 @@ export interface TreeHost extends LineHost {
 }
 
 /**
- * The tree as a LayoutSource: every group has a header line (none with `hideGroup`), an open leaf
- * has its image (or pile) lines. Each answer is O(1); nothing is built per line.
+ * The tree as a LayoutSource: every group has a header line, an open leaf has its image (or pile)
+ * lines. Each answer is O(1); nothing is built per line.
  */
-export function treeSource(host: () => TreeHost, geometry: TreeGeometry, hideGroup: () => boolean): LayoutSource {
+export function treeSource(host: () => TreeHost, geometry: TreeGeometry): LayoutSource {
     const group = (id: number) => host().index[id]
     return {
         root: () => host().root?.id,
         childCount: id => group(id)?.children.length ?? 0,
         child: (id, i) => group(id).children[i].id,
         isOpen: id => !group(id)?.view.closed,
-        headerSize: () => hideGroup() ? 0 : GROUP_LINE_SIZE,
+        headerSize: () => GROUP_LINE_SIZE,
         bodyLines: id => {
             const g = group(id)
             return !g || g.children.length ? 0 : leafLineCount(host(), g, geometry)
         },
         lineEstimate: id => {
             const g = group(id)
-            return g ? geometry.get(g.depth, host().pileIndex.has(id)).size : 1
+            return g ? geometry.get(host().pileIndex.has(id)).size : 1
         },
         lineType: (id, index) => index < 0 ? 'group' : host().pileIndex.has(id) ? 'piles' : 'images',
     }
@@ -288,7 +284,7 @@ export function treeCellWalk(host: LineHost, layout: ScrollLayout, geometry: Tre
             for (let pos = 0; pos < n; pos++) {
                 const slot = pile ? pile.order[pile.bounds[pos]] : group.slots[pos]
                 if (ids[slot] !== from.instanceId) continue
-                const perLine = geometry.get(group.depth, !!pile).perLine
+                const perLine = geometry.get(!!pile).perLine
                 const line = { node: group.id, index: Math.floor(pos / perLine) }
                 return layout.isShown(line) ? { line, index: pos % perLine } : undefined
             }

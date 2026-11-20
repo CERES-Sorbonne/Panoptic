@@ -71,6 +71,11 @@ export interface ViewOptions {
     // Ms between ranges while motion is 'fast' (default 100): what is flown past is not loaded,
     // what the fling slows down over is, without waiting for it to stop.
     fastRangeEvery?: number
+    // Sticky headers: a header slot spans its header and the body under it (headerSpan), so the
+    // content can stick to the top with CSS (`position: sticky`) — moved by the browser with the
+    // scroll, never a frame late — and is pushed out by the next header. The header of the group
+    // the mounted lines start in stays mounted, however far above its header is.
+    sticky?: boolean
 }
 
 export type RelayoutAnchor = 'pixels' | 'scale'
@@ -281,8 +286,16 @@ export class VirtualView {
         }
         this.tallest = tallest
 
+        // Every line mounted: the lines in range, and the header stuck over the first of them.
+        let lines = want
+        const first = want[0]
+        if (this.options.sticky && first && first.index >= 0 && layout.sizeOf({ node: first.node, index: HEADER })) {
+            const header = { node: first.node, index: HEADER }
+            lines = [{ ...header, top: layout.offsetOf(header) }, ...want]
+        }
+
         const keep = new Set<string>()
-        for (const l of want) keep.add(lineKey(l))
+        for (const l of lines) keep.add(lineKey(l))
         for (const [key, slot] of this.byKey) {
             if (keep.has(key)) continue
             this.byKey.delete(key)
@@ -292,7 +305,7 @@ export class VirtualView {
         }
 
         let entered = 0
-        for (const l of want) {
+        for (const l of lines) {
             const key = lineKey(l)
             let slot = this.byKey.get(key)
             if (!slot) {
@@ -333,6 +346,11 @@ export class VirtualView {
         // Measured scrollers size their body lines themselves; headers are always fixed.
         const ref = slot.line.value
         if (this.options.measured && ref && ref.index >= 0) return undefined
+        if (this.options.sticky && ref && ref.index < 0) {
+            // Down to the next header, but not past the paged content (a group can be taller).
+            const y = slot.top - this.pager.offset
+            return Math.max(slot.size, Math.min(this.layout.headerSpan(ref.node), this.pager.physicalHeight - y))
+        }
         return slot.size
     }
 

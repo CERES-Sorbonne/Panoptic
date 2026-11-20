@@ -15,7 +15,7 @@ import { GroupManager } from '@/core/GroupManager'
 import { Group } from '@/core/group/types'
 import { GroupIterator, ImageIterator } from '@/core/group/GroupIterator'
 import {
-    BORDER, GAP, MARGIN_STEP, TreeGeometry, TreeLineParams, cardLineSize, leafLine, leafLineCount,
+    BORDER, GAP, TreeGeometry, TreeLineParams, cardLineSize, leafLine, leafLineCount,
     lineFirstSlots, lineIterators, lineSlot, treeCellWalk, treeSource,
 } from '@/components/scrollers/tree/treeLines'
 import { gridCellWalk, gridRow, gridSource, rowInstanceId } from '@/components/scrollers/grid/gridLines'
@@ -30,7 +30,7 @@ const params = (over: Partial<TreeLineParams> = {}): TreeLineParams =>
 
 function treeLayout(m: GroupManager, p = params()) {
     const geometry = new TreeGeometry(p)
-    const layout = new ScrollLayout(treeSource(() => m.result, geometry, () => false))
+    const layout = new ScrollLayout(treeSource(() => m.result, geometry))
     layout.rebuild()
     return { geometry, layout }
 }
@@ -158,7 +158,7 @@ test('H2: line geometry is the old computeImageLines geometry', async () => {
     const geometry = new TreeGeometry(p)
     const n = leafLineCount(m.result, leaf, geometry)
     const lines = Array.from({ length: n }, (_, k) => leafLine(m.result, leaf.id, k, geometry)!)
-    const width = p.contentWidth - (leaf.depth + 1) * MARGIN_STEP
+    const width = p.contentWidth
     const perLine = Math.max(1, Math.floor(width / (p.imageSize + BORDER + GAP)))
     const want: number[][] = []
     for (let start = 0; start < 10; start += perLine) {

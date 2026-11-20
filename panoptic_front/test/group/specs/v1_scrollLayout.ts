@@ -232,6 +232,29 @@ test('V1: visibility, hidden nodes resolve to their closed ancestor', () => {
     assert.equal(layout.isShown({ node: deep.id, index: HEADER }), false)
 })
 
+test('V1: a header spans its node\'s own lines: itself, and the body of an open leaf', () => {
+    for (const seed of [21, 22, 23, 24]) {
+        const { root, nodes, rand } = randomTree(seed)
+        const layout = new ScrollLayout(sourceOf(root, nodes))
+        layout.rebuild()
+        const ids = [...nodes.keys()].filter(id => id !== root.id)
+        for (let step = 0; step < 20; step++) {
+            const flat = flatten(root, new Map())
+            for (let k = 0; k < flat.length; k++) {
+                const f = flat[k]
+                if (f.ref.index !== HEADER) continue
+                let j = k
+                while (j + 1 < flat.length && flat[j + 1].ref.node === f.ref.node) j++
+                assert.equal(layout.headerSpan(f.ref.node), flat[j].top + flat[j].size - f.top, `seed ${seed}: span of ${f.ref.node}`)
+            }
+            for (const n of nodes.values()) if (!n.header) assert.equal(layout.headerSpan(n.id), 0)
+            const id = ids[Math.floor(rand() * ids.length)]
+            nodes.get(id)!.open = !nodes.get(id)!.open
+            layout.refreshNode(id)
+        }
+    }
+})
+
 test('V1: an empty tree, a lone root, a cycle', () => {
     const empty = new ScrollLayout({ root: () => undefined } as unknown as LayoutSource)
     empty.rebuild()

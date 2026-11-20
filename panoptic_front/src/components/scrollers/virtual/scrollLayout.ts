@@ -427,6 +427,18 @@ export class ScrollLayout {
         return lineKey(ref)
     }
 
+    /**
+     * Px of the node's own lines: its header and, for an open leaf, its body. What a sticky header
+     * may stick over before the next header pushes it out (the next line after them is a header
+     * when every node has one, as in the tree). 0 for a node without a header.
+     */
+    headerSpan(node: NodeId): number {
+        const i = this.index.get(node)
+        if (i === undefined || !this.a.header[i]) return 0
+        const a = this.a
+        return a.open[i] && !a.count[i] ? a.header[i] + this.bodyHeight(i) : a.header[i]
+    }
+
     /** The lines from `from` to `to` included, in display order, at most `max` of them. */
     between(from: LineRef, to: LineRef, max = 1000): LocatedLine[] {
         const out: LocatedLine[] = []

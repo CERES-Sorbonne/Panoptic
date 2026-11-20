@@ -14,7 +14,6 @@ const linesBuilt = inject(treeLinesBuiltKey, undefined)
 const props = defineProps<{
     imageSize: number
     item: ScrollerPileLine
-    parentIds: number[]
     // The tree the line is a range of (the manager's GroupResult).
     result: LineHost
     properties: Property[]
@@ -22,7 +21,7 @@ const props = defineProps<{
     preview?: SelectedImages
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
+const emits = defineEmits(['update', 'update:selected-image'])
 
 // One iterator per pile on this line (its `slots` = the whole pile), made for the lines on screen
 // only — see ImageLine.vue.
@@ -64,10 +63,6 @@ const previews = computed(() => {
 
 <template>
     <div class="d-flex flex-row">
-        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
-            @click="emits('scroll', parentId)" @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
-            <div class="image-line" :data-border-group="parentId"></div>
-        </div>
         <ImageVue :image="imageIt" :groupId="item.groupId" :size="props.imageSize"
             :width="cellWidth(i)"
             :properties="props.properties" :selected="selected[col.instanceIds()[imageIt.slot]]" :selectedPreview="previews[col.instanceIds()[imageIt.slot]]"
@@ -86,12 +81,6 @@ const previews = computed(() => {
 </template>
 
 <style scoped>
-.image-line {
-    height: 100%;
-    border-left: 1px solid var(--border-color);
-    padding-left: 10px;
-}
-
 .image-empty {
     visibility: hidden;
     pointer-events: none;
