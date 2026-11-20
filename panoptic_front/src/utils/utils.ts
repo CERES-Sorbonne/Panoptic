@@ -389,6 +389,12 @@ export function sourceFromFunction(func: string) {
     return func.slice(0, func.indexOf('.'))
 }
 
+// 'nb_clusters' -> 'Nb clusters': readable label for a raw plugin identifier.
+export function prettifyName(name: string) {
+    const s = (name ?? '').replace(/_/g, ' ').trim()
+    return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
 export function hasPropertyChanges(commit: DbCommit) {
     return commit.properties?.length || commit.emptyProperties?.length || commit.propertyGroups?.length || commit.emptyPropertyGroups?.length
 }

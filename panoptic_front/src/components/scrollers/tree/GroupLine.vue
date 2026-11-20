@@ -93,7 +93,7 @@ const isClusterGroup = computed(() => (version.value, props.item.data.subGroupTy
 // ClusterManager owns the run, so the clusters appear even if this line has been scrolled out
 // of the virtualized list (i.e. unmounted) by the time the backend answers.
 function cluster(req: ClusterRequest) {
-    props.manager.cluster(props.item.data.id, req)
+    return props.manager.cluster(props.item.data.id, req)
 }
 
 // Each button spins only for the run it started (the run remembers its action hook).

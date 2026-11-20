@@ -2,17 +2,23 @@
 // A panel centered over part of the view area (see data/composables/viewModal.ts).
 // Fixed-positioned over the target element's rect, tracked live so it follows
 // split drags and window resizes. Closes on backdrop click and Escape.
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useCurrentTab } from '@/data/composables/useCurrentTab'
 import { useModalStore } from '@/data/stores/modalStore'
-import { resolveViewModalTarget, viewModalCoverFilters, ViewModalScope } from '@/data/composables/viewModal'
+import { resolveViewModalTarget, ViewModalScope } from '@/data/composables/viewModal'
 
 const props = withDefaults(defineProps<{
     show: boolean
     scope: ViewModalScope
     width?: number
+    // No header row (title + close): the content is the whole panel (e.g. a Spotlight-like search).
+    bare?: boolean
+    // 'top' puts the panel in the upper part of the target instead of its center.
+    placement?: 'center' | 'top'
 }>(), {
-    width: 420
+    width: 420,
+    bare: false,
+    placement: 'center'
 })
 const emits = defineEmits(['update:show', 'close'])
 
@@ -26,6 +32,18 @@ function setCounted(v: boolean) {
     modalStore.viewModalsOpen += v ? 1 : -1
 }
 const rect = ref({ top: 0, left: 0, width: 0, height: 0 })
+
+// 'top': the panel starts at ~18% of the target height (16px..140px), like Spotlight.
+const backdropStyle = computed(() => {
+    const r = rect.value
+    const style: Record<string, string> = {
+        top: r.top + 'px', left: r.left + 'px', width: r.width + 'px', height: r.height + 'px'
+    }
+    if (props.placement === 'top') {
+        style.paddingTop = Math.round(Math.max(16, Math.min(140, r.height * 0.18))) + 'px'
+    }
+    return style
+})
 const panelElem = ref<HTMLElement>()
 
 let target: HTMLElement | null = null
@@ -61,7 +79,8 @@ function close() {
 
 async function focusFirst() {
     await nextTick()
-    const el = panelElem.value?.querySelector<HTMLElement>('input, textarea, [contenteditable="true"]')
+    // First field, else an element the content marks (e.g. a form's primary button).
+    const el = panelElem.value?.querySelector<HTMLElement>('input, textarea, [contenteditable="true"], [data-autofocus]')
     ;(el ?? panelElem.value)?.focus()
 }
 
@@ -76,11 +95,10 @@ watch(() => props.show, (show) => {
     }
 }, { immediate: true })
 
-// The split state or the coverage setting can change while open: re-target.
+// The split state can change while open: re-target.
 watch(() => [
     props.show && tab.value?.state.splitView,
-    props.show && tab.value?.isBound(),
-    viewModalCoverFilters.value
+    props.show && tab.value?.isBound()
 ], () => { if (props.show) nextTick(attach) })
 
 onBeforeUnmount(() => { detach(); setCounted(false) })
@@ -88,18 +106,13 @@ onBeforeUnmount(() => { detach(); setCounted(false) })
 
 <template>
     <Teleport to="body">
-        <div v-if="show" class="vm-backdrop"
-            :style="{ top: rect.top + 'px', left: rect.left + 'px', width: rect.width + 'px', height: rect.height + 'px' }"
-            @mousedown.self="close">
-            <div ref="panelElem" class="vm-panel" tabindex="-1"
+        <div v-if="show" class="vm-backdrop" :class="{ 'vm-top': props.placement === 'top' }"
+            :style="backdropStyle" @mousedown.self="close">
+            <div ref="panelElem" class="vm-panel" :class="{ 'vm-bare': props.bare }" tabindex="-1"
                 :style="{ width: props.width + 'px' }"
                 @keydown.escape.stop="close">
-                <div class="vm-header">
+                <div v-if="!props.bare" class="vm-header">
                     <div class="vm-title"><slot name="title"></slot></div>
-                    <div class="sb vm-icon" :title="viewModalCoverFilters ? 'Cover views only' : 'Cover filter bar too'"
-                        @click="viewModalCoverFilters = !viewModalCoverFilters">
-                        <i :class="viewModalCoverFilters ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'" />
-                    </div>
                     <div class="sb vm-icon" @click="close"><i class="bi bi-x-lg" /></div>
                 </div>
                 <div class="vm-body">
@@ -120,7 +133,7 @@ onBeforeUnmount(() => { detach(); setCounted(false) })
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.4);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--island-radius, 10px);
     padding: 16px;
     box-sizing: border-box;
 }
@@ -136,6 +149,28 @@ onBeforeUnmount(() => { detach(); setCounted(false) })
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
     outline: none;
     overflow: hidden;
+}
+
+.vm-top {
+    align-items: flex-start;
+}
+
+/* Headerless variant: larger rounding, softer and deeper shadow. Not clipped, so the
+   non-teleported popups of its content (e.g. plugin options) can overflow it. */
+.vm-panel.vm-bare {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.1);
+    overflow: visible;
+}
+
+/* Flex column so content can shrink to the panel's max-height and scroll a part of
+   itself (e.g. ActionForm's params between its fixed header and footer). */
+.vm-bare > .vm-body {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border-radius: inherit;
 }
 
 .vm-header {

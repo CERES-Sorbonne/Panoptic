@@ -97,9 +97,13 @@ export class ClusterManager implements GroupOpsHost {
     // group and the function. In particular the await lives HERE, on an object with the tab's
     // lifetime, not in the component that clicked: the clusters land whether or not the button
     // (a virtualized scroller line) is still mounted when the backend answers.
-    async cluster(targetGroupId: number, req: ClusterRequest) {
+    //
+    // Resolves once the run is over: undefined on success (or when superseded by a later run on
+    // the same group), the failure code otherwise (see clusterErrorText). Never rejects. Lets the
+    // caller that submitted it (the action modal) wait for the outcome without owning the run.
+    async cluster(targetGroupId: number, req: ClusterRequest): Promise<string | undefined> {
         const target = this.host.result?.index?.[targetGroupId]
-        if (!target) return
+        if (!target) return 'group-gone'
 
         // A new run supersedes whatever the last one left here: the previous attempt's error
         // stops being current the moment another starts, which is also what keeps a failed run
@@ -112,8 +116,7 @@ export class ClusterManager implements GroupOpsHost {
         // is replaced, but a group already divided by a property cannot be clustered. Fail here
         // rather than after a pointless round trip to the backend.
         if ((target.children ?? []).some(c => c.type !== GroupType.Cluster)) {
-            this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'not-a-leaf')
-            return
+            return this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'not-a-leaf')
         }
 
         this.runs[targetGroupId] = { token, funcId: req.funcId, hook: req.hook ?? 'group', running: true }
@@ -133,37 +136,37 @@ export class ClusterManager implements GroupOpsHost {
             // trusting the Group captured above; if it is gone, the result is stale — drop it.
             const current = this.host.result?.index?.[targetGroupId]
             if (!current) {
-                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'group-gone')
-                return
+                return this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'group-gone')
             }
             // A grouping level appended while we waited divides the group now (its piles, if it
             // had any, moved down to its "no value" child): the result was computed for a leaf
             // that no longer is one, so grafting it would open a container that can never show.
             if (current.children.some(c => c.type !== GroupType.Cluster)) {
-                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'not-a-leaf')
-                return
+                return this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'not-a-leaf')
             }
             if (!groups?.length) {
-                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'no-groups')
-                return
+                return this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', 'no-groups')
             }
 
             this.applyClusters(targetGroupId, groups)
             delete this.runs[targetGroupId]
             this.onCluster.emit({ targetGroupId, groups })
+            return undefined
         } catch (e) {
             console.error(e)
             if (this.runs[targetGroupId]?.token === token) {
-                this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', String(e))
+                return this.failRun(targetGroupId, token, req.funcId, req.hook ?? 'group', String(e))
             }
+            return undefined
         }
     }
 
     // Record why a run stopped, and say so: the entry is what a button reads back
     // (clusterError), the log is what is left when nobody is looking at that group.
-    private failRun(targetGroupId: number, token: number, funcId: string, hook: string, error: string) {
+    private failRun(targetGroupId: number, token: number, funcId: string, hook: string, error: string): string {
         this.runs[targetGroupId] = { token, funcId, hook, running: false, error }
         console.warn(`cluster: ${funcId} on group ${targetGroupId} failed \u2014 ${clusterErrorText(error)}`)
+        return error
     }
 
     // With a hook, only a run started from that hook counts.

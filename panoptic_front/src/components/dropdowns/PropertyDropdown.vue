@@ -2,7 +2,6 @@
 import Dropdown from './Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { ref } from 'vue';
-import { goNext } from '@/utils/utils';
 
 const props = defineProps({
     groupIds: Array<number>
@@ -21,9 +20,7 @@ const dropdownElem = ref(null)
         </template>
 
         <template #popup>
-            <div class="">
-                <PropertySelection @click="goNext()" @select="prop => {emits('select', prop); dropdownElem.hide()}" :ignore-ids="props.groupIds" />
-            </div>
+            <PropertySelection @select="prop => {emits('select', prop); dropdownElem.hide()}" :ignore-ids="props.groupIds" />
         </template>
 
 

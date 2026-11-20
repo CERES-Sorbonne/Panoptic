@@ -177,6 +177,13 @@
             "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
             "search_short": "Rechercher",
+            "search_mode_text": "Texte",
+            "search_mode_regex": "Regex",
+            "search_mode_semantic": "Sémantique",
+            "search_clear": "Effacer",
+            "search_close": "Fermer",
+            "search_pending": "Recherche…",
+            "search_error": "Échec de la recherche",
             "search_tooltip": "Chercher des images ayant le texte recherché dans l'une de leurs propriétés.",
             "grid_view": "Grille",
             "table_view": "Tableau",
@@ -393,6 +400,10 @@
             "erase": "Effacer",
             "add_property": "Ajouter une propriété",
             "empty": "Aucune propriété sélectionnée",
+            "clear_set": "Vider",
+            "visible_set": "Visibles",
+            "all_set": "Toutes",
+            "remove_from_set": "Retirer de la liste",
             "erase_tooltip": "Effacer le champ pour toute la sélection",
             "cancel_tooltip": "Annuler les changements"
         },
@@ -677,6 +688,12 @@
         "step-16": "Cliquez sur une image pour l'ouvrir en grand, sur le côté sont affichées les images similaires à cette image.",
         "step-17": "Retrouvez des tutoriels plus détaillés sur le site du CERES: https://ceres.sorbonne-université.fr/outils/panoptic"
     },
+    "action_modal": {
+        "function": "Fonction",
+        "pending": "Calcul en cours…",
+        "error": "Échec",
+        "no_result": "la fonction n’a renvoyé aucun résultat"
+    },
     "action": {
         "find_similar": "Similaire",
         "group": "Créer des clusters",
@@ -901,5 +918,7 @@
     "installed": "Installé",
     "confirm": "Confirmer",
     "cancel": "Annuler",
-    "call": "Lancer"
+    "call": "Lancer",
+    "close": "Fermer",
+    "no_function_available": "Aucune fonction disponible"
 }

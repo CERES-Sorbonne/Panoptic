@@ -12,7 +12,8 @@ import { GroupManager, GroupState, Group, GroupIteratorOptions, ClusterRequest, 
 import { EventEmitter, afterPaint } from "@/utils/utils";
 import { useDataStore } from "@/data/stores/dataStore";
 import { useColumnStore } from "@/data/stores/columnStore";
-import { Reactive, reactive, watch, WatchStopHandle } from "vue";
+import { nextTick, Reactive, reactive, toRaw, watch, WatchStopHandle } from "vue";
+import { TextQuery } from "@/data/models";
 import { grpLog, grpDebugOn, few } from '@/utils/debugGroup';
 
 export interface RunCollectionState {
@@ -56,6 +57,10 @@ export class CollectionManager implements GroupInspector {
     // too, and the resolver that releases its waiters. Null when none is scheduled.
     private reloadDone: Promise<void> | null = null
     private releaseReload: (() => void) | null = null
+    // Error thrown by the last state-driven reload (null when it succeeded), so callers awaiting
+    // it (applyQuery) can report the failure instead of it only reaching the console.
+    private lastReloadError: unknown = null
+    private disposed = false
 
     // Lifecycle: stop handles for the config watches + the bound data listener,
     // so a collection can be torn down when its last view stops referencing it
@@ -314,9 +319,11 @@ export class CollectionManager implements GroupInspector {
             const kind = this.pendingKind
             this.pendingKind = null
             this.reloadTimer = null
+            this.lastReloadError = null
             try {
                 if (kind) await this.runReload(kind)
             } catch (e) {
+                this.lastReloadError = e
                 console.error('[collection] reload failed', e)
             }
             // A request that arrived while this one ran has armed the timer again: its run is
@@ -361,6 +368,27 @@ export class CollectionManager implements GroupInspector {
         }
     }
 
+    // Set the text query and resolve once the reload it triggers has finished (results applied).
+    // - 'applied': this query's results are on screen.
+    // - 'superseded': a newer query replaced it before it finished (the waiters of the shared
+    //   debounced reload are released when the latest run is done).
+    // - 'deferred': nothing ran now (tab inactive / autoReload off): the collection is only
+    //   marked dirty and will recompute later.
+    // - 'cancelled': the collection was disposed meanwhile.
+    // Rejects with the reload's error when it failed. The caller decides whether the query is a
+    // no-op (equal to the current one) before calling.
+    async applyQuery(query: TextQuery): Promise<'applied' | 'superseded' | 'deferred' | 'cancelled'> {
+        this.filterManager.setQuery(query)
+        // The filter watch (flush 'pre') arms the debounced reload on the next tick.
+        await nextTick()
+        if (!this.reloadDone) return this.disposed ? 'cancelled' : 'deferred'
+        while (this.reloadDone) await this.reloadDone
+        if (this.disposed) return 'cancelled'
+        if (toRaw(this.filterManager.state.query) !== toRaw(query)) return 'superseded'
+        if (this.lastReloadError) throw this.lastReloadError
+        return 'applied'
+    }
+
     updateInstances(instanceIds: Set<number>) {
         // Keep the in-flight reflow so callers that write a value and then act on the
         // resulting tree (e.g. assign-then-drain in the group view) can await it.
@@ -400,6 +428,7 @@ export class CollectionManager implements GroupInspector {
     // referenced this collection stops doing so (TabManager.pruneCollections),
     // and when the owning tab is deleted (TabManager.dispose).
     dispose() {
+        this.disposed = true
         this.stops.forEach(stop => stop())
         this.stops = []
         useDataStore().onChange.removeListener(this.boundUpdateInstances)

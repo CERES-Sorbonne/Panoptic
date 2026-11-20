@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { isReadonly, PropertyType } from '@/data/models';
-import { computed } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { PropertyGroupId } from '@/data/models';
+import { useCurrentTab } from '@/data/composables/useCurrentTab';
+import Dropdown from '../dropdowns/Dropdown.vue';
+import PropertySelection from '../inputs/PropertySelection.vue';
+import { useI18n } from 'vue-i18n';
 
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue'
@@ -22,10 +27,66 @@ const props = defineProps({
     modes: Object as () => { [pId: number]: number }
 })
 const emits = defineEmits(['blur'])
+const { t } = useI18n()
+const tab = useCurrentTab()
 
-const properties = computed(() => {
-    return data.propertyList.filter(p => p.id >= 0 && !isReadonly(p))
+// Stampable properties (computed / readonly / special ids excluded)
+const stampable = computed(() => data.propertyList.filter(p => p.id >= 0 && !isReadonly(p)))
+const stampableIds = computed(() => new Set(stampable.value.map(p => p.id)))
+
+// The "stamp set": properties shown in the form. Reset to the tab's visible properties on each open.
+const chosen = reactive(new Set<number>())
+
+function setChosen(ids: number[]) {
+    chosen.clear()
+    ids.filter(id => stampableIds.value.has(id)).forEach(id => chosen.add(id))
+    dropPending()
+}
+function resetToVisible() {
+    setChosen((tab.value?.getVisibleProperties() ?? []).map(p => p.id))
+}
+function selectAll() { setChosen(stampable.value.map(p => p.id)) }
+function clearSet() { setChosen([]) }
+function addProperty(id: number) {
+    if (stampableIds.value.has(id)) chosen.add(id)
+    addElem.value?.hide()
+}
+function removeProperty(id: number) {
+    chosen.delete(id)
+    dropPending()
+}
+// Forget values / modes / erase flags of properties no longer in the set, so they aren't applied
+function dropPending() {
+    Object.keys(props.values).map(Number).forEach(id => { if (!chosen.has(id)) delete props.values[id] })
+    Object.keys(props.modes).map(Number).forEach(id => { if (!chosen.has(id)) delete props.modes[id] })
+    Array.from(props.erase).forEach(id => { if (!chosen.has(id)) props.erase.delete(id) })
+}
+onMounted(resetToVisible)
+defineExpose({ resetToVisible })
+
+const addElem = ref(null)
+const ignoreIds = computed(() => [
+    ...chosen,
+    ...data.propertyList.filter(p => !stampableIds.value.has(p.id)).map(p => p.id)
+])
+
+function groupName(groupId: number): string {
+    if (groupId === PropertyGroupId.DEFAULT) return t('common.properties.default')
+    if (groupId === PropertyGroupId.METADATA) return t('common.properties.metadata')
+    return data.propertyGroups[groupId]?.name ?? ''
+}
+
+// Chosen properties grouped like the sidebar (propertyTree order)
+const groups = computed(() => {
+    const res = [] as { groupId: number, name: string, properties: typeof stampable.value }[]
+    for (const node of data.propertyTree) {
+        const properties = node.propertyIds.filter(id => chosen.has(id)).map(id => data.properties[id]).filter(Boolean)
+        if (properties.length) res.push({ groupId: node.groupId, name: groupName(node.groupId), properties })
+    }
+    return res
 })
+const showGroupHeaders = computed(() => groups.value.length > 1 || (groups.value[0] && groups.value[0].groupId !== PropertyGroupId.DEFAULT))
+const properties = computed(() => groups.value.flatMap(g => g.properties))
 
 const propertyColor = computed(() => {
     const res = {} as { [pId: number]: String }
@@ -51,9 +112,27 @@ function setMode(propId: number, mode: number) {
 
 <template>
     <div class="form-title">{{ $t('modals.tagging.title') }}</div>
-    <table class="stamp-table">
-        <tbody>
-            <tr v-for="property in properties" class="">
+    <div class="stamp-toolbar">
+        <Dropdown ref="addElem" :teleport="true" :auto-focus="false" fit-content>
+            <template #button>
+                <button type="button" class="st-tool st-add"><i class="bi bi-plus-lg" />{{ $t('modals.tagging.add_property') }}</button>
+            </template>
+            <template #popup>
+                <PropertySelection :ignore-ids="ignoreIds" @select="addProperty" />
+            </template>
+        </Dropdown>
+        <div class="flex-grow-1"></div>
+        <button type="button" class="st-tool" @click="resetToVisible">{{ $t('modals.tagging.visible_set') }}</button>
+        <button type="button" class="st-tool" @click="selectAll">{{ $t('modals.tagging.all_set') }}</button>
+        <button type="button" class="st-tool" :disabled="!chosen.size" @click="clearSet">{{ $t('modals.tagging.clear_set') }}</button>
+    </div>
+    <div v-if="!properties.length" class="stamp-empty">{{ $t('modals.tagging.empty') }}</div>
+    <table v-else class="stamp-table">
+        <tbody v-for="group in groups" :key="group.groupId">
+            <tr v-if="showGroupHeaders" class="group-row">
+                <td colspan="5" class="group-header">{{ group.name }}</td>
+            </tr>
+            <tr v-for="property in group.properties" :key="property.id" class="prop-row">
                 <template v-if="property.id >= 0">
                     <td :class="propertyColor[property.id]" class="text-nowrap prop-name">
                         <wTT :message="property.name" class="d-block">
@@ -132,6 +211,11 @@ function setMode(propId: number, mode: number) {
                         </td>
                     </template>
 
+                    <td class="remove-col">
+                        <wTT message="modals.tagging.remove_from_set">
+                            <i class="bi bi-x-lg" @click="removeProperty(property.id)" />
+                        </wTT>
+                    </td>
                 </template>
             </tr>
         </tbody>
@@ -161,16 +245,16 @@ tr td {
     transition: background-color 0.12s ease;
 }
 
-tr:hover td {
-    background-color: var(--light-grey);
+tr.prop-row:hover td {
+    background-color: var(--hover-bg);
 }
 
 tr td:first-child {
-    border-radius: 6px 0 0 6px;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
 
 tr td:last-child {
-    border-radius: 0 6px 6px 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .prop-name {
@@ -209,15 +293,15 @@ tr td:last-child {
 }
 
 .mode-switch {
-    background-color: var(--light-grey);
-    border-radius: 6px;
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
     padding: 2px;
     gap: 2px;
 }
 
 .mode-option {
     padding: 0px 6px;
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
     line-height: 18px;
@@ -229,9 +313,9 @@ tr td:last-child {
 }
 
 .selected {
-    background-color: var(--white, #fff);
+    background-color: var(--bg-primary);
+    color: var(--primary);
     opacity: 1;
-    font-weight: 500;
 }
 
 .erase-label {
@@ -256,6 +340,79 @@ tr td:last-child {
 
 .action-col i:hover {
     opacity: 1;
-    background-color: var(--selected-grey);
+    background-color: var(--bg-tertiary);
+}
+.stamp-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0 4px;
+}
+
+.st-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 8px;
+    border: none;
+    border-radius: var(--radius-sm) !important;
+    background: transparent;
+    font-size: 12px !important;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+}
+
+.st-tool:hover:not(:disabled) {
+    background: var(--hover-bg);
+    color: var(--text-primary, #1a1a1a);
+}
+
+.st-tool:disabled {
+    opacity: 0.4;
+}
+
+.st-add {
+    color: var(--primary);
+}
+
+.stamp-empty {
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-tertiary, #999);
+}
+
+.group-header {
+    padding: 8px 8px 2px !important;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-tertiary, #999);
+}
+
+.remove-col {
+    width: 22px;
+    padding-left: 0 !important;
+    padding-top: 6px !important;
+    text-align: center;
+}
+
+.remove-col i {
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+tr.prop-row:hover .remove-col i {
+    opacity: 0.45;
+}
+
+.remove-col i:hover {
+    opacity: 1 !important;
+    background-color: var(--bg-tertiary);
 }
 </style>

@@ -177,6 +177,13 @@
             "delete_tab_tooltip": "Delete tab",
             "search": "Search by text",
             "search_short": "Search",
+            "search_mode_text": "Text",
+            "search_mode_regex": "Regex",
+            "search_mode_semantic": "Semantic",
+            "search_clear": "Clear",
+            "search_close": "Close",
+            "search_pending": "Searching…",
+            "search_error": "Search failed",
             "search_tooltip": "Search for images matching the text using the CLIP template",
             "grid_view": "Grid",
             "table_view": "Table",
@@ -388,6 +395,10 @@
             "erase": "Erase",
             "add_property": "Add a property",
             "empty": "No property selected yet",
+            "clear_set": "Clear",
+            "visible_set": "Visible",
+            "all_set": "All",
+            "remove_from_set": "Remove from the list",
             "erase_tooltip": "Erase this field for whole selection",
             "cancel_tooltip": "Cancel changes"
         },
@@ -671,6 +682,12 @@
         "step-16": "Click on an image to open it in full size, similar images to this image are displayed on the side.",
         "step-17": "Find more detailed tutorials on the CERES website: https://ceres.sorbonne-universite.fr/outils/panoptic"
     },
+    "action_modal": {
+        "function": "Function",
+        "pending": "Running…",
+        "error": "Failed",
+        "no_result": "the function returned no result"
+    },
     "action": {
         "find_similar": "Similar",
         "group": "Create Clusters",
@@ -890,5 +907,7 @@
     },
     "confirm": "Confirm",
     "cancel": "Cancel",
-    "call": "Run"
+    "call": "Run",
+    "close": "Close",
+    "no_function_available": "No function available"
 }

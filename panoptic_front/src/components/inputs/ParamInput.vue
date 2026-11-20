@@ -1,6 +1,6 @@
 // ParamInput.vue
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import { useDataStore } from '@/data/stores/dataStore';
@@ -14,6 +14,9 @@ const props = defineProps<{
     input: ParamDescription
     source: string
     maxWidth?: number
+    // The caller renders its own label (e.g. ActionForm); without maxWidth the controls
+    // then take the width their container gives them.
+    hideLabel?: boolean
 }>();
 
 defineExpose({ focus })
@@ -22,7 +25,6 @@ const emits = defineEmits(['update:modelValue']);
 
 const elem = ref(null)
 const localValue = ref(props.input.defaultValue)
-console.log(props.input.defaultValue)
 const defaultProperty = ref(data.propertyList[0])
 function focus() {
     // console.log('focus', elem.value)
@@ -30,6 +32,10 @@ function focus() {
         elem.value.focus()
     }
 }
+
+// No maxWidth: no inline width, the container decides.
+const widthStyle = computed(() => props.maxWidth ? { width: props.maxWidth + 'px' } : {})
+const innerWidth = computed(() => props.maxWidth ? props.maxWidth - 6 : undefined)
 
 function initValues() {
     localValue.value = props.input.defaultValue
@@ -65,41 +71,41 @@ onMounted(initValues)
 </script>
 
 <template>
-    <wTT :message="props.input.description" class="label-cell">
+    <wTT v-if="!props.hideLabel" :message="props.input.description" class="label-cell">
         <div v-if="props.input.name" class="param-label">{{ props.input.name }}</div>
     </wTT>
 
     <div class="input-cell">
         <div v-if="props.input.type == 'str'">
-            <input type="text" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
+            <input type="text" v-model="localValue" ref="elem" :style="widthStyle" />
         </div>
         <div v-if="props.input.type == 'int'">
-            <input type="number" step="1" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
+            <input type="number" step="1" v-model="localValue" ref="elem" :style="widthStyle" />
         </div>
         <div v-if="props.input.type == 'float'">
-            <input type="number" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
+            <input type="number" v-model="localValue" ref="elem" :style="widthStyle" />
         </div>
         <div v-if="props.input.type == 'bool'">
-            <input type="checkbox" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
+            <input type="checkbox" v-model="localValue" ref="elem" :style="widthStyle" />
         </div>
-        <div v-if="props.input.type == 'property'" :style="{ width: props.maxWidth + 'px' }">
+        <div v-if="props.input.type == 'property'" :style="widthStyle">
             <div v-if="!data.propertyList.length" class="disabled rounded ps-1 pe-1">Create Property First</div>
             <PropertyDropdown v-else v-model="defaultProperty" @update:model-value="localValue = defaultProperty.id" />
         </div>
-        <div v-if="props.input.type == 'enum'" :style="{ width: props.maxWidth + 'px' }">
+        <div v-if="props.input.type == 'enum'" :style="widthStyle">
             <select v-model="localValue">
                 <option v-for="v in props.input.possibleValues" :value="v">{{ v }}</option>
             </select>
         </div>
         <div v-if="props.input.type == 'vector_type'">
-            <VectorTypeDropdown v-model="localValue" :width="props.maxWidth - 6" />
+            <VectorTypeDropdown v-model="localValue" :width="innerWidth" />
             <!-- <select v-model="localValue" style="max-width: 200px;">
                 <option v-for="v in data.vectorTypes" :value="v">{{ vectorName(v) }}</option>
             </select> -->
         </div>
 
         <div v-if="props.input.type == 'own_vector_type'">
-            <VectorTypeDropdown v-model="localValue" :source="props.source" :width="props.maxWidth - 6" />
+            <VectorTypeDropdown v-model="localValue" :source="props.source" :width="innerWidth" />
             <!-- <select v-model="localValue" style="max-width: 200px;">
                 <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
                     vectorName(v) }}</option>

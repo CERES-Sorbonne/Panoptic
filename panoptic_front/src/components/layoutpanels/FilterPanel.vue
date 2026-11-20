@@ -47,6 +47,20 @@ function toggleBind() {
 </template>
 
 <style scoped>
+/* Same height as the chips (26px) for every + button in the row, 2px from what precedes it */
+.filter-row :deep(.plus-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    padding: 0 5px;
+    margin-left: 2px;
+    border-radius: 2px;
+}
+.filter-row :deep(.plus-btn) .bi {
+    line-height: 1;
+}
+
 .filter-row {
     display: flex;
     color: rgb(33, 37, 41);

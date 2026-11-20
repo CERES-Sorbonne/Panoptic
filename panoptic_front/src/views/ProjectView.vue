@@ -107,7 +107,6 @@ onMounted(async () => {
                         <!-- One or two views, side by side when split -->
                         <SplitLayout
                             class="view-split"
-                            data-vm-area="views"
                             direction="row"
                             :secondary-ratio="tab.state.splitRatio"
                             @update:secondary-ratio="(r) => { tab.state.splitRatio = r }"
@@ -122,7 +121,7 @@ onMounted(async () => {
                                     <IslandPanel v-if="tab.state.splitView && !tab.isBound()" class="pane-filter">
                                         <FilterPanel :view-index="0" />
                                     </IslandPanel>
-                                    <ViewPanel :view-index="0" data-vm-view="0" />
+                                    <ViewPanel :view-index="0" />
                                 </div>
                             </template>
                             <template #secondary>
@@ -130,7 +129,7 @@ onMounted(async () => {
                                     <IslandPanel v-if="!tab.isBound()" class="pane-filter">
                                         <FilterPanel :view-index="1" />
                                     </IslandPanel>
-                                    <ViewPanel :view-index="1" data-vm-view="1" />
+                                    <ViewPanel :view-index="1" />
                                 </div>
                             </template>
                         </SplitLayout>

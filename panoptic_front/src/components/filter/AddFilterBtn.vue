@@ -19,14 +19,12 @@ function addFilter(propId: number) {
 </script>
 
 <template>
-    <Dropdown placement="auto">
+    <Dropdown placement="auto" :auto-focus="false">
         <template #button>
             <slot></slot>
         </template>
         <template #popup="{ hide }">
-            <div style="max-height: 500px; overflow: auto;">
-                <PropertySelection @select="pId => { addFilter(pId); hide(); }" :ignore-ids="[PropertyID.folders]"/>
-            </div>
+            <PropertySelection @select="pId => { addFilter(pId); hide(); }" :ignore-ids="[PropertyID.folders]"/>
         </template>
     </Dropdown>
 </template>

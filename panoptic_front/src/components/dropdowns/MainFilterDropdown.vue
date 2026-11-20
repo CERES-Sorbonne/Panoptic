@@ -88,6 +88,8 @@ onMounted(async () => {
 
 .bg {
     border-radius: 2px;
-    padding: 2.5px 4px;
+    padding: 0 4px;
+    height: 26px;
+    align-items: center;
 }
 </style>

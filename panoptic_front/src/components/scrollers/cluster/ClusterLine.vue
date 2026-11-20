@@ -163,7 +163,7 @@ const highlightSet = computed(() => new Set(props.highlightIds ?? []))
 // ClusterManager owns the run and the grafting, so the result lands even if this card has been
 // recycled out of the virtualized list before the backend answers.
 function cluster(groupId: number, req: ClusterRequest) {
-    props.manager.cluster(groupId, req)
+    return props.manager.cluster(groupId, req)
 }
 
 // A run that failed stops the spinner and leaves nothing on screen, so the card says why.
