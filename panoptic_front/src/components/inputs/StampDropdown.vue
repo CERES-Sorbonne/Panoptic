@@ -165,10 +165,12 @@ async function apply() {
                     <div class="stm-foot">
                         <button type="button" class="stm-link" @click="clear">{{ $t('modals.tagging.clear') }}</button>
                         <div class="stm-actions">
-                            <button type="button" class="stm-btn" @click="close">{{ $t('modals.tagging.cancel') }}</button>
+                            <button type="button" class="stm-btn" @click="close">
+                                {{ $t('modals.tagging.cancel') }}<kbd class="stm-key">Esc</kbd>
+                            </button>
                             <button type="button" class="stm-btn stm-btn-primary" data-autofocus :disabled="applying" @click="runApply">
                                 <span v-if="applying" class="spinner-border spinner-border-sm" role="status" />
-                                {{ $t('modals.tagging.apply') }}
+                                {{ $t('modals.tagging.apply') }}<kbd class="stm-key">↵</kbd>
                             </button>
                         </div>
                     </div>
@@ -252,5 +254,7 @@ async function apply() {
 .stm-btn-primary { border-color: var(--primary); background: var(--primary); color: var(--text-inverse); }
 .stm-btn-primary:hover:not(:disabled) { border-color: var(--primary-dark); background-color: var(--primary-dark); }
 .stm-btn-primary:focus-visible { box-shadow: 0 0 0 1px var(--bg-primary), 0 0 0 2px var(--primary); }
+.stm-key { display: inline-block; min-width: 16px; margin: 0 -4px 0 2px; padding: 0 4px; border: none; border-radius: 3px; background: var(--bg-tertiary); box-shadow: none; font-family: inherit; font-size: 11px; font-weight: 400; line-height: 16px; text-align: center; color: var(--text-tertiary); }
+.stm-btn-primary .stm-key { background: rgba(255, 255, 255, 0.18); color: rgba(255, 255, 255, 0.85); }
 .stm-btn-primary .spinner-border { width: 11px; height: 11px; border-width: 1.5px; }
 </style>

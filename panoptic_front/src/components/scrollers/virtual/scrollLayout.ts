@@ -428,15 +428,27 @@ export class ScrollLayout {
     }
 
     /**
-     * Px of the node's own lines: its header and, for an open leaf, its body. What a sticky header
-     * may stick over before the next header pushes it out (the next line after them is a header
-     * when every node has one, as in the tree). 0 for a node without a header.
+     * Px of the whole node on screen: its header and everything under it (its body, or its
+     * children). What a sticky header may stick over before the end of its group pushes it out.
+     * 0 for a node without a header.
      */
     headerSpan(node: NodeId): number {
         const i = this.index.get(node)
-        if (i === undefined || !this.a.header[i]) return 0
-        const a = this.a
-        return a.open[i] && !a.count[i] ? a.header[i] + this.bodyHeight(i) : a.header[i]
+        return i === undefined || !this.a.header[i] ? 0 : this.a.height[i]
+    }
+
+    /** Px of the whole node on screen, with or without a header line (0 for a node not indexed). */
+    nodeHeight(node: NodeId): number {
+        const i = this.index.get(node)
+        return i === undefined ? 0 : this.a.height[i]
+    }
+
+    /** The node's parent, or undefined for the root (and a node not indexed). */
+    parentOf(node: NodeId): NodeId | undefined {
+        const i = this.index.get(node)
+        if (i === undefined) return undefined
+        const p = this.a.parent[i]
+        return p < 0 ? undefined : this.a.ids[p]
     }
 
     /** The lines from `from` to `to` included, in display order, at most `max` of them. */

@@ -13,15 +13,16 @@
  * content of a line is rendered again only when that slot is given another line, or on
  * `relayout({ rerender: true })`; reactive state the slot content reads re-renders it as usual.
  *
- * With `sticky`, a header slot spans its group down to the next header (see ViewOptions.sticky)
- * and its content is `position: sticky`: the browser keeps the header of the group at the top in
- * view and the next header pushes it out, in step with the scroll. Nothing is drawn twice.
+ * With `sticky`, a header slot spans its whole group (see ViewOptions.sticky) and its content is
+ * `position: sticky`, below the headers of its ancestors: the browser keeps the headers of the
+ * groups at the top in view, stacked, and at the end of a group the next header slides over the
+ * stuck one, in step with the scroll. Nothing is drawn twice.
  */
 import { onBeforeUnmount, onMounted, provide, shallowReactive, shallowRef, useSlots, watch, ref } from 'vue'
 import VsSlot, { slotContextKey } from './vsSlot'
 import type { LineRef, NodeId, ScrollLayout } from './scrollLayout'
 import { VirtualView } from './virtualView'
-import type { Motion, RelayoutAnchor, Slot, ViewHost, ViewRange } from './virtualView'
+import type { Motion, RelayoutAnchor, Slot, Stick, ViewHost, ViewRange } from './virtualView'
 import { MAX_SCROLL_PX } from '../scrollPager'
 import { RowHeights } from '../grid/rowHeights'
 
@@ -74,6 +75,15 @@ const written = new Map<number, string>()
 
 let measurer: RowHeights<LineRef> | undefined
 
+// z-index of a sticky header: a band of STICKY_ORDERS per depth, the outermost depth on top, and
+// within it the order. Never under 2: above the body slots, which the grid raises to 1 when focused.
+const STICKY_DEPTHS = 64
+const STICKY_ORDERS = 1000
+function stickyZ(stick: Stick): number {
+    const depth = Math.min(stick.depth, STICKY_DEPTHS - 1)
+    return 2 + (STICKY_DEPTHS - 1 - depth) * STICKY_ORDERS + Math.min(stick.order, STICKY_ORDERS - 1)
+}
+
 const host: ViewHost = {
     viewportHeight: () => props.height,
     scrollTop: () => root.value?.scrollTop ?? 0,
@@ -87,10 +97,10 @@ const host: ViewHost = {
         pool.push(slot)
         return slot
     },
-    place: (slot, y, size) => {
+    place: (slot, y, size, stick?: Stick) => {
         const el = els.get(slot.id)
         if (!el) return
-        const state = y === null ? 'none' : y + '|' + (size ?? '')
+        const state = y === null ? 'none' : y + '|' + (size ?? '') + (stick ? '|' + stick.top + '|' + stick.depth + '|' + stick.order : '')
         if (written.get(slot.id) === state) return
         written.set(slot.id, state)
         if (y === null) {
@@ -99,11 +109,13 @@ const host: ViewHost = {
         }
         el.style.display = ''
         // A sticky header's span is placed by `top`, not a transform: the browser sticks its
-        // content using layout positions, which a transform does not move.
-        const sticky = !!props.sticky && (slot.line.value?.index ?? 0) < 0
-        el.classList.toggle('vs-sticky-span', sticky)
-        el.style.top = sticky ? y + 'px' : ''
-        el.style.transform = sticky ? '' : `translateY(${y}px)`
+        // content using layout positions, which a transform does not move. Drawn over each other
+        // as Stick says: shallower over deeper, then later over earlier.
+        el.classList.toggle('vs-sticky-span', !!stick)
+        el.style.top = stick ? y + 'px' : ''
+        el.style.transform = stick ? '' : `translateY(${y}px)`
+        el.style.setProperty('--vs-stick-top', stick ? stick.top + 'px' : null)
+        el.style.zIndex = stick ? String(stickyZ(stick)) : ''
         el.style.height = size === undefined ? '' : size + 'px'
     },
     lineChanged: slot => {
@@ -233,6 +245,8 @@ defineExpose({
     scrollTo: (target: NodeId | LineRef, align?: 'start' | 'center' | 'nearest') => view.scrollTo(target, align),
     /** Scrolls to a virtual offset. */
     scrollToOffset: (px: number) => view.scrollToOffset(px),
+    /** Px of the stuck headers over a line while it is at the top. See VirtualView.stuckOver. */
+    stuckOver: (line: LineRef) => view.stuckOver(line),
     /** The current virtual scroll position. */
     scrollTop: () => view.virtualTop,
     /** Call after changing the layout. See VirtualView.relayout. */
@@ -262,6 +276,8 @@ defineExpose({
     /* The scroller keeps what is at the top in place itself (relayout); the browser's own
        anchoring would move it a second time. */
     overflow-anchor: none;
+    /* No elastic bounce (macOS trackpad) past the top/bottom, and no scroll chaining to parents. */
+    overscroll-behavior: none;
 }
 
 .vs-track {
@@ -270,6 +286,8 @@ defineExpose({
     /* Clipped, but not a scroll container (as `hidden` would make it): the sticky headers stick
        to the scroller itself. */
     overflow: clip;
+    /* The slots' z-indexes (see stickyZ) only order them among themselves. */
+    isolation: isolate;
 }
 
 .vs-slot,
@@ -286,10 +304,9 @@ defineExpose({
 }
 
 /* A sticky header's slot spans its group: over the body slots (each its own stacking context, see
-   will-change, and the grid raises a focused one to 1), but the clicks go through to them; its
-   content sticks to the top of the scroller within the span. */
+   will-change, and the grid raises a focused one to 1; its z-index is set per depth), but the
+   clicks go through to them; its content sticks below its ancestors' headers within the span. */
 .vs-slot.vs-sticky-span {
-    z-index: 2;
     pointer-events: none;
     will-change: auto;
     contain: style;
@@ -297,7 +314,7 @@ defineExpose({
 
 .vs-slot.vs-sticky-span > * {
     position: sticky;
-    top: 0;
+    top: var(--vs-stick-top, 0);
     pointer-events: auto;
 }
 </style>

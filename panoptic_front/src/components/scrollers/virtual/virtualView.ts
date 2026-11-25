@@ -39,6 +39,18 @@ export interface ViewRange {
     direction: 1 | -1
 }
 
+/**
+ * A header stuck at the top (sticky option): `top` px below the scroller's top, under the `depth`
+ * headers of its ancestors stuck above it (0 = the outermost). `order`: its rank among the mounted
+ * headers of the same depth, in display order. Drawn over each other: a shallower header over a
+ * deeper one, and at the same depth a later one over an earlier one.
+ */
+export interface Stick {
+    top: number
+    depth: number
+    order: number
+}
+
 export interface ViewHost {
     viewportHeight(): number
     scrollTop(): number
@@ -47,8 +59,9 @@ export interface ViewHost {
     setContentHeight(px: number): void
     createSlot(id: number, type: string): Slot
     // Writes the slot's position: physical y, and its height when fixed (undefined = its own).
-    // `null` hides it.
-    place(slot: Slot, y: number | null, size: number | undefined): void
+    // `null` hides it. `stick`: the slot is a sticky header, spanning its group (`size`), and its
+    // content sticks that far below the top.
+    place(slot: Slot, y: number | null, size: number | undefined, stick?: Stick): void
     // The slot was handed another line (to remeasure it).
     lineChanged?(slot: Slot): void
     range?(range: ViewRange): void
@@ -71,11 +84,23 @@ export interface ViewOptions {
     // Ms between ranges while motion is 'fast' (default 100): what is flown past is not loaded,
     // what the fling slows down over is, without waiting for it to stop.
     fastRangeEvery?: number
-    // Sticky headers: a header slot spans its header and the body under it (headerSpan), so the
-    // content can stick to the top with CSS (`position: sticky`) — moved by the browser with the
-    // scroll, never a frame late — and is pushed out by the next header. The header of the group
-    // the mounted lines start in stays mounted, however far above its header is.
+    // Sticky headers: a header slot spans its group and more (see below), so the content can stick
+    // with CSS (`position: sticky`) — moved by the browser with the scroll, never a frame late.
+    // Nested groups stack: a header sticks below the headers of its ancestors (Stick.top), as deep
+    // as fits in the sticky band. At the end of its group a stuck header does not move when a
+    // header coming right after sticks in its place (its next sibling, or the first subgroup of
+    // the next group): that one slides over it (see Stick for the drawing order), and it stays
+    // under it, out of sight — its span runs as far as that one's. So whatever sticks over it has
+    // something opaque under it even while its own style still says it is on its way (a
+    // see-through header while not stuck is a frame late: the browser sticks on the compositor,
+    // the style follows on the main thread). When nothing will take its place (the next group
+    // shows images, or is closed), its span ends with its group: the next header pushes it out,
+    // under its parent's. The headers of the groups the mounted lines start in stay mounted,
+    // however far above they are.
     sticky?: boolean
+    // Most of the viewport the stacked headers may cover, as a fraction of its height (default
+    // 0.4): deeper headers scroll by without sticking.
+    stickyMax?: number
 }
 
 export type RelayoutAnchor = 'pixels' | 'scale'
@@ -104,6 +129,10 @@ export class VirtualView {
     private lastScrollTop = 0
     private idleTimer: unknown
     private tallest = 0
+    // Where each mounted header sticks, by line key (sticky option), as of the last update, and
+    // the virtual offset its span runs to (see ViewOptions.sticky).
+    private sticks = new Map<string, Stick>()
+    private spanEnds = new Map<string, number>()
     // Lines placed by the last update, in display order.
     private placed: LocatedLine[] = []
     // Slots handed a new line by the last update (for tests and stats).
@@ -207,13 +236,15 @@ export class VirtualView {
         }
         const top = this.layout.offsetOf(ref)
         const size = this.layout.sizeOf(ref)
-        const vh = this.host.viewportHeight()
-        let to = top
-        if (align === 'center') to = top + size / 2 - vh / 2
+        // The stuck headers cover the top of the viewport: the line must land below them.
+        const inset = this.stuckOver(ref)
+        const vh = this.host.viewportHeight() - inset
+        let to = top - inset
+        if (align === 'center') to = top + size / 2 - vh / 2 - inset
         else if (align === 'nearest') {
-            const cur = this.pager.virtualTop
+            const cur = this.pager.virtualTop + inset
             if (top >= cur && top + size <= cur + vh) return
-            to = top < cur || size > vh ? top : top + size - vh
+            to = (top < cur || size > vh ? top : top + size - vh) - inset
         }
         this.scrollToOffset(to)
     }
@@ -258,8 +289,80 @@ export class VirtualView {
 
     /** The slot's content is laid out (its element exists): put it in place. */
     placeSlot(slot: Slot) {
-        if (slot.key === null) this.host.place(slot, null, undefined)
-        else this.host.place(slot, slot.top - this.pager.offset, this.fixedSize(slot))
+        if (slot.key === null) return this.host.place(slot, null, undefined)
+        const y = slot.top - this.pager.offset
+        const ref = slot.line.value
+        const stick = this.options.sticky && ref && ref.index < 0 ? this.sticks.get(slot.key) : undefined
+        if (!stick) return this.host.place(slot, y, this.fixedSize(slot))
+        // Down to where it may move (ViewOptions.sticky), but within the paged content:
+        // a group can be taller. The part above the page is cut off too (an outer group can start
+        // pages above): the physical scrollTop is never negative, so the header sticks the same,
+        // from the top of the page.
+        const spanEnd = this.spanEnds.get(slot.key) ?? slot.top + slot.size
+        const end = Math.min(Math.max(spanEnd, slot.top + slot.size) - this.pager.offset, this.pager.physicalHeight)
+        const start = Math.max(y, Math.min(0, end - slot.size))
+        this.host.place(slot, start, Math.max(slot.size, end - start), stick)
+    }
+
+    /**
+     * The headers stuck at the top while the lines of `node` are there: those of the node and of
+     * its ancestors, outermost first, with how far below the top each sticks — as many as fit in
+     * the sticky band. O(depth).
+     */
+    stuck(node: NodeId): { node: NodeId, top: number, size: number }[] {
+        const chain: { node: NodeId, size: number }[] = []
+        for (let n: NodeId | undefined = node; n !== undefined; n = this.layout.parentOf(n)) {
+            const size = this.layout.sizeOf({ node: n, index: HEADER })
+            if (size) chain.push({ node: n, size })
+        }
+        const max = (this.options.stickyMax ?? 0.4) * this.host.viewportHeight()
+        const out: { node: NodeId, top: number, size: number }[] = []
+        let top = 0
+        for (let k = chain.length - 1; k >= 0 && top + chain[k].size <= max; k--) {
+            out.push({ node: chain[k].node, top, size: chain[k].size })
+            top += chain[k].size
+        }
+        return out
+    }
+
+    // Where the node's header sticks; undefined when it is too deep to fit in the sticky band.
+    private stickOf(node: NodeId, order: (depth: number) => number): Stick | undefined {
+        const s = this.stuck(node)
+        const last = s[s.length - 1]
+        if (last?.node !== node) return undefined
+        const depth = s.length - 1
+        return { top: last.top, depth, order: order(depth) }
+    }
+
+    /**
+     * The header that takes a stuck header's place at the end of its group: in the run of headers
+     * right after the group (the next group's, its first subgroup's...), the one that sticks as
+     * high. Null when the run ends first (a body line, the end, a header sticking lower or not at
+     * all). The run is at most as long as the tree is deep.
+     */
+    private coverOf(header: LocatedLine, top: number): LocatedLine | null {
+        const end = header.top + this.layout.nodeHeight(header.node)
+        let l = end < this.layout.height ? this.layout.locate(end) : null
+        if (l && l.top < end) return null
+        for (; l && l.index < 0; l = this.after(l)) {
+            const s = this.stuck(l.node).at(-1)
+            if (s?.node !== l.node || s.top > top) return null
+            if (s.top === top) return l
+        }
+        return null
+    }
+
+    /**
+     * Px of the stuck headers drawn over a line while it is at the top of the viewport (0 without
+     * the sticky option): those of its groups — a header's own group left out, as it sticks right
+     * below them.
+     */
+    stuckOver(ref: LineRef): number {
+        if (!this.options.sticky) return 0
+        const s = this.stuck(ref.node)
+        const last = s[s.length - 1]
+        if (!last) return 0
+        return ref.index < 0 && last.node === ref.node ? last.top : last.top + last.size
     }
 
     // ── The update ───────────────────────────────────────────────────────────
@@ -286,12 +389,56 @@ export class VirtualView {
         }
         this.tallest = tallest
 
-        // Every line mounted: the lines in range, and the header stuck over the first of them.
+        // Every line mounted: the lines in range, and the headers stuck over the first of them —
+        // those of the groups it is in. Any other group around the viewport starts in the range.
+        // Scrolling up, those of the viewport above it too: the browser scrolls ahead of the
+        // updates, and a stuck header must be there before the one over it slides back down.
         let lines = want
         const first = want[0]
-        if (this.options.sticky && first && first.index >= 0 && layout.sizeOf({ node: first.node, index: HEADER })) {
-            const header = { node: first.node, index: HEADER }
-            lines = [{ ...header, top: layout.offsetOf(header) }, ...want]
+        if (this.options.sticky && first) {
+            const above: LocatedLine[] = []
+            const back = this.direction < 0 ? vh : 0
+            const start = back ? layout.locate(Math.max(this.pager.offset, from - back)) ?? first : first
+            const sticks = (node: NodeId) => this.stuck(node).at(-1)?.node === node
+            for (const s of this.stuck(start.node)) {
+                if (s.node === first.node && first.index < 0) continue
+                const header = { node: s.node, index: HEADER }
+                above.push({ ...header, top: layout.offsetOf(header) })
+            }
+            // The headers between that line and the range, in display order after its own groups'.
+            for (let l: LocatedLine | null = start; l && l.top < first.top; l = this.after(l)) {
+                if (l.index < 0 && (l !== start || !above.some(a => a.node === l!.node)) && sticks(l.node)) above.push(l)
+            }
+            if (above.length) lines = [...above, ...want]
+        }
+
+        // Where the headers stick: `lines` is in display order, so the order of each among the
+        // headers of its depth is a count.
+        this.sticks = new Map()
+        this.spanEnds = new Map()
+        if (this.options.sticky) {
+            const seen: number[] = []
+            const order = (depth: number) => seen[depth] = (seen[depth] ?? -1) + 1
+            for (const l of lines) {
+                if (l.index >= 0) continue
+                const stick = this.stickOf(l.node, order)
+                if (!stick) continue
+                this.sticks.set(lineKey(l), stick)
+            }
+            // How far each span runs, from the last header up: a header covered by a later one
+            // runs as far as it, and one covered past the range runs past it (it is unmounted
+            // before its span ends).
+            for (let k = lines.length - 1; k >= 0; k--) {
+                const l = lines[k]
+                const key = lineKey(l)
+                const stick = this.sticks.get(key)
+                if (!stick) continue
+                const cover = this.coverOf(l, stick.top)
+                const end = !cover ? l.top + layout.nodeHeight(l.node)
+                    : cover.top >= to ? layout.height
+                    : this.spanEnds.get(lineKey(cover)) ?? cover.top + layout.nodeHeight(cover.node)
+                this.spanEnds.set(key, end)
+            }
         }
 
         const keep = new Set<string>()
@@ -346,11 +493,6 @@ export class VirtualView {
         // Measured scrollers size their body lines themselves; headers are always fixed.
         const ref = slot.line.value
         if (this.options.measured && ref && ref.index >= 0) return undefined
-        if (this.options.sticky && ref && ref.index < 0) {
-            // Down to the next header, but not past the paged content (a group can be taller).
-            const y = slot.top - this.pager.offset
-            return Math.max(slot.size, Math.min(this.layout.headerSpan(ref.node), this.pager.physicalHeight - y))
-        }
         return slot.size
     }
 

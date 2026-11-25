@@ -16,10 +16,12 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import WithToolTip from '../../tooltips/withToolTip.vue'
 import { apiAllocateTags } from '@/data/api/projectApi'
 import { clusterErrorText } from '@/core/group/ClusterManager'
+import { useI18n } from 'vue-i18n'
 
 const data = useDataStore()
 const columnStore = useColumnStore() // <-- Initialized column store
 const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(() => 'global'))
+const { t } = useI18n()
 
 const props = defineProps<{
     item: GroupLine
@@ -65,7 +67,6 @@ function getImages() {
 }
 
 const subgroupCount = computed(() => (version.value, props.item.data.children?.length ?? 0))
-const hasImages = computed(() => slotCount.value > 0)
 const hasSubgroups = computed(() => subgroupCount.value > 0)
 
 const properties = computed(() => (version.value, props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId])))
@@ -81,30 +82,19 @@ const selected = computed(() => props.manager.isGroupSelected(props.item.data))
 
 const groupName = computed(() => {
     version.value
-    if (props.item.data.type == GroupType.All) return 'All'
+    if (props.item.data.type == GroupType.All) return t('group_all')
     if (props.item.data.type == GroupType.Cluster) return props.item.data.name ?? ('Cluster ' + props.item.data.parentIdx)
     return 'tmp name'
 })
 
-// The group's ancestors, outermost first, the tree's root left out (every line would repeat it):
-// drawn as a muted path before the group's own label, which says how deep it is with no indent
-// (the caret stays in the same place at every depth), and a click on one jumps to it. The previous
-// array is handed back while it shows the same groups and values, so a version bump does not
-// re-render the line for it.
-type Crumb = { id: number, values: Group['meta']['propertyValues'], name?: string }
-const ancestors = computed<Crumb[]>(previous => {
-    version.value
-    const res: Crumb[] = []
-    const seen = new Set<number>()
-    for (let g = props.item.data.parent; g?.parent && !seen.has(g.id); g = g.parent) {
-        seen.add(g.id)
-        const name = g.meta.propertyValues.length ? undefined
-            : g.type == GroupType.Cluster ? (g.name ?? ('Cluster ' + g.parentIdx)) : g.name
-        res.unshift({ id: g.id, values: g.meta.propertyValues, name })
-    }
-    const same = previous && previous.length === res.length
-        && previous.every((c, i) => c.id === res[i].id && c.values === res[i].values && c.name === res[i].name)
-    return same ? previous : res
+// Px of indent per level of depth.
+const DEPTH_INDENT = 16
+
+// The indent, and where the lead zone ends, for the tree's header styles: the indent, the caret
+// (ms-1, 1em, me-2) and the selection circle (15px, me-1).
+const lineStyle = computed(() => {
+    const indent = props.item.depth * DEPTH_INDENT
+    return { paddingLeft: indent + 'px', '--group-lead-end': `calc(${indent}px + 1em + 1rem + 15px)` }
 })
 
 const isClusterGroup = computed(() => (version.value, props.item.data.subGroupType == GroupType.Cluster))
@@ -241,8 +231,10 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
 </script>
 
 <template>
-    <div class="d-flex flex-row group-line overflow-hidden"
+    <div class="d-flex flex-row group-line overflow-hidden" :style="lineStyle"
         @mouseenter="hoverGroup = true" @mouseleave="hoverGroup = false">
+        <!-- Indented by depth: stuck at the top, the headers of the groups scrolled through stack
+             up as a path from the root down. -->
         <div @click="toggleClosed" class="align-self-center ms-1 me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 0px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 0px;"></i>
@@ -256,21 +248,16 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
         <div v-if="hasSubgroups && !hasOpenChildren"
             class="text-secondary align-self-center bi bi-plus-square-dotted me-1" @click="openChildren">
         </div>
-        <template v-for="crumb in ancestors" :key="crumb.id">
-            <div class="crumb align-self-center" @click="emits('scroll', crumb.id)">
-                <PropertyValue v-for="value in crumb.values" :value="value" />
-                <span v-if="!crumb.values.length">{{ crumb.name }}</span>
-            </div>
-            <i class="bi bi-chevron-right crumb-sep align-self-center" />
-        </template>
-        <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
-            class="align-self-center me-2">
+        <div v-if="props.item.depth > 1 && !hasSubgroups" :style="'width: ' + (20) +'px;'"></div>
+        <!-- A click on the group's value scrolls to the group's top (see TreeScroller.scrollTo). -->
+        <div v-if="properties.length"
+            class="align-self-center me-2 group-value" @click="emits('scroll', props.item.data.id)">
             <template v-for="propValue in propertyValues">
                 <PropertyValue :value="propValue" />
             </template>
 
         </div>
-        <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
+        <div v-else class="align-self-center me-2 group-value" @click="emits('scroll', props.item.data.id)"><b>{{ groupName }}</b></div>
         <div v-if="groupType == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
             <ClusterBadge v-if="score != undefined" :value="Math.round(score)" :score="props.item.data.score" />
         </div>
@@ -440,24 +427,8 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
     align-items: center;
 }
 
-.crumb {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 12px;
-    opacity: 0.55;
+.group-value {
     cursor: pointer;
-    white-space: nowrap;
-}
-
-.crumb:hover {
-    opacity: 1;
-}
-
-.crumb-sep {
-    font-size: 10px;
-    margin: 0 6px;
-    color: var(--bs-secondary-color, gray);
 }
 
 .cluster-close {

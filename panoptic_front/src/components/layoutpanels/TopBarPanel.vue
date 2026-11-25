@@ -64,7 +64,7 @@ function onChangeLang(event: Event) {
         <!-- Right: current user + data load status + notifications + language -->
         <div class="bar-group" style="margin-left: auto;">
 
-            <SelectionStamp v-if="hasSelectedImages" style="font-size: 14px;"
+            <SelectionStamp v-if="hasSelectedImages" style="font-size: 14px; margin-right: 4px;"
                 :selected-images-ids="selectedImageIds" @remove:selected="clearSelection"
                 @stamped="clearSelection" />
             <TabPanel  class="me-1"/>

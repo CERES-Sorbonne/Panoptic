@@ -1,6 +1,7 @@
 {
     "filter_by_value": "Filter by this value",
     "copy": "Copy",
+    "group_all": "Collection",
     "launcher": {
         "checking": "Checking installation...",
         "installing_uv": "Installing uv...",

@@ -152,16 +152,20 @@ function onToggled(groupIds: number | number[]) {
     vs.value?.relayout()
 }
 
+// To the group's top: its header where it sticks, below its ancestors', and its first line right
+// under it (VirtualView.scrollTo).
 function scrollTo(groupId: number) {
     vs.value?.scrollTo(groupId)
 }
 
 // Closed from its header stuck at the top: the group's lines the viewport was in are gone, so the
-// view goes back to the group's own header rather than to whatever now sits at the same offset.
+// view goes back to the group's own header (where it was stuck, below its parents') rather than to
+// whatever now sits at the same offset.
 function onGroupClosed(groupIds: number | number[]) {
     onToggled(groupIds)
     if (Array.isArray(groupIds) || !vs.value) return
-    if (layout.offsetOf({ node: groupIds, index: -1 }) < vs.value.scrollTop()) vs.value.scrollTo(groupIds)
+    const header = { node: groupIds, index: -1 }
+    if (layout.offsetOf(header) < vs.value.scrollTop() + vs.value.stuckOver(header)) vs.value.scrollTo(groupIds)
 }
 
 // ── Property cells ──────────────────────────────────────────────────────────
@@ -194,8 +198,8 @@ function cellWalk(propertyId: number) {
 async function navigateCell(from: CellKey, backwards: boolean): Promise<CellKey | undefined> {
     const to = adjacentCellIn(cellWalk(from.propertyId), from, backwards)
     if (!to || to.cell.instanceId === undefined || !vs.value) return undefined
-    // The sticky group header covers the top of the viewport: the target must land below it.
-    const inset = GROUP_LINE_SIZE
+    // The stuck group headers cover the top of the viewport: the target must land below them.
+    const inset = vs.value.stuckOver(to.line)
     const reveal = revealOffset(layout.offsetOf(to.line), layout.sizeOf(to.line), vs.value.scrollTop() + inset, props.height - inset)
     const offset = reveal === undefined ? undefined : reveal - inset
     if (offset !== undefined) {
@@ -312,16 +316,17 @@ watch(() => props.manager.version.value, triggerUpdate)
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
         <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="300" :sticky="true"
             v-on="cellHover.listeners" @range="r => range = r">
-            <!-- Group headers stick to the top while their group is scrolled through: the deepest
-                 group at the top stays named, its path of parents jumping to them. -->
+            <!-- Group headers stick to the top while their group is scrolled through, stacked: the
+                 groups at the top stay named, from the root down. -->
             <template #default="{ line }">
-                <template v-if="line.index < 0">
+                <!-- The wrapper is what sticks (see .tree-group-sticky). -->
+                <div v-if="line.index < 0" class="tree-group-sticky">
                     <GroupLineVue v-if="groupItem(line)" class="tree-group-header" :item="groupItem(line)!"
                         :manager="props.manager" :hide-options="props.hideOptions" :data="props.manager.result"
                         @scroll="scrollTo"
                         @group:close="onGroupClosed" @group:open="onToggled" @select="toggleGroupSelect"
                         @reco="emit('reco', $event)" />
-                </template>
+                </div>
                 <template v-else-if="imageItem(line)">
                     <ImageLineVue v-if="imageItem(line)!.type == 'images'" :image-size="imageItem(line)!.imageSize"
                         :item="imageItem(line)!" :result="props.manager.result" :properties="props.properties"
@@ -338,8 +343,31 @@ watch(() => props.manager.version.value, triggerUpdate)
 </template>
 
 <style scoped>
-/* Opaque: stuck at the top, it covers the image lines scrolling under it. */
+/* The sticky element (the scroller makes a header slot's root sticky), and a scroll-state
+   container, so the header inside knows whether it is stuck. */
+.tree-group-sticky {
+    container-type: scroll-state;
+}
+
+/* Opaque: stuck at the top, it covers the image lines scrolling under it, and on its way up it
+   covers the stuck headers it slides over. */
 .tree-group-header {
     background-color: var(--bg-primary);
+}
+
+/* Except its lead zone (its indent, caret and selection circle, --group-lead-end from GroupLine)
+   while it is not stuck: nothing scrolls under a header then, only the stuck headers it slides
+   over, which show through there until it sticks in place. Browsers without scroll-state queries
+   keep it opaque. */
+@container scroll-state(stuck: none) {
+    .tree-group-header {
+        background: linear-gradient(to right, transparent var(--group-lead-end, 0px), var(--bg-primary) 0);
+    }
+}
+
+/* The selection circle is a disc with its check cut out: filled behind, so the check reads over
+   whatever shows through the lead zone. Inside the ring, so its edge stays the icon's. */
+.tree-group-header :deep(.bi-check-circle-fill::before) {
+    background: radial-gradient(circle closest-side, var(--bg-primary) 85%, transparent 86%);
 }
 </style>

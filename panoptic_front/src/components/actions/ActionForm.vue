@@ -201,11 +201,13 @@ defineExpose({ reset: () => { fnDropdown.value?.hide() } })
                 <span class="spinner-border spinner-border-sm" role="status" /> {{ $t('action_modal.pending') }}
             </div>
             <div class="af-actions">
-                <button type="button" class="af-btn" @click="emits('cancel')">{{ $t('cancel') }}</button>
+                <button type="button" class="af-btn" @click="emits('cancel')">
+                    {{ $t('cancel') }}<kbd v-if="isModal" class="af-key">Esc</kbd>
+                </button>
                 <button type="button" class="af-btn af-btn-primary" :disabled="!canCall" data-autofocus
                     @click="call">
                     <span v-if="props.busy && !props.running" class="spinner-border spinner-border-sm" role="status" />
-                    {{ $t('call') }}
+                    {{ $t('call') }}<kbd v-if="isModal" class="af-key">↵</kbd>
                 </button>
             </div>
         </div>
@@ -673,6 +675,29 @@ button.af-combo {
 
 .af-btn-primary:focus-visible {
     box-shadow: 0 0 0 1px var(--bg-primary), 0 0 0 2px var(--primary);
+}
+
+/* Key hint inside a button: flat, quiet, same height as the text */
+.af-key {
+    display: inline-block;
+    min-width: 16px;
+    margin: 0 -4px 0 2px;
+    padding: 0 4px;
+    border: none;
+    border-radius: 3px;
+    background: var(--bg-tertiary);
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 16px;
+    text-align: center;
+    color: var(--text-tertiary);
+}
+
+.af-btn-primary .af-key {
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .af-btn-primary .spinner-border {
