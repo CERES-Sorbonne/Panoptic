@@ -40,6 +40,9 @@ export interface ViewState {
     // fills it in on first render). Do not make it required without a TAB_MODEL_VERSION bump.
     graphOptions?: GraphOptions
     showProperties: boolean
+    // Tree view: group headers stick to the top while their group is scrolled through.
+    // Optional (undefined = on) so tabs persisted before the option still load.
+    stickyGroups?: boolean
     // Which collection (filter/sort/group pipeline) this view renders. Two views
     // may share one collectionId (computed once) or reference different ones.
     collectionId: string

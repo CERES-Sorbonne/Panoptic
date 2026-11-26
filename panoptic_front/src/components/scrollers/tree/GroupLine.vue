@@ -26,11 +26,13 @@ const { t } = useI18n()
 const props = defineProps<{
     item: GroupLine
     manager: GroupInspector
+    // Ancestors (non-sticky tree): drawn as indent columns instead of the depth padding.
+    parentIds?: number[]
     data: GroupTree,
     hideOptions: boolean
 }>()
 
-const emits = defineEmits(['scroll', 'group:close', 'group:open', 'group:update', 'select', 'reco'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'select', 'reco'])
 
 const hoverGroup = ref(false)
 
@@ -93,7 +95,7 @@ const DEPTH_INDENT = 16
 // The indent, and where the lead zone ends, for the tree's header styles: the indent, the caret
 // (ms-1, 1em, me-2) and the selection circle (15px, me-1).
 const lineStyle = computed(() => {
-    const indent = props.item.depth * DEPTH_INDENT
+    const indent = props.parentIds ? 0 : props.item.depth * DEPTH_INDENT
     return { paddingLeft: indent + 'px', '--group-lead-end': `calc(${indent}px + 1em + 1rem + 15px)` }
 })
 
@@ -235,6 +237,10 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
         @mouseenter="hoverGroup = true" @mouseleave="hoverGroup = false">
         <!-- Indented by depth: stuck at the top, the headers of the groups scrolled through stack
              up as a path from the root down. -->
+        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
+            @click="emits('scroll', parentId)" @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
+            <div class="group-line-border" :data-border-group="parentId"> </div>
+        </div>
         <div @click="toggleClosed" class="align-self-center ms-1 me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 0px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 0px;"></i>
@@ -425,6 +431,12 @@ function childrenToTags(children: Group[], nextId: () => number, prefix: string,
     contain: layout paint style;
     /* line-height: 25px; */
     align-items: center;
+}
+
+.group-line-border {
+    height: 30px;
+    border-left: 1px solid var(--border-color);
+    padding-left: 10px;
 }
 
 .group-value {

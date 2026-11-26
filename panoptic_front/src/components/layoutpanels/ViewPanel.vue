@@ -31,6 +31,11 @@ const collection = computed(() => tab.value?.collectionForView(props.viewIndex) 
 // carry that type, so both values map to it.
 const isGroupView = computed(() => view.value?.type == 'group' || view.value?.type == 'cluster')
 
+function toggleStickyGroups() {
+    if (!view.value) return
+    view.value.stickyGroups = !(view.value.stickyGroups ?? true)
+}
+
 function toggleProperties() {
     if (!view.value) return
     view.value.showProperties = !view.value.showProperties
@@ -101,6 +106,13 @@ onUnmounted(() => {
                     </button>
                 </wTT>
 
+                <!-- Tree view: sticky group headers on / off -->
+                <wTT v-if="view.type == 'tree'" :message="'main.nav.toggle_sticky_groups'" pos="bottom">
+                    <button class="tab-tool" @click="toggleStickyGroups">
+                        <i :class="(view.stickyGroups ?? true) ? 'bi bi-pin-angle-fill' : 'bi bi-pin-angle'"></i>
+                    </button>
+                </wTT>
+
                 <div class="flex-grow-1"></div>
 
                 <!-- Split view: each pane closes on its own, the other one stays -->
@@ -122,7 +134,8 @@ onUnmounted(() => {
                 style="padding-left: 0.45rem">
                 <TreeScroller input-key="view-panel-tree" :manager="collection" :image-size="view.imageSize"
                     :height="dimensions.height" :width="dimensions.width"
-                    :properties="view.showProperties ? visibleProperties : []" :hide-if-modal="true" @reco="openReco" />
+                    :properties="view.showProperties ? visibleProperties : []" :hide-if-modal="true"
+                    :sticky="view.stickyGroups ?? true" @reco="openReco" />
 
             </div>
 

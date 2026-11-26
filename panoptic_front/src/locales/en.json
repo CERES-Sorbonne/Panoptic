@@ -120,6 +120,7 @@
             "split_view": "Split right",
             "close_view": "Close view",
             "toggle_properties": "Show / hide properties",
+            "toggle_sticky_groups": "Pin group headers at the top while scrolling",
             "folders": {
                 "title": "Folders",
                 "add": "Add an images folder",

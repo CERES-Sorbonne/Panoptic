@@ -120,6 +120,7 @@
             "split_view": "Diviser à droite",
             "close_view": "Fermer la vue",
             "toggle_properties": "Afficher ou masquer les propriétés",
+            "toggle_sticky_groups": "Épingler les en-têtes de groupe en haut pendant le défilement",
             "folders": {
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images",

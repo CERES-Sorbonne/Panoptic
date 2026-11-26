@@ -39,6 +39,9 @@ export interface LineHost {
 // place — so the iterators are re-checked after each rebuild, not only when `item` changes.
 export const treeLinesBuiltKey: InjectionKey<Ref<number>> = Symbol('treeLinesBuilt')
 
+// One indent column as ImageLine/PileLine render it when not sticky (parentIds): .ps-2 (8) +
+// .image-line's border-left (1) + its padding-left (10). Must match that CSS or the lines overflow.
+export const MARGIN_STEP = 19
 export const GAP = 8 // must match the "me-2" margin applied to Image/PileLine cells
 export const BORDER = 2 // Image.vue's .full-container 1px border on each side, added on top of its width style
 
@@ -88,10 +91,13 @@ export interface TreeLineParams {
     imageSize: number
     propertyCount: number
     pilePropertyCount: number
+    // Image lines draw their ancestors' indent columns (non-sticky tree): depth + 1 columns are
+    // reserved off their width.
+    indent?: boolean
 }
 
 const sameParams = (a: TreeLineParams, b: TreeLineParams) => a.contentWidth === b.contentWidth
-    && a.imageSize === b.imageSize && a.propertyCount === b.propertyCount && a.pilePropertyCount === b.pilePropertyCount
+    && a.imageSize === b.imageSize && a.propertyCount === b.propertyCount && a.pilePropertyCount === b.pilePropertyCount && !!a.indent === !!b.indent
 
 /**
  * Line geometry: a leaf's lines depend only on whether it is piled and the params — so it is
@@ -110,12 +116,13 @@ export class TreeGeometry {
         return true
     }
 
-    get(piled: boolean): LeafGeometry {
-        const k = piled ? 1 : 0
+    get(piled: boolean, depth = 0): LeafGeometry {
+        if (!this.params.indent) depth = 0
+        const k = depth * 2 + (piled ? 1 : 0)
         let g = this.cache.get(k)
         if (g) return g
         const p = this.params
-        const width = p.contentWidth
+        const width = p.indent ? p.contentWidth - (depth + 1) * MARGIN_STEP : p.contentWidth
         // imageSize only decides how many images fit in a line...
         const perLine = Math.max(1, Math.floor(width / (p.imageSize + BORDER + GAP)))
         // ...then images are stretched to exactly fill a FULL line. Every line uses these same
@@ -144,7 +151,7 @@ export function sameRangeLine(a: ImageLine | undefined, b: ImageLine): boolean {
 // Lines of a leaf's body: none for a leaf without images.
 export function leafLineCount(host: LineHost, group: Group, geometry: TreeGeometry): number {
     if (!group.slots?.length) return 0
-    const geo = geometry.get(host.pileIndex.has(group.id))
+    const geo = geometry.get(host.pileIndex.has(group.id), group.depth)
     return Math.ceil(positionCount(host, group) / geo.perLine)
 }
 
@@ -157,7 +164,7 @@ export function leafLine(host: LineHost, groupId: number, index: number, geometr
     const group = host.index[groupId]
     if (!group || group.children.length) return undefined
     const piled = host.pileIndex.has(groupId)
-    const geo = geometry.get(piled)
+    const geo = geometry.get(piled, group.depth)
     const start = index * geo.perLine
     const count = Math.max(0, Math.min(geo.perLine, positionCount(host, group) - start))
     const line: ImageLine = {
@@ -201,7 +208,7 @@ export function treeSource(host: () => TreeHost, geometry: TreeGeometry): Layout
         },
         lineEstimate: id => {
             const g = group(id)
-            return g ? geometry.get(host().pileIndex.has(id)).size : 1
+            return g ? geometry.get(host().pileIndex.has(id), g.depth).size : 1
         },
         lineType: (id, index) => index < 0 ? 'group' : host().pileIndex.has(id) ? 'piles' : 'images',
     }
@@ -284,7 +291,7 @@ export function treeCellWalk(host: LineHost, layout: ScrollLayout, geometry: Tre
             for (let pos = 0; pos < n; pos++) {
                 const slot = pile ? pile.order[pile.bounds[pos]] : group.slots[pos]
                 if (ids[slot] !== from.instanceId) continue
-                const perLine = geometry.get(!!pile).perLine
+                const perLine = geometry.get(!!pile, group.depth).perLine
                 const line = { node: group.id, index: Math.floor(pos / perLine) }
                 return layout.isShown(line) ? { line, index: pos % perLine } : undefined
             }

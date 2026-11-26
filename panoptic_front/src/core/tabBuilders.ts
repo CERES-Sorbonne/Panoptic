@@ -26,6 +26,7 @@ export function createViewState(type: ViewType, collectionId: string): ViewState
         clusterOptions: createClusterOptions(),
         graphOptions: createGraphOptions(),
         showProperties: true,
+        stickyGroups: true,
         collectionId,
     })
 }

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, shallowRef, provide } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, shallowRef, provide, getCurrentInstance } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { SelectedImages } from '@/core/GroupManager'
+import { Group, SelectedImages } from '@/core/GroupManager'
 import type { GroupInspector } from '@/core/group/inspector'
 import { keyState } from '@/data/composables/keyState';
 import { Property, Sha1Scores, PropertyMode, ModalId } from '@/data/models';
@@ -39,10 +39,56 @@ const props = defineProps<{
     sha1Scores?: Sha1Scores,
     hideIfModal?: boolean
     preview?: SelectedImages
+    // Group headers stick to the top while their group is scrolled through (default). Off: they
+    // scroll away with their group, as plain lines.
+    sticky?: boolean
     // No longer read: Tab between cells walks this scroller's own lines (see navigateCell) instead
     // of inputStore's registry, which this key used to namespace. Kept so callers need no change.
     inputKey: string
 }>()
+
+const sticky = computed(() => props.sticky ?? true)
+
+// ── Indent borders (non-sticky only) ─────────────────────────────────────────
+// Without sticky headers, each line draws one column per ancestor on its left: a click goes back
+// to that group's top, a hover lights that group's columns. Lit by one CSS rule written here, not a
+// prop handed to every line (a hover would re-render every line on screen). Scoped to this scroller.
+const hoverGroupBorder = ref(-1)
+const borderScope = 'tree-' + getCurrentInstance()!.uid
+const hoverBorderCss = computed(() => sticky.value || hoverGroupBorder.value < 0 ? '' :
+    `.vscroller[data-border-scope="${borderScope}"] [data-border-group="${hoverGroupBorder.value}"] { border-left-color: blue; }`)
+
+// A new array is a changed prop for the line: the same one is handed back while the chain is the
+// same, so a rebuild does not re-render every line on screen for its borders.
+const parentsCache = new Map<string, number[]>()
+
+function getParents(group: Group | undefined) {
+    const ids: number[] = []
+    const seen = new Set<number>()
+    let current = group?.parent
+    while (current != undefined && !seen.has(current.id)) {
+        seen.add(current.id)
+        ids.unshift(current.id)
+        current = current.parent
+    }
+    return ids
+}
+
+function cachedChain(key: string, ids: number[]): number[] {
+    const old = parentsCache.get(key)
+    if (old && old.length === ids.length && old.every((v, i) => v === ids[i])) return old
+    if (parentsCache.size > 2000) parentsCache.clear()
+    parentsCache.set(key, ids)
+    return ids
+}
+
+function groupLineParents(group: Group): number[] | undefined {
+    return sticky.value ? undefined : cachedChain('g' + group?.id, getParents(group))
+}
+
+function imageLineParents(groupId: number): number[] | undefined {
+    return sticky.value ? undefined : cachedChain('l' + groupId, [...getParents(props.manager.result.index[groupId]), groupId])
+}
 
 const emit = defineEmits(['reco'])
 
@@ -72,6 +118,7 @@ function lineParams(): TreeLineParams {
         imageSize: props.imageSize,
         propertyCount: visiblePropertiesNb.value,
         pilePropertyCount: visiblePropertiesClusterNb.value,
+        indent: !sticky.value,
     }
 }
 const geometry = new TreeGeometry(lineParams())
@@ -290,6 +337,7 @@ function resized() {
 }
 
 watch(() => props.imageSize, () => nextTick(resized))
+watch(sticky, () => nextTick(resized))
 
 // The visible properties only change the line height: no line is given another range, so nothing is
 // re-rendered by the scroller (the cards redraw their property rows themselves). Runs before the
@@ -314,14 +362,16 @@ watch(() => props.manager.version.value, triggerUpdate)
 
 <template>
     <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
-        <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="300" :sticky="true"
-            v-on="cellHover.listeners" @range="r => range = r">
+        <VirtualScroller ref="vs" :layout="layout" :height="props.height" :overscan="300" :sticky="sticky"
+            :data-border-scope="borderScope" v-on="cellHover.listeners" @range="r => range = r">
             <!-- Group headers stick to the top while their group is scrolled through, stacked: the
                  groups at the top stay named, from the root down. -->
             <template #default="{ line }">
                 <!-- The wrapper is what sticks (see .tree-group-sticky). -->
-                <div v-if="line.index < 0" class="tree-group-sticky">
+                <div v-if="line.index < 0" :class="{ 'tree-group-sticky': sticky }">
                     <GroupLineVue v-if="groupItem(line)" class="tree-group-header" :item="groupItem(line)!"
+                        :parent-ids="groupLineParents(groupItem(line)!.data)"
+                        @hover="v => hoverGroupBorder = v" @unhover="hoverGroupBorder = -1"
                         :manager="props.manager" :hide-options="props.hideOptions" :data="props.manager.result"
                         @scroll="scrollTo"
                         @group:close="onGroupClosed" @group:open="onToggled" @select="toggleGroupSelect"
@@ -330,16 +380,21 @@ watch(() => props.manager.version.value, triggerUpdate)
                 <template v-else-if="imageItem(line)">
                     <ImageLineVue v-if="imageItem(line)!.type == 'images'" :image-size="imageItem(line)!.imageSize"
                         :item="imageItem(line)!" :result="props.manager.result" :properties="props.properties"
-                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)" />
+                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)"
+                        :parent-ids="imageLineParents(line.node)" @scroll="scrollTo"
+                        @hover="v => hoverGroupBorder = v" @unhover="hoverGroupBorder = -1" />
                     <PileLine v-else :image-size="imageItem(line)!.imageSize" :item="imageItem(line)!"
                         :result="props.manager.result" :properties="visiblePropertiesCluster"
                         :sha1-scores="props.sha1Scores" :preview="props.preview"
-                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)" />
+                        @update:selected-image="e => updateImageSelection(e, imageItem(line)!)"
+                        :parent-ids="imageLineParents(line.node)" @scroll="scrollTo"
+                        @hover="v => hoverGroupBorder = v" @unhover="hoverGroupBorder = -1" />
                 </template>
             </template>
         </VirtualScroller>
     </InstanceData>
     <CellHoverTip :tip="cellHover.tip.value" @hide="cellHover.hideTip" />
+    <component :is="'style'" v-if="hoverBorderCss">{{ hoverBorderCss }}</component>
 </template>
 
 <style scoped>
